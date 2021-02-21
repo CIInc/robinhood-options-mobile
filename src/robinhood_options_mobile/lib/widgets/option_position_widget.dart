@@ -1,10 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 class OptionPositionWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -29,25 +27,14 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   @override
   void initState() {
     super.initState();
-    futureOptionInstrument = _downloadOptionInstrument(optionPosition);
+    futureOptionInstrument =
+        RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
   }
 
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
-
-  Future<OptionInstrument> _downloadOptionInstrument(OptionPosition op) async {
-    var result = await this.user.oauth2Client.read("${optionPosition.option}"
-        //"${Constants.robinHoodEndpoint}/marketdata/options/?instruments=${op.optionId}"
-        );
-    print(result);
-
-    var resultJson = jsonDecode(result);
-    var oi = new OptionInstrument.fromJson(resultJson);
-
-    return oi;
-  }
 
   Widget _buildPosition(OptionPosition optionPosition) {
     return ListView.builder(

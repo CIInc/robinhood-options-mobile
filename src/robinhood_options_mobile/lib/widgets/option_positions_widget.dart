@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_position_widget.dart';
 
 class OptionPositionsWidget extends StatefulWidget {
@@ -27,31 +25,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   @override
   void initState() {
     super.initState();
-    futureOptionPositions = _downloadOptionPositions();
-  }
-
-/*
-  // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
-  */
-
-  Future<List<OptionPosition>> _downloadOptionPositions() async {
-    var result = await this
-        .user
-        .oauth2Client
-        .read("${Constants.robinHoodEndpoint}/options/positions/");
-    print(result);
-
-    var resultJson = jsonDecode(result);
-    List<OptionPosition> optionPositions = [];
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
-      var op = new OptionPosition.fromJson(result);
-      if (op.quantity > 0) {
-        optionPositions.add(op);
-      }
-    }
-    return optionPositions;
-    //resultJson['']
+    futureOptionPositions = RobinhoodService.downloadOptionPositions(this.user);
   }
 
   Widget _buildPositions(List<OptionPosition> optionsPositions) {
