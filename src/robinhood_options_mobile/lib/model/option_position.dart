@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-@immutable
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+
+//@immutable
 class OptionPosition {
   final String account;
   final double averagePrice;
@@ -23,6 +25,7 @@ class OptionPosition {
   final DateTime updatedAt;
   final String url;
   final String optionId;
+  OptionInstrument optionInstrument;
 
   OptionPosition(
       this.account,

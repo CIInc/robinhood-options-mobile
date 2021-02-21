@@ -18,17 +18,15 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   final RobinhoodUser user;
   final OptionPosition optionPosition;
 
-  //Future<String> optionPositionJson;
-  //final _suggestions = <OptionPosition>[];
-  Future<OptionInstrument> futureOptionInstrument;
+  // Loaded with option_positions parent widget
+  //Future<OptionInstrument> futureOptionInstrument;
 
   _OptionPositionWidgetState(this.user, this.optionPosition);
 
   @override
   void initState() {
     super.initState();
-    futureOptionInstrument =
-        RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
+    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
   }
 
 /*

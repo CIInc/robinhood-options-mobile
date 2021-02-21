@@ -27,6 +27,13 @@ class RobinhoodService {
         optionPositions.add(op);
       }
     }
+    //List<OptionInstrument> instruments = [];
+    for (var i = 0; i < optionPositions.length; i++) {
+      var optionInstrument =
+          await downloadOptionInstrument(user, optionPositions[i]);
+      optionPositions[i].optionInstrument = optionInstrument;
+      //instruments.add(optionInstrument);
+    }
     return optionPositions;
   }
 

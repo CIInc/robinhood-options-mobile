@@ -4,6 +4,10 @@ import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_position_widget.dart';
 
+import 'package:intl/intl.dart';
+
+DateFormat dateFormat = DateFormat("yMMMd");
+
 class OptionPositionsWidget extends StatefulWidget {
   final RobinhoodUser user;
   OptionPositionsWidget(this.user);
@@ -45,18 +49,20 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           return new ListTile(
             leading: CircleAvatar(
                 //backgroundImage: AssetImage(user.profilePicture),
-                child: index.isOdd
-                    ? new Icon(Icons.ac_unit)
-                    : new Icon(Icons.alarm)
+                child: optionsPositions[index].optionInstrument.type == 'call'
+                    ? new Icon(Icons.trending_up)
+                    : new Icon(Icons.trending_down)
                 // child: new Text(optionsPositions[i].symbol)
                 ),
             // trailing: user.icon,
-            title: new Text(optionsPositions[index]
-                .chainSymbol), // , style: TextStyle(fontSize: 18.0)
+            title: new Text(
+                '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
             subtitle: new Text(
-                "quantity: ${optionsPositions[index].quantity.toString()}, avg price: \$${optionsPositions[index].averagePrice.toString()}"),
+                '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
             trailing: new Text(
-                "\$${optionsPositions[index].averagePrice.toString()}"),
+              "\$${optionsPositions[index].averagePrice.toString()}",
+              //style: TextStyle(fontSize: 18.0),
+            ),
             onTap: () {
               Navigator.push(
                   context,
