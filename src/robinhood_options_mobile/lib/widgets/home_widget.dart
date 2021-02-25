@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'dart:convert';
-
-import 'package:oauth2/oauth2.dart' as oauth2;
 
 // import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+
+import 'option_position_widget.dart';
 
 class DrawerItem {
   String title;
@@ -87,79 +89,142 @@ class _HomePageState extends State<HomePage> {
         builder: (context, AsyncSnapshot<RobinhoodUser> snapshot) {
           // Can chain new FutureBuilder()'s here
 
-          List<Widget> widgets = [];
           if (snapshot.hasData) {
             if (snapshot.data.userName != null) {
-              widgets.add(_buildWelcomeWidget(snapshot.data));
-              widgets.add(Container(
-                  height: 640,
-                  child: new OptionPositionsWidget(snapshot.data)));
-              /*
-              widgets.add(LayoutBuilder(
-                builder: (context, constraints) {
-                  return new OptionPositionsWidget(snapshot.data);
+              Future<List<OptionPosition>> futureOptionPositions =
+                  RobinhoodService.downloadOptionPositions(snapshot.data);
+              return new FutureBuilder(
+                future: futureOptionPositions,
+                builder: (context1, snapshot1) {
+                  if (snapshot1.hasData) {
+                    //var positionsWidget = _buildPositions(snapshot1.data, snapshot.data);
+                    var welcomeWidget = _buildWelcomeWidget(snapshot.data);
+                    return _buildCustomScrollView(
+                        snapshot.data, welcomeWidget, snapshot1.data);
+                  } else if (snapshot1.hasError) {
+                    print("${snapshot1.error}");
+                    return _buildCustomScrollView(
+                        snapshot.data, Text("${snapshot.error}"), null);
+                  } else {
+                    return _buildCustomScrollView(
+                        snapshot.data,
+                        Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        null);
+                  }
                 },
-              ));
-              */
-              //widgets.add(new LoginWidget());
-              //widgets.add(SingleChildScrollView(
-              //    child: new OptionPositionsWidget(snapshot.data)));
-              //widgets.add(new OptionPositionsWidget(snapshot.data));
+              );
             } else {
-              widgets.add(_buildLogin());
+              return _buildCustomScrollView(snapshot.data, _buildLogin(), null);
             }
           } else if (snapshot.hasError) {
             print("${snapshot.error}");
-            widgets.add(Text("${snapshot.error}"));
+            return _buildCustomScrollView(
+                snapshot.data, Text("${snapshot.error}"), null);
           } else {
-            widgets.add(Center(
-              child: CircularProgressIndicator(),
-            ));
+            return _buildCustomScrollView(
+                snapshot.data,
+                Center(
+                  child: CircularProgressIndicator(),
+                ),
+                null);
           }
+        });
+  }
 
-          return CustomScrollView(
-            slivers: <Widget>[
-              SliverAppBar(
-                // title: new Text('Robinhood Options'),
-                /* Drawer will automatically add menu to SliverAppBar.
+  CustomScrollView _buildCustomScrollView(RobinhoodUser ru,
+      Widget welcomeWidget, List<OptionPosition> optionsPositions) {
+    var slivers = <Widget>[];
+    slivers.add(SliverAppBar(
+      title: new Text('Robinhood Options'),
+      /* Drawer will automatically add menu to SliverAppBar.
                 leading: IconButton(
                   icon: const Icon(Icons.menu),
                   tooltip: 'Menu',
                   onPressed: () {/* ... */},
                 ),*/
-                // backgroundColor: Colors.green,
-                // brightness: Brightness.light,
-                expandedHeight: 250.0,
-                flexibleSpace: const FlexibleSpaceBar(
-                  title: Text('Robinhood Options'),
-                ),
-                actions: <Widget>[
-                  IconButton(
-                    icon: snapshot.hasData && snapshot.data.userName != null
-                        ? const Icon(Icons.logout)
-                        : Icon(Icons.login),
-                    tooltip: 'Add new entry',
-                    onPressed: () {
-                      if (snapshot.hasData && snapshot.data.userName != null) {
-                        _logout();
-                      } else {
-                        _openLogin();
-                      }
-                      /* ... */
-                    },
-                  ),
-                ],
-                /*
+      // backgroundColor: Colors.green,
+      // brightness: Brightness.light,
+      expandedHeight: 250.0,
+      flexibleSpace: (ru != null && ru.userName != null
+          ? const FlexibleSpaceBar(title: Text('\$100,000.00'))
+          : null),
+      actions: <Widget>[
+        IconButton(
+          icon: ru != null && ru.userName != null
+              ? const Icon(Icons.logout)
+              : Icon(Icons.login),
+          tooltip: 'Add new entry',
+          onPressed: () {
+            if (ru != null && ru.userName != null) {
+              _logout();
+            } else {
+              _openLogin();
+            }
+            /* ... */
+          },
+        ),
+      ],
+      /*
                   bottom: PreferredSize(
                     child: Icon(Icons.linear_scale, size: 60.0),
                     preferredSize: Size.fromHeight(50.0))
                     */
-                floating: false,
-                pinned: false,
-                snap: false,
-              ),
-              SliverList(
-                // delegate: SliverChildListDelegate(widgets),
+      floating: false,
+      pinned: false,
+      snap: false,
+    ));
+    if (welcomeWidget != null) {
+      slivers.add(SliverPersistentHeader(
+        pinned: false,
+        delegate: PersistentHeader("Balance"),
+      ));
+      slivers.add(SliverToBoxAdapter(child: welcomeWidget));
+      slivers.add(SliverToBoxAdapter(
+          child: Container(
+        // color: Colors.white,
+        height: 150.0,
+        child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
+      )));
+    }
+    if (optionsPositions != null) {
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("Options"),
+        ),
+      );
+      slivers.add(SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            if (optionsPositions.length > index) {
+              return _buildOptionPositionRow(optionsPositions, index, ru);
+            }
+            if (index > optionsPositions.length) return null;
+            // To convert this infinite list to a list with three items,
+            // uncomment the following line:
+            // if (index > 3) return null;
+          },
+          // Or, uncomment the following line:
+          // childCount: widgets.length + 10,
+        ),
+      ));
+    }
+    slivers.add(SliverPersistentHeader(
+      // pinned: true,
+      delegate: PersistentHeader("Disclaimers"),
+    ));
+    slivers.add(SliverToBoxAdapter(
+        child: Container(
+            color: Colors.white,
+            height: 150.0,
+            child: Align(
+                alignment: Alignment.center, child: Text("Lorem ipsum")))));
+    /*
+              SliverFixedExtentList(
+                itemExtent: 100.0,
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
                     if (widgets.length > index) {
@@ -180,15 +245,66 @@ class _HomePageState extends State<HomePage> {
                   // Or, uncomment the following line:
                   // childCount: widgets.length + 10,
                 ),
-              )
-              /*
-                delegate: SliverChildListDelegate([
-            ])
+              ),
+              */
+    /*
+              SliverPadding(
+                  padding: EdgeInsets.all(50),
+                  sliver: SliverList(
+                    // delegate: SliverChildListDelegate(widgets),
+                    delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                        if (widgets.length > index) {
+                          return widgets[index];
+                        }
+                        if (index > widgets.length + 10) return null;
+                        // To convert this infinite list to a list with three items,
+                        // uncomment the following line:
+                        // if (index > 3) return null;
+                        return Container(
+                          color: Colors.white,
+                          height: 150.0,
+                          child: Align(
+                              alignment: Alignment.center,
+                              child: Text("Lorem ipsum")),
+                        );
+                      },
+                      // Or, uncomment the following line:
+                      // childCount: widgets.length + 10,
+                    ),
+                  ))
                   */
-              // HomePage(title: 'Robinhood Options')
-            ],
-          );
-        });
+
+    return CustomScrollView(slivers: slivers);
+  }
+
+  Widget _buildOptionPositionRow(
+      List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
+    return new ListTile(
+      leading: CircleAvatar(
+          //backgroundImage: AssetImage(user.profilePicture),
+          child: optionsPositions[index].optionInstrument.type == 'call'
+              ? new Icon(Icons.trending_up)
+              : new Icon(Icons.trending_down)
+          // child: new Text(optionsPositions[i].symbol)
+          ),
+      // trailing: user.icon,
+      title: new Text(
+          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
+      subtitle: new Text(
+          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
+      trailing: new Text(
+        "\$${optionsPositions[index].averagePrice.toString()}",
+        //style: TextStyle(fontSize: 18.0),
+      ),
+      onTap: () {
+        Navigator.push(
+            context,
+            new MaterialPageRoute(
+                builder: (context) =>
+                    new OptionPositionWidget(ru, optionsPositions[index])));
+      },
+    );
   }
 
   Widget _buildWelcomeWidget(RobinhoodUser ru) {
@@ -371,4 +487,39 @@ class _HomePageState extends State<HomePage> {
         });
   }
   */
+}
+
+class PersistentHeader extends SliverPersistentHeaderDelegate {
+  final String title;
+  PersistentHeader(this.title);
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+        color: Colors.white,
+        child: Card(
+            color: Colors.white,
+            elevation: 3.0,
+            child: SizedBox(
+              height: 80.0,
+              child: Center(
+                child: Text(
+                  title,
+                  style: TextStyle(fontSize: 20.0),
+                ),
+              ),
+            )));
+  }
+
+  @override
+  double get maxExtent => 80.0;
+
+  @override
+  double get minExtent => 80.0;
+
+  @override
+  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
+    return false;
+  }
 }
