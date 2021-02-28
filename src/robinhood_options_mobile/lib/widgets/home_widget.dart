@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/model/position.dart';
 import 'dart:convert';
 
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -10,22 +11,26 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
 import 'option_position_widget.dart';
 
+/*
 class DrawerItem {
   String title;
   IconData icon;
   DrawerItem(this.title, this.icon);
 }
-
+*/
 class HomePage extends StatefulWidget {
+  /*
   final drawerItems = [
     new DrawerItem("Home", Icons.home),
     //new DrawerItem("Account", Icons.verified_user),
     new DrawerItem("Options", Icons.library_books),
     new DrawerItem("Logout", Icons.logout),
   ];
+  */
 
   HomePage({Key key, this.title}) : super(key: key);
 
@@ -86,55 +91,66 @@ class _HomePageState extends State<HomePage> {
   _buildHomePage() {
     return new FutureBuilder(
         future: user,
-        builder: (context, AsyncSnapshot<RobinhoodUser> snapshot) {
+        builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
           // Can chain new FutureBuilder()'s here
 
-          if (snapshot.hasData) {
-            if (snapshot.data.userName != null) {
+          if (userSnapshot.hasData) {
+            RobinhoodUser snapshotUser = userSnapshot.data;
+            if (snapshotUser.userName != null) {
+              Future<List<Position>> futurePositions =
+                  RobinhoodService.downloadPositions(snapshotUser);
+
               Future<List<OptionPosition>> futureOptionPositions =
-                  RobinhoodService.downloadOptionPositions(snapshot.data);
+                  RobinhoodService.downloadOptionPositions(snapshotUser);
+
+              Future<List<dynamic>> futureWatchlists =
+                  RobinhoodService.downloadWatchlists(snapshotUser);
+
               return new FutureBuilder(
-                future: futureOptionPositions,
-                builder: (context1, snapshot1) {
-                  if (snapshot1.hasData) {
-                    //var positionsWidget = _buildPositions(snapshot1.data, snapshot.data);
-                    var welcomeWidget = _buildWelcomeWidget(snapshot.data);
+                future: Future.wait(
+                    [futurePositions, futureOptionPositions, futureWatchlists]),
+                builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
+                  if (dataSnapshot.hasData) {
+                    var welcomeWidget = _buildWelcomeWidget(snapshotUser);
+                    return _buildCustomScrollView(snapshotUser, welcomeWidget,
+                        positions: dataSnapshot.data[0],
+                        optionsPositions: dataSnapshot.data[1],
+                        watchLists: dataSnapshot.data[2]);
+                  } else if (dataSnapshot.hasError) {
+                    print("${dataSnapshot.error}");
                     return _buildCustomScrollView(
-                        snapshot.data, welcomeWidget, snapshot1.data);
-                  } else if (snapshot1.hasError) {
-                    print("${snapshot1.error}");
-                    return _buildCustomScrollView(
-                        snapshot.data, Text("${snapshot.error}"), null);
+                        snapshotUser, Text("${dataSnapshot.error}"));
                   } else {
                     return _buildCustomScrollView(
-                        snapshot.data,
+                        snapshotUser,
                         Center(
                           child: CircularProgressIndicator(),
-                        ),
-                        null);
+                        ));
                   }
                 },
               );
             } else {
-              return _buildCustomScrollView(snapshot.data, _buildLogin(), null);
+              return _buildCustomScrollView(snapshotUser, _buildLogin());
             }
-          } else if (snapshot.hasError) {
-            print("${snapshot.error}");
-            return _buildCustomScrollView(
-                snapshot.data, Text("${snapshot.error}"), null);
+          } else if (userSnapshot.hasError) {
+            print("${userSnapshot.error}");
+            return _buildCustomScrollView(null, Text("${userSnapshot.error}"));
           } else {
             return _buildCustomScrollView(
-                snapshot.data,
-                Center(
-                  child: CircularProgressIndicator(),
-                ),
-                null);
+              null,
+              Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
           }
         });
   }
 
-  CustomScrollView _buildCustomScrollView(RobinhoodUser ru,
-      Widget welcomeWidget, List<OptionPosition> optionsPositions) {
+  CustomScrollView _buildCustomScrollView(
+      RobinhoodUser ru, Widget welcomeWidget,
+      {dynamic positions,
+      List<OptionPosition> optionsPositions,
+      List<dynamic> watchLists}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
       title: new Text('Robinhood Options'),
@@ -188,7 +204,7 @@ class _HomePageState extends State<HomePage> {
         child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
       )));
     }
-    if (optionsPositions != null) {
+    if (positions != null) {
       slivers.add(
         SliverPersistentHeader(
           pinned: false,
@@ -202,7 +218,55 @@ class _HomePageState extends State<HomePage> {
             if (optionsPositions.length > index) {
               return _buildOptionPositionRow(optionsPositions, index, ru);
             }
-            if (index > optionsPositions.length) return null;
+            return null;
+            // To convert this infinite list to a list with three items,
+            // uncomment the following line:
+            // if (index > 3) return null;
+          },
+          // Or, uncomment the following line:
+          // childCount: widgets.length + 10,
+        ),
+      ));
+    }
+    if (optionsPositions != null) {
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("Positions"),
+        ),
+      );
+      slivers.add(SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            if (positions.length > index) {
+              return _buildPositionRow(positions, index, ru);
+            }
+            return null;
+            // To convert this infinite list to a list with three items,
+            // uncomment the following line:
+            // if (index > 3) return null;
+          },
+          // Or, uncomment the following line:
+          // childCount: widgets.length + 10,
+        ),
+      ));
+    }
+    if (watchLists != null) {
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("Watch Lists"),
+        ),
+      );
+      slivers.add(SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            if (watchLists.length > index) {
+              return _buildWatchlistRow(watchLists, index, ru);
+            }
+            return null;
             // To convert this infinite list to a list with three items,
             // uncomment the following line:
             // if (index > 3) return null;
@@ -278,6 +342,37 @@ class _HomePageState extends State<HomePage> {
     return CustomScrollView(slivers: slivers);
   }
 
+  Widget _buildPositionRow(
+      List<Position> positions, int index, RobinhoodUser ru) {
+    return new ListTile(title: new Text('${positions[index].instrument} ')
+        /*
+      leading: CircleAvatar(
+          //backgroundImage: AssetImage(user.profilePicture),
+          child: optionsPositions[index].optionInstrument.type == 'call'
+              ? new Icon(Icons.trending_up)
+              : new Icon(Icons.trending_down)
+          // child: new Text(optionsPositions[i].symbol)
+          ),
+      // trailing: user.icon,
+      title: new Text(
+          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
+      subtitle: new Text(
+          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
+      trailing: new Text(
+        "\$${optionsPositions[index].averagePrice.toString()}",
+        //style: TextStyle(fontSize: 18.0),
+      ),
+      onTap: () {
+        Navigator.push(
+            context,
+            new MaterialPageRoute(
+                builder: (context) =>
+                    new OptionPositionWidget(ru, optionsPositions[index])));
+      },
+      */
+        );
+  }
+
   Widget _buildOptionPositionRow(
       List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
     return new ListTile(
@@ -305,6 +400,37 @@ class _HomePageState extends State<HomePage> {
                     new OptionPositionWidget(ru, optionsPositions[index])));
       },
     );
+  }
+
+  Widget _buildWatchlistRow(
+      List<dynamic> watchLists, int index, RobinhoodUser ru) {
+    return new ListTile(title: new Text(watchLists[index].toString())
+        /*
+      leading: CircleAvatar(
+          //backgroundImage: AssetImage(user.profilePicture),
+          child: optionsPositions[index].optionInstrument.type == 'call'
+              ? new Icon(Icons.trending_up)
+              : new Icon(Icons.trending_down)
+          // child: new Text(optionsPositions[i].symbol)
+          ),
+      // trailing: user.icon,
+      title: new Text(
+          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
+      subtitle: new Text(
+          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
+      trailing: new Text(
+        "\$${optionsPositions[index].averagePrice.toString()}",
+        //style: TextStyle(fontSize: 18.0),
+      ),
+      onTap: () {
+        Navigator.push(
+            context,
+            new MaterialPageRoute(
+                builder: (context) =>
+                    new OptionPositionWidget(ru, optionsPositions[index])));
+      },
+      */
+        );
   }
 
   Widget _buildWelcomeWidget(RobinhoodUser ru) {
@@ -487,39 +613,4 @@ class _HomePageState extends State<HomePage> {
         });
   }
   */
-}
-
-class PersistentHeader extends SliverPersistentHeaderDelegate {
-  final String title;
-  PersistentHeader(this.title);
-
-  @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-        color: Colors.white,
-        child: Card(
-            color: Colors.white,
-            elevation: 3.0,
-            child: SizedBox(
-              height: 80.0,
-              child: Center(
-                child: Text(
-                  title,
-                  style: TextStyle(fontSize: 20.0),
-                ),
-              ),
-            )));
-  }
-
-  @override
-  double get maxExtent => 80.0;
-
-  @override
-  double get minExtent => 80.0;
-
-  @override
-  bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
-  }
 }
