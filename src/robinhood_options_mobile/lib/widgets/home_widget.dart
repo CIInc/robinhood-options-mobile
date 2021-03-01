@@ -7,8 +7,10 @@ import 'dart:convert';
 // import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
@@ -111,34 +113,37 @@ class _HomePageState extends State<HomePage> {
                     [futurePositions, futureOptionPositions, futureWatchlists]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
-                    var welcomeWidget = _buildWelcomeWidget(snapshotUser);
-                    return _buildCustomScrollView(snapshotUser, welcomeWidget,
+                    //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
+                    return _buildCustomScrollView(
+                        ru: snapshotUser,
                         positions: dataSnapshot.data[0],
                         optionsPositions: dataSnapshot.data[1],
                         watchLists: dataSnapshot.data[2]);
                   } else if (dataSnapshot.hasError) {
                     print("${dataSnapshot.error}");
                     return _buildCustomScrollView(
-                        snapshotUser, Text("${dataSnapshot.error}"));
+                        ru: snapshotUser,
+                        welcomeWidget: Text("${dataSnapshot.error}"));
                   } else {
                     return _buildCustomScrollView(
-                        snapshotUser,
-                        Center(
+                        ru: snapshotUser,
+                        welcomeWidget: Center(
                           child: CircularProgressIndicator(),
                         ));
                   }
                 },
               );
             } else {
-              return _buildCustomScrollView(snapshotUser, _buildLogin());
+              return _buildCustomScrollView(
+                  ru: snapshotUser, welcomeWidget: _buildLogin());
             }
           } else if (userSnapshot.hasError) {
             print("${userSnapshot.error}");
-            return _buildCustomScrollView(null, Text("${userSnapshot.error}"));
+            return _buildCustomScrollView(
+                welcomeWidget: Text("${userSnapshot.error}"));
           } else {
             return _buildCustomScrollView(
-              null,
-              Center(
+              welcomeWidget: Center(
                 child: CircularProgressIndicator(),
               ),
             );
@@ -147,8 +152,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   CustomScrollView _buildCustomScrollView(
-      RobinhoodUser ru, Widget welcomeWidget,
-      {dynamic positions,
+      {RobinhoodUser ru,
+      Widget welcomeWidget,
+      List<Position> positions,
       List<OptionPosition> optionsPositions,
       List<dynamic> watchLists}) {
     var slivers = <Widget>[];
@@ -191,90 +197,106 @@ class _HomePageState extends State<HomePage> {
       pinned: false,
       snap: false,
     ));
-    if (welcomeWidget != null) {
+
+    if (ru != null && ru.userName != null) {
       slivers.add(SliverPersistentHeader(
         pinned: false,
-        delegate: PersistentHeader("Balance"),
+        delegate: PersistentHeader("Account"),
       ));
-      slivers.add(SliverToBoxAdapter(child: welcomeWidget));
+      slivers.add(SliverToBoxAdapter(
+          child: Container(
+              height: 80.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: new Text("Welcome ${ru.userName}")))));
+      /*
       slivers.add(SliverToBoxAdapter(
           child: Container(
         // color: Colors.white,
         height: 150.0,
         child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
       )));
-    }
-    if (positions != null) {
-      slivers.add(
-        SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Options"),
-        ),
-      );
-      slivers.add(SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            if (optionsPositions.length > index) {
-              return _buildOptionPositionRow(optionsPositions, index, ru);
-            }
-            return null;
-            // To convert this infinite list to a list with three items,
-            // uncomment the following line:
-            // if (index > 3) return null;
-          },
-          // Or, uncomment the following line:
-          // childCount: widgets.length + 10,
-        ),
-      ));
-    }
-    if (optionsPositions != null) {
-      slivers.add(
-        SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Positions"),
-        ),
-      );
-      slivers.add(SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            if (positions.length > index) {
-              return _buildPositionRow(positions, index, ru);
-            }
-            return null;
-            // To convert this infinite list to a list with three items,
-            // uncomment the following line:
-            // if (index > 3) return null;
-          },
-          // Or, uncomment the following line:
-          // childCount: widgets.length + 10,
-        ),
-      ));
-    }
-    if (watchLists != null) {
-      slivers.add(
-        SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Watch Lists"),
-        ),
-      );
-      slivers.add(SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            if (watchLists.length > index) {
-              return _buildWatchlistRow(watchLists, index, ru);
-            }
-            return null;
-            // To convert this infinite list to a list with three items,
-            // uncomment the following line:
-            // if (index > 3) return null;
-          },
-          // Or, uncomment the following line:
-          // childCount: widgets.length + 10,
-        ),
-      ));
+      */
+      if (welcomeWidget != null) {
+        slivers.add(SliverToBoxAdapter(
+            child: Container(
+          // color: Colors.white,
+          height: 150.0,
+          child: Align(alignment: Alignment.center, child: welcomeWidget),
+        )));
+      }
+      if (optionsPositions != null) {
+        slivers.add(
+          SliverPersistentHeader(
+            pinned: false,
+            delegate: PersistentHeader("Options"),
+          ),
+        );
+        slivers.add(SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              if (optionsPositions.length > index) {
+                return _buildOptionPositionRow(optionsPositions, index, ru);
+              }
+              return null;
+              // To convert this infinite list to a list with three items,
+              // uncomment the following line:
+              // if (index > 3) return null;
+            },
+            // Or, uncomment the following line:
+            // childCount: widgets.length + 10,
+          ),
+        ));
+      }
+      if (positions != null) {
+        slivers.add(
+          SliverPersistentHeader(
+            pinned: false,
+            delegate: PersistentHeader("Positions"),
+          ),
+        );
+        slivers.add(SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              if (positions.length > index) {
+                return _buildPositionRow(positions, index, ru);
+              }
+              return null;
+              // To convert this infinite list to a list with three items,
+              // uncomment the following line:
+              // if (index > 3) return null;
+            },
+            // Or, uncomment the following line:
+            // childCount: widgets.length + 10,
+          ),
+        ));
+      }
+      if (watchLists != null) {
+        slivers.add(
+          SliverPersistentHeader(
+            pinned: false,
+            delegate: PersistentHeader("Watch Lists"),
+          ),
+        );
+        slivers.add(SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              if (watchLists.length > index) {
+                return _buildWatchlistRow(watchLists, index, ru);
+              }
+              return null;
+              // To convert this infinite list to a list with three items,
+              // uncomment the following line:
+              // if (index > 3) return null;
+            },
+            // Or, uncomment the following line:
+            // childCount: widgets.length + 10,
+          ),
+        ));
+      }
     }
     slivers.add(SliverPersistentHeader(
       // pinned: true,
@@ -285,7 +307,9 @@ class _HomePageState extends State<HomePage> {
             color: Colors.white,
             height: 150.0,
             child: Align(
-                alignment: Alignment.center, child: Text("Lorem ipsum")))));
+                alignment: Alignment.center,
+                child: Text(
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
     /*
               SliverFixedExtentList(
                 itemExtent: 100.0,
@@ -403,36 +427,37 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWatchlistRow(
-      List<dynamic> watchLists, int index, RobinhoodUser ru) {
-    return new ListTile(title: new Text(watchLists[index].toString())
-        /*
+      List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+    return new ListTile(
+      /*
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
-          child: optionsPositions[index].optionInstrument.type == 'call'
+          child: watchLists[index].type == 'call'
               ? new Icon(Icons.trending_up)
               : new Icon(Icons.trending_down)
           // child: new Text(optionsPositions[i].symbol)
           ),
+          */
       // trailing: user.icon,
       title: new Text(
-          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
+          '${watchLists[index].instrument.symbol}'), // , style: TextStyle(fontSize: 18.0)
       subtitle: new Text(
-          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
+          '${watchLists[index].instrument.name} ${watchLists[index].instrument.country}'),
       trailing: new Text(
-        "\$${optionsPositions[index].averagePrice.toString()}",
+        "${dateFormat.format(watchLists[index].instrument.listDate)}",
         //style: TextStyle(fontSize: 18.0),
       ),
       onTap: () {
+        var instrument = watchLists[index].instrument;
         Navigator.push(
             context,
             new MaterialPageRoute(
-                builder: (context) =>
-                    new OptionPositionWidget(ru, optionsPositions[index])));
+                builder: (context) => new InstrumentWidget(ru, instrument)));
       },
-      */
-        );
+    );
   }
 
+/*
   Widget _buildWelcomeWidget(RobinhoodUser ru) {
     return Column(
       children: [
@@ -445,6 +470,7 @@ class _HomePageState extends State<HomePage> {
       ],
     );
   }
+  */
 
   _buildLogin() {
     return Column(

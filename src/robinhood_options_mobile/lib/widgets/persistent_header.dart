@@ -31,6 +31,6 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
+    return true; // was set to false initially, but it wasn't updating the header names once data loaded with this method set to true
   }
 }

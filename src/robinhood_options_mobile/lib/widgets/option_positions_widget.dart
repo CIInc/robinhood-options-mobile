@@ -8,6 +8,9 @@ import 'package:intl/intl.dart';
 
 DateFormat dateFormat = DateFormat("yMMMd");
 
+/* 
+NOT USED
+*/
 class OptionPositionsWidget extends StatefulWidget {
   final RobinhoodUser user;
   OptionPositionsWidget(this.user);

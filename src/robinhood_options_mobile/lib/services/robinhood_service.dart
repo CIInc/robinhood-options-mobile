@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
 class RobinhoodService {
 /*
@@ -66,11 +68,27 @@ class RobinhoodService {
   static Future<List<dynamic>> downloadWatchlists(RobinhoodUser user) async {
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
-    // "instrument" -> "https://api.robinhood.com/instruments/b1d51de1-b1b7-42eb-87c3-6d383091cb3b/"
-    // "created_at" -> "2015-02-11T18:22:53.825192Z"
-    // "watchlist" -> "https://api.robinhood.com/watchlists/Default/"
-    // "url" -> "https://api.robinhood.com/watchlists/Default/b1d51de1-b1b7-42eb-87c3-6d383091cb3b/"
-    return results;
+    List<WatchlistItem> watchlistItems = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = WatchlistItem.fromJson(result);
+      watchlistItems.add(op);
+    }
+    var instrumentUrls = watchlistItems.map((e) => e.instrumentUrl).toList();
+    List<String> distinctInstrumentUrls = [
+      ...{...instrumentUrls}
+    ];
+    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
+      var instrumentResponse =
+          await user.oauth2Client.read(distinctInstrumentUrls[i]);
+      var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
+      var itemsToUpdate = watchlistItems.where(
+          (element) => element.instrumentUrl == distinctInstrumentUrls[i]);
+      itemsToUpdate.forEach((element) {
+        element.instrument = instrument;
+      });
+    }
+    return watchlistItems;
   }
 
   static pagedGet(RobinhoodUser user, String url) async {
