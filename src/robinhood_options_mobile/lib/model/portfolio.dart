@@ -82,11 +82,16 @@ class Portfolio {
         startDate = DateTime.tryParse(json['start_date']),
         marketValue = double.tryParse(json['market_value']),
         equity = double.tryParse(json['equity']),
-        extendedHoursMarketValue =
-            double.tryParse(json['extended_hours_market_value']),
-        extendedHoursEquity = double.tryParse(json['extended_hours_equity']),
+        extendedHoursMarketValue = json['extended_hours_market_value'] != null
+            ? double.tryParse(json['extended_hours_market_value'])
+            : null,
+        extendedHoursEquity = json['extended_hours_equity'] != null
+            ? double.tryParse(json['extended_hours_equity'])
+            : null,
         extendedHoursPortfolioEquity =
-            double.tryParse(json['extended_hours_portfolio_equity']),
+            json['extended_hours_portfolio_equity'] != null
+                ? double.tryParse(json['extended_hours_portfolio_equity'])
+                : null,
         lastCoreMarketValue = double.tryParse(json['last_core_market_value']),
         lastCoreEquity = double.tryParse(json['last_core_equity']),
         lastCorePortfolioEquity =

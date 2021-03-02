@@ -171,7 +171,9 @@ class _HomePageState extends State<HomePage> {
       List<dynamic> watchLists}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
+      /*
       title: new Text('Robinhood Options'),
+      */
       /* Drawer will automatically add menu to SliverAppBar.
                 leading: IconButton(
                   icon: const Icon(Icons.menu),
@@ -205,7 +207,7 @@ class _HomePageState extends State<HomePage> {
               ]),
               centerTitle: false,
             )
-          : null),
+          : Text('Robinhood Options')),
       actions: <Widget>[
         IconButton(
           icon: ru != null && ru.userName != null
@@ -228,7 +230,7 @@ class _HomePageState extends State<HomePage> {
                     preferredSize: Size.fromHeight(50.0))
                     */
       floating: false,
-      pinned: false,
+      pinned: true,
       snap: false,
     ));
 

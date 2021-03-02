@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
 @immutable
 class MinTicks {
@@ -8,7 +9,7 @@ class MinTicks {
   MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
 }
 
-@immutable
+//@immutable
 class OptionInstrument {
   final String chainId;
   final String chainSymbol;
@@ -26,6 +27,8 @@ class OptionInstrument {
   final DateTime updatedAt;
   final String url;
   final DateTime selloutDateTime;
+
+  OptionMarketData optionMarketData;
 
   OptionInstrument(
       this.chainId,

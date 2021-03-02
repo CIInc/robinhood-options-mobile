@@ -64,7 +64,9 @@ class Quote {
         bidSize = json['bid_size'],
         lastTradePrice = double.tryParse(json['last_trade_price']),
         lastExtendedHoursTradePrice =
-            double.tryParse(json['last_extended_hours_trade_price']),
+            json['last_extended_hours_trade_price'] != null
+                ? double.tryParse(json['last_extended_hours_trade_price'])
+                : null,
         previousClose = double.tryParse(json['previous_close']),
         adjustedPreviousClose =
             double.tryParse(json['adjusted_previous_close']),
