@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/constants.dart';
-import 'package:robinhood_options_mobile/model/option_position.dart';
-import 'package:robinhood_options_mobile/model/position.dart';
 import 'dart:convert';
-
+import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/model/portfolio.dart';
+import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -16,6 +17,8 @@ import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
 import 'option_position_widget.dart';
+
+final formatCurrency = new NumberFormat.simpleCurrency();
 
 /*
 class DrawerItem {
@@ -99,6 +102,9 @@ class _HomePageState extends State<HomePage> {
           if (userSnapshot.hasData) {
             RobinhoodUser snapshotUser = userSnapshot.data;
             if (snapshotUser.userName != null) {
+              Future<List<Portfolio>> futurePortfolios =
+                  RobinhoodService.downloadPortfolios(snapshotUser);
+
               Future<List<Position>> futurePositions =
                   RobinhoodService.downloadPositions(snapshotUser);
 
@@ -109,16 +115,21 @@ class _HomePageState extends State<HomePage> {
                   RobinhoodService.downloadWatchlists(snapshotUser);
 
               return new FutureBuilder(
-                future: Future.wait(
-                    [futurePositions, futureOptionPositions, futureWatchlists]),
+                future: Future.wait([
+                  futurePortfolios,
+                  futurePositions,
+                  futureOptionPositions,
+                  futureWatchlists
+                ]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
                     return _buildCustomScrollView(
                         ru: snapshotUser,
-                        positions: dataSnapshot.data[0],
-                        optionsPositions: dataSnapshot.data[1],
-                        watchLists: dataSnapshot.data[2]);
+                        portfolios: dataSnapshot.data[0],
+                        positions: dataSnapshot.data[1],
+                        optionsPositions: dataSnapshot.data[2],
+                        watchLists: dataSnapshot.data[3]);
                   } else if (dataSnapshot.hasError) {
                     print("${dataSnapshot.error}");
                     return _buildCustomScrollView(
@@ -154,6 +165,7 @@ class _HomePageState extends State<HomePage> {
   CustomScrollView _buildCustomScrollView(
       {RobinhoodUser ru,
       Widget welcomeWidget,
+      List<Portfolio> portfolios,
       List<Position> positions,
       List<OptionPosition> optionsPositions,
       List<dynamic> watchLists}) {
@@ -169,8 +181,30 @@ class _HomePageState extends State<HomePage> {
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
       expandedHeight: 250.0,
-      flexibleSpace: (ru != null && ru.userName != null
-          ? const FlexibleSpaceBar(title: Text('\$100,000.00'))
+      flexibleSpace: (ru != null && ru.userName != null && portfolios != null
+          ? FlexibleSpaceBar(
+              title: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Equity ${formatCurrency.format(portfolios[0].equity)}')
+                ]),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Change ${formatCurrency.format(portfolios[0].equity - portfolios[0].equityPreviousClose)}',
+                      style: TextStyle(fontSize: 14.0),
+                    ),
+                  ],
+                ),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    'Trading since ${dateFormat.format(portfolios[0].startDate)}',
+                    style: TextStyle(fontSize: 10.0),
+                  )
+                ]),
+              ]),
+              centerTitle: false,
+            )
           : null),
       actions: <Widget>[
         IconButton(
@@ -225,6 +259,32 @@ class _HomePageState extends State<HomePage> {
           child: Align(alignment: Alignment.center, child: welcomeWidget),
         )));
       }
+      /*
+      if (portfolios != null) {
+        slivers.add(
+          SliverPersistentHeader(
+            pinned: false,
+            delegate: PersistentHeader("Portfolios"),
+          ),
+        );
+        slivers.add(SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              if (portfolios.length > index) {
+                return Text('\$${portfolios[index].equity}');
+              }
+              return null;
+              // To convert this infinite list to a list with three items,
+              // uncomment the following line:
+              // if (index > 3) return null;
+            },
+            // Or, uncomment the following line:
+            // childCount: widgets.length + 10,
+          ),
+        ));
+      }
+      */
       if (optionsPositions != null) {
         slivers.add(
           SliverPersistentHeader(
@@ -368,8 +428,13 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildPositionRow(
       List<Position> positions, int index, RobinhoodUser ru) {
-    return new ListTile(title: new Text('${positions[index].instrument} ')
-        /*
+    return new ListTile(
+      title: new Text('${positions[index].instrumentObj.symbol}'),
+      subtitle: new Text(
+          '${positions[index].quantity} shares - avg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+      trailing: new Text(
+          '${formatCurrency.format(positions[index].quantity * positions[index].instrumentObj.quoteObj.lastTradePrice)}'),
+      /*
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
           child: optionsPositions[index].optionInstrument.type == 'call'
@@ -394,7 +459,7 @@ class _HomePageState extends State<HomePage> {
                     new OptionPositionWidget(ru, optionsPositions[index])));
       },
       */
-        );
+    );
   }
 
   Widget _buildOptionPositionRow(
@@ -440,19 +505,19 @@ class _HomePageState extends State<HomePage> {
           */
       // trailing: user.icon,
       title: new Text(
-          '${watchLists[index].instrument.symbol}'), // , style: TextStyle(fontSize: 18.0)
+          '${watchLists[index].instrumentObj.symbol}'), // , style: TextStyle(fontSize: 18.0)
       subtitle: new Text(
-          '${watchLists[index].instrument.name} ${watchLists[index].instrument.country}'),
+          '${watchLists[index].instrumentObj.name} ${watchLists[index].instrumentObj.country}'),
       trailing: new Text(
-        "${dateFormat.format(watchLists[index].instrument.listDate)}",
+        "${dateFormat.format(watchLists[index].instrumentObj.listDate)}",
         //style: TextStyle(fontSize: 18.0),
       ),
       onTap: () {
-        var instrument = watchLists[index].instrument;
         Navigator.push(
             context,
             new MaterialPageRoute(
-                builder: (context) => new InstrumentWidget(ru, instrument)));
+                builder: (context) =>
+                    new InstrumentWidget(ru, watchLists[index].instrumentObj)));
       },
     );
   }

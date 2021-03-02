@@ -19,3 +19,14 @@ doc/api/
 *.js_
 *.js.deps
 *.js.map
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/

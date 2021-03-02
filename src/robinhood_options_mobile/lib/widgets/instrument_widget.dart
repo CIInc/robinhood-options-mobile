@@ -42,8 +42,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         body: new Builder(builder: (context) {
           return Card(
-            child: Text('bloombergUnique: ${instrument.bloombergUnique}'),
-          );
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Icon(Icons.album),
+                title: Text('${instrument.simpleName}'),
+                subtitle: Text('${instrument.name}'),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[
+                  TextButton(
+                    child: const Text('VIEW FUNDAMENTALS'),
+                    onPressed: () {/* ... */},
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    child: const Text('VIEW SPLITS'),
+                    onPressed: () {/* ... */},
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            ],
+          ));
         })
         /*
         body: new FutureBuilder(

@@ -8,27 +8,6 @@ class MinTicks {
   MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
 }
 
-/*
-  {"chain_id":"eefb80a4-efc0-4b5f-ba27-a7aa9a358469",
-  "chain_symbol":"KODK",
-  "created_at":"2021-01-14T05:32:04.917251Z",
-  "expiration_date":"2021-03-19",
-  "id":"c9b32d07-30bf-420b-b18d-9e7b3f5b9de2",
-  "issue_date":"2013-12-20",
-  "min_ticks":{
-    "above_tick":"0.05",
-    "below_tick":"0.01",
-    "cutoff_price":"3.00"
-  },
-  "rhs_tradability":"untradable",
-  "state":"active",
-  "strike_price":"12.5000",
-  "tradability":"tradable",
-  "type":"put",
-  "updated_at":"2021-01-14T05:32:04.917267Z",
-  "url":"https:\/\/api.robinhood.com\/options\/instruments\/c9b32d07-30bf-420b-b18d-9e7b3f5b9de2\/",
-  "sellout_datetime":"2021-03-19T19:00:00+00:00"}
-*/
 @immutable
 class OptionInstrument {
   final String chainId;

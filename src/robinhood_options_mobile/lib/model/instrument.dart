@@ -1,41 +1,8 @@
-import 'package:flutter/material.dart';
+//import 'package:flutter/material.dart';
 
-/*
-{
-  "id":"b1d51de1-b1b7-42eb-87c3-6d383091cb3b",
-  "url":"https:\/\/api.robinhood.com\/instruments\/b1d51de1-b1b7-42eb-87c3-6d383091cb3b\/",
-  "quote":"https:\/\/api.robinhood.com\/quotes\/LH\/",
-  "fundamentals":"https:\/\/api.robinhood.com\/fundamentals\/LH\/",
-  "splits":"https:\/\/api.robinhood.com\/instruments\/b1d51de1-b1b7-42eb-87c3-6d383091cb3b\/splits\/",
-  "state":"active",
-  "market":"https:\/\/api.robinhood.com\/markets\/XNYS\/",
-  "simple_name":"LabCorp",
-  "name":"Laboratory Corporation of America Holdings",
-  "tradeable":true,
-  "tradability":"tradable",
-  "symbol":"LH",
-  "bloomberg_unique":"EQ0010104000001000",
-  "margin_initial_ratio":"0.5000",
-  "maintenance_ratio":"0.2500",
-  "country":"US",
-  "day_trade_ratio":"0.2500",
-  "list_date":"1995-05-09",
-  "min_tick_size":null,
-  "type":"stock",
-  "tradable_chain_id":"25c2583d-1377-4d15-97df-84a6980bf390",
-  "rhs_tradability":"tradable",
-  "fractional_tradability":"tradable",
-  "default_collar_fraction":"0.05",
-  "ipo_access_status":null,
-  "ipo_access_cob_deadline":null,
-  "ipo_allocated_price":null,
-  "ipo_customers_received":null,
-  "ipo_customers_requested":null,
-  "ipo_date":null,
-  "ipo_s1_url":null,
-  "is_spac":false}
-*/
-@immutable
+//@immutable
+import 'package:robinhood_options_mobile/model/quote.dart';
+
 class Instrument {
   final String id;
   final String url;
@@ -69,6 +36,8 @@ class Instrument {
   final DateTime ipoDate;
   final String ipoS1Url;
   final bool isSpac;
+
+  Quote quoteObj;
 
   Instrument(
       this.id,
