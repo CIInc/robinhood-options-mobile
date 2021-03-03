@@ -183,9 +183,9 @@ class _HomePageState extends State<HomePage> {
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
       expandedHeight: 250.0,
-      flexibleSpace: (ru != null && ru.userName != null && portfolios != null
-          ? FlexibleSpaceBar(
-              title: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      flexibleSpace: FlexibleSpaceBar(
+        title: ru != null && ru.userName != null && portfolios != null
+            ? Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Equity ${formatCurrency.format(portfolios[0].equity)}')
                 ]),
@@ -204,16 +204,16 @@ class _HomePageState extends State<HomePage> {
                     style: TextStyle(fontSize: 10.0),
                   )
                 ]),
-              ]),
-              centerTitle: false,
-            )
-          : Text('Robinhood Options')),
+              ])
+            : Text('Robinhood Options'),
+        centerTitle: false,
+      ),
       actions: <Widget>[
         IconButton(
           icon: ru != null && ru.userName != null
               ? const Icon(Icons.logout)
               : Icon(Icons.login),
-          tooltip: 'Add new entry',
+          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
           onPressed: () {
             if (ru != null && ru.userName != null) {
               _logout();
@@ -362,16 +362,16 @@ class _HomePageState extends State<HomePage> {
     }
     slivers.add(SliverPersistentHeader(
       // pinned: true,
-      delegate: PersistentHeader("Disclaimers"),
+      delegate: PersistentHeader("Disclaimer"),
     ));
     slivers.add(SliverToBoxAdapter(
         child: Container(
             color: Colors.white,
-            height: 150.0,
+            height: 200.0,
             child: Align(
                 alignment: Alignment.center,
                 child: Text(
-                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
+                    "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
     /*
               SliverFixedExtentList(
                 itemExtent: 100.0,
