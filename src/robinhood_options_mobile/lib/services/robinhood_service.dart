@@ -214,6 +214,52 @@ class RobinhoodService {
       var op = WatchlistItem.fromJson(result);
       watchlistItems.add(op);
     }
+    var watchLists = watchlistItems.map((e) => e.url).toList();
+    List<String> distinctwatchLists = [
+      ...{...watchLists}
+    ];
+    /*
+    for (var i = 0; i < distinctwatchLists.length; i++) {
+      print(distinctwatchLists[i]);
+      var watchlistResponse =
+          await user.oauth2Client.read(distinctwatchLists[i]);
+      print(watchlistResponse);
+      var watchlist = Watchlist.fromJson(jsonDecode(watchlistResponse));
+      var itemsToUpdate = watchlistItems
+          .where((element) => element.instrument == distinctwatchLists[i]);
+      itemsToUpdate.forEach((element) {
+        element.watchlistObj = watchlist;
+      });
+    }
+      */
+
+    var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
+    List<String> distinctInstrumentUrls = [
+      ...{...instrumentUrls}
+    ];
+    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
+      var instrumentResponse =
+          await user.oauth2Client.read(distinctInstrumentUrls[i]);
+      var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
+      var itemsToUpdate = watchlistItems
+          .where((element) => element.instrument == distinctInstrumentUrls[i]);
+      itemsToUpdate.forEach((element) {
+        element.instrumentObj = instrument;
+      });
+    }
+    return watchlistItems;
+  }
+
+  static Future<List<dynamic>> downloadWatchlist(
+      RobinhoodUser user, String url) async {
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
+    List<WatchlistItem> watchlistItems = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = WatchlistItem.fromJson(result);
+      watchlistItems.add(op);
+    }
     var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
     List<String> distinctInstrumentUrls = [
       ...{...instrumentUrls}

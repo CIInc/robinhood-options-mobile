@@ -2,6 +2,29 @@ import 'package:flutter/material.dart';
 
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
+/*
+{
+  "account":"https://api.robinhood.com/accounts/XYZ/",
+  "average_price":"0.0000",
+  "chain_id":"1ac71e01-0677-42c6-a490-1457980954f8",
+  "chain_symbol":"MSFT",
+  "id":"49e1ca43-89e3-4fc1-b425-7fb3373893c0",
+  "option":"https://api.robinhood.com/options/instruments/f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc/",
+  "type":"short",
+  "pending_buy_quantity":"0.0000",
+  "pending_expired_quantity":"0.0000",
+  "pending_expiration_quantity":"0.0000",
+  "pending_exercise_quantity":"0.0000",
+  "pending_assignment_quantity":"0.0000",
+  "pending_sell_quantity":"0.0000",
+  "quantity":"0.0000","
+  intraday_quantity":"0.0000",
+  "intraday_average_open_price":"0.0000",
+  "created_at":"2021-02-22T17:09:20.884248Z",
+  "trade_value_multiplier":"100.0000",
+  "updated_at":"2021-02-22T17:09:20.884262Z",
+  "url":"https://api.robinhood.com/options/positions/xyz1ca43-89e3-4fc1-b425-7fb3373893c0/",
+  "option_id":"f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc"}*/
 //@immutable
 class OptionPosition {
   final String account;

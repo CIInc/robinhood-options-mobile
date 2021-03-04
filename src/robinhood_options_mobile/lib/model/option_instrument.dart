@@ -1,6 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
+/*
+{
+  "chain_id":"1ac71e01-0677-42c6-a490-1457980954f8",
+  "chain_symbol":"MSFT",
+  "created_at":"2020-08-20T07:32:27.513753Z",
+  "expiration_date":"2021-04-16",
+  "id":"f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc",
+  "issue_date":"1987-03-12",
+  "min_ticks":{
+    "above_tick":"0.05","
+    below_tick":"0.01",
+    "cutoff_price":"3.00"
+  },
+  "rhs_tradability":"untradable",
+  "state":"active",
+  "strike_price":"255.0000",
+  "tradability":"tradable",
+  "type":"call",
+  "updated_at":"2020-08-20T07:32:27.513761Z",
+  "url":"https:\/\/api.robinhood.com\/options\/instruments\/f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc\/",
+  "sellout_datetime":"2021-04-16T19:00:00+00:00"
+}
+*/
+
 @immutable
 class MinTicks {
   final double aboveTick;

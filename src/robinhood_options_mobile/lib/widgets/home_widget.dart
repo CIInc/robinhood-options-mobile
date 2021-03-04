@@ -15,10 +15,13 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
+import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 import 'option_position_widget.dart';
 
 final formatCurrency = new NumberFormat.simpleCurrency();
+final formatPercentage =
+    new NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 /*
 class DrawerItem {
@@ -126,10 +129,18 @@ class _HomePageState extends State<HomePage> {
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
                     return _buildCustomScrollView(
                         ru: snapshotUser,
-                        portfolios: dataSnapshot.data[0],
-                        positions: dataSnapshot.data[1],
-                        optionsPositions: dataSnapshot.data[2],
-                        watchLists: dataSnapshot.data[3]);
+                        portfolios: dataSnapshot.data.length > 0
+                            ? dataSnapshot.data[0]
+                            : null,
+                        positions: dataSnapshot.data.length > 1
+                            ? dataSnapshot.data[1]
+                            : null,
+                        optionsPositions: dataSnapshot.data.length > 2
+                            ? dataSnapshot.data[2]
+                            : null,
+                        watchLists: dataSnapshot.data.length > 3
+                            ? dataSnapshot.data[3]
+                            : null);
                   } else if (dataSnapshot.hasError) {
                     print("${dataSnapshot.error}");
                     return _buildCustomScrollView(
@@ -170,6 +181,13 @@ class _HomePageState extends State<HomePage> {
       List<OptionPosition> optionsPositions,
       List<dynamic> watchLists}) {
     var slivers = <Widget>[];
+    double changeToday = 0;
+    double changeTodayPercentage = 0;
+    if (portfolios != null) {
+      changeToday = portfolios[0].equity - portfolios[0].equityPreviousClose;
+      changeTodayPercentage = changeToday / portfolios[0].equity;
+    }
+
     slivers.add(SliverAppBar(
       /*
       title: new Text('Robinhood Options'),
@@ -193,17 +211,11 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Change ${formatCurrency.format(portfolios[0].equity - portfolios[0].equityPreviousClose)}',
+                      'Today ${formatCurrency.format(changeToday)} ${formatPercentage.format(changeTodayPercentage)}',
                       style: TextStyle(fontSize: 14.0),
                     ),
                   ],
                 ),
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(
-                    'Trading since ${dateFormat.format(portfolios[0].startDate)}',
-                    style: TextStyle(fontSize: 10.0),
-                  )
-                ]),
               ])
             : Text('Robinhood Options'),
         centerTitle: false,
@@ -235,24 +247,6 @@ class _HomePageState extends State<HomePage> {
     ));
 
     if (ru != null && ru.userName != null) {
-      slivers.add(SliverPersistentHeader(
-        pinned: false,
-        delegate: PersistentHeader("Account"),
-      ));
-      slivers.add(SliverToBoxAdapter(
-          child: Container(
-              height: 80.0,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: new Text("Welcome ${ru.userName}")))));
-      /*
-      slivers.add(SliverToBoxAdapter(
-          child: Container(
-        // color: Colors.white,
-        height: 150.0,
-        child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
-      )));
-      */
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
             child: Container(
@@ -359,6 +353,40 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
       }
+      slivers.add(SliverPersistentHeader(
+        pinned: false,
+        delegate: PersistentHeader("Account"),
+      ));
+      slivers.add(SliverToBoxAdapter(
+          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [Text('Welcome ${ru.userName}')]),
+        portfolios != null
+            ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  'Trading since ${dateFormat.format(portfolios[0].startDate)}',
+                  // style: TextStyle(fontSize: 12.0),
+                )
+              ])
+            : new Container(),
+      ])));
+      /*
+          Container(
+              height: 80.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: new Text("Welcome ${ru.userName}, ")))));
+                  */
+      /*
+      slivers.add(SliverToBoxAdapter(
+          child: Container(
+        // color: Colors.white,
+        height: 150.0,
+        child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
+      )));
+      */
+
     }
     slivers.add(SliverPersistentHeader(
       // pinned: true,
@@ -372,31 +400,6 @@ class _HomePageState extends State<HomePage> {
                 alignment: Alignment.center,
                 child: Text(
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
-    /*
-              SliverFixedExtentList(
-                itemExtent: 100.0,
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    if (widgets.length > index) {
-                      return widgets[index];
-                    }
-                    if (index > widgets.length + 10) return null;
-                    // To convert this infinite list to a list with three items,
-                    // uncomment the following line:
-                    // if (index > 3) return null;
-                    return Container(
-                      color: Colors.white,
-                      height: 150.0,
-                      child: Align(
-                          alignment: Alignment.center,
-                          child: Text("Lorem ipsum")),
-                    );
-                  },
-                  // Or, uncomment the following line:
-                  // childCount: widgets.length + 10,
-                ),
-              ),
-              */
     /*
               SliverPadding(
                   padding: EdgeInsets.all(50),
@@ -466,6 +469,95 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildOptionPositionRow(
       List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
+    final double gainLoss = (optionsPositions[index]
+                .optionInstrument
+                .optionMarketData
+                .adjustedMarkPrice -
+            (optionsPositions[index].averagePrice / 100)) *
+        100;
+    final double gainLossPercent =
+        gainLoss / optionsPositions[index].averagePrice;
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ListTile(
+          leading: CircleAvatar(
+              backgroundColor:
+                  optionsPositions[index].optionInstrument.type == 'call'
+                      ? Colors.green
+                      : Colors.amber,
+              //backgroundImage: AssetImage(user.profilePicture),
+              child: optionsPositions[index].optionInstrument.type == 'call'
+                  ? new Text('Call')
+                  : new Text('Put')),
+          title: Text(
+              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+          subtitle: Text(
+              'Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)} (${optionsPositions[index].quantity.round()}x)'),
+          trailing: new Wrap(
+            spacing: 12,
+            children: [
+              new Icon(
+                  gainLoss > 0
+                      ? Icons.trending_up
+                      : (gainLoss < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (gainLoss > 0
+                      ? Colors.green
+                      : (gainLoss < 0 ? Colors.red : Colors.grey))),
+              new Text(
+                "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                style: TextStyle(fontSize: 16.0),
+                textAlign: TextAlign.right,
+              ),
+              /*
+              new Text(
+                "${formatPercentage.format(gainLossPercent)}",
+                style: TextStyle(fontSize: 14.0),
+              )
+              */
+            ],
+          ),
+          onTap: () {
+            Navigator.push(
+                context,
+                new MaterialPageRoute(
+                    builder: (context) =>
+                        new OptionPositionWidget(ru, optionsPositions[index])));
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+              child: const Text('TRADE INSTRUMENT'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    new MaterialPageRoute(
+                        builder: (context) => new TradeOptionWidget(
+                            ru, optionsPositions[index])));
+              },
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              child: const Text('VIEW MARKET DATA'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    new MaterialPageRoute(
+                        builder: (context) => new OptionPositionWidget(
+                            ru, optionsPositions[index])));
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
+    ));
+    /*
     return new ListTile(
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
@@ -491,6 +583,7 @@ class _HomePageState extends State<HomePage> {
                     new OptionPositionWidget(ru, optionsPositions[index])));
       },
     );
+    */
   }
 
   Widget _buildWatchlistRow(
