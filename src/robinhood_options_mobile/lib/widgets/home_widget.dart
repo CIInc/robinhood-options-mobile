@@ -228,7 +228,38 @@ class _HomePageState extends State<HomePage> {
           tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
           onPressed: () {
             if (ru != null && ru.userName != null) {
-              _logout();
+              var alert = AlertDialog(
+                title: Text('Logout process'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      Text('This action will require you to log in again.'),
+                      Text('Are you sure you want to log out?'),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: Text('Cancel'),
+                    onPressed: () {
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                  TextButton(
+                    child: Text('OK'),
+                    onPressed: () {
+                      _logout();
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                ],
+              );
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return alert;
+                },
+              );
             } else {
               _openLogin();
             }
@@ -395,7 +426,7 @@ class _HomePageState extends State<HomePage> {
     slivers.add(SliverToBoxAdapter(
         child: Container(
             color: Colors.white,
-            height: 200.0,
+            height: 420.0,
             child: Align(
                 alignment: Alignment.center,
                 child: Text(

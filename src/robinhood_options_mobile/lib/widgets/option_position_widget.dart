@@ -35,6 +35,44 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   */
 
   Widget _buildPosition(OptionPosition optionPosition) {
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(hintText: "What to do?"),
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.send),
+              onPressed: () {
+                //do something
+              },
+            )
+          ],
+        ),
+        Expanded(
+          child: ListView.builder(
+              padding: EdgeInsets.all(16.0),
+              itemCount: 22,
+              itemBuilder: /*1*/ (context, i) {
+                /*
+          if (i.isOdd) return Divider(); /*2*/
+
+          final index = i ~/ 2; /*3*/
+          if (index >= _suggestions.length) {
+            _suggestions
+                .addAll([OptionPosition()]); //generateWordPairs().take(10)
+          }
+          */
+                return _buildRow(i, optionPosition);
+              }),
+        ),
+      ],
+    );
+    /*
     return ListView.builder(
         padding: EdgeInsets.all(16.0),
         itemCount: 22,
@@ -50,6 +88,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           */
           return _buildRow(i, optionPosition);
         });
+        */
   }
 
   Widget _buildRow(int pos, OptionPosition optionPosition) {
@@ -158,8 +197,9 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   Widget build(BuildContext context) {
     return new Scaffold(
         appBar: new AppBar(
-          title: new Text(
-              "${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
+          title: Text(
+              '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument.strikePrice} ${optionPosition.optionInstrument.type.toUpperCase()}'),
+          //new Text("${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
         ),
         body: new Builder(builder: (context) {
           return _buildPosition(optionPosition);

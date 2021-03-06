@@ -49,6 +49,25 @@ Select a browser from the device selector.
 
 Select a mobile emulator from the device selector.
 
+## Publish
+
+### Build app bundle
+
+```
+cd src/robinhood_options_mobile
+flutter build appbundle
+```
+
+### Generate APKs
+
+[Generate APKs using the offline bundle tool](https://flutter.dev/docs/deployment/android#offline-using-the-bundle-tool)
+
+```cmd
+"C:\Program Files\Java\jdk-15.0.2\bin\java" -jar bundletool-all-1.5.0.jar  build-apks --bundle=src\robinhood_options_mobile\build\app\outputs\bundle\release\app-release.aab --output=src\robinhood_options_mobile\build\app\outputs\bundle\release\app-release.apks
+
+"C:\Program Files\Java\jdk-15.0.2\bin\java" -jar bundletool-all-1.5.0.jar install-apks --apks=src\robinhood_options_mobile\build\app\outputs\bundle\release\app-release.apks 
+```
+
 ## Test
 
 TODO

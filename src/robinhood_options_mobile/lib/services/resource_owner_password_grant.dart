@@ -8,10 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 import 'package:oauth2/oauth2.dart';
-//import 'client.dart';
 import 'package:oauth2/src/handle_access_token_response.dart';
 import 'package:oauth2/src/utils.dart';
-//import 'credentials.dart';
 
 /// Obtains credentials using a [resource owner password grant](https://tools.ietf.org/html/rfc6749#section-1.3.3).
 ///
@@ -50,6 +48,10 @@ Future<Client> resourceOwnerPasswordGrant(
     {String identifier,
     String secret,
     String deviceToken,
+    String challengeType,
+    String challengeId,
+    // String mfaCode,
+    String expiresIn,
     Iterable<String> scopes,
     bool basicAuth = true,
     CredentialsRefreshedCallback onCredentialsRefreshed,
@@ -85,9 +87,29 @@ Future<Client> resourceOwnerPasswordGrant(
     body['scope'] = scopes.join(delimiter);
   }
 
+  if (expiresIn != null) {
+    body['expires_in'] = expiresIn;
+  }
+  if (challengeType != null) {
+    body['challenge_type'] = challengeType;
+  }
+  // Once respondChallenge is called, the resulting challenge id should be used as header.
+  if (challengeId != null) {
+    headers['X-ROBINHOOD-CHALLENGE-RESPONSE-ID'] = challengeId;
+  }
+  /*
+  if (mfaCode != null) {
+    body['mfa_code'] = mfaCode;
+  }
+  */
+
   httpClient ??= http.Client();
+
   var response = await httpClient.post(authorizationEndpoint,
       headers: headers, body: body);
+  if (response.statusCode != 200) {
+    throw Exception(response.body);
+  }
 
   var credentials = handleAccessTokenResponse(
       response, authorizationEndpoint, startTime, scopes, delimiter,
@@ -97,4 +119,25 @@ Future<Client> resourceOwnerPasswordGrant(
       secret: secret,
       httpClient: httpClient,
       onCredentialsRefreshed: onCredentialsRefreshed);
+}
+
+/*
+{
+  "id":"720712b2-8fa0-4461-9ede-1058d9025b79",
+  "user":"8e620d87-d864-4297-828b-c9b7662f2c2b",
+  "type":"sms",
+  "alternate_type":null,
+  "status":"validated",
+  "remaining_retries":0,
+  "remaining_attempts":0,
+  "expires_at":"2021-03-06T00:54:21.630589-05:00",
+  "updated_at":"2021-03-06T00:49:35.636946-05:00"
+  }
+*/
+Future<http.Response> respondChallenge(String id, String mfaCode) {
+  var body = {'response': mfaCode};
+  var httpClient = http.Client();
+  var response = httpClient
+      .post('https://api.robinhood.com/challenge/${id}/respond/', body: body);
+  return response;
 }

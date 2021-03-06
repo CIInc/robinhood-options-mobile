@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 import 'dart:async';
-import 'dart:io';
+
+import 'package:http/http.dart' as http;
 
 import 'package:oauth2/oauth2.dart' as oauth2;
 
@@ -31,11 +35,62 @@ class LoginWidget extends StatefulWidget {
 
 class _LoginWidgetState extends State<LoginWidget> {
   Future<oauth2.Client> client;
+  Future<http.Response> challengeResponse;
   RobinhoodUser user;
   Map<String, dynamic> optionPositionJson;
   var userCtl = TextEditingController();
   var passCtl = TextEditingController();
   var deviceCtl = TextEditingController();
+  var smsCtl = TextEditingController();
+  String id;
+  String deviceToken;
+
+  // Define the focus node. To manage the lifecycle, create the FocusNode in
+  // the initState method, and clean it up in the dispose method.
+  FocusNode myFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+
+    deviceToken = generateDeviceToken();
+    myFocusNode = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    // Clean up the focus node when the Form is disposed.
+    myFocusNode.dispose();
+
+    super.dispose();
+  }
+
+  String generateDeviceToken() {
+    List<int> rands = [];
+    var rng = new Random();
+    for (int i = 0; i < 16; i++) {
+      var r = rng.nextDouble();
+      double rand = 4294967296.0 * r;
+      var a = (rand.toInt() >> ((3 & i) << 3)) & 255;
+      rands.add(a);
+    }
+
+    List<String> hex = [];
+    for (int i = 0; i < 256; ++i) {
+      var a = (i + 256).toRadixString(16).substring(1);
+      hex.add(a);
+    }
+
+    String s = '';
+    for (int i = 0; i < 16; i++) {
+      s += hex[rands[i]];
+
+      if (i == 3 || i == 5 || i == 7 || i == 9) {
+        s += "-";
+      }
+    }
+    return s;
+  }
 
   void _login() {
     client = oauth2_robinhood
@@ -43,23 +98,96 @@ class _LoginWidgetState extends State<LoginWidget> {
             Constants.tokenEndpoint, userCtl.text, passCtl.text,
             identifier: Constants.identifier,
             basicAuth: false,
-            deviceToken: deviceCtl.text)
-        .catchError((e) {
-      debugPrint(e);
-      // on FormatException AuthorizationException
-      // After the Selection Screen returns a result, hide any previous snackbars
-      // and show the new result.
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-            SnackBar(content: Text("Login failed: ${e.description}")));
-      // FormatException
-    });
+            deviceToken: this.deviceToken, //deviceCtl.text,
+            challengeType: 'sms')
+        //scopes: ['internal'],
+        //expiresIn: '86400')
+        /*
+      .then((value) => () {
+            RobinhoodUser user = new RobinhoodUser(
+                userCtl.text, value.credentials.toJson(), value);
 
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => Navigator.pop(context, user),
+            );
+          })
+          */
+        .catchError((e) {
+      var errorResponse = jsonDecode(e.message);
+      if (errorResponse['challenge'] != null) {
+        this.id = errorResponse['challenge']['id'];
+        myFocusNode.requestFocus();
+      } else {
+        //debugPrint(e);
+        // on FormatException AuthorizationException
+        // After the Selection Screen returns a result, hide any previous snackbars
+        // and show the new result.
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text("Login failed: ${e.message}")));
+        // FormatException
+      }
+    });
     setState(() {
       // client = createClient(userCtl.text, passCtl.text, deviceCtl.text);
     });
   }
+
+  void _handleChallenge() async {
+    //challengeResponse = oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
+    http.Response response =
+        await oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
+    debugPrint(response.body);
+    var responseJson = jsonDecode(response.body);
+    var challengeId = responseJson['id'];
+    client = oauth2_robinhood
+        .resourceOwnerPasswordGrant(
+            Constants.tokenEndpoint, userCtl.text, passCtl.text,
+            identifier: Constants.identifier,
+            basicAuth: false,
+            deviceToken: this.deviceToken,
+            //challengeType: 'sms',
+            challengeId: challengeId)
+        // mfaCode: smsCtl.text,
+        //scopes: ['internal'],
+        //expiresIn: '86400')
+        /*
+      .then((value) => () {
+            RobinhoodUser user = new RobinhoodUser(
+                userCtl.text, value.credentials.toJson(), value);
+
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => Navigator.pop(context, user),
+            );
+          })
+          */
+        .catchError((e) {
+      debugPrint(e);
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text("Login failed: ${e.message}")));
+      // FormatException
+    });
+    setState(() {
+      // client = createClient(userCtl.text, passCtl.text, deviceCtl.text);
+    });
+  }
+/*
+{
+  "detail":"Request blocked, challenge issued.",
+  "challenge": {
+    "id":"4295ae9f-f6ca-4563-90b4-70ce0f557e1f",
+    "user":"8e620d87-d864-4297-828b-c9b7662f2c2b",
+    "type":"sms",
+    "alternate_type":null,
+    "status":"issued",
+    "remaining_retries":3,
+    "remaining_attempts":3,
+    "expires_at":"2021-03-04T22:49:37.846180-05:00",
+    "updated_at":"2021-03-04T22:44:37.846419-05:00"
+  }
+}
+ */
 
   Widget _buildForm(AsyncSnapshot<oauth2.Client> snapshot) {
     var floatBtn = new SizedBox(
@@ -70,7 +198,7 @@ class _LoginWidgetState extends State<LoginWidget> {
           onPressed: snapshot.connectionState == ConnectionState.none ||
                   (snapshot.connectionState == ConnectionState.done &&
                       !snapshot.hasData)
-              ? _login
+              ? (this.id == null ? _login : _handleChallenge)
               : null,
         ));
     var action = snapshot.connectionState != ConnectionState.none &&
@@ -97,22 +225,40 @@ class _LoginWidgetState extends State<LoginWidget> {
         new ListTile(
           title: new TextField(
             controller: userCtl,
+            decoration: InputDecoration(
+                hintText: 'Enter Robinhood username or email...'),
           ),
-          subtitle: Text("Username"),
+          // subtitle: Text("Username"),
         ),
         new ListTile(
           title: new TextField(
             controller: passCtl,
+            decoration:
+                InputDecoration(hintText: 'Enter Robinhood password...'),
             obscureText: true,
           ),
-          subtitle: Text("Password"),
+          // subtitle: Text("Password"),
         ),
+        /*
         new ListTile(
           title: new TextField(
             controller: deviceCtl,
           ),
           subtitle: Text("Device Token"),
         ),
+        */
+        this.id != null
+            ? new ListTile(
+                title: new TextField(
+                  controller: smsCtl,
+                  focusNode: myFocusNode,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                      hintText: 'Enter the Robinhood SMS code received...'),
+                ),
+                //subtitle: Text("SMS Code"),
+              )
+            : new Container(),
         new Container(
           height: 20,
         ),
@@ -123,80 +269,38 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return new FutureBuilder(
-      future: client,
-      builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
-        if (snapshot.hasData) {
-          var user = new RobinhoodUser(
-              userCtl.text, snapshot.data.credentials.toJson(), snapshot.data);
+    return new Scaffold(
+        appBar: new AppBar(
+          title: new Text("Login"),
+        ),
+        body: new FutureBuilder(
+            future: client,
+            builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
+              if (snapshot.hasData) {
+                var user = new RobinhoodUser(userCtl.text,
+                    snapshot.data.credentials.toJson(), snapshot.data);
 
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) => Navigator.pop(context, user),
-          );
-        }
-
-        return new Scaffold(
-          appBar: new AppBar(
-            title: new Text("Login"),
-          ),
-          body: _buildForm(snapshot),
-        );
-      },
-    );
-  }
-
-  /// A file in which the users credentials are stored persistently. If the server
-  /// issues a refresh token allowing the client to refresh outdated credentials,
-  /// these may be valid indefinitely, meaning the user never has to
-  /// re-authenticate.
-  final credentialsFile = File('~/.myapp/credentials.json');
-
-  /// Either load an OAuth2 client from saved credentials or authenticate a new
-  /// one.
-  Future<oauth2.Client> createClient(
-      String userName, String password, String deviceToken) async {
-    var exists = await credentialsFile.exists();
-
-    // If the OAuth2 credentials have already been saved from a previous run, we
-    // just want to reload them.
-    if (exists) {
-      var credentials =
-          oauth2.Credentials.fromJson(await credentialsFile.readAsString());
-      return oauth2.Client(credentials, identifier: Constants.identifier);
-    }
-
-    // If we don't have OAuth2 credentials yet, we need to get the resource owner
-    // to authorize us. We're assuming here that we're a command-line application.
-    // Make a request to the authorization endpoint that will produce the fully
-    // authenticated Client.
-    oauth2.Client client;
-    try {
-      client = await oauth2_robinhood.resourceOwnerPasswordGrant(
-          Constants.tokenEndpoint, userName, password,
-          identifier: Constants.identifier,
-          basicAuth: false,
-          deviceToken: deviceToken);
-    } catch (e) {
-      // on FormatException AuthorizationException
-      // After the Selection Screen returns a result, hide any previous snackbars
-      // and show the new result.
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("${e.description}")));
-      // FormatException
-    }
-
-    // Once we're done with the client, save the credentials file. This ensures
-    // that if the credentials were automatically refreshed while using the
-    // client, the new credentials are available for the next run of the
-    // program.
-    /*
-  if (!exists) {
-    await credentialsFile.create();
-  }
-  */
-    // await credentialsFile.writeAsString(client.credentials.toJson());
-
-    return client;
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Navigator.pop(context, user),
+                );
+              } else if (snapshot.hasError) {
+                return new FutureBuilder(
+                    future: challengeResponse,
+                    builder: (context, AsyncSnapshot<http.Response> snapshot1) {
+                      this.id = null;
+                      if (snapshot1.hasData) {
+                        return Text("${snapshot1.data.body}");
+                      }
+                      return Text('No snapshot yet');
+                    });
+                /*
+          ScaffoldMessenger.of(context)
+            ..removeCurrentSnackBar()
+            ..showSnackBar(
+                SnackBar(content: Text("Login failed: ${snapshot.error}")));
+                */
+              }
+              return _buildForm(snapshot);
+            }));
   }
 }
