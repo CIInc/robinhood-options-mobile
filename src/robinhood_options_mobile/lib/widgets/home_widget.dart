@@ -59,6 +59,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<RobinhoodUser> user;
+  var top = 0.0;
 
   // int _selectedDrawerIndex = 0;
   // bool _showDrawerContents = true;
@@ -107,6 +108,10 @@ class _HomePageState extends State<HomePage> {
             if (snapshotUser.userName != null) {
               Future<List<Portfolio>> futurePortfolios =
                   RobinhoodService.downloadPortfolios(snapshotUser);
+
+              Future<dynamic> futurePortfolioHistoricals =
+                  RobinhoodService.downloadPortfolioHistoricals(
+                      snapshotUser, null);
 
               Future<List<Position>> futurePositions =
                   RobinhoodService.downloadPositions(snapshotUser);
@@ -201,25 +206,30 @@ class _HomePageState extends State<HomePage> {
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
       expandedHeight: 250.0,
-      flexibleSpace: FlexibleSpaceBar(
-        title: ru != null && ru.userName != null && portfolios != null
-            ? Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Equity ${formatCurrency.format(portfolios[0].equity)}')
-                ]),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      flexibleSpace: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+        var top = constraints.biggest.height;
+        return FlexibleSpaceBar(
+          title: ru != null && ru.userName != null && portfolios != null
+              ? Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(
-                      'Today ${formatCurrency.format(changeToday)} ${formatPercentage.format(changeTodayPercentage)}',
-                      style: TextStyle(fontSize: 14.0),
-                    ),
-                  ],
-                ),
-              ])
-            : Text('Robinhood Options'),
-        centerTitle: false,
-      ),
+                        'Equity ${formatCurrency.format(portfolios[0].equity)}')
+                  ]),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Today ${formatCurrency.format(changeToday)} ${formatPercentage.format(changeTodayPercentage)}',
+                        style: TextStyle(fontSize: 14.0),
+                      ),
+                    ],
+                  ),
+                ])
+              : Text('Robinhood Options'),
+          centerTitle: false,
+        );
+      }),
       actions: <Widget>[
         IconButton(
           icon: ru != null && ru.userName != null

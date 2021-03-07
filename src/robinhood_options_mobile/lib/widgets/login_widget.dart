@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'dart:async';
 
@@ -36,14 +37,22 @@ class LoginWidget extends StatefulWidget {
 class _LoginWidgetState extends State<LoginWidget> {
   Future<oauth2.Client> client;
   Future<http.Response> challengeResponse;
+
   RobinhoodUser user;
+
   Map<String, dynamic> optionPositionJson;
+
   var userCtl = TextEditingController();
   var passCtl = TextEditingController();
-  var deviceCtl = TextEditingController();
   var smsCtl = TextEditingController();
-  String id;
+
+  final clipboardContentStream = StreamController<String>.broadcast();
+  Timer clipboardTriggerTime;
+  String clipboardInitialValue;
+
   String deviceToken;
+  String challengeRequestId;
+  String challengeResponseId;
 
   // Define the focus node. To manage the lifecycle, create the FocusNode in
   // the initState method, and clean it up in the dispose method.
@@ -55,12 +64,30 @@ class _LoginWidgetState extends State<LoginWidget> {
 
     deviceToken = generateDeviceToken();
     myFocusNode = FocusNode();
+
+    StreamSubscription<String> streamSubscription =
+        clipboardContentStream.stream.listen((value) {
+      //print('Value from controller: $value');
+      if (clipboardInitialValue == null) {
+        clipboardInitialValue = value;
+      } else if (clipboardInitialValue != value) {
+        if (this.smsCtl.text == '') {
+          this.smsCtl.text = value;
+          _handleChallenge();
+        }
+      }
+    });
   }
+
+  //Stream get clipboardText => clipboardController.stream;
 
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
     myFocusNode.dispose();
+
+    clipboardContentStream.close();
+    clipboardTriggerTime.cancel();
 
     super.dispose();
   }
@@ -98,45 +125,53 @@ class _LoginWidgetState extends State<LoginWidget> {
             Constants.tokenEndpoint, userCtl.text, passCtl.text,
             identifier: Constants.identifier,
             basicAuth: false,
-            deviceToken: this.deviceToken, //deviceCtl.text,
-            challengeType: 'sms')
+            deviceToken: this.deviceToken,
+            challengeType: 'sms',
+            challengeId: this.challengeResponseId)
         //scopes: ['internal'],
         //expiresIn: '86400')
-        /*
-      .then((value) => () {
-            RobinhoodUser user = new RobinhoodUser(
-                userCtl.text, value.credentials.toJson(), value);
+        .then((value) {
+      var user =
+          new RobinhoodUser(userCtl.text, value.credentials.toJson(), value);
 
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => Navigator.pop(context, user),
-            );
-          })
-          */
-        .catchError((e) {
-      var errorResponse = jsonDecode(e.message);
-      if (errorResponse['challenge'] != null) {
-        this.id = errorResponse['challenge']['id'];
-        myFocusNode.requestFocus();
-      } else {
-        //debugPrint(e);
-        // on FormatException AuthorizationException
-        // After the Selection Screen returns a result, hide any previous snackbars
-        // and show the new result.
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text("Login failed: ${e.message}")));
-        // FormatException
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => Navigator.pop(context, user),
+      );
+    }).catchError((e) {
+      print(e);
+      if (e.message != null) {
+        var errorResponse = jsonDecode(e.message);
+        if (errorResponse['challenge'] != null) {
+          this.challengeRequestId = errorResponse['challenge']['id'];
+          myFocusNode.requestFocus();
+
+          _startMonitoringClipboard();
+        } else {
+          // on FormatException AuthorizationException
+          // After the Selection Screen returns a result, hide any previous snackbars
+          // and show the new result.
+          ScaffoldMessenger.of(context)
+            ..removeCurrentSnackBar()
+            ..showSnackBar(
+                SnackBar(content: Text("Login failed: ${e.message}")));
+          // FormatException
+        }
       }
-    });
-    setState(() {
-      // client = createClient(userCtl.text, passCtl.text, deviceCtl.text);
+      setState(() {});
     });
   }
 
   void _handleChallenge() async {
-    //challengeResponse = oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
-    http.Response response =
-        await oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
+    challengeResponse = oauth2_robinhood
+        .respondChallenge(this.challengeRequestId, smsCtl.text)
+        .then((value) {
+      var responseJson = jsonDecode(value.body);
+      this.challengeResponseId = responseJson['id'];
+      _login();
+      return;
+    });
+    /*
+    http.Response response = await oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
     debugPrint(response.body);
     var responseJson = jsonDecode(response.body);
     var challengeId = responseJson['id'];
@@ -151,26 +186,31 @@ class _LoginWidgetState extends State<LoginWidget> {
         // mfaCode: smsCtl.text,
         //scopes: ['internal'],
         //expiresIn: '86400')
-        /*
-      .then((value) => () {
-            RobinhoodUser user = new RobinhoodUser(
-                userCtl.text, value.credentials.toJson(), value);
-
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => Navigator.pop(context, user),
-            );
-          })
-          */
         .catchError((e) {
       debugPrint(e);
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("Login failed: ${e.message}")));
+        ..showSnackBar(
+            SnackBar(content: Text("Challenge failed: ${e.message}")));
       // FormatException
     });
-    setState(() {
-      // client = createClient(userCtl.text, passCtl.text, deviceCtl.text);
-    });
+    setState(() {});
+    */
+  }
+
+  void _startMonitoringClipboard() {
+    // Start listening to clipboard
+    clipboardTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (timer) {
+        Clipboard.getData('text/plain').then((clipboarContent) {
+          //print('Clipboard content ${clipboarContent.text}');
+          if (clipboarContent != null) {
+            clipboardContentStream.add(clipboarContent.text);
+          }
+        });
+      },
+    );
   }
 /*
 {
@@ -189,21 +229,91 @@ class _LoginWidgetState extends State<LoginWidget> {
 }
  */
 
-  Widget _buildForm(AsyncSnapshot<oauth2.Client> snapshot) {
+  @override
+  Widget build(BuildContext context) {
+    return new Scaffold(
+        appBar: new AppBar(
+          title: new Text("Login"),
+        ),
+        body: new FutureBuilder(
+            future: client,
+            builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
+              if (snapshot.hasData) {
+                /*
+                var user = new RobinhoodUser(userCtl.text,
+                    snapshot.data.credentials.toJson(), snapshot.data);
+
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Navigator.pop(context, user),
+                );
+                */
+              } else if (snapshot.hasError) {
+                // /oauth2/token endpoint returned a challenge.
+                /*
+                var errorResponse = jsonDecode(snapshot.error);
+                if (errorResponse['challenge'] != null) {
+                  this.challengeRequestId = errorResponse['challenge']['id'];
+                  myFocusNode.requestFocus();
+
+                  _startMonitoringClipboard();
+                } else {
+                  // on FormatException AuthorizationException
+                  // After the Selection Screen returns a result, hide any previous snackbars
+                  // and show the new result.
+                  ScaffoldMessenger.of(context)
+                    ..removeCurrentSnackBar()
+                    ..showSnackBar(SnackBar(
+                        content: Text("Login failed: ${snapshot.error}")));
+                  // FormatException
+                }
+                */
+                return new FutureBuilder(
+                    future: challengeResponse,
+                    builder: (context, AsyncSnapshot<http.Response> snapshot1) {
+                      // this.challengeRequestId = null;
+                      /*
+                      if (snapshot1.hasData) {
+                        var responseJson = jsonDecode(snapshot1.data.body);
+                        this.challengeResponseId = responseJson['id'];
+                      }
+                      else if (snapshot1.hasError) {
+                        return Text('Error: ${snapshot1.error}');
+                      }*/
+                      return _buildForm(
+                          /*snapshot.connectionState ==
+                              ConnectionState.waiting ||
+                          (snapshot.connectionState == ConnectionState.done &&
+                              !snapshot.hasData) ||*/
+                          snapshot1.connectionState == ConnectionState.waiting);
+                      //return _buildForm(snapshot);
+                      //return Text('Waiting for SMS challenge...');
+                    });
+                /*
+          ScaffoldMessenger.of(context)
+            ..removeCurrentSnackBar()
+            ..showSnackBar(
+                SnackBar(content: Text("Login failed: ${snapshot.error}")));
+                */
+              }
+              return _buildForm(snapshot.connectionState ==
+                      ConnectionState
+                          .waiting /* ||
+                      (snapshot.connectionState == ConnectionState.done &&
+                          !snapshot.hasData)*/
+                  );
+            }));
+  }
+
+  Widget _buildForm(bool waiting) {
     var floatBtn = new SizedBox(
         width: 340.0,
         child: ElevatedButton.icon(
           label: new Text("Login"), // ${snapshot.connectionState}
           icon: new Icon(Icons.login_outlined),
-          onPressed: snapshot.connectionState == ConnectionState.none ||
-                  (snapshot.connectionState == ConnectionState.done &&
-                      !snapshot.hasData)
-              ? (this.id == null ? _login : _handleChallenge)
-              : null,
+          onPressed:
+              this.challengeRequestId == null ? _login : _handleChallenge,
         ));
-    var action = snapshot.connectionState != ConnectionState.none &&
-            snapshot.connectionState != ConnectionState.done &&
-            !snapshot.hasData
+    var action = waiting
         ? new Stack(
             alignment: FractionalOffset.center,
             children: <Widget>[
@@ -247,7 +357,7 @@ class _LoginWidgetState extends State<LoginWidget> {
           subtitle: Text("Device Token"),
         ),
         */
-        this.id != null
+        this.challengeRequestId != null
             ? new ListTile(
                 title: new TextField(
                   controller: smsCtl,
@@ -265,42 +375,5 @@ class _LoginWidgetState extends State<LoginWidget> {
         new Center(child: action)
       ],
     );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return new Scaffold(
-        appBar: new AppBar(
-          title: new Text("Login"),
-        ),
-        body: new FutureBuilder(
-            future: client,
-            builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
-              if (snapshot.hasData) {
-                var user = new RobinhoodUser(userCtl.text,
-                    snapshot.data.credentials.toJson(), snapshot.data);
-
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Navigator.pop(context, user),
-                );
-              } else if (snapshot.hasError) {
-                return new FutureBuilder(
-                    future: challengeResponse,
-                    builder: (context, AsyncSnapshot<http.Response> snapshot1) {
-                      this.id = null;
-                      if (snapshot1.hasData) {
-                        return Text("${snapshot1.data.body}");
-                      }
-                      return Text('No snapshot yet');
-                    });
-                /*
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(
-                SnackBar(content: Text("Login failed: ${snapshot.error}")));
-                */
-              }
-              return _buildForm(snapshot);
-            }));
   }
 }
