@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
@@ -11,12 +12,23 @@ import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
 class RobinhoodService {
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
+
+  static Future<User> downloadUser(RobinhoodUser user) async {
+    var result =
+        await user.oauth2Client.read('${Constants.robinHoodEndpoint}/user/');
+    // print(result);
+
+    var resultJson = jsonDecode(result);
+    var usr = new User.fromJson(resultJson);
+    return usr;
+  }
 
   static Future<List<Portfolio>> downloadPortfolios(RobinhoodUser user) async {
     //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
@@ -31,6 +43,21 @@ class RobinhoodService {
       portfolios.add(op);
     }
     return portfolios;
+  }
+
+  static Future<List<Account>> downloadAccounts(RobinhoodUser user) async {
+    //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodEndpoint}/accounts/");
+    //print(results);
+    // https://phoenix.robinhood.com/accounts/unified
+    List<Account> accounts = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = new Account.fromJson(result);
+      accounts.add(op);
+    }
+    return accounts;
   }
 
   static Future<dynamic> downloadPortfolioHistoricals(
