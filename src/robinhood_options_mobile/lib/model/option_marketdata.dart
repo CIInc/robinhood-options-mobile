@@ -127,19 +127,30 @@ class OptionMarketData {
         volume = json['volume'],
         symbol = json['symbol'],
         occSymbol = json['occ_symbol'],
-        chanceOfProfitLong = double.tryParse(json['chance_of_profit_long']),
-        chanceOfProfitShort = double.tryParse(json['chance_of_profit_short']),
-        delta = double.tryParse(json['delta']),
-        gamma = double.tryParse(json['gamma']),
-        impliedVolatility = double.tryParse(json['implied_volatility']),
-        rho = double.tryParse(json['rho']),
-        theta = double.tryParse(json['theta']),
-        vega = double.tryParse(json['vega']),
-        highFillRateBuyPrice =
-            double.tryParse(json['high_fill_rate_buy_price']),
-        highFillRateSellPrice =
-            double.tryParse(json['high_fill_rate_sell_price']),
-        lowFillRateBuyPrice = double.tryParse(json['low_fill_rate_buy_price']),
-        lowFillRateSellPrice =
-            double.tryParse(json['low_fill_rate_sell_price']);
+        chanceOfProfitLong = json['chance_of_profit_long'] != null
+            ? double.tryParse(json['chance_of_profit_long'])
+            : null,
+        chanceOfProfitShort = json['chance_of_profit_short'] != null
+            ? double.tryParse(json['chance_of_profit_short'])
+            : null,
+        delta = json['delta'] != null ? double.tryParse(json['delta']) : null,
+        gamma = json['gamma'] != null ? double.tryParse(json['gamma']) : null,
+        impliedVolatility = json['implied_volatility'] != null
+            ? double.tryParse(json['implied_volatility'])
+            : null,
+        rho = json['rho'] != null ? double.tryParse(json['rho']) : null,
+        theta = json['theta'] != null ? double.tryParse(json['theta']) : null,
+        vega = json['vega'] != null ? double.tryParse(json['vega']) : null,
+        highFillRateBuyPrice = json['high_fill_rate_buy_price'] != null
+            ? double.tryParse(json['high_fill_rate_buy_price'])
+            : null,
+        highFillRateSellPrice = json['high_fill_rate_sell_price'] != null
+            ? double.tryParse(json['high_fill_rate_sell_price'])
+            : null,
+        lowFillRateBuyPrice = json['low_fill_rate_buy_price'] != null
+            ? double.tryParse(json['low_fill_rate_buy_price'])
+            : null,
+        lowFillRateSellPrice = json['low_fill_rate_sell_price'] != null
+            ? double.tryParse(json['low_fill_rate_sell_price'])
+            : null;
 }

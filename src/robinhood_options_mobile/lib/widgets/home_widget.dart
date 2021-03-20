@@ -62,6 +62,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Future<RobinhoodUser> user;
 
+  Future<List<Account>> futureAccounts;
+  Future<List<Portfolio>> futurePortfolios;
+  Future<dynamic> futurePortfolioHistoricals;
+  Future<List<Position>> futurePositions;
+  Future<List<OptionPosition>> futureOptionPositions;
+  Future<List<dynamic>> futureWatchlists;
+  Future<User> futureUser;
+
   ScrollController _controller;
   bool silverCollapsed = false;
 
@@ -130,27 +138,36 @@ class _HomePageState extends State<HomePage> {
           if (userSnapshot.hasData) {
             RobinhoodUser snapshotUser = userSnapshot.data;
             if (snapshotUser.userName != null) {
-              Future<List<Account>> futureAccounts =
-                  RobinhoodService.downloadAccounts(snapshotUser);
-
-              Future<List<Portfolio>> futurePortfolios =
-                  RobinhoodService.downloadPortfolios(snapshotUser);
-
-              Future<dynamic> futurePortfolioHistoricals =
-                  RobinhoodService.downloadPortfolioHistoricals(
-                      snapshotUser, null);
-
-              Future<List<Position>> futurePositions =
-                  RobinhoodService.downloadPositions(snapshotUser);
-
-              Future<List<OptionPosition>> futureOptionPositions =
-                  RobinhoodService.downloadOptionPositions(snapshotUser);
-
-              Future<List<dynamic>> futureWatchlists =
-                  RobinhoodService.downloadWatchlists(snapshotUser);
-
-              Future<User> futureUser =
-                  RobinhoodService.downloadUser(snapshotUser);
+              if (futureAccounts == null) {
+                futureAccounts =
+                    RobinhoodService.downloadAccounts(snapshotUser);
+              }
+              if (futurePortfolios == null) {
+                futurePortfolios =
+                    RobinhoodService.downloadPortfolios(snapshotUser);
+              }
+              /*
+              if (futurePortfolioHistoricals == null) {
+                futurePortfolioHistoricals =
+                    RobinhoodService.downloadPortfolioHistoricals(
+                        snapshotUser, null);
+              }
+              */
+              if (futurePositions == null) {
+                futurePositions =
+                    RobinhoodService.downloadPositions(snapshotUser);
+              }
+              if (futureOptionPositions == null) {
+                futureOptionPositions =
+                    RobinhoodService.downloadOptionPositions(snapshotUser);
+              }
+              if (futureWatchlists == null) {
+                futureWatchlists =
+                    RobinhoodService.downloadWatchlists(snapshotUser);
+              }
+              if (futureUser == null) {
+                futureUser = RobinhoodService.downloadUser(snapshotUser);
+              }
 
               return new FutureBuilder(
                 future: Future.wait([
