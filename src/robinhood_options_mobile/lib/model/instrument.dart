@@ -136,7 +136,7 @@ class Instrument {
             ? null
             : double.tryParse(json['min_tick_size']),
         type = json['type'],
-        tradeableChainId = json['tradeable_chain_id'],
+        tradeableChainId = json['tradable_chain_id'],
         rhsTradability = json['rhs_tradability'],
         fractionalTradability = json['fractional_tradability'],
         defaultCollarFraction =
