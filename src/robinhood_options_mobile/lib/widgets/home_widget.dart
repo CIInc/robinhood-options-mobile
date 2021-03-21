@@ -15,12 +15,12 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 import 'option_position_widget.dart';
 
+final dateFormat = DateFormat("yMMMd");
 final formatCurrency = new NumberFormat.simpleCurrency();
 final formatPercentage =
     new NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -84,7 +84,7 @@ class _HomePageState extends State<HomePage> {
 
     _controller = ScrollController();
     _controller.addListener(() {
-      if (_controller.offset > 2200 && !_controller.position.outOfRange) {
+      if (_controller.offset > 220 && !_controller.position.outOfRange) {
         if (!silverCollapsed) {
           // do what ever you want when silver is collapsing !
 
@@ -262,7 +262,7 @@ class _HomePageState extends State<HomePage> {
                 ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 300.0,
+      expandedHeight: 320.0,
       // collapsedHeight: 80.0,
       title: silverCollapsed
           ? Text(
@@ -619,14 +619,14 @@ class _HomePageState extends State<HomePage> {
         "\$${optionsPositions[index].averagePrice.toString()}",
         //style: TextStyle(fontSize: 18.0),
       ),
+      */
       onTap: () {
         Navigator.push(
             context,
             new MaterialPageRoute(
                 builder: (context) =>
-                    new OptionPositionWidget(ru, optionsPositions[index])));
+                    new InstrumentWidget(ru, positions[index].instrumentObj)));
       },
-      */
     );
   }
 

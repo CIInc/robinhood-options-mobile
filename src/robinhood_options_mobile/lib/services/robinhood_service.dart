@@ -113,11 +113,15 @@ class RobinhoodService {
       var quoteObj = await downloadQuote(user, instrumentObj);
       instrumentObj.quoteObj = quoteObj;
 
+      /* TODO: Change to lazy loading. 
       var fundamentalsObj = await downloadFundamentals(user, instrumentObj);
       instrumentObj.fundamentalsObj = fundamentalsObj;
+      */
 
+      /* TODO: Change to lazy loading. 
       var splitsObj = await downloadSplits(user, instrumentObj);
       instrumentObj.splitsObj = splitsObj;
+      */
 
       positions[i].instrumentObj = instrumentObj;
     }
@@ -216,37 +220,104 @@ class RobinhoodService {
     return optionPositions;
   }
 
-  // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
   static Future<OptionInstrument> downloadOptionInstrument(
       RobinhoodUser user, OptionPosition optionPosition) async {
-    //https://api.robinhood.com/options/instruments/?chain_id=1ac71e01-0677-42c6-a490-1457980954f8&expiration_dates=2021-03-05&state=active&type=call
-    // or
-    // https://api.robinhood.com/options/instruments/?chain_id=1ac71e01-0677-42c6-a490-1457980954f8&expiration_dates=2021-03-05&state=active&type=call
     print(optionPosition.option);
-    var result = await user.oauth2Client.read("${optionPosition.option}");
-    //print(result);
+    var result = await user.oauth2Client.read(
+        "${optionPosition.option}"); // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
 
     var resultJson = jsonDecode(result);
     var oi = new OptionInstrument.fromJson(resultJson);
-
     return oi;
+  }
+
+  static Future<List<OptionInstrument>> downloadOptionInstruments(
+      RobinhoodUser user,
+      Instrument instrument,
+      String expirationDates, // 2021-03-05
+      String type, // call or put
+      {String state = "active"}) async {
+    var url =
+        "${Constants.robinHoodEndpoint}/options/instruments/?chain_id=${instrument.tradeableChainId}";
+    if (expirationDates != null) {
+      url += "&expiration_dates=${expirationDates}";
+    }
+    if (type != null) {
+      url += "&type=${type}";
+    }
+    if (state != null) {
+      url += "&state=${state}";
+    }
+    print(url);
+
+    var results = await RobinhoodService.pagedGet(user, url);
+    List<OptionInstrument> optionInstruments = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = new OptionInstrument.fromJson(result);
+      optionInstruments.add(op);
+    }
+    optionInstruments.sort((a, b) => a.strikePrice.compareTo(b.strikePrice));
+    return optionInstruments;
   }
 
   static Future<OptionMarketData> downloadOptionMarketData(
       RobinhoodUser user, OptionInstrument optionInstrument) async {
-    // https://api.robinhood.com/marketdata/options/9c85994d-1f5a-4818-98d1-886ea6f8e6dd/
-    // or
-    // https://api.robinhood.com/marketdata/options/?instruments=https%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F189cd725-24ef-4ea7-9332-bca0ff697488%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F9c85994d-1f5a-4818-98d1-886ea6f8e6dd%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F8b6ba744-7ef7-4b0e-845b-1a12f50c25fa%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F8278f44d-3d9c-4f9e-8479-896f47be5578%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2Ff48cc8d3-cb4f-42bb-8c89-4f53ce43aebc%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2Ff92b79bb-edff-449a-aa72-4c56235c3de2%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2Ff94e0dc3-9b11-4add-ac72-d2442c1ee0ab%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F5afdafc3-8aa0-4b57-906a-bd3e72991df8%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F078dc480-bd05-4836-9fba-7f29f17eff19%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F436e1910-e884-4c37-b87f-2a0c59c02d9f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2F942d3704-7247-454f-9fb6-1f98f5d41702%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Foptions%2Finstruments%2Fc9b32d07-30bf-420b-b18d-9e7b3f5b9de2%2F
     var url =
         "${Constants.robinHoodEndpoint}/marketdata/options/?instruments=${Uri.encodeQueryComponent(optionInstrument.url)}";
     print(url);
     var result = await user.oauth2Client.read(url);
-    //print(result);
-
     var resultJson = jsonDecode(result);
     var oi = new OptionMarketData.fromJson(resultJson['results'][0]);
-
     return oi;
+  }
+
+  static Future<dynamic> buyOptionLimit(
+      RobinhoodUser user,
+      Account account,
+      Instrument instrument,
+      String
+          positionEffect, // Either 'open' for a buy to open effect or 'close' for a buy to close effect.
+      String creditOrDebit, // Either 'debit' or 'credit'.
+      double price, // Limit price to trigger a buy of the option.
+      String symbol, // Ticker of the stock to trade.
+      int quantity, // Number of options to buy.
+      String
+          expirationDate, // Expiration date of the option in 'YYYY-MM-DD' format.
+      double strike, // The strike price of the option.
+      String optionType, // This should be 'call' or 'put'
+      {String timeInForce =
+          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      }) async {
+    // instrument.tradeableChainId
+
+    /*
+    var payload = {
+        'account': account.url,
+        'direction': creditOrDebit,
+        'time_in_force': timeInForce,
+        'legs': [
+            {
+              'position_effect': positionEffect, 
+              'side': 'buy',
+              'ratio_quantity': 1, 
+              'option': // option_instruments_url(optionID)
+            },
+        ],
+        'type': 'limit',
+        'trigger': 'immediate',
+        'price': price,
+        'quantity': quantity,
+        'override_day_trade_checks': false,
+        'override_dtbp_checks': false,
+        'ref_id': str(uuid4()),
+    }
+    */
+    var url = "${Constants.robinHoodEndpoint}/options/orders/";
+    print(url);
+    var result = await user.oauth2Client.post(url);
+
+    return result;
   }
 
   static Future<List<dynamic>> downloadWatchlists(RobinhoodUser user) async {
@@ -323,12 +394,16 @@ class RobinhoodService {
 
   static pagedGet(RobinhoodUser user, String url) async {
     var responseStr = await user.oauth2Client.read(url);
+    print(url);
     var responseJson = jsonDecode(responseStr);
     var results = responseJson['results'];
     var nextUrl = responseJson['next'];
     while (nextUrl != null) {
       responseStr = await user.oauth2Client.read(nextUrl);
-      results.push.apply(results, responseJson['results']);
+      print(nextUrl);
+      responseJson = jsonDecode(responseStr);
+      results.addAll(responseJson['results']);
+      //results.push.apply(results, responseJson['results']);
       nextUrl = responseJson['next'];
     }
     return results;
