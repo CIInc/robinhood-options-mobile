@@ -38,6 +38,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: <Widget>[
+        /*
         Row(
           children: <Widget>[
             Expanded(
@@ -53,6 +54,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
             )
           ],
         ),
+        */
         Expanded(
           child: ListView.builder(
               padding: EdgeInsets.all(16.0),

@@ -60,7 +60,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  Future<RobinhoodUser> user;
+  Future<RobinhoodUser> futureRobinhoodUser;
+  RobinhoodUser snapshotUser;
 
   Future<List<Account>> futureAccounts;
   Future<List<Portfolio>> futurePortfolios;
@@ -80,7 +81,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     print('Loading cache.');
-    user = RobinhoodUser.loadUserFromStore();
+    futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
 
     _controller = ScrollController();
     _controller.addListener(() {
@@ -131,14 +132,17 @@ class _HomePageState extends State<HomePage> {
 
   _buildHomePage() {
     return new FutureBuilder(
-        future: user,
+        future: futureRobinhoodUser,
         builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
           // Can chain new FutureBuilder()'s here
 
           if (userSnapshot.hasData) {
-            RobinhoodUser snapshotUser = userSnapshot.data;
+            snapshotUser = userSnapshot.data;
             if (snapshotUser.userName != null) {
               if (futureAccounts == null) {
+                //RobinhoodService.downloadNummusAccounts(snapshotUser);
+                //RobinhoodService.downloadNummusHoldings(snapshotUser);
+
                 futureAccounts =
                     RobinhoodService.downloadAccounts(snapshotUser);
               }
@@ -181,26 +185,28 @@ class _HomePageState extends State<HomePage> {
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
-                    return _buildCustomScrollView(
-                        ru: snapshotUser,
-                        accounts: dataSnapshot.data.length > 0
-                            ? dataSnapshot.data[0]
-                            : null,
-                        portfolios: dataSnapshot.data.length > 1
-                            ? dataSnapshot.data[1]
-                            : null,
-                        positions: dataSnapshot.data.length > 2
-                            ? dataSnapshot.data[2]
-                            : null,
-                        optionsPositions: dataSnapshot.data.length > 3
-                            ? dataSnapshot.data[3]
-                            : null,
-                        watchLists: dataSnapshot.data.length > 4
-                            ? dataSnapshot.data[4]
-                            : null,
-                        user: dataSnapshot.data.length > 5
-                            ? dataSnapshot.data[5]
-                            : null);
+                    return RefreshIndicator(
+                        child: _buildCustomScrollView(
+                            ru: snapshotUser,
+                            accounts: dataSnapshot.data.length > 0
+                                ? dataSnapshot.data[0]
+                                : null,
+                            portfolios: dataSnapshot.data.length > 1
+                                ? dataSnapshot.data[1]
+                                : null,
+                            positions: dataSnapshot.data.length > 2
+                                ? dataSnapshot.data[2]
+                                : null,
+                            optionsPositions: dataSnapshot.data.length > 3
+                                ? dataSnapshot.data[3]
+                                : null,
+                            watchLists: dataSnapshot.data.length > 4
+                                ? dataSnapshot.data[4]
+                                : null,
+                            user: dataSnapshot.data.length > 5
+                                ? dataSnapshot.data[5]
+                                : null),
+                        onRefresh: _pullRefresh);
                   } else if (dataSnapshot.hasError) {
                     print("${dataSnapshot.error}");
                     return _buildCustomScrollView(
@@ -233,7 +239,7 @@ class _HomePageState extends State<HomePage> {
         });
   }
 
-  CustomScrollView _buildCustomScrollView(
+  RefreshIndicator _buildCustomScrollView(
       {RobinhoodUser ru,
       Widget welcomeWidget,
       List<Account> accounts,
@@ -242,6 +248,24 @@ class _HomePageState extends State<HomePage> {
       List<OptionPosition> optionsPositions,
       List<dynamic> watchLists,
       User user}) {
+    List<Widget> slivers = _buildSlivers(portfolios, user, ru, accounts,
+        welcomeWidget, optionsPositions, positions, watchLists);
+    return RefreshIndicator(
+      child: CustomScrollView(controller: _controller, slivers: slivers),
+      onRefresh: _pullRefresh,
+    );
+    // return CustomScrollView(controller: _controller, slivers: slivers);
+  }
+
+  List<Widget> _buildSlivers(
+      List<Portfolio> portfolios,
+      User user,
+      RobinhoodUser ru,
+      List<Account> accounts,
+      Widget welcomeWidget,
+      List<OptionPosition> optionsPositions,
+      List<Position> positions,
+      List<dynamic> watchLists) {
     var slivers = <Widget>[];
     double changeToday = 0;
     double changeTodayPercentage = 0;
@@ -264,7 +288,15 @@ class _HomePageState extends State<HomePage> {
       // brightness: Brightness.light,
       expandedHeight: 320.0,
       // collapsedHeight: 80.0,
-      title: silverCollapsed
+      /*
+                  bottom: PreferredSize(
+                    child: Icon(Icons.linear_scale, size: 60.0),
+                    preferredSize: Size.fromHeight(50.0))
+                    */
+      floating: false,
+      pinned: true,
+      snap: false,
+      title: silverCollapsed && user != null && portfolios != null
           ? Text(
               '${user.profileName}: ${formatCurrency.format(portfolios[0].equity)}')
           : Container(),
@@ -400,14 +432,6 @@ class _HomePageState extends State<HomePage> {
           },
         ),
       ],
-      /*
-                  bottom: PreferredSize(
-                    child: Icon(Icons.linear_scale, size: 60.0),
-                    preferredSize: Size.fromHeight(50.0))
-                    */
-      floating: false,
-      pinned: true,
-      snap: false,
     ));
 
     if (ru != null && ru.userName != null) {
@@ -446,10 +470,14 @@ class _HomePageState extends State<HomePage> {
       }
       */
       if (optionsPositions != null) {
+        var totalAdjustedMarkPrice = optionsPositions
+            .map((e) => e.optionInstrument.optionMarketData.adjustedMarkPrice)
+            .reduce((a, b) => a + b);
         slivers.add(
           SliverPersistentHeader(
             pinned: false,
-            delegate: PersistentHeader("Options"),
+            delegate: PersistentHeader(
+                "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
           ),
         );
         slivers.add(SliverList(
@@ -470,10 +498,14 @@ class _HomePageState extends State<HomePage> {
         ));
       }
       if (positions != null) {
+        var totalPositionEquity = positions
+            .map((e) => e.quantity * e.instrumentObj.quoteObj.lastTradePrice)
+            .reduce((a, b) => a + b);
         slivers.add(
           SliverPersistentHeader(
             pinned: false,
-            delegate: PersistentHeader("Positions"),
+            delegate: PersistentHeader(
+                "Positions ${formatCurrency.format(totalPositionEquity)}"),
           ),
         );
         slivers.add(SliverList(
@@ -590,8 +622,26 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ))
                   */
+    return slivers;
+  }
 
-    return CustomScrollView(controller: _controller, slivers: slivers);
+  Future<void> _pullRefresh() async {
+    var accounts = await RobinhoodService.downloadAccounts(snapshotUser);
+    var portfolios = await RobinhoodService.downloadPortfolios(snapshotUser);
+    var positions = await RobinhoodService.downloadPositions(snapshotUser);
+    var optionPositions =
+        await RobinhoodService.downloadOptionPositions(snapshotUser);
+    var watchlists = await RobinhoodService.downloadWatchlists(snapshotUser);
+    //var user = await RobinhoodService.downloadUser(snapshotUser);
+
+    setState(() {
+      futureAccounts = Future.value(accounts);
+      futurePortfolios = Future.value(portfolios);
+      futurePositions = Future.value(positions);
+      futureOptionPositions = Future.value(optionPositions);
+      futureWatchlists = Future.value(watchlists);
+      //futureUser = Future.value(user);
+    });
   }
 
   Widget _buildPositionRow(
@@ -817,7 +867,7 @@ class _HomePageState extends State<HomePage> {
       var contents = jsonEncode(result);
       await Store.writeFile(Constants.cacheFilename, contents);
       setState(() {
-        user = RobinhoodUser.loadUserFromStore();
+        futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;
       });
 
@@ -835,7 +885,7 @@ class _HomePageState extends State<HomePage> {
     Future.delayed(Duration(milliseconds: 1), () async {
       await Store.deleteFile(Constants.cacheFilename);
       setState(() {
-        user = RobinhoodUser.loadUserFromStore();
+        futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         // _selectedDrawerIndex = 0;
       });
     });

@@ -20,6 +20,10 @@ class RobinhoodService {
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
 
+  /*
+  USERS & ACCOUNTS
+  */
+
   static Future<User> downloadUser(RobinhoodUser user) async {
     var result =
         await user.oauth2Client.read('${Constants.robinHoodEndpoint}/user/');
@@ -28,21 +32,6 @@ class RobinhoodService {
     var resultJson = jsonDecode(result);
     var usr = new User.fromJson(resultJson);
     return usr;
-  }
-
-  static Future<List<Portfolio>> downloadPortfolios(RobinhoodUser user) async {
-    //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/portfolios/");
-    //print(results);
-    // https://phoenix.robinhood.com/accounts/unified
-    List<Portfolio> portfolios = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = new Portfolio.fromJson(result);
-      portfolios.add(op);
-    }
-    return portfolios;
   }
 
   static Future<List<Account>> downloadAccounts(RobinhoodUser user) async {
@@ -60,6 +49,26 @@ class RobinhoodService {
     return accounts;
   }
 
+  /*
+  PORTFOLIOS
+  */
+
+  static Future<List<Portfolio>> downloadPortfolios(RobinhoodUser user) async {
+    //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodEndpoint}/portfolios/");
+    //print(results);
+    // https://phoenix.robinhood.com/accounts/unified
+    List<Portfolio> portfolios = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = new Portfolio.fromJson(result);
+      portfolios.add(op);
+    }
+    return portfolios;
+  }
+
+  // Not working
   static Future<dynamic> downloadPortfolioHistoricals(
       RobinhoodUser user, String account) async {
     //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
@@ -77,6 +86,10 @@ class RobinhoodService {
     */
   }
 
+  /*
+  POSITIONS
+  */
+
   static Future<List<Position>> downloadPositions(RobinhoodUser user,
       {bool withQuantity = true}) async {
     var results = await RobinhoodService.pagedGet(
@@ -90,22 +103,7 @@ class RobinhoodService {
         positions.add(op);
       }
     }
-    /*
-    var instrumentUrls = positions.map((e) => e.instrument).toList();
-    List<String> distinctInstrumentUrls = [
-      ...{...instrumentUrls}
-    ];
-    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
-      var instrumentResponse =
-          await user.oauth2Client.read(distinctInstrumentUrls[i]);
-      var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
-      var itemsToUpdate = positions
-          .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      itemsToUpdate.forEach((element) {
-        element.instrumentObj = instrument;
-      });
-    }
-    */
+
     for (var i = 0; i < positions.length; i++) {
       var instrumentObj =
           await downloadInstrument(user, positions[i].instrument);
@@ -128,6 +126,10 @@ class RobinhoodService {
 
     return positions;
   }
+
+  /* 
+  INSTRUMENTS
+  */
 
   static Future<Instrument> downloadInstrument(
       RobinhoodUser user, String instrumentUrl) async {
@@ -178,6 +180,10 @@ class RobinhoodService {
     return splits;
   }
 
+  /* 
+  OPTIONS
+  */
+
   static Future<List<OptionPosition>> downloadOptionPositions(
       RobinhoodUser user,
       {bool withQuantity = true}) async {
@@ -195,6 +201,7 @@ class RobinhoodService {
         optionPositions.add(op);
       }
     }
+
     for (var i = 0; i < optionPositions.length; i++) {
       var optionInstrument =
           await downloadOptionInstrument(user, optionPositions[i]);
@@ -217,6 +224,9 @@ class RobinhoodService {
 
       optionPositions[i].optionInstrument = optionInstrument;
     }
+    optionPositions.sort((a, b) => a.optionInstrument.expirationDate
+        .compareTo(b.optionInstrument.expirationDate));
+
     return optionPositions;
   }
 
@@ -272,6 +282,48 @@ class RobinhoodService {
     return oi;
   }
 
+  /*
+  CRYPTO
+  */
+
+  static Future<dynamic> downloadNummusAccounts(RobinhoodUser user) async {
+    var results = await user.oauth2Client
+        .read("${Constants.robinHoodNummusEndpoint}/accounts/");
+    //var results = await RobinhoodService.pagedGet(user, "${Constants.robinHoodNummusEndpoint}/accounts/");
+    //print(results);
+    return results;
+    /*
+    List<Account> accounts = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = new Account.fromJson(result);
+      accounts.add(op);
+    }
+    return accounts;
+    */
+  }
+
+  static Future<dynamic> downloadNummusHoldings(RobinhoodUser user) async {
+    var results = await user.oauth2Client
+        .read("${Constants.robinHoodNummusEndpoint}/holdings/");
+    //var results = await RobinhoodService.pagedGet(user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+    //print(results);
+    return results;
+    /*
+    List<Account> accounts = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = new Account.fromJson(result);
+      accounts.add(op);
+    }
+    return accounts;
+    */
+  }
+
+  /*
+  TRADING
+  */
+
   static Future<dynamic> buyOptionLimit(
       RobinhoodUser user,
       Account account,
@@ -320,9 +372,18 @@ class RobinhoodService {
     return result;
   }
 
+/*
+WATCHLIST
+*/
   static Future<List<dynamic>> downloadWatchlists(RobinhoodUser user) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
+    var results = [];
+    try {
+      results = await RobinhoodService.pagedGet(
+          user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
+    } on Exception catch (e) {
+      // Format
+      print('No watchlist found.');
+    }
     List<WatchlistItem> watchlistItems = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
