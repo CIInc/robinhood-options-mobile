@@ -65,8 +65,8 @@ class _LoginWidgetState extends State<LoginWidget> {
     deviceToken = generateDeviceToken();
     myFocusNode = FocusNode();
 
-    StreamSubscription<String> streamSubscription =
-        clipboardContentStream.stream.listen((value) {
+    //StreamSubscription<String> streamSubscription =
+    clipboardContentStream.stream.listen((value) {
       //print('Value from controller: $value');
       if (clipboardInitialValue == null) {
         clipboardInitialValue = value;
@@ -162,40 +162,12 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _handleChallenge() async {
-    challengeResponse = oauth2_robinhood
-        .respondChallenge(this.challengeRequestId, smsCtl.text)
-        .then((value) {
-      var responseJson = jsonDecode(value.body);
-      this.challengeResponseId = responseJson['id'];
-      _login();
-      return;
-    });
-    /*
-    http.Response response = await oauth2_robinhood.respondChallenge(this.id, smsCtl.text);
-    debugPrint(response.body);
-    var responseJson = jsonDecode(response.body);
-    var challengeId = responseJson['id'];
-    client = oauth2_robinhood
-        .resourceOwnerPasswordGrant(
-            Constants.tokenEndpoint, userCtl.text, passCtl.text,
-            identifier: Constants.identifier,
-            basicAuth: false,
-            deviceToken: this.deviceToken,
-            //challengeType: 'sms',
-            challengeId: challengeId)
-        // mfaCode: smsCtl.text,
-        //scopes: ['internal'],
-        //expiresIn: '86400')
-        .catchError((e) {
-      debugPrint(e);
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-            SnackBar(content: Text("Challenge failed: ${e.message}")));
-      // FormatException
-    });
-    setState(() {});
-    */
+    var challengeResponse = await oauth2_robinhood.respondChallenge(
+        this.challengeRequestId, smsCtl.text);
+    this.challengeResponse = Future.value(challengeResponse);
+    var responseJson = jsonDecode(challengeResponse.body);
+    this.challengeResponseId = responseJson['id'];
+    _login();
   }
 
   void _startMonitoringClipboard() {
@@ -238,39 +210,12 @@ class _LoginWidgetState extends State<LoginWidget> {
         body: new FutureBuilder(
             future: client,
             builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
-              if (snapshot.hasData) {
-                /*
-                var user = new RobinhoodUser(userCtl.text,
-                    snapshot.data.credentials.toJson(), snapshot.data);
-
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Navigator.pop(context, user),
-                );
-                */
-              } else if (snapshot.hasError) {
-                // /oauth2/token endpoint returned a challenge.
-                /*
-                var errorResponse = jsonDecode(snapshot.error);
-                if (errorResponse['challenge'] != null) {
-                  this.challengeRequestId = errorResponse['challenge']['id'];
-                  myFocusNode.requestFocus();
-
-                  _startMonitoringClipboard();
-                } else {
-                  // on FormatException AuthorizationException
-                  // After the Selection Screen returns a result, hide any previous snackbars
-                  // and show the new result.
-                  ScaffoldMessenger.of(context)
-                    ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(
-                        content: Text("Login failed: ${snapshot.error}")));
-                  // FormatException
-                }
-                */
+              //if (snapshot.hasData) {
+              //} else
+              if (snapshot.hasError) {
                 return new FutureBuilder(
                     future: challengeResponse,
                     builder: (context, AsyncSnapshot<http.Response> snapshot1) {
-                      // this.challengeRequestId = null;
                       /*
                       if (snapshot1.hasData) {
                         var responseJson = jsonDecode(snapshot1.data.body);
@@ -288,12 +233,6 @@ class _LoginWidgetState extends State<LoginWidget> {
                       //return _buildForm(snapshot);
                       //return Text('Waiting for SMS challenge...');
                     });
-                /*
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(
-                SnackBar(content: Text("Login failed: ${snapshot.error}")));
-                */
               }
               return _buildForm(snapshot.connectionState ==
                       ConnectionState

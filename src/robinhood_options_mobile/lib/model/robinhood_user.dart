@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
-
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
@@ -41,7 +39,8 @@ class RobinhoodUser {
       print('Loaded cache.');
       return user;
     } on FormatException catch (e) {
-      print('Cache provided is not valid JSON. $contents');
+      print(
+          'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
       return new RobinhoodUser(null, null, null);
     }
   }

@@ -1,5 +1,3 @@
-import 'package:robinhood_options_mobile/model/instrument.dart';
-
 /*
 {
   "next":null,

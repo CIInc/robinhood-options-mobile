@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
-import 'package:robinhood_options_mobile/model/option_instrument.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 class OptionPositionWidget extends StatefulWidget {
   final RobinhoodUser user;

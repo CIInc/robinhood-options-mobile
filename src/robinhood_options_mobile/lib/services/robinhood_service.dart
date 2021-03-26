@@ -382,7 +382,7 @@ WATCHLIST
           user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
     } on Exception catch (e) {
       // Format
-      print('No watchlist found.');
+      print('No watchlist found. Error: $e');
     }
     List<WatchlistItem> watchlistItems = [];
     for (var i = 0; i < results.length; i++) {
@@ -390,11 +390,11 @@ WATCHLIST
       var op = WatchlistItem.fromJson(result);
       watchlistItems.add(op);
     }
+    /*
     var watchLists = watchlistItems.map((e) => e.url).toList();
     List<String> distinctwatchLists = [
       ...{...watchLists}
     ];
-    /*
     for (var i = 0; i < distinctwatchLists.length; i++) {
       print(distinctwatchLists[i]);
       var watchlistResponse =
