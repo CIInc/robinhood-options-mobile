@@ -22,20 +22,20 @@ import 'package:flutter/material.dart';
 */
 @immutable
 class Quote {
-  final double askPrice;
+  final double? askPrice;
   final int askSize;
-  final double bidPrice;
+  final double? bidPrice;
   final int bidSize;
-  final double lastTradePrice;
-  final double lastExtendedHoursTradePrice;
-  final double previousClose;
-  final double adjustedPreviousClose;
-  final DateTime previousCloseDate;
+  final double? lastTradePrice;
+  final double? lastExtendedHoursTradePrice;
+  final double? previousClose;
+  final double? adjustedPreviousClose;
+  final DateTime? previousCloseDate;
   final String symbol;
   final bool tradingHalted;
   final bool hasTraded;
   final String lastTradePriceSource;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
   final String instrument;
   final String instrumentId;
 

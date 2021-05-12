@@ -30,21 +30,21 @@ import 'package:flutter/material.dart';
 */
 @immutable
 class Fundamentals {
-  final double open;
-  final double high;
-  final double low;
-  final double volume;
-  final DateTime marketDate;
-  final double averageVolume2Weeks;
-  final double averageVolume;
-  final double high52Weeks;
-  final double dividendYield;
-  final double float;
-  final double low52Weeks;
-  final double marketCap;
-  final double pbRatio;
-  final double peRatio;
-  final double sharesOutstanding;
+  final double? open;
+  final double? high;
+  final double? low;
+  final double? volume;
+  final DateTime? marketDate;
+  final double? averageVolume2Weeks;
+  final double? averageVolume;
+  final double? high52Weeks;
+  final double? dividendYield;
+  final double? float;
+  final double? low52Weeks;
+  final double? marketCap;
+  final double? pbRatio;
+  final double? peRatio;
+  final double? sharesOutstanding;
   final String description;
   final String instrument;
   final String ceo;

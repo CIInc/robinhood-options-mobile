@@ -49,35 +49,35 @@ class Instrument {
   final String splits;
   final String state;
   final String market;
-  final String simpleName;
+  final String? simpleName;
   final String name;
   final bool tradeable;
   final String tradability;
   final String symbol;
   final String bloombergUnique;
-  final double marginInitialRatio;
-  final double maintenanceRatio;
+  final double? marginInitialRatio;
+  final double? maintenanceRatio;
   final String country;
-  final double dayTradeRatio;
-  final DateTime listDate;
-  final double minTickSize;
+  final double? dayTradeRatio;
+  final DateTime? listDate;
+  final double? minTickSize;
   final String type;
-  final String tradeableChainId;
+  final String? tradeableChainId;
   final String rhsTradability;
   final String fractionalTradability;
-  final double defaultCollarFraction;
-  final String ipoAccessStatus;
-  final DateTime ipoAccessCobDeadline;
-  final double ipoAllocatedPrice;
-  final double ipoCustomersReceived;
-  final double ipoCustomersRequested;
-  final DateTime ipoDate;
-  final String ipoS1Url;
+  final double? defaultCollarFraction;
+  final String? ipoAccessStatus;
+  final DateTime? ipoAccessCobDeadline;
+  final double? ipoAllocatedPrice;
+  final double? ipoCustomersReceived;
+  final double? ipoCustomersRequested;
+  final DateTime? ipoDate;
+  final String? ipoS1Url;
   final bool isSpac;
 
-  Quote quoteObj;
-  Fundamentals fundamentalsObj;
-  List<Split> splitsObj;
+  Quote? quoteObj;
+  Fundamentals? fundamentalsObj;
+  List<Split> splitsObj = [];
 
   Instrument(
       this.id,

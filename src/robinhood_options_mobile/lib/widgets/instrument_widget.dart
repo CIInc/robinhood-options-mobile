@@ -25,10 +25,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final RobinhoodUser user;
   final Instrument instrument;
 
-  Future<List<OptionInstrument>> futureCallOptionInstruments;
-  Future<List<OptionInstrument>> futurePutOptionInstruments;
+  Future<List<OptionInstrument>>? futureCallOptionInstruments;
+  Future<List<OptionInstrument>>? futurePutOptionInstruments;
 
-  ScrollController _controller;
+  late ScrollController _controller;
   final List<bool> isSelected = [true, false];
 
   _InstrumentWidgetState(this.user, this.instrument);
@@ -36,6 +36,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   void initState() {
     super.initState();
+
+    _controller = ScrollController();
 
     futureCallOptionInstruments = RobinhoodService.downloadOptionInstruments(
         this.user, this.instrument, null, 'call');
@@ -77,7 +79,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
-  buildScrollView({List<OptionInstrument> optionInstruments = null}) {
+  buildScrollView({List<OptionInstrument>? optionInstruments = null}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
       title: new Text("${instrument.symbol}"),
@@ -128,7 +130,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   title: Text(
                       '${optionInstruments[index].chainSymbol} \$${optionInstruments[index].strikePrice} ${optionInstruments[index].type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
                   subtitle: Text(
-                      'Expires ${dateFormat.format(optionInstruments[index].expirationDate)}'),
+                      'Expires ${dateFormat.format(optionInstruments[index].expirationDate as DateTime)}'),
                 )
               ]));
 

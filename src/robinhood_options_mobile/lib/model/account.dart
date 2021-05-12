@@ -103,7 +103,7 @@
 */
 class Account {
   final String url;
-  final double portfolioCash;
+  final double? portfolioCash;
 
   Account(this.url, this.portfolioCash);
 

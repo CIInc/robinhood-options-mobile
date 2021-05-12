@@ -2,10 +2,10 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 
 class WatchlistItem {
   final String instrument;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final String watchlist;
   final String url;
-  Instrument instrumentObj;
+  Instrument? instrumentObj;
 
   WatchlistItem(this.instrument, this.createdAt, this.watchlist, this.url);
 

@@ -47,11 +47,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           },
         ));
     priceCtl.text =
-        '${formatCurrency.format(optionPosition.optionInstrument.optionMarketData.adjustedMarkPrice)}';
+        '${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice)}';
     return new Scaffold(
         appBar: new AppBar(
           title: new Text(
-              "Trade ${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
+              "Trade ${optionPosition.chainSymbol} \$${optionPosition.averagePrice!.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
         ),
         body: new Builder(builder: (context) {
           return new ListView(

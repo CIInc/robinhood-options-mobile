@@ -25,7 +25,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
   //Future<String> optionPositionJson;
   //final _suggestions = <OptionPosition>[];
-  Future<List<OptionPosition>> futureOptionPositions;
+  Future<List<OptionPosition>>? futureOptionPositions;
 
   _OptionPositionsWidgetState(this.user);
 
@@ -52,16 +52,16 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           return new ListTile(
             leading: CircleAvatar(
                 //backgroundImage: AssetImage(user.profilePicture),
-                child: optionsPositions[index].optionInstrument.type == 'call'
+                child: optionsPositions[index].optionInstrument!.type == 'call'
                     ? new Icon(Icons.trending_up)
                     : new Icon(Icons.trending_down)
                 // child: new Text(optionsPositions[i].symbol)
                 ),
             // trailing: user.icon,
             title: new Text(
-                '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
+                '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
             subtitle: new Text(
-                '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
+                '${optionsPositions[index].quantity!.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
             trailing: new Text(
               "\$${optionsPositions[index].averagePrice.toString()}",
               //style: TextStyle(fontSize: 18.0),
@@ -89,7 +89,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             future: futureOptionPositions,
             builder: (context, AsyncSnapshot<List<OptionPosition>> snapshot) {
               if (snapshot.hasData) {
-                return _buildPositions(snapshot.data);
+                return _buildPositions(snapshot.data as List<OptionPosition>);
               } else if (snapshot.hasError) {
                 print("${snapshot.error}");
                 return Text("${snapshot.error}");

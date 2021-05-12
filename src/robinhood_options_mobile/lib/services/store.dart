@@ -8,7 +8,7 @@ class Store {
     return directory.path;
   }
 
-  static Future<String> readFile(String filename) async {
+  static Future<String?> readFile(String filename) async {
     final path = await _localPath;
     final file = File('$path/$filename');
     final bool exists = await file.exists();

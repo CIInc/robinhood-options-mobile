@@ -25,7 +25,7 @@ class User {
   final String lastName;
   final String locality;
   final String profileName;
-  final DateTime createdAt;
+  final DateTime? createdAt;
 
   User(
       this.url,

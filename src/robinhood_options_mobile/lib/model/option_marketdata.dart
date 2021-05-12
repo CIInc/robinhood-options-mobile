@@ -38,37 +38,37 @@ import 'package:flutter/material.dart';
 
 @immutable
 class OptionMarketData {
-  final double adjustedMarkPrice;
-  final double askPrice;
+  final double? adjustedMarkPrice;
+  final double? askPrice;
   final int askSize;
-  final double bidPrice;
+  final double? bidPrice;
   final int bidSize;
-  final double breakEvenPrice;
-  final double highPrice;
+  final double? breakEvenPrice;
+  final double? highPrice;
   final String instrument;
   final String instrumentId;
-  final double lastTradePrice;
+  final double? lastTradePrice;
   final int lastTradeSize;
-  final double lowPrice;
-  final double markPrice;
+  final double? lowPrice;
+  final double? markPrice;
   final int openInterest;
-  final DateTime previousCloseDate;
-  final double previousClosePrice;
+  final DateTime? previousCloseDate;
+  final double? previousClosePrice;
   final int volume;
   final String symbol;
   final String occSymbol;
-  final double chanceOfProfitLong;
-  final double chanceOfProfitShort;
-  final double delta;
-  final double gamma;
-  final double impliedVolatility;
-  final double rho;
-  final double theta;
-  final double vega;
-  final double highFillRateBuyPrice;
-  final double highFillRateSellPrice;
-  final double lowFillRateBuyPrice;
-  final double lowFillRateSellPrice;
+  final double? chanceOfProfitLong;
+  final double? chanceOfProfitShort;
+  final double? delta;
+  final double? gamma;
+  final double? impliedVolatility;
+  final double? rho;
+  final double? theta;
+  final double? vega;
+  final double? highFillRateBuyPrice;
+  final double? highFillRateSellPrice;
+  final double? lowFillRateBuyPrice;
+  final double? lowFillRateSellPrice;
 
   OptionMarketData(
       this.adjustedMarkPrice,

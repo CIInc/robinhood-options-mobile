@@ -27,9 +27,9 @@ import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
 @immutable
 class MinTicks {
-  final double aboveTick;
-  final double belowTick;
-  final double cutoffPrice;
+  final double? aboveTick;
+  final double? belowTick;
+  final double? cutoffPrice;
   MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
 }
 
@@ -37,22 +37,22 @@ class MinTicks {
 class OptionInstrument {
   final String chainId;
   final String chainSymbol;
-  final DateTime createdAt;
-  final DateTime expirationDate;
+  final DateTime? createdAt;
+  final DateTime? expirationDate;
   final String id;
-  final DateTime issueDate;
+  final DateTime? issueDate;
   final MinTicks minTicks;
 
   final String rhsTradability;
   final String state;
-  final double strikePrice;
+  final double? strikePrice;
   final String tradability;
   final String type;
-  final DateTime updatedAt;
+  final DateTime? updatedAt;
   final String url;
-  final DateTime selloutDateTime;
+  final DateTime? selloutDateTime;
 
-  OptionMarketData optionMarketData;
+  OptionMarketData? optionMarketData;
 
   OptionInstrument(
       this.chainId,
@@ -82,7 +82,7 @@ class OptionInstrument {
             double.tryParse(json['min_ticks']['above_tick']),
             double.tryParse(json['min_ticks']['below_tick']),
             double.tryParse(json['min_ticks']['cutoff_price'])),
-        rhsTradability = json['rhsTradability'],
+        rhsTradability = json['rhs_tradability'],
         state = json['state'],
         strikePrice = double.tryParse(json['strike_price']),
         tradability = json['tradability'],

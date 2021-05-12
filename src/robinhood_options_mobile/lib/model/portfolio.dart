@@ -29,26 +29,26 @@
 class Portfolio {
   final String url;
   final String account;
-  final DateTime startDate;
-  final double marketValue;
-  final double equity;
-  final double extendedHoursMarketValue;
-  final double extendedHoursEquity;
-  final double extendedHoursPortfolioEquity;
-  final double lastCoreMarketValue;
-  final double lastCoreEquity;
-  final double lastCorePortfolioEquity;
-  final double excessMargin;
-  final double excessMaintenance;
-  final double excessMarginWithUnclearedDeposits;
-  final double excessMaintenanceWithUnclearedDeposits;
-  final double equityPreviousClose;
-  final double portfolioEquityPreviousClose;
-  final double adjustedEquityPreviousClose;
-  final double adjustedPortfolioEquityPreviousClose;
-  final double withdrawableAmount;
-  final double unwithdrawableDeposits;
-  final double unwithdrawableGrants;
+  final DateTime? startDate;
+  final double? marketValue;
+  final double? equity;
+  final double? extendedHoursMarketValue;
+  final double? extendedHoursEquity;
+  final double? extendedHoursPortfolioEquity;
+  final double? lastCoreMarketValue;
+  final double? lastCoreEquity;
+  final double? lastCorePortfolioEquity;
+  final double? excessMargin;
+  final double? excessMaintenance;
+  final double? excessMarginWithUnclearedDeposits;
+  final double? excessMaintenanceWithUnclearedDeposits;
+  final double? equityPreviousClose;
+  final double? portfolioEquityPreviousClose;
+  final double? adjustedEquityPreviousClose;
+  final double? adjustedPortfolioEquityPreviousClose;
+  final double? withdrawableAmount;
+  final double? unwithdrawableDeposits;
+  final double? unwithdrawableGrants;
 
   Portfolio(
       this.url,

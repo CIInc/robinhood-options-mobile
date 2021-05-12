@@ -17,7 +17,7 @@ import 'package:robinhood_options_mobile/services/resource_owner_password_grant.
     as oauth2_robinhood;
 
 class LoginWidget extends StatefulWidget {
-  LoginWidget({Key key, this.title}) : super(key: key);
+  LoginWidget({Key? key}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -28,35 +28,34 @@ class LoginWidget extends StatefulWidget {
   // used by the build method of the State. Fields in a Widget subclass are
   // always marked "final".
 
-  final String title;
-
   @override
   _LoginWidgetState createState() => _LoginWidgetState();
 }
 
 class _LoginWidgetState extends State<LoginWidget> {
-  Future<oauth2.Client> client;
-  Future<http.Response> challengeResponse;
+  Future<http.Response>? authenticationResponse;
+  Future<http.Response>? challengeResponse;
 
-  RobinhoodUser user;
+  oauth2.Client? client;
+  RobinhoodUser? user;
 
-  Map<String, dynamic> optionPositionJson;
+  Map<String, dynamic>? optionPositionJson;
 
   var userCtl = TextEditingController();
   var passCtl = TextEditingController();
   var smsCtl = TextEditingController();
 
   final clipboardContentStream = StreamController<String>.broadcast();
-  Timer clipboardTriggerTime;
-  String clipboardInitialValue;
+  Timer? clipboardTriggerTime;
+  String? clipboardInitialValue;
 
-  String deviceToken;
-  String challengeRequestId;
-  String challengeResponseId;
+  String? deviceToken;
+  String? challengeRequestId;
+  String? challengeResponseId;
 
   // Define the focus node. To manage the lifecycle, create the FocusNode in
   // the initState method, and clean it up in the dispose method.
-  FocusNode myFocusNode;
+  late FocusNode myFocusNode;
 
   @override
   void initState() {
@@ -86,40 +85,32 @@ class _LoginWidgetState extends State<LoginWidget> {
     // Clean up the focus node when the Form is disposed.
     myFocusNode.dispose();
 
+    if (clipboardTriggerTime != null) {
+      clipboardTriggerTime!.cancel();
+    }
+
     clipboardContentStream.close();
-    clipboardTriggerTime.cancel();
 
     super.dispose();
   }
 
-  String generateDeviceToken() {
-    List<int> rands = [];
-    var rng = new Random();
-    for (int i = 0; i < 16; i++) {
-      var r = rng.nextDouble();
-      double rand = 4294967296.0 * r;
-      var a = (rand.toInt() >> ((3 & i) << 3)) & 255;
-      rands.add(a);
-    }
-
-    List<String> hex = [];
-    for (int i = 0; i < 256; ++i) {
-      var a = (i + 256).toRadixString(16).substring(1);
-      hex.add(a);
-    }
-
-    String s = '';
-    for (int i = 0; i < 16; i++) {
-      s += hex[rands[i]];
-
-      if (i == 3 || i == 5 || i == 7 || i == 9) {
-        s += "-";
-      }
-    }
-    return s;
-  }
-
   void _login() {
+    //async {
+    // Simulate some async work - like an HttpClientRequest
+    //await new Future.delayed(const Duration(milliseconds: 100));
+
+    //ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    setState(() {});
+
+    authenticationResponse = oauth2_robinhood.login(
+        Constants.tokenEndpoint, userCtl.text, passCtl.text,
+        identifier: Constants.identifier,
+        basicAuth: false,
+        deviceToken: this.deviceToken,
+        challengeType: 'sms',
+        challengeId: this.challengeResponseId);
+
+    /*
     client = oauth2_robinhood
         .resourceOwnerPasswordGrant(
             Constants.tokenEndpoint, userCtl.text, passCtl.text,
@@ -134,7 +125,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       var user =
           new RobinhoodUser(userCtl.text, value.credentials.toJson(), value);
 
-      WidgetsBinding.instance.addPostFrameCallback(
+      WidgetsBinding.instance!.addPostFrameCallback(
         (_) => Navigator.pop(context, user),
       );
     }).catchError((e) {
@@ -158,48 +149,10 @@ class _LoginWidgetState extends State<LoginWidget> {
         }
       }
       setState(() {});
-    });
+      return null;
+    }) as Future<oauth2.Client>?;
+    */
   }
-
-  void _handleChallenge() async {
-    var challengeResponse = await oauth2_robinhood.respondChallenge(
-        this.challengeRequestId, smsCtl.text);
-    this.challengeResponse = Future.value(challengeResponse);
-    var responseJson = jsonDecode(challengeResponse.body);
-    this.challengeResponseId = responseJson['id'];
-    _login();
-  }
-
-  void _startMonitoringClipboard() {
-    // Start listening to clipboard
-    clipboardTriggerTime = Timer.periodic(
-      const Duration(milliseconds: 500),
-      (timer) {
-        Clipboard.getData('text/plain').then((clipboarContent) {
-          //print('Clipboard content ${clipboarContent.text}');
-          if (clipboarContent != null) {
-            clipboardContentStream.add(clipboarContent.text);
-          }
-        });
-      },
-    );
-  }
-/*
-{
-  "detail":"Request blocked, challenge issued.",
-  "challenge": {
-    "id":"4295ae9f-f6ca-4563-90b4-70ce0f557e1f",
-    "user":"8e620d87-d864-4297-828b-c9b7662f2c2b",
-    "type":"sms",
-    "alternate_type":null,
-    "status":"issued",
-    "remaining_retries":3,
-    "remaining_attempts":3,
-    "expires_at":"2021-03-04T22:49:37.846180-05:00",
-    "updated_at":"2021-03-04T22:44:37.846419-05:00"
-  }
-}
- */
 
   @override
   Widget build(BuildContext context) {
@@ -208,38 +161,102 @@ class _LoginWidgetState extends State<LoginWidget> {
           title: new Text("Login"),
         ),
         body: new FutureBuilder(
-            future: client,
-            builder: (context, AsyncSnapshot<oauth2.Client> snapshot) {
-              //if (snapshot.hasData) {
-              //} else
-              if (snapshot.hasError) {
-                return new FutureBuilder(
-                    future: challengeResponse,
-                    builder: (context, AsyncSnapshot<http.Response> snapshot1) {
-                      /*
-                      if (snapshot1.hasData) {
-                        var responseJson = jsonDecode(snapshot1.data.body);
-                        this.challengeResponseId = responseJson['id'];
-                      }
-                      else if (snapshot1.hasError) {
-                        return Text('Error: ${snapshot1.error}');
-                      }*/
-                      return _buildForm(
-                          /*snapshot.connectionState ==
-                              ConnectionState.waiting ||
-                          (snapshot.connectionState == ConnectionState.done &&
-                              !snapshot.hasData) ||*/
-                          snapshot1.connectionState == ConnectionState.waiting);
-                      //return _buildForm(snapshot);
-                      //return Text('Waiting for SMS challenge...');
-                    });
+            future: authenticationResponse,
+            builder:
+                (context, AsyncSnapshot<http.Response> authenticationSnapshot) {
+/*
+              if (authenticationSnapshot.hasError) {
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text(
+                          "Login failed: ${authenticationSnapshot.error}")));
               }
-              return _buildForm(snapshot.connectionState ==
-                      ConnectionState
-                          .waiting /* ||
-                      (snapshot.connectionState == ConnectionState.done &&
-                          !snapshot.hasData)*/
+              else {
+                var httpResponse = authenticationSnapshot.data as http.Response;
+                print(httpResponse.statusCode);
+                if (httpResponse.statusCode != 200) {
+                  //return Future.error(response.body);
+                  ScaffoldMessenger.of(context)
+                    ..removeCurrentSnackBar()
+                    ..showSnackBar(SnackBar(
+                        content: Text("Login failed: ${httpResponse.body}")));
+                }
+              }
+                        */
+              print(authenticationSnapshot.connectionState);
+              if (authenticationSnapshot.data != null) {
+                var authenticationResponse =
+                    jsonDecode(authenticationSnapshot.data!.body);
+                print(authenticationResponse);
+                if (authenticationResponse['challenge'] != null) {
+                  this.challengeRequestId =
+                      authenticationResponse['challenge']['id'];
+                  myFocusNode.requestFocus();
+
+                  _startMonitoringClipboard();
+
+                  return new FutureBuilder(
+                      future: challengeResponse,
+                      builder:
+                          (context, AsyncSnapshot<http.Response> snapshot1) {
+                        /*
+                        if (snapshot1.hasData) {
+                          var responseJson = jsonDecode(snapshot1.data.body);
+                          this.challengeResponseId = responseJson['id'];
+                        }
+                        else if (snapshot1.hasError) {
+                          return Text('Error: ${snapshot1.error}');
+                        }*/
+                        return _buildForm(
+                            /*snapshot.connectionState ==
+                                ConnectionState.waiting ||
+                            (snapshot.connectionState == ConnectionState.done &&
+                                !snapshot.hasData) ||*/
+                            snapshot1.connectionState ==
+                                ConnectionState.waiting);
+                        //return _buildForm(snapshot);
+                        //return Text('Waiting for SMS challenge...');
+                      });
+                } else if (authenticationResponse['access_token'] != null) {
+                  this.client = oauth2_robinhood.generateClient(
+                      authenticationSnapshot.data!,
+                      Constants.tokenEndpoint,
+                      //null,
+                      ' ',
+                      //null,
+                      Constants.identifier,
+                      null,
+                      null,
+                      null);
+                  var user = new RobinhoodUser(userCtl.text,
+                      this.client!.credentials.toJson(), this.client);
+
+                  WidgetsBinding.instance!.addPostFrameCallback(
+                    (_) => Navigator.pop(context, user),
                   );
+                } else {
+                  if (authenticationSnapshot.connectionState ==
+                      ConnectionState.done) {
+                    var errorMessage = authenticationResponse;
+                    if (authenticationResponse['error_description'] != null) {
+                      errorMessage =
+                          authenticationResponse['error_description'];
+                    } else if (authenticationResponse['detail'] != null) {
+                      errorMessage = authenticationResponse['detail'];
+                    }
+                    WidgetsBinding.instance!.addPostFrameCallback((_) {
+                      ScaffoldMessenger.of(context)
+                        ..removeCurrentSnackBar()
+                        ..showSnackBar(SnackBar(
+                            content: Text("${errorMessage}"))); // Login failed:
+                    });
+                  }
+                }
+              }
+
+              return _buildForm(authenticationSnapshot.connectionState ==
+                  ConnectionState.waiting);
             }));
   }
 
@@ -315,4 +332,73 @@ class _LoginWidgetState extends State<LoginWidget> {
       ],
     );
   }
+
+  void _handleChallenge() async {
+    if (this.challengeRequestId != null) {
+      var challengeResponse = await oauth2_robinhood.respondChallenge(
+          this.challengeRequestId as String, smsCtl.text);
+      this.challengeResponse = Future.value(challengeResponse);
+      var responseJson = jsonDecode(challengeResponse.body);
+      this.challengeResponseId = responseJson['id'];
+      _login();
+    }
+  }
+
+  void _startMonitoringClipboard() {
+    // Start listening to clipboard
+    clipboardTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (timer) {
+        Clipboard.getData('text/plain').then((clipboarContent) {
+          //print('Clipboard content ${clipboarContent.text}');
+          if (clipboarContent != null) {
+            clipboardContentStream.add(clipboarContent.text as String);
+          }
+        });
+      },
+    );
+  }
+
+  String generateDeviceToken() {
+    List<int> rands = [];
+    var rng = new Random();
+    for (int i = 0; i < 16; i++) {
+      var r = rng.nextDouble();
+      double rand = 4294967296.0 * r;
+      var a = (rand.toInt() >> ((3 & i) << 3)) & 255;
+      rands.add(a);
+    }
+
+    List<String> hex = [];
+    for (int i = 0; i < 256; ++i) {
+      var a = (i + 256).toRadixString(16).substring(1);
+      hex.add(a);
+    }
+
+    String s = '';
+    for (int i = 0; i < 16; i++) {
+      s += hex[rands[i]];
+
+      if (i == 3 || i == 5 || i == 7 || i == 9) {
+        s += "-";
+      }
+    }
+    return s;
+  }
+  /*
+{
+  "detail":"Request blocked, challenge issued.",
+  "challenge": {
+    "id":"4295ae9f-f6ca-4563-90b4-70ce0f557e1f",
+    "user":"8e620d87-d864-4297-828b-c9b7662f2c2b",
+    "type":"sms",
+    "alternate_type":null,
+    "status":"issued",
+    "remaining_retries":3,
+    "remaining_attempts":3,
+    "expires_at":"2021-03-04T22:49:37.846180-05:00",
+    "updated_at":"2021-03-04T22:44:37.846419-05:00"
+  }
+}
+ */
 }

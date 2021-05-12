@@ -5,7 +5,6 @@
 import 'dart:async';
 
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 
 import 'package:oauth2/oauth2.dart';
 import 'package:oauth2/src/handle_access_token_response.dart';
@@ -43,21 +42,23 @@ import 'package:oauth2/src/utils.dart';
 /// format as the [standard JSON response][].
 ///
 /// [standard JSON response]: https://tools.ietf.org/html/rfc6749#section-5.1
+
+/*
 Future<Client> resourceOwnerPasswordGrant(
     Uri authorizationEndpoint, String username, String password,
-    {String identifier,
-    String secret,
-    String deviceToken,
-    String challengeType,
-    String challengeId,
+    {String? identifier,
+    String? secret,
+    String? deviceToken,
+    String? challengeType,
+    String? challengeId,
     // String mfaCode,
-    String expiresIn,
-    Iterable<String> scopes,
+    String? expiresIn,
+    Iterable<String>? scopes,
     bool basicAuth = true,
-    CredentialsRefreshedCallback onCredentialsRefreshed,
-    http.Client httpClient,
-    String delimiter,
-    Map<String, dynamic> Function(MediaType contentType, String body)
+    CredentialsRefreshedCallback? onCredentialsRefreshed,
+    http.Client? httpClient,
+    String? delimiter,
+    Map<String, dynamic> Function(MediaType? contentType, String body)?
         getParameters}) async {
   delimiter ??= ' ';
   var startTime = DateTime.now();
@@ -72,7 +73,7 @@ Future<Client> resourceOwnerPasswordGrant(
 
   if (identifier != null) {
     if (basicAuth) {
-      headers['Authorization'] = basicAuthHeader(identifier, secret);
+      headers['Authorization'] = basicAuthHeader(identifier, secret as String);
     } else {
       body['client_id'] = identifier;
       if (secret != null) body['client_secret'] = secret;
@@ -107,12 +108,14 @@ Future<Client> resourceOwnerPasswordGrant(
 
   var response = await httpClient.post(authorizationEndpoint,
       headers: headers, body: body);
+
   if (response.statusCode != 200) {
+    //return Future.error(response.body);
     throw Exception(response.body);
   }
 
-  var credentials = handleAccessTokenResponse(
-      response, authorizationEndpoint, startTime, scopes, delimiter,
+  var credentials = handleAccessTokenResponse(response, authorizationEndpoint,
+      startTime, scopes as List<String>, delimiter,
       getParameters: getParameters);
   return Client(credentials,
       identifier: identifier,
@@ -120,6 +123,7 @@ Future<Client> resourceOwnerPasswordGrant(
       httpClient: httpClient,
       onCredentialsRefreshed: onCredentialsRefreshed);
 }
+*/
 
 /*
 {
@@ -134,10 +138,104 @@ Future<Client> resourceOwnerPasswordGrant(
   "updated_at":"2021-03-06T00:49:35.636946-05:00"
   }
 */
+Future<http.Response> login(
+    Uri authorizationEndpoint, String username, String password,
+    {String? identifier,
+    String? secret,
+    String? deviceToken,
+    String? challengeType,
+    String? challengeId,
+    // String mfaCode,
+    String? expiresIn,
+    //Iterable<String>? scopes,
+    bool basicAuth = true,
+    http.Client? httpClient,
+    String? delimiter}) async {
+  delimiter ??= ' ';
+
+  var body = {
+    'grant_type': 'password',
+    'username': username,
+    'password': password
+  };
+
+  var headers = <String, String>{};
+
+  if (identifier != null) {
+    if (basicAuth) {
+      headers['Authorization'] = basicAuthHeader(identifier, secret as String);
+    } else {
+      body['client_id'] = identifier;
+      if (secret != null) body['client_secret'] = secret;
+    }
+  }
+
+  if (deviceToken != null) {
+    body['device_token'] = deviceToken;
+  }
+
+  /*
+  if (scopes != null && scopes.isNotEmpty) {
+    body['scope'] = scopes.join(delimiter);
+  }
+  */
+
+  if (expiresIn != null) {
+    body['expires_in'] = expiresIn;
+  }
+  if (challengeType != null) {
+    body['challenge_type'] = challengeType;
+  }
+  // Once respondChallenge is called, the resulting challenge id should be used as header.
+  if (challengeId != null) {
+    headers['X-ROBINHOOD-CHALLENGE-RESPONSE-ID'] = challengeId;
+  }
+  /*
+  if (mfaCode != null) {
+    body['mfa_code'] = mfaCode;
+  }
+  */
+
+  httpClient ??= http.Client();
+
+  var response = await httpClient.post(authorizationEndpoint,
+      headers: headers, body: body);
+
+  return response;
+}
+
 Future<http.Response> respondChallenge(String id, String mfaCode) {
   var body = {'response': mfaCode};
   var httpClient = http.Client();
-  var response = httpClient
-      .post('https://api.robinhood.com/challenge/${id}/respond/', body: body);
+  var response = httpClient.post(
+      Uri.parse('https://api.robinhood.com/challenge/${id}/respond/'),
+      body: body);
   return response;
+}
+
+Client generateClient(
+  http.Response response,
+  Uri authorizationEndpoint,
+  //Iterable<String>? scopes,
+  String delimiter,
+  //Map<String, dynamic> Function(MediaType? contentType, String body)? getParameters,
+  String identifier,
+  String? secret,
+  http.Client? httpClient,
+  CredentialsRefreshedCallback? onCredentialsRefreshed,
+) {
+  var startTime = DateTime.now();
+  var credentials = handleAccessTokenResponse(
+      response,
+      authorizationEndpoint,
+      startTime,
+      null, // scopes as List<String>,
+      delimiter
+      //getParameters: getParameters);
+      );
+  return Client(credentials,
+      identifier: identifier,
+      secret: secret,
+      httpClient: httpClient,
+      onCredentialsRefreshed: onCredentialsRefreshed);
 }

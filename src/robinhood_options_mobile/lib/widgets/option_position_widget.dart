@@ -92,8 +92,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   }
 
   Widget _buildRow(int pos, OptionPosition optionPosition) {
-    String title;
-    String value;
+    String title = "";
+    String value = "";
     switch (pos) {
       case 0:
         title = "Account";
@@ -129,47 +129,47 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         break;
       case 8:
         title = "Average Price";
-        value = optionPosition.averagePrice.toStringAsFixed(2);
+        value = optionPosition.averagePrice!.toStringAsFixed(2);
         break;
       case 9:
         title = "Intraday Average Open Price";
-        value = optionPosition.intradayAverageOpenPrice.toStringAsFixed(2);
+        value = optionPosition.intradayAverageOpenPrice!.toStringAsFixed(2);
         break;
       case 10:
         title = "Intraday Quantity";
-        value = optionPosition.intradayQuantity.toStringAsFixed(0);
+        value = optionPosition.intradayQuantity!.toStringAsFixed(0);
         break;
       case 11:
         title = "Pending Assignment Quantity";
-        value = optionPosition.pendingAssignmentQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingAssignmentQuantity!.toStringAsFixed(0);
         break;
       case 12:
         title = "Pending Buy Quantity";
-        value = optionPosition.pendingBuyQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingBuyQuantity!.toStringAsFixed(0);
         break;
       case 13:
         title = "Pending Exercise Quantity";
-        value = optionPosition.pendingExerciseQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingExerciseQuantity!.toStringAsFixed(0);
         break;
       case 14:
         title = "Pending Expiration Quantity";
-        value = optionPosition.pendingExpirationQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingExpirationQuantity!.toStringAsFixed(0);
         break;
       case 15:
         title = "Pending Expired Quantity";
-        value = optionPosition.pendingExpiredQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingExpiredQuantity!.toStringAsFixed(0);
         break;
       case 16:
         title = "Pending Sell Quantity";
-        value = optionPosition.pendingSellQuantity.toStringAsFixed(0);
+        value = optionPosition.pendingSellQuantity!.toStringAsFixed(0);
         break;
       case 17:
         title = "Quantity";
-        value = optionPosition.quantity.toStringAsFixed(0);
+        value = optionPosition.quantity!.toStringAsFixed(0);
         break;
       case 18:
         title = "Trade Value Multiplier";
-        value = optionPosition.tradeValueMultiplier.toStringAsFixed(0);
+        value = optionPosition.tradeValueMultiplier!.toStringAsFixed(0);
         break;
       case 19:
         title = "Type";
@@ -177,11 +177,11 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         break;
       case 20:
         title = "Created At";
-        value = optionPosition.createdAt.toIso8601String();
+        value = optionPosition.createdAt!.toIso8601String();
         break;
       case 21:
         title = "Updated At";
-        value = optionPosition.updatedAt.toIso8601String();
+        value = optionPosition.updatedAt!.toIso8601String();
         break;
       //default:
       //  return new Text("Widget not implemented.");
@@ -198,7 +198,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return new Scaffold(
         appBar: new AppBar(
           title: Text(
-              '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument.strikePrice} ${optionPosition.optionInstrument.type.toUpperCase()}'),
+              '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.optionInstrument!.type.toUpperCase()}'),
           //new Text("${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
         ),
         body: new Builder(builder: (context) {

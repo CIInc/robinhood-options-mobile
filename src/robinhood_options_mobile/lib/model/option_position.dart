@@ -26,27 +26,27 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 //@immutable
 class OptionPosition {
   final String account;
-  final double averagePrice;
+  final double? averagePrice;
   final String chainId;
   final String chainSymbol;
   final String id;
   final String option;
   final String type;
-  final double pendingBuyQuantity;
-  final double pendingExpiredQuantity;
-  final double pendingExpirationQuantity;
-  final double pendingExerciseQuantity;
-  final double pendingAssignmentQuantity;
-  final double pendingSellQuantity;
-  final double quantity;
-  final double intradayQuantity;
-  final double intradayAverageOpenPrice;
-  final DateTime createdAt;
-  final double tradeValueMultiplier;
-  final DateTime updatedAt;
+  final double? pendingBuyQuantity;
+  final double? pendingExpiredQuantity;
+  final double? pendingExpirationQuantity;
+  final double? pendingExerciseQuantity;
+  final double? pendingAssignmentQuantity;
+  final double? pendingSellQuantity;
+  final double? quantity;
+  final double? intradayQuantity;
+  final double? intradayAverageOpenPrice;
+  final DateTime? createdAt;
+  final double? tradeValueMultiplier;
+  final DateTime? updatedAt;
   final String url;
   final String optionId;
-  OptionInstrument optionInstrument;
+  OptionInstrument? optionInstrument;
 
   OptionPosition(
       this.account,
