@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 
-final formatCurrency = new NumberFormat.simpleCurrency();
+final formatCurrency = NumberFormat.simpleCurrency();
 
 class TradeOptionWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -37,43 +37,43 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var floatBtn = new SizedBox(
+    var floatBtn = SizedBox(
         width: 340.0,
         child: ElevatedButton.icon(
-          label: new Text("Buy"), // ${snapshot.connectionState}
-          icon: new Icon(Icons.attach_money),
+          label: const Text("Buy"), // ${snapshot.connectionState}
+          icon: const Icon(Icons.attach_money),
           onPressed: () {
-            return null;
+            return;
           },
         ));
-    priceCtl.text =
-        '${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice)}';
-    return new Scaffold(
-        appBar: new AppBar(
-          title: new Text(
+    priceCtl.text = formatCurrency.format(
+        optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice);
+    return Scaffold(
+        appBar: AppBar(
+          title: Text(
               "Trade ${optionPosition.chainSymbol} \$${optionPosition.averagePrice!.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
         ),
-        body: new Builder(builder: (context) {
-          return new ListView(
+        body: Builder(builder: (context) {
+          return ListView(
             padding: const EdgeInsets.all(15.0),
             children: [
-              new ListTile(
-                title: new TextField(
+              ListTile(
+                title: TextField(
                   controller: quantityCtl,
                 ),
-                subtitle: Text("Quantity"),
+                subtitle: const Text("Quantity"),
               ),
-              new ListTile(
-                title: new TextField(
+              ListTile(
+                title: TextField(
                   controller: priceCtl,
                   //obscureText: true,
                 ),
-                subtitle: Text("Price"),
+                subtitle: const Text("Price"),
               ),
-              new Container(
+              Container(
                 height: 20,
               ),
-              new Center(child: floatBtn)
+              Center(child: floatBtn)
             ],
           );
         })

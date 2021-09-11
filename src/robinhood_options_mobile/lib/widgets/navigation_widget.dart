@@ -21,7 +21,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   int _pageIndex = 0;
   PageController? _pageController;
   List<Widget> tabPages = [
-    HomePage(title: 'Robinhood Options'),
+    const HomePage(title: 'Robinhood Options'),
     //HomePage(key: Key('history')),
     //LoginWidget(),
     //Screen2(),
@@ -51,7 +51,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   void _onItemTapped(int index) {
-    this._pageController!.animateToPage(index,
+    _pageController!.animateToPage(index,
         duration: const Duration(milliseconds: 200), curve: Curves.easeInOut);
   }
 
@@ -105,7 +105,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   buildBody() {
-    return new FutureBuilder(
+    return FutureBuilder(
         future: futureRobinhoodUser,
         builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
           if (userSnapshot.hasData) {
@@ -114,7 +114,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           } else if (userSnapshot.hasError) {
             print("${userSnapshot.error}");
           }
-          print("${userSnapshot}");
+          print("$userSnapshot");
           return PageView(
             children: tabPages,
             onPageChanged: _onPageChanged,

@@ -30,7 +30,7 @@ class MinTicks {
   final double? aboveTick;
   final double? belowTick;
   final double? cutoffPrice;
-  MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
+  const MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
 }
 
 //@immutable

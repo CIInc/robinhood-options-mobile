@@ -1,10 +1,11 @@
+// ignore_for_file: prefer_const_literals_to_create_immutables
+
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
@@ -13,7 +14,6 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/services/store.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
@@ -22,9 +22,8 @@ import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 import 'option_position_widget.dart';
 
 final dateFormat = DateFormat("yMMMd");
-final formatCurrency = new NumberFormat.simpleCurrency();
-final formatPercentage =
-    new NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatCurrency = NumberFormat.simpleCurrency();
+final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 /*
 class DrawerItem {
@@ -43,7 +42,7 @@ class HomePage extends StatefulWidget {
   ];
   */
 
-  HomePage({Key? key, this.title}) : super(key: key);
+  const HomePage({Key? key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -65,6 +64,7 @@ class _HomePageState extends State<HomePage> {
   late RobinhoodUser snapshotUser;
 
   Future<List<Account>>? futureAccounts;
+  Future<List<Holding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
   Future<dynamic>? futurePortfolioHistoricals;
   Future<List<Position>>? futurePositions;
@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    print('Loading cache.');
+
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
 
     _controller = ScrollController();
@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
+    return Scaffold(
         /* Using SliverAppBar below
         appBar: new AppBar(
           title: new Text(widget.drawerItems[_selectedDrawerIndex].title),
@@ -132,25 +132,26 @@ class _HomePageState extends State<HomePage> {
   }
 
   _buildHomePage() {
-    return new FutureBuilder(
+    return FutureBuilder(
         future: futureRobinhoodUser,
         builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
           // Can chain new FutureBuilder()'s here
 
+          print("${userSnapshot.connectionState}");
           if (userSnapshot.hasData) {
             snapshotUser = userSnapshot.data!;
-            if (snapshotUser.userName != null) {
-              if (futureAccounts == null) {
-                //RobinhoodService.downloadNummusAccounts(snapshotUser);
-                //RobinhoodService.downloadNummusHoldings(snapshotUser);
+            //print("snapshotUser: ${jsonEncode(snapshotUser)}");
 
-                futureAccounts =
-                    RobinhoodService.downloadAccounts(snapshotUser);
-              }
-              if (futurePortfolios == null) {
-                futurePortfolios =
-                    RobinhoodService.downloadPortfolios(snapshotUser);
-              }
+            if (snapshotUser.userName != null) {
+              futureUser ??= RobinhoodService.downloadUser(snapshotUser);
+              futureAccounts ??=
+                  RobinhoodService.downloadAccounts(snapshotUser);
+              futurePortfolios ??=
+                  RobinhoodService.downloadPortfolios(snapshotUser);
+              //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(snapshotUser);
+              futureNummusHoldings ??=
+                  RobinhoodService.downloadNummusHoldings(snapshotUser);
+
               /*
               if (futurePortfolioHistoricals == null) {
                 futurePortfolioHistoricals =
@@ -158,6 +159,7 @@ class _HomePageState extends State<HomePage> {
                         snapshotUser, null);
               }
               */
+              /*
               if (futurePositions == null) {
                 futurePositions =
                     RobinhoodService.downloadPositions(snapshotUser);
@@ -170,92 +172,130 @@ class _HomePageState extends State<HomePage> {
                 futureWatchlists =
                     RobinhoodService.downloadWatchlists(snapshotUser);
               }
-              if (futureUser == null) {
-                futureUser = RobinhoodService.downloadUser(snapshotUser);
-              }
+              */
 
-              return new FutureBuilder(
+              return FutureBuilder(
                 future: Future.wait([
+                  futureUser as Future,
                   futureAccounts as Future,
                   futurePortfolios as Future,
-                  futurePositions as Future,
-                  futureOptionPositions as Future,
-                  futureWatchlists as Future,
-                  futureUser as Future
+                  //futurePositions as Future,
+                  //futureOptionPositions as Future,
+                  //futureWatchlists as Future,
                 ]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
+                    var user = data.isNotEmpty ? data[0] : null;
+                    var accounts = data.length > 1 ? data[1] : null;
+                    var portfolios = data.length > 2 ? data[2] : null;
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
-                    return RefreshIndicator(
-                        child: _buildCustomScrollView(
-                            ru: snapshotUser,
-                            accounts: data.length > 0 ? data[0] : null,
-                            portfolios: data.length > 1 ? data[1] : null,
-                            positions: data.length > 2 ? data[2] : null,
-                            optionsPositions: data.length > 3 ? data[3] : null,
-                            watchLists: data.length > 4 ? data[4] : null,
-                            user: data.length > 5 ? data[5] : null),
-                        onRefresh: _pullRefresh);
+                    futureOptionPositions ??=
+                        RobinhoodService.downloadOptionPositions(snapshotUser);
+                    return FutureBuilder(
+                        future: futureOptionPositions,
+                        builder: (context2,
+                            AsyncSnapshot<List<OptionPosition>>
+                                optionPositionSnapshot) {
+                          if (optionPositionSnapshot.hasData) {
+                            List<Widget> slivers = _buildSlivers(
+                              portfolios: portfolios,
+                              user: user,
+                              ru: snapshotUser,
+                              accounts: accounts,
+                              optionsPositions: optionPositionSnapshot.data,
+                            );
+                            return RefreshIndicator(
+                              child: CustomScrollView(
+                                  controller: _controller, slivers: slivers),
+                              onRefresh: _pullRefresh,
+                            );
+                          } else {
+                            List<Widget> slivers = _buildSlivers(
+                                portfolios: portfolios,
+                                user: user,
+                                ru: snapshotUser,
+                                accounts: accounts);
+                            return RefreshIndicator(
+                              child: CustomScrollView(
+                                  controller: _controller, slivers: slivers),
+                              onRefresh: _pullRefresh,
+                            );
+                          }
+                        });
                   } else if (dataSnapshot.hasError) {
                     print("${dataSnapshot.error}");
-                    return _buildCustomScrollView(
-                        ru: snapshotUser,
+                    if (dataSnapshot.error.toString() ==
+                        "OAuth authorization error (invalid_grant).") {
+                      RobinhoodUser.clearUserFromStore();
+                      _openLogin();
+                    }
+                    List<Widget> slivers = _buildSlivers(
+                        //ru: snapshotUser,
                         welcomeWidget: Text("${dataSnapshot.error}"));
+                    return RefreshIndicator(
+                      child: CustomScrollView(
+                          controller: _controller, slivers: slivers),
+                      onRefresh: _pullRefresh,
+                    );
                   } else {
-                    return _buildCustomScrollView(
+                    List<Widget> slivers = _buildSlivers(
                         ru: snapshotUser,
-                        welcomeWidget: Center(
+                        welcomeWidget: const Center(
                           child: CircularProgressIndicator(),
                         ));
+                    return RefreshIndicator(
+                      child: CustomScrollView(
+                          controller: _controller, slivers: slivers),
+                      onRefresh: _pullRefresh,
+                    );
                   }
                 },
               );
             } else {
-              return _buildCustomScrollView(
-                  ru: snapshotUser, welcomeWidget: _buildLogin());
+              List<Widget> slivers =
+                  _buildSlivers(ru: snapshotUser, welcomeWidget: _buildLogin());
+              return RefreshIndicator(
+                child:
+                    CustomScrollView(controller: _controller, slivers: slivers),
+                onRefresh: _pullRefresh,
+              );
             }
           } else if (userSnapshot.hasError) {
-            print("${userSnapshot.error}");
-            return _buildCustomScrollView(
-                welcomeWidget: Text("${userSnapshot.error}"));
+            print("userSnapshot.hasError: ${userSnapshot.error}");
+            List<Widget> slivers =
+                _buildSlivers(welcomeWidget: Text("${userSnapshot.error}"));
+            return RefreshIndicator(
+              child:
+                  CustomScrollView(controller: _controller, slivers: slivers),
+              onRefresh: _pullRefresh,
+            );
           } else {
-            return _buildCustomScrollView(
-              welcomeWidget: Center(
-                child: CircularProgressIndicator(),
-              ),
+            List<Widget> slivers = _buildSlivers(
+                //ru: snapshotUser,
+                welcomeWidget: Center(
+              child: userSnapshot.connectionState != ConnectionState.done
+                  ? const CircularProgressIndicator()
+                  : null,
+            ));
+            return RefreshIndicator(
+              child:
+                  CustomScrollView(controller: _controller, slivers: slivers),
+              onRefresh: _pullRefresh,
             );
           }
         });
   }
 
-  RefreshIndicator _buildCustomScrollView(
-      {RobinhoodUser? ru,
-      Widget? welcomeWidget,
-      List<Account>? accounts,
-      List<Portfolio>? portfolios,
-      List<Position>? positions,
-      List<OptionPosition>? optionsPositions,
-      List<WatchlistItem>? watchLists,
-      User? user}) {
-    List<Widget> slivers = _buildSlivers(portfolios, user, ru, accounts,
-        welcomeWidget, optionsPositions, positions, watchLists);
-    return RefreshIndicator(
-      child: CustomScrollView(controller: _controller, slivers: slivers),
-      onRefresh: _pullRefresh,
-    );
-    // return CustomScrollView(controller: _controller, slivers: slivers);
-  }
-
   List<Widget> _buildSlivers(
-      List<Portfolio>? portfolios,
+      {List<Portfolio>? portfolios,
       User? user,
       RobinhoodUser? ru,
       List<Account>? accounts,
       Widget? welcomeWidget,
       List<OptionPosition>? optionsPositions,
       List<Position>? positions,
-      List<WatchlistItem>? watchLists) {
+      List<WatchlistItem>? watchLists}) {
     var slivers = <Widget>[];
     double changeToday = 0;
     double changeTodayPercentage = 0;
@@ -264,173 +304,14 @@ class _HomePageState extends State<HomePage> {
       changeTodayPercentage = changeToday / portfolios[0].equity!;
     }
 
-    slivers.add(SliverAppBar(
-      /*
-      title: new Text('Robinhood Options'),
-      */
-      /* Drawer will automatically add menu to SliverAppBar.
-                leading: IconButton(
-                  icon: const Icon(Icons.menu),
-                  tooltip: 'Menu',
-                  onPressed: () {/* ... */},
-                ),*/
-      // backgroundColor: Colors.green,
-      // brightness: Brightness.light,
-      expandedHeight: 280.0,
-      // collapsedHeight: 80.0,
-      /*
-                  bottom: PreferredSize(
-                    child: Icon(Icons.linear_scale, size: 60.0),
-                    preferredSize: Size.fromHeight(50.0))
-                    */
-      floating: false,
-      pinned: true,
-      snap: false,
-      /*
-      title: silverCollapsed && user != null && portfolios != null
-          ? Text(
-              '${user.profileName}: ${formatCurrency.format(portfolios[0].equity)}')
-          : Container(),
-          */
-      flexibleSpace: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-        if (ru == null || ru.userName == null || portfolios == null) {
-          return FlexibleSpaceBar(title: Text('Robinhood Options'));
-        }
-        /* else if (silverCollapsed) {
-          return Container();
-        }*/
-        return FlexibleSpaceBar(
-          background: FlutterLogo(),
-          title: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Row(
-              children: [Text('${user!.profileName}')],
-            ),
-            Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Equity',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        'Market Value',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        'Cash',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        'Today Change',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        '',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${formatCurrency.format(portfolios[0].equity)}',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        '${formatCurrency.format(portfolios[0].marketValue)}',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        '${formatCurrency.format(accounts![0].portfolioCash)}',
-                        style: TextStyle(fontSize: 15.0),
-                      ),
-                      Text(
-                        '${formatCurrency.format(changeToday)}',
-                        style: TextStyle(fontSize: 15.0),
-                      ), // ${formatPercentage.format(changeTodayPercentage)}
-                      Wrap(
-                        children: [
-                          new Icon(
-                              changeToday > 0
-                                  ? Icons.trending_up
-                                  : (changeToday < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (changeToday > 0
-                                  ? Colors.green
-                                  : (changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey))),
-                          Text(
-                              '${formatPercentage.format(changeTodayPercentage)}',
-                              style: TextStyle(fontSize: 15.0))
-                        ],
-                      )
-                    ],
-                  ),
-                ]),
-          ]),
-        );
-      }),
-      actions: <Widget>[
-        IconButton(
-          icon: ru != null && ru.userName != null
-              ? const Icon(Icons.logout)
-              : Icon(Icons.login),
-          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
-          onPressed: () {
-            if (ru != null && ru.userName != null) {
-              var alert = AlertDialog(
-                title: Text('Logout process'),
-                content: SingleChildScrollView(
-                  child: ListBody(
-                    children: <Widget>[
-                      Text('This action will require you to log in again.'),
-                      Text('Are you sure you want to log out?'),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: Text('Cancel'),
-                    onPressed: () {
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                  TextButton(
-                    child: Text('OK'),
-                    onPressed: () {
-                      _logout();
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                ],
-              );
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return alert;
-                },
-              );
-            } else {
-              _openLogin();
-            }
-            /* ... */
-          },
-        ),
-      ],
-    ));
+    SliverAppBar sliverAppBar = buildSliverAppBar(
+        ru, portfolios, user, accounts, changeToday, changeTodayPercentage);
+    slivers.add(sliverAppBar);
 
     if (ru != null && ru.userName != null) {
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
-            child: Container(
+            child: SizedBox(
           // color: Colors.white,
           height: 150.0,
           child: Align(alignment: Alignment.center, child: welcomeWidget),
@@ -490,6 +371,17 @@ class _HomePageState extends State<HomePage> {
             // childCount: widgets.length + 10,
           ),
         ));
+      } else {
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 150.0,
+          child: Align(
+              alignment: Alignment.center,
+              child: Center(
+                child: CircularProgressIndicator(),
+              )),
+        )));
       }
       if (positions != null) {
         var totalPositionEquity = positions
@@ -559,7 +451,7 @@ class _HomePageState extends State<HomePage> {
                   'Trading since ${dateFormat.format(portfolios[0].startDate!)}',
                 )
               ])
-            : new Container(),
+            : Container(),
       ])));
       /*
           Container(
@@ -586,7 +478,7 @@ class _HomePageState extends State<HomePage> {
         child: Container(
             color: Colors.white,
             height: 420.0,
-            child: Align(
+            child: const Align(
                 alignment: Alignment.center,
                 child: Text(
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
@@ -620,33 +512,221 @@ class _HomePageState extends State<HomePage> {
     return slivers;
   }
 
+  Widget getAppBarTitle(
+      User? user, double changeToday, double changeTodayPercentage) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(user!.profileName),
+        Container(
+          width: 10,
+        ),
+        Wrap(
+          children: [
+            Icon(
+                changeToday > 0
+                    ? Icons.trending_up
+                    : (changeToday < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (changeToday > 0
+                    ? Colors.lightGreenAccent
+                    : (changeToday < 0 ? Colors.red : Colors.grey)),
+                size: 18.0),
+            Container(
+              width: 2,
+            ),
+            Text(
+                '${formatCurrency.format(changeToday)} ${formatPercentage.format(changeTodayPercentage)}',
+                style: const TextStyle(fontSize: 15.0))
+          ],
+        ),
+      ],
+    );
+  }
+
+  SliverAppBar buildSliverAppBar(
+      RobinhoodUser? ru,
+      List<Portfolio>? portfolios,
+      User? user,
+      List<Account>? accounts,
+      double changeToday,
+      double changeTodayPercentage) {
+    var sliverAppBar = SliverAppBar(
+      /* Drawer will automatically add menu to SliverAppBar.
+                    leading: IconButton(
+                      icon: const Icon(Icons.menu),
+                      tooltip: 'Menu',
+                      onPressed: () {/* ... */},
+                    ),*/
+      // backgroundColor: Colors.green,
+      // brightness: Brightness.light,
+      expandedHeight: 240.0,
+      // collapsedHeight: 80.0,
+      /*
+                      bottom: PreferredSize(
+                        child: Icon(Icons.linear_scale, size: 60.0),
+                        preferredSize: Size.fromHeight(50.0))
+                        */
+      floating: false,
+      pinned: true,
+      snap: false,
+      /*
+      title: silverCollapsed && user != null && portfolios != null
+          ? getAppBarTitle(user, changeToday, changeTodayPercentage)
+          : Container(),
+          */
+      flexibleSpace: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+        if (ru == null || ru.userName == null || portfolios == null) {
+          return const FlexibleSpaceBar(title: Text('Robinhood Options'));
+        } /* else if (silverCollapsed) {
+          return Container();
+        }*/
+        return FlexibleSpaceBar(
+            background: const FlutterLogo(),
+            title: SingleChildScrollView(
+              child: Column(//mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                Row(children: [const Text('')]),
+                Row(children: [const Text('')]),
+                Row(children: [const Text('')]),
+                getAppBarTitle(user, changeToday, changeTodayPercentage),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Portfolio Equity',
+                            style: TextStyle(fontSize: 15.0),
+                          ),
+                          const Text(
+                            '\t\tMarket Value',
+                            style: TextStyle(fontSize: 12.0),
+                          ),
+                          const Text(
+                            '\t\tCash',
+                            style: TextStyle(fontSize: 12.0),
+                          ),
+                          const Text(
+                            '', //'\t\t\tChange',
+                            style: TextStyle(fontSize: 10.0),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            formatCurrency.format(portfolios[0].equity),
+                            style: const TextStyle(fontSize: 15.0),
+                          ),
+                          Text(
+                            formatCurrency.format(portfolios[0].marketValue),
+                            style: const TextStyle(fontSize: 12.0),
+                          ),
+                          Text(
+                            formatCurrency.format(accounts![0].portfolioCash),
+                            style: const TextStyle(fontSize: 12.0),
+                          ),
+                        ],
+                      ),
+                    ]),
+              ]),
+            ));
+      }),
+      actions: <Widget>[
+        IconButton(
+          icon: ru != null && ru.userName != null
+              ? const Icon(Icons.logout)
+              : const Icon(Icons.login),
+          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
+          onPressed: () {
+            if (ru != null && ru.userName != null) {
+              var alert = AlertDialog(
+                title: const Text('Logout process'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      const Text(
+                          'This action will require you to log in again.'),
+                      const Text('Are you sure you want to log out?'),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'),
+                    onPressed: () {
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      _logout();
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                ],
+              );
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return alert;
+                },
+              );
+            } else {
+              _openLogin();
+            }
+            /* ... */
+          },
+        ),
+      ],
+    );
+    return sliverAppBar;
+  }
+
   Future<void> _pullRefresh() async {
+    setState(() {
+      futureAccounts = null;
+      futurePortfolios = null;
+      //futureOptionPositions = null;
+    });
+
     var accounts = await RobinhoodService.downloadAccounts(snapshotUser);
     var portfolios = await RobinhoodService.downloadPortfolios(snapshotUser);
+    //var optionPositions = await RobinhoodService.downloadOptionPositions(snapshotUser);
+    /*
     var positions = await RobinhoodService.downloadPositions(snapshotUser);
-    var optionPositions =
-        await RobinhoodService.downloadOptionPositions(snapshotUser);
     var watchlists = await RobinhoodService.downloadWatchlists(snapshotUser);
+    */
     //var user = await RobinhoodService.downloadUser(snapshotUser);
 
     setState(() {
       futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
+      //futureOptionPositions = Future.value(optionPositions);
+      /*
       futurePositions = Future.value(positions);
-      futureOptionPositions = Future.value(optionPositions);
       futureWatchlists = Future.value(watchlists);
+      */
       //futureUser = Future.value(user);
     });
   }
 
   Widget _buildPositionRow(
       List<Position> positions, int index, RobinhoodUser ru) {
-    return new ListTile(
-      title: new Text('${positions[index].instrumentObj!.symbol}'),
-      subtitle: new Text(
+    return ListTile(
+      title: Text(positions[index].instrumentObj!.symbol),
+      subtitle: Text(
           '${positions[index].quantity} shares - avg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-      trailing: new Text(
-          '${formatCurrency.format(positions[index].quantity! * positions[index].instrumentObj!.quoteObj!.lastTradePrice!)}'),
+      trailing: Text(formatCurrency.format(positions[index].quantity! *
+          positions[index].instrumentObj!.quoteObj!.lastTradePrice!)),
       /*
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
@@ -668,8 +748,8 @@ class _HomePageState extends State<HomePage> {
       onTap: () {
         Navigator.push(
             context,
-            new MaterialPageRoute(
-                builder: (context) => new InstrumentWidget(
+            MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
                     ru, positions[index].instrumentObj as Instrument)));
       },
     );
@@ -697,16 +777,16 @@ class _HomePageState extends State<HomePage> {
                       : Colors.amber,
               //backgroundImage: AssetImage(user.profilePicture),
               child: optionsPositions[index].optionInstrument!.type == 'call'
-                  ? new Text('Call')
-                  : new Text('Put')),
+                  ? const Text('Call')
+                  : const Text('Put')),
           title: Text(
               '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
           subtitle: Text(
               'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)} (${optionsPositions[index].quantity!.round()}x)'),
-          trailing: new Wrap(
+          trailing: Wrap(
             spacing: 12,
             children: [
-              new Icon(
+              Icon(
                   gainLoss > 0
                       ? Icons.trending_up
                       : (gainLoss < 0
@@ -715,9 +795,9 @@ class _HomePageState extends State<HomePage> {
                   color: (gainLoss > 0
                       ? Colors.green
                       : (gainLoss < 0 ? Colors.red : Colors.grey))),
-              new Text(
+              Text(
                 "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-                style: TextStyle(fontSize: 16.0),
+                style: const TextStyle(fontSize: 16.0),
                 textAlign: TextAlign.right,
               ),
               /*
@@ -731,9 +811,9 @@ class _HomePageState extends State<HomePage> {
           onTap: () {
             Navigator.push(
                 context,
-                new MaterialPageRoute(
+                MaterialPageRoute(
                     builder: (context) =>
-                        new OptionPositionWidget(ru, optionsPositions[index])));
+                        OptionPositionWidget(ru, optionsPositions[index])));
           },
         ),
         Row(
@@ -744,9 +824,9 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 Navigator.push(
                     context,
-                    new MaterialPageRoute(
-                        builder: (context) => new TradeOptionWidget(
-                            ru, optionsPositions[index])));
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            TradeOptionWidget(ru, optionsPositions[index])));
               },
             ),
             const SizedBox(width: 8),
@@ -755,9 +835,9 @@ class _HomePageState extends State<HomePage> {
               onPressed: () {
                 Navigator.push(
                     context,
-                    new MaterialPageRoute(
-                        builder: (context) => new OptionPositionWidget(
-                            ru, optionsPositions[index])));
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            OptionPositionWidget(ru, optionsPositions[index])));
               },
             ),
             const SizedBox(width: 8),
@@ -796,7 +876,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildWatchlistRow(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
-    return new ListTile(
+    return ListTile(
       /*
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
@@ -807,19 +887,20 @@ class _HomePageState extends State<HomePage> {
           ),
           */
       // trailing: user.icon,
-      title: new Text(
-          '${watchLists[index].instrumentObj!.symbol}'), // , style: TextStyle(fontSize: 18.0)
-      subtitle: new Text(
+      title: Text(watchLists[index]
+          .instrumentObj!
+          .symbol), // , style: TextStyle(fontSize: 18.0)
+      subtitle: Text(
           '${watchLists[index].instrumentObj!.name} ${watchLists[index].instrumentObj!.country}'),
-      trailing: new Text(
-        "${dateFormat.format(watchLists[index].instrumentObj!.listDate!)}",
+      trailing: Text(
+        dateFormat.format(watchLists[index].instrumentObj!.listDate!),
         //style: TextStyle(fontSize: 18.0),
       ),
       onTap: () {
         Navigator.push(
             context,
-            new MaterialPageRoute(
-                builder: (context) => new InstrumentWidget(
+            MaterialPageRoute(
+                builder: (context) => InstrumentWidget(
                     ru, watchLists[index].instrumentObj as Instrument)));
       },
     );
@@ -844,10 +925,9 @@ class _HomePageState extends State<HomePage> {
     return Column(
       children: [
         Container(height: 150),
-        Align(
+        const Align(
             alignment: Alignment.center,
-            child:
-                new Text("Not logged in.", style: TextStyle(fontSize: 20.0))),
+            child: Text("Not logged in.", style: TextStyle(fontSize: 20.0))),
         // Align(alignment: Alignment.center, child: new Text("Login above.")),
         Container(height: 150),
       ],
@@ -859,8 +939,7 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(builder: (BuildContext context) => LoginWidget()));
 
     if (result != null) {
-      var contents = jsonEncode(result);
-      await Store.writeFile(Constants.cacheFilename, contents);
+      RobinhoodUser.writeUserToStore(result);
       setState(() {
         futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;
@@ -877,14 +956,14 @@ class _HomePageState extends State<HomePage> {
   }
 
   _logout() {
-    Future.delayed(Duration(milliseconds: 1), () async {
-      await Store.deleteFile(Constants.cacheFilename);
+    Future.delayed(const Duration(milliseconds: 1), () async {
+      RobinhoodUser.clearUserFromStore();
       setState(() {
         futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         // _selectedDrawerIndex = 0;
       });
     });
-    return new Text("Logged out.");
+    return const Text("Logged out.");
   }
 
 /*

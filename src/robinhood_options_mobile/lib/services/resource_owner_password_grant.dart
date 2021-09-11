@@ -208,7 +208,7 @@ Future<http.Response> respondChallenge(String id, String mfaCode) {
   var body = {'response': mfaCode};
   var httpClient = http.Client();
   var response = httpClient.post(
-      Uri.parse('https://api.robinhood.com/challenge/${id}/respond/'),
+      Uri.parse('https://api.robinhood.com/challenge/$id/respond/'),
       body: body);
   return response;
 }

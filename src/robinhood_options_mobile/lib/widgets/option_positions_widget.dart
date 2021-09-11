@@ -32,15 +32,15 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   @override
   void initState() {
     super.initState();
-    futureOptionPositions = RobinhoodService.downloadOptionPositions(this.user);
+    futureOptionPositions = RobinhoodService.downloadOptionPositions(user);
   }
 
   Widget _buildPositions(List<OptionPosition> optionsPositions) {
     return ListView.builder(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         itemCount: optionsPositions.length * 2,
         itemBuilder: /*1*/ (context, i) {
-          if (i.isOdd) return Divider(); /*2*/
+          if (i.isOdd) return const Divider(); /*2*/
 
           final index = i ~/ 2; /*3*/
           /*
@@ -49,29 +49,29 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 .addAll([OptionPosition()]); //generateWordPairs().take(10)
           }
           */
-          return new ListTile(
+          return ListTile(
             leading: CircleAvatar(
                 //backgroundImage: AssetImage(user.profilePicture),
                 child: optionsPositions[index].optionInstrument!.type == 'call'
-                    ? new Icon(Icons.trending_up)
-                    : new Icon(Icons.trending_down)
+                    ? const Icon(Icons.trending_up)
+                    : const Icon(Icons.trending_down)
                 // child: new Text(optionsPositions[i].symbol)
                 ),
             // trailing: user.icon,
-            title: new Text(
+            title: Text(
                 '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
-            subtitle: new Text(
+            subtitle: Text(
                 '${optionsPositions[index].quantity!.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
-            trailing: new Text(
+            trailing: Text(
               "\$${optionsPositions[index].averagePrice.toString()}",
               //style: TextStyle(fontSize: 18.0),
             ),
             onTap: () {
               Navigator.push(
                   context,
-                  new MaterialPageRoute(
-                      builder: (context) => new OptionPositionWidget(
-                          this.user, optionsPositions[index])));
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          OptionPositionWidget(user, optionsPositions[index])));
             },
           );
         });
@@ -79,13 +79,13 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
+    return Scaffold(
         /*
         appBar: new AppBar(
           title: new Text('Options Positions'),
         ),
         */
-        body: new FutureBuilder(
+        body: FutureBuilder(
             future: futureOptionPositions,
             builder: (context, AsyncSnapshot<List<OptionPosition>> snapshot) {
               if (snapshot.hasData) {
@@ -95,7 +95,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 return Text("${snapshot.error}");
               }
               // By default, show a loading spinner
-              return Center(
+              return const Center(
                 child: CircularProgressIndicator(),
               );
             }));

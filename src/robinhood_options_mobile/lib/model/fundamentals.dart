@@ -55,7 +55,7 @@ class Fundamentals {
   final int numEmployees;
   final int yearFounded;
 
-  Fundamentals(
+  const Fundamentals(
       this.open,
       this.high,
       this.low,

@@ -22,7 +22,7 @@ class Store {
   static Future<File> writeFile(String filename, String contents) async {
     final path = await _localPath;
     final file = File('$path/$filename');
-    return file.writeAsString('$contents');
+    return file.writeAsString(contents);
   }
 
   static Future deleteFile(String filename) async {

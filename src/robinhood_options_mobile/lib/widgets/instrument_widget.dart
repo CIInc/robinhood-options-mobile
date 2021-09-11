@@ -7,9 +7,8 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final dateFormat = DateFormat("yMMMd");
-final formatCurrency = new NumberFormat.simpleCurrency();
-final formatPercentage =
-    new NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatCurrency = NumberFormat.simpleCurrency();
+final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -40,7 +39,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     _controller = ScrollController();
 
     futureCallOptionInstruments = RobinhoodService.downloadOptionInstruments(
-        this.user, this.instrument, null, 'call');
+        user, instrument, null, 'call');
   }
 
 /*
@@ -51,7 +50,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   Widget build(BuildContext context) {
     if (isSelected[0]) {
-      return new FutureBuilder(
+      return FutureBuilder(
           future:
               futureCallOptionInstruments, //Future.any([futureCallOptionInstruments, futurePutOptionInstruments]),
           builder: (context, AsyncSnapshot<List<OptionInstrument>> snapshot) {
@@ -64,7 +63,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             return buildScrollView();
           });
     } else {
-      return new FutureBuilder(
+      return FutureBuilder(
           future:
               futurePutOptionInstruments, //Future.any([futureCallOptionInstruments, futurePutOptionInstruments]),
           builder: (context, AsyncSnapshot<List<OptionInstrument>> snapshot) {
@@ -79,34 +78,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
-  buildScrollView({List<OptionInstrument>? optionInstruments = null}) {
+  buildScrollView({List<OptionInstrument>? optionInstruments}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
-      title: new Text("${instrument.symbol}"),
+      title: Text(instrument.symbol),
       expandedHeight: 280,
       flexibleSpace: FlexibleSpaceBar(
-          background: FlutterLogo(),
+          background: const FlutterLogo(),
           title: ListTile(
             title: Text('${instrument.simpleName}'),
-            subtitle: Text('${instrument.name}'),
+            subtitle: Text(instrument.name),
           )),
       pinned: true,
     ));
     slivers.add(
       SliverToBoxAdapter(
-          child: Container(
-        // color: Colors.white,
-        //height: 150.0,
-        child: Align(alignment: Alignment.center, child: buildOverview()),
-      )),
+          child: Align(alignment: Alignment.center, child: buildOverview())),
     );
     slivers.add(
       SliverToBoxAdapter(
-          child: Container(
-        // color: Colors.white,
-        //height: 150.0,
-        child: Align(alignment: Alignment.center, child: buildOptions()),
-      )),
+          child: Align(alignment: Alignment.center, child: buildOptions())),
     );
     if (optionInstruments != null) {
       slivers.add(SliverList(
@@ -124,8 +115,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           : Colors.amber,
                       //backgroundImage: AssetImage(user.profilePicture),
                       child: optionInstruments[index].type == 'call'
-                          ? new Text('Call')
-                          : new Text('Put')),
+                          ? const Text('Call')
+                          : const Text('Put')),
                   // leading: Icon(Icons.ac_unit),
                   title: Text(
                       '${optionInstruments[index].chainSymbol} \$${optionInstruments[index].strikePrice} ${optionInstruments[index].type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
@@ -146,7 +137,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ));
     } else {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: Center(
         child: CircularProgressIndicator(),
       )));
@@ -163,9 +154,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
-          leading: Icon(Icons.album),
+          leading: const Icon(Icons.album),
           title: Text('${instrument.simpleName}'),
-          subtitle: Text('${instrument.name}'),
+          subtitle: Text(instrument.name),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -193,8 +184,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Padding(
             padding: const EdgeInsets.all(14.0),
             child: Row(
-              children: [
-                new Icon(Icons.trending_up),
+              children: const [
+                Icon(Icons.trending_up),
                 SizedBox(width: 10),
                 Text(
                   'Calls',
@@ -205,8 +196,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Padding(
           padding: const EdgeInsets.all(14.0),
           child: Row(
-            children: [
-              new Icon(Icons.trending_down),
+            children: const [
+              Icon(Icons.trending_down),
               SizedBox(width: 10),
               Text(
                 'Puts',
@@ -233,11 +224,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           if (index == 0 && futureCallOptionInstruments == null) {
             futureCallOptionInstruments =
                 RobinhoodService.downloadOptionInstruments(
-                    this.user, this.instrument, null, 'call');
+                    user, instrument, null, 'call');
           } else if (index == 1 && futurePutOptionInstruments == null) {
             futurePutOptionInstruments =
                 RobinhoodService.downloadOptionInstruments(
-                    this.user, this.instrument, null, 'put');
+                    user, instrument, null, 'put');
           }
         });
       },

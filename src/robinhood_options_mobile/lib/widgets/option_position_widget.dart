@@ -55,7 +55,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         */
         Expanded(
           child: ListView.builder(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               itemCount: 22,
               itemBuilder: /*1*/ (context, i) {
                 /*
@@ -195,13 +195,13 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
-        appBar: new AppBar(
+    return Scaffold(
+        appBar: AppBar(
           title: Text(
               '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.optionInstrument!.type.toUpperCase()}'),
           //new Text("${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
         ),
-        body: new Builder(builder: (context) {
+        body: Builder(builder: (context) {
           return _buildPosition(optionPosition);
         })
         /*

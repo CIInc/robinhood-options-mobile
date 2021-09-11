@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
@@ -30,7 +31,7 @@ class RobinhoodService {
     // print(result);
 
     var resultJson = jsonDecode(result);
-    var usr = new User.fromJson(resultJson);
+    var usr = User.fromJson(resultJson);
     return usr;
   }
 
@@ -43,7 +44,7 @@ class RobinhoodService {
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new Account.fromJson(result);
+      var op = Account.fromJson(result);
       accounts.add(op);
     }
     return accounts;
@@ -62,7 +63,7 @@ class RobinhoodService {
     List<Portfolio> portfolios = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new Portfolio.fromJson(result);
+      var op = Portfolio.fromJson(result);
       portfolios.add(op);
     }
     return portfolios;
@@ -97,7 +98,7 @@ class RobinhoodService {
     List<Position> positions = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new Position.fromJson(result);
+      var op = Position.fromJson(result);
       if ((withQuantity && op.quantity! > 0) ||
           (!withQuantity && op.quantity == 0)) {
         positions.add(op);
@@ -138,7 +139,7 @@ class RobinhoodService {
     //print(result);
 
     var resultJson = jsonDecode(result);
-    var oi = new Instrument.fromJson(resultJson);
+    var oi = Instrument.fromJson(resultJson);
 
     return oi;
   }
@@ -150,7 +151,7 @@ class RobinhoodService {
     //print(result);
 
     var resultJson = jsonDecode(result);
-    var oi = new Quote.fromJson(resultJson);
+    var oi = Quote.fromJson(resultJson);
 
     return oi;
   }
@@ -163,7 +164,7 @@ class RobinhoodService {
     //print(result);
 
     var resultJson = jsonDecode(result);
-    var oi = new Fundamentals.fromJson(resultJson);
+    var oi = Fundamentals.fromJson(resultJson);
 
     return oi;
   }
@@ -175,7 +176,7 @@ class RobinhoodService {
     List<Split> splits = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new Split.fromJson(result);
+      var op = Split.fromJson(result);
       splits.add(op);
     }
     return splits;
@@ -196,7 +197,7 @@ class RobinhoodService {
     List<OptionPosition> optionPositions = [];
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
-      var op = new OptionPosition.fromJson(result);
+      var op = OptionPosition.fromJson(result);
       if ((withQuantity && op.quantity! > 0) ||
           (!withQuantity && op.quantity == 0)) {
         optionPositions.add(op);
@@ -234,11 +235,11 @@ class RobinhoodService {
   static Future<OptionInstrument> downloadOptionInstrument(
       RobinhoodUser user, OptionPosition optionPosition) async {
     print(optionPosition.option);
-    var result = await user.oauth2Client!.read(Uri.parse(
-        '${optionPosition.option}')); // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
+    var result = await user.oauth2Client!.read(Uri.parse(optionPosition
+        .option)); // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
 
     var resultJson = jsonDecode(result);
-    var oi = new OptionInstrument.fromJson(resultJson);
+    var oi = OptionInstrument.fromJson(resultJson);
     return oi;
   }
 
@@ -251,13 +252,13 @@ class RobinhoodService {
     var url =
         "${Constants.robinHoodEndpoint}/options/instruments/?chain_id=${instrument.tradeableChainId}";
     if (expirationDates != null) {
-      url += "&expiration_dates=${expirationDates}";
+      url += "&expiration_dates=$expirationDates";
     }
     if (type != null) {
-      url += "&type=${type}";
+      url += "&type=$type";
     }
     if (state != null) {
-      url += "&state=${state}";
+      url += "&state=$state";
     }
     print(url);
 
@@ -265,7 +266,7 @@ class RobinhoodService {
     List<OptionInstrument> optionInstruments = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new OptionInstrument.fromJson(result);
+      var op = OptionInstrument.fromJson(result);
       optionInstruments.add(op);
     }
     optionInstruments.sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
@@ -279,7 +280,7 @@ class RobinhoodService {
     print(url);
     var result = await user.oauth2Client!.read(Uri.parse(url));
     var resultJson = jsonDecode(result);
-    var oi = new OptionMarketData.fromJson(resultJson['results'][0]);
+    var oi = OptionMarketData.fromJson(resultJson['results'][0]);
     return oi;
   }
 
@@ -304,21 +305,21 @@ class RobinhoodService {
     */
   }
 
-  static Future<dynamic> downloadNummusHoldings(RobinhoodUser user) async {
-    var results = await user.oauth2Client!
-        .read(Uri.parse('${Constants.robinHoodNummusEndpoint}/holdings/'));
-    //var results = await RobinhoodService.pagedGet(user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+  static Future<List<Holding>> downloadNummusHoldings(
+      RobinhoodUser user) async {
+    //var results = await user.oauth2Client!
+    //    .read(Uri.parse('${Constants.robinHoodNummusEndpoint}/holdings/'));
     //print(results);
-    return results;
-    /*
-    List<Account> accounts = [];
+    //return results;
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+    List<Holding> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = new Account.fromJson(result);
-      accounts.add(op);
+      var op = Holding.fromJson(result);
+      list.add(op);
     }
-    return accounts;
-    */
+    return list;
   }
 
   /*
@@ -420,9 +421,9 @@ WATCHLIST
       var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
       var itemsToUpdate = watchlistItems
           .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      itemsToUpdate.forEach((element) {
+      for (var element in itemsToUpdate) {
         element.instrumentObj = instrument;
-      });
+      }
     }
     return watchlistItems;
   }
@@ -447,9 +448,9 @@ WATCHLIST
       var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
       var itemsToUpdate = watchlistItems
           .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      itemsToUpdate.forEach((element) {
+      for (var element in itemsToUpdate) {
         element.instrumentObj = instrument;
-      });
+      }
     }
     return watchlistItems;
   }

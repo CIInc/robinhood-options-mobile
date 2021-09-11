@@ -70,7 +70,7 @@ class OptionMarketData {
   final double? lowFillRateBuyPrice;
   final double? lowFillRateSellPrice;
 
-  OptionMarketData(
+  const OptionMarketData(
       this.adjustedMarkPrice,
       this.askPrice,
       this.askSize,

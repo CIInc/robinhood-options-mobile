@@ -23,12 +23,13 @@ class RobinhoodUser {
 
   static Future<RobinhoodUser> loadUserFromStore() async {
     // await Store.deleteFile(Constants.cacheFilename);
+    print('Loading cache.');
 
     // SharedPreferences prefs = await SharedPreferences.getInstance();
     String? contents = await Store.readFile(Constants.cacheFilename);
     if (contents == null) {
       print('No cache file found.');
-      return new RobinhoodUser(null, null, null);
+      return RobinhoodUser(null, null, null);
     }
     try {
       var userMap = jsonDecode(contents) as Map<String, dynamic>;
@@ -41,7 +42,17 @@ class RobinhoodUser {
     } on FormatException catch (e) {
       print(
           'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
-      return new RobinhoodUser(null, null, null);
+      return RobinhoodUser(null, null, null);
     }
+  }
+
+  static Future writeUserToStore(RobinhoodUser user) async {
+    var contents = jsonEncode(user);
+    await Store.writeFile(Constants.cacheFilename, contents);
+  }
+
+  static Future clearUserFromStore() async {
+    print("Cleared user from store.");
+    await Store.deleteFile(Constants.cacheFilename);
   }
 }

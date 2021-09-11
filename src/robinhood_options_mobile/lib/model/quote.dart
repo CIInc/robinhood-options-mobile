@@ -39,7 +39,7 @@ class Quote {
   final String instrument;
   final String instrumentId;
 
-  Quote(
+  const Quote(
       this.askPrice,
       this.askSize,
       this.bidPrice,

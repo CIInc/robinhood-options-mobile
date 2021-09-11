@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 */
 @immutable
 class Split {
-  Split();
+  const Split();
 
-  Split.fromJson(dynamic json);
+  const Split.fromJson(dynamic json);
 }

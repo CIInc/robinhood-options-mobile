@@ -24,7 +24,8 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ),
         // home: OptionPositionsWidget()
-        home: NavigationStatefulWidget() //HomePage(title: 'Robinhood Options'),
+        home:
+            const NavigationStatefulWidget() //HomePage(title: 'Robinhood Options'),
         );
   }
 }
