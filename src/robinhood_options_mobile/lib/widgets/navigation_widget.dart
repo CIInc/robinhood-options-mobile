@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 
 /// This is the stateful widget that the main application instantiates.
 class NavigationStatefulWidget extends StatefulWidget {
@@ -22,6 +21,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   PageController? _pageController;
   List<Widget> tabPages = [
     const HomePage(title: 'Robinhood Options'),
+    LoginWidget(),
     //HomePage(key: Key('history')),
     //LoginWidget(),
     //Screen2(),

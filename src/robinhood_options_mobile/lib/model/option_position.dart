@@ -1,3 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:csv/csv.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 /*
@@ -70,6 +75,88 @@ class OptionPosition {
       this.updatedAt,
       this.url,
       this.optionId);
+
+  List<dynamic> convertToDynamic() {
+    List<dynamic> row = [];
+    row.add(account);
+    row.add(averagePrice);
+    row.add(chainId);
+    row.add(chainSymbol);
+    row.add(id);
+    row.add(option);
+    row.add(type);
+    row.add(pendingBuyQuantity);
+    row.add(pendingExpiredQuantity);
+    row.add(pendingExpirationQuantity);
+    row.add(pendingExerciseQuantity);
+    row.add(pendingAssignmentQuantity);
+    row.add(pendingSellQuantity);
+    row.add(quantity);
+    row.add(intradayQuantity);
+    row.add(intradayAverageOpenPrice);
+    row.add(createdAt);
+    row.add(tradeValueMultiplier);
+    row.add(updatedAt);
+    row.add(url);
+    row.add(optionId);
+    //row.add(jsonEncode(this));
+    return row;
+  }
+
+  static Future<File> generateCsv(List<OptionPosition> optionPositions) async {
+    List<List<dynamic>> rows = [];
+    List<dynamic> row = [];
+    row.add("account");
+    row.add("averagePrice");
+    row.add("chainId");
+    row.add("chainSymbol");
+    row.add("id");
+    row.add("option");
+    row.add("type");
+    row.add("pendingBuyQuantity");
+    row.add("pendingExpiredQuantity");
+    row.add("pendingExpirationQuantity");
+    row.add("pendingExerciseQuantity");
+    row.add("pendingAssignmentQuantity");
+    row.add("pendingSellQuantity");
+    row.add("quantity");
+    row.add("intradayQuantity");
+    row.add("intradayAverageOpenPrice");
+    row.add("createdAt");
+    row.add("tradeValueMultiplier");
+    row.add("updatedAt");
+    row.add("url");
+    row.add("optionId");
+    //row.add("jsonEncode");
+    rows.add(row);
+    for (int i = 0; i < optionPositions.length; i++) {
+      rows.add(optionPositions[i].convertToDynamic());
+    }
+
+    String csv = const ListToCsvConverter().convert(rows);
+
+    // storage permission ask
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+
+    //final dir = await getApplicationDocumentsDirectory();
+    //final dir = await getDownloadsDirectory();
+    //final dir = await getExternalStorageDirectory();
+    // _${snapshotUser.userName}
+
+    /*
+    final dir =
+        await getExternalStorageDirectories(type: StorageDirectory.downloads);
+    final file = File('${dir![0].path}/RobinhoodOptions.csv');
+    await file.writeAsString(csv);
+    return file;
+    */
+    final file2 = File('/storage/emulated/0/Download/RobinhoodOptions.csv');
+    await file2.writeAsString(csv);
+    return file2;
+  }
 
   OptionPosition.fromJson(dynamic json)
       : account = json['account'],

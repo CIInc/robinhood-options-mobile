@@ -30,9 +30,12 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   oauth2: ^2.0.0
-  path_provider: ^2.0.1
+  path_provider: ^2.0.5
   intl: ^0.17.0
   decimal: ^1.2.0
+  csv: ^5.0.0
+  permission_handler: ^8.1.6
+  open_file: ^3.2.1
 
   # shared_preferences: ^0.5.12
   # local_auth: ^1.1.4

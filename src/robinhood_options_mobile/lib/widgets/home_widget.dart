@@ -4,6 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 
+//import 'dart:async';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+import 'package:csv/csv.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:open_file/open_file.dart';
+
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -68,7 +75,11 @@ class _HomePageState extends State<HomePage> {
   Future<List<Portfolio>>? futurePortfolios;
   Future<dynamic>? futurePortfolioHistoricals;
   Future<List<Position>>? futurePositions;
-  Future<List<OptionPosition>>? futureOptionPositions;
+
+  final List<bool> isSelected = [true, false];
+  List<OptionPosition> optionPositions = [];
+  Stream<List<OptionPosition>>? optionPositionsStream;
+
   Future<List<dynamic>>? futureWatchlists;
   Future<User>? futureUser;
 
@@ -108,7 +119,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        /* Using SliverAppBar below
+      /* Using SliverAppBar below
         appBar: new AppBar(
           title: new Text(widget.drawerItems[_selectedDrawerIndex].title),
         ),
@@ -128,7 +139,13 @@ class _HomePageState extends State<HomePage> {
           },
         ),
         */
-        body: _buildHomePage());
+      body: _buildHomePage(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _generateCsvFile,
+        tooltip: 'Export to CSV',
+        child: const Icon(Icons.download),
+      ),
+    );
   }
 
   _buildHomePage() {
@@ -164,10 +181,6 @@ class _HomePageState extends State<HomePage> {
                 futurePositions =
                     RobinhoodService.downloadPositions(snapshotUser);
               }
-              if (futureOptionPositions == null) {
-                futureOptionPositions =
-                    RobinhoodService.downloadOptionPositions(snapshotUser);
-              }
               if (futureWatchlists == null) {
                 futureWatchlists =
                     RobinhoodService.downloadWatchlists(snapshotUser);
@@ -180,8 +193,8 @@ class _HomePageState extends State<HomePage> {
                   futureAccounts as Future,
                   futurePortfolios as Future,
                   //futurePositions as Future,
-                  //futureOptionPositions as Future,
                   //futureWatchlists as Future,
+                  futureNummusHoldings as Future
                 ]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
@@ -190,20 +203,26 @@ class _HomePageState extends State<HomePage> {
                     var accounts = data.length > 1 ? data[1] : null;
                     var portfolios = data.length > 2 ? data[2] : null;
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
-                    futureOptionPositions ??=
-                        RobinhoodService.downloadOptionPositions(snapshotUser);
-                    return FutureBuilder(
-                        future: futureOptionPositions,
-                        builder: (context2,
+                    optionPositionsStream ??=
+                        RobinhoodService.streamOptionPositionList(
+                      snapshotUser,
+                      includeOpen: isSelected[0],
+                      includeClosed: isSelected[1],
+                    );
+
+                    return StreamBuilder<List<OptionPosition>>(
+                        stream: optionPositionsStream,
+                        builder: (BuildContext context,
                             AsyncSnapshot<List<OptionPosition>>
                                 optionPositionSnapshot) {
                           if (optionPositionSnapshot.hasData) {
+                            optionPositions = optionPositionSnapshot.data!;
                             List<Widget> slivers = _buildSlivers(
                               portfolios: portfolios,
                               user: user,
                               ru: snapshotUser,
                               accounts: accounts,
-                              optionsPositions: optionPositionSnapshot.data,
+                              optionsPositions: optionPositions,
                             );
                             return RefreshIndicator(
                               child: CustomScrollView(
@@ -345,8 +364,8 @@ class _HomePageState extends State<HomePage> {
       */
       if (optionsPositions != null) {
         var totalAdjustedMarkPrice = optionsPositions
-            .map(
-                (e) => e.optionInstrument!.optionMarketData!.adjustedMarkPrice!)
+            .map((e) =>
+                e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ?? 0)
             .reduce((a, b) => a + b);
         slivers.add(
           SliverPersistentHeader(
@@ -355,6 +374,59 @@ class _HomePageState extends State<HomePage> {
                 "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
           ),
         );
+        slivers.add(SliverToBoxAdapter(
+          child: ToggleButtons(
+            children: <Widget>[
+              Padding(
+                  padding: const EdgeInsets.all(14.0),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.new_releases),
+                      SizedBox(width: 10),
+                      Text(
+                        'Open',
+                        style: TextStyle(fontSize: 18),
+                      )
+                    ],
+                  )),
+              Padding(
+                  padding: const EdgeInsets.all(14.0),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.history),
+                      SizedBox(width: 10),
+                      Text(
+                        'Closed',
+                        style: TextStyle(fontSize: 16),
+                      )
+                    ],
+                  )),
+              /*
+              Icon(Icons.ac_unit),
+              Icon(Icons.call),
+              Icon(Icons.cake),
+              */
+            ],
+            onPressed: (int index) {
+              setState(() {
+                /* For mutually exclusive selection requiring at least one selection.
+                for (int buttonIndex = 0;
+                    buttonIndex < isSelected.length;
+                    buttonIndex++) {
+                  if (buttonIndex == index) {
+                    isSelected[buttonIndex] = true;
+                  } else {
+                    isSelected[buttonIndex] = false;
+                  }
+                }
+                */
+                isSelected[index] = !isSelected[index];
+                optionPositionsStream = null;
+              });
+            },
+            isSelected: isSelected,
+          ),
+        ));
         slivers.add(SliverList(
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
@@ -696,6 +768,7 @@ class _HomePageState extends State<HomePage> {
       futureAccounts = null;
       futurePortfolios = null;
       //futureOptionPositions = null;
+      optionPositionsStream = null;
     });
 
     var accounts = await RobinhoodService.downloadAccounts(snapshotUser);
@@ -710,7 +783,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
-      //futureOptionPositions = Future.value(optionPositions);
       /*
       futurePositions = Future.value(positions);
       futureWatchlists = Future.value(watchlists);
@@ -757,6 +829,9 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildOptionPositionRow(
       List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
+    if (optionsPositions[index].optionInstrument == null) {
+      return Container();
+    }
     final double gainLoss = (optionsPositions[index]
                 .optionInstrument!
                 .optionMarketData!
@@ -771,18 +846,22 @@ class _HomePageState extends State<HomePage> {
       children: <Widget>[
         ListTile(
           leading: CircleAvatar(
+              //backgroundImage: AssetImage(user.profilePicture),
+              /*
               backgroundColor:
                   optionsPositions[index].optionInstrument!.type == 'call'
                       ? Colors.green
                       : Colors.amber,
-              //backgroundImage: AssetImage(user.profilePicture),
               child: optionsPositions[index].optionInstrument!.type == 'call'
                   ? const Text('Call')
                   : const Text('Put')),
+                      */
+              child: Text('${optionsPositions[index].quantity!.round()}',
+                  style: const TextStyle(fontSize: 18))),
           title: Text(
-              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].type.toUpperCase()} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
           subtitle: Text(
-              'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)} (${optionsPositions[index].quantity!.round()}x)'),
+              'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
           trailing: Wrap(
             spacing: 12,
             children: [
@@ -1086,4 +1165,18 @@ class _HomePageState extends State<HomePage> {
         });
   }
   */
+  void _generateCsvFile() async {
+    File file = await OptionPosition.generateCsv(optionPositions);
+
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+          content: Text("Downloaded ${file.path.split('/').last}"),
+          action: SnackBarAction(
+            label: 'Open',
+            onPressed: () {
+              OpenFile.open(file.path, type: 'text/csv');
+            },
+          )));
+  }
 }

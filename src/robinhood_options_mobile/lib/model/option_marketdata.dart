@@ -115,8 +115,8 @@ class OptionMarketData {
             : null,
         instrument = json['instrument'],
         instrumentId = json['instrument_id'],
-        lastTradePrice = double.tryParse(json['last_trade_price']),
-        lastTradeSize = json['last_trade_size'],
+        lastTradePrice = double.tryParse(json['last_trade_price'].toString()),
+        lastTradeSize = json['last_trade_size'] ?? 0,
         lowPrice = json['low_price'] != null
             ? double.tryParse(json['low_price'])
             : null,
