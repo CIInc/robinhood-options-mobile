@@ -389,13 +389,45 @@ class RobinhoodService {
     //return results;
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+    var quotes = await RobinhoodService.getForexQuotes(user);
     List<Holding> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = Holding.fromJson(result);
+      for (var j = 0; j < quotes['results'].length; j++) {
+        if (quotes['results'][j]['asset_currency']['id'] == op.currencyId) {
+          //op.quote = quotes['results'][j];
+
+          op.quote = await getForexQuote(user, quotes['results'][j]['id']);
+          op.value = double.tryParse(op.quote['mark_price']);
+          break;
+        }
+      }
+      // TODO: Not working 404 on quote, 400 on historicals
+      //op.quote = await getForexQuote(user, op.currencyId);
       list.add(op);
     }
     return list;
+  }
+
+  static Future<dynamic> getForexQuote(RobinhoodUser user, String id) async {
+    //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
+    //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
+    //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
+    var results = await user.oauth2Client!.read(Uri.parse(
+        '${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/'));
+    //'${Constants.robinHoodEndpoint}/marketdata/forex/historicals/$id/'));
+
+    //var results = await RobinhoodService.pagedGet(user, "${Constants.robinHoodNummusEndpoint}/accounts/");
+    //print(results);
+    // {"ask_price":"41999.533618","bid_price":"41876.376816","mark_price":"41937.955217","high_price":"42854.535000","low_price":"41963.270000","open_price":"42655.620000","symbol":"BTCUSD","id":"3d961844-d360-45fc-989b-f6fca761d511","volume":"0.000000"}
+    return jsonDecode(results);
+  }
+
+  static Future<dynamic> getForexQuotes(RobinhoodUser user) async {
+    var results = await user.oauth2Client!.read(
+        Uri.parse('${Constants.robinHoodNummusEndpoint}/currency_pairs/'));
+    return jsonDecode(results);
   }
 
   /*

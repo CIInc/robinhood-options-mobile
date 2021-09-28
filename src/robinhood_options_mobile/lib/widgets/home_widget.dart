@@ -202,6 +202,7 @@ class _HomePageState extends State<HomePage> {
                     var user = data.isNotEmpty ? data[0] : null;
                     var accounts = data.length > 1 ? data[1] : null;
                     var portfolios = data.length > 2 ? data[2] : null;
+                    var nummusHoldings = data.length > 3 ? data[3] : null;
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
                     optionPositionsStream ??=
                         RobinhoodService.streamOptionPositionList(
@@ -222,6 +223,7 @@ class _HomePageState extends State<HomePage> {
                               user: user,
                               ru: snapshotUser,
                               accounts: accounts,
+                              nummusHoldings: nummusHoldings,
                               optionsPositions: optionPositions,
                             );
                             return RefreshIndicator(
@@ -311,6 +313,7 @@ class _HomePageState extends State<HomePage> {
       User? user,
       RobinhoodUser? ru,
       List<Account>? accounts,
+      List<Holding>? nummusHoldings,
       Widget? welcomeWidget,
       List<OptionPosition>? optionsPositions,
       List<Position>? positions,
@@ -322,9 +325,14 @@ class _HomePageState extends State<HomePage> {
       changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
       changeTodayPercentage = changeToday / portfolios[0].equity!;
     }
-
-    SliverAppBar sliverAppBar = buildSliverAppBar(
-        ru, portfolios, user, accounts, changeToday, changeTodayPercentage);
+    double nummusEquity = 0;
+    if (nummusHoldings != null) {
+      nummusEquity = nummusHoldings
+          .map((e) => e.value! * e.quantity!)
+          .reduce((a, b) => a + b);
+    }
+    SliverAppBar sliverAppBar = buildSliverAppBar(ru, portfolios, user,
+        accounts, nummusEquity, changeToday, changeTodayPercentage);
     slivers.add(sliverAppBar);
 
     if (ru != null && ru.userName != null) {
@@ -554,33 +562,6 @@ class _HomePageState extends State<HomePage> {
                 alignment: Alignment.center,
                 child: Text(
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
-    /*
-              SliverPadding(
-                  padding: EdgeInsets.all(50),
-                  sliver: SliverList(
-                    // delegate: SliverChildListDelegate(widgets),
-                    delegate: SliverChildBuilderDelegate(
-                      (BuildContext context, int index) {
-                        if (widgets.length > index) {
-                          return widgets[index];
-                        }
-                        if (index > widgets.length + 10) return null;
-                        // To convert this infinite list to a list with three items,
-                        // uncomment the following line:
-                        // if (index > 3) return null;
-                        return Container(
-                          color: Colors.white,
-                          height: 150.0,
-                          child: Align(
-                              alignment: Alignment.center,
-                              child: Text("Lorem ipsum")),
-                        );
-                      },
-                      // Or, uncomment the following line:
-                      // childCount: widgets.length + 10,
-                    ),
-                  ))
-                  */
     return slivers;
   }
 
@@ -623,6 +604,7 @@ class _HomePageState extends State<HomePage> {
       List<Portfolio>? portfolios,
       User? user,
       List<Account>? accounts,
+      double nummusEquity,
       double changeToday,
       double changeTodayPercentage) {
     var sliverAppBar = SliverAppBar(
@@ -685,8 +667,8 @@ class _HomePageState extends State<HomePage> {
                             style: TextStyle(fontSize: 12.0),
                           ),
                           const Text(
-                            '', //'\t\t\tChange',
-                            style: TextStyle(fontSize: 10.0),
+                            '\t\tCrypto', //'\t\t\tChange',
+                            style: TextStyle(fontSize: 12.0),
                           ),
                         ],
                       ),
@@ -694,7 +676,8 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            formatCurrency.format(portfolios[0].equity),
+                            formatCurrency.format(
+                                (portfolios[0].equity ?? 0) + nummusEquity),
                             style: const TextStyle(fontSize: 15.0),
                           ),
                           Text(
@@ -703,6 +686,10 @@ class _HomePageState extends State<HomePage> {
                           ),
                           Text(
                             formatCurrency.format(accounts![0].portfolioCash),
+                            style: const TextStyle(fontSize: 12.0),
+                          ),
+                          Text(
+                            formatCurrency.format(nummusEquity),
                             style: const TextStyle(fontSize: 12.0),
                           ),
                         ],
