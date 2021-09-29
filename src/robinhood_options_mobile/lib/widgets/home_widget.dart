@@ -472,21 +472,31 @@ class _HomePageState extends State<HomePage> {
           ),*/
             ));
         slivers.add(SliverToBoxAdapter(
-          child:
-              /*
-          ListView.builder(itemBuilder: (context, index) {
-            return SingleChildScrollView(
-                child: Row(
-                    children:
-                        filterWidgets(chainSymbols, optionsPositions).toList()),
-                scrollDirection: Axis.horizontal);
-          }),
-          */
+            child:
+                /*SingleChildScrollView(
+                  child: Row(
+                      children: filterWidgets(chainSymbols, optionsPositions)
+                          .toList()),
+                )*/
+                SizedBox(
+                    height: 56,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        return Row(
+                            children:
+                                filterWidgets(chainSymbols, optionsPositions)
+                                    .toList());
+                      },
+                      itemCount: 1,
+                    ))
+            /*
               Wrap(
             direction: Axis.horizontal,
             children: filterWidgets(chainSymbols, optionsPositions).toList(),
           ),
-        ));
+          */
+            ));
         slivers.add(SliverList(
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
@@ -704,32 +714,182 @@ class _HomePageState extends State<HomePage> {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(user!.profileName,
-                        style: const TextStyle(fontSize: 21.0)),
+                        style: const TextStyle(fontSize: 24.0)),
                     Container(
                       width: 10,
                     ),
-                    Wrap(
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Column(
                       children: [
-                        Icon(
-                            changeToday > 0
-                                ? Icons.trending_up
-                                : (changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (changeToday > 0
-                                ? Colors.lightGreenAccent
-                                : (changeToday < 0 ? Colors.red : Colors.grey)),
-                            size: 18.0),
                         Container(
-                          width: 2,
+                          width: 10,
                         ),
-                        Text(
-                            '${formatCurrency.format(changeToday.abs())} ${formatPercentage.format(changeTodayPercentage.abs())}',
-                            style: const TextStyle(fontSize: 15.0))
+                      ],
+                    ),
+                    Text(
+                      formatCurrency
+                          .format((portfolios[0].equity ?? 0) + nummusEquity),
+                      style: const TextStyle(fontSize: 18.0),
+                    ),
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
                       ],
                     ),
                   ],
                 ),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Wrap(
+                        children: [
+                          Icon(
+                              changeToday > 0
+                                  ? Icons.trending_up
+                                  : (changeToday < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              color: (changeToday > 0
+                                  ? Colors.lightGreenAccent
+                                  : (changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                              size: 14.0),
+                          Container(
+                            width: 2,
+                          ),
+                          Text(
+                              '${formatPercentage.format(changeTodayPercentage.abs())}',
+                              style: const TextStyle(fontSize: 16.0)),
+                          Container(
+                            width: 10,
+                          ),
+                          Text(
+                              '${formatCurrency.format(changeToday.abs())}', //${formatPercentage.format(changeTodayPercentage.abs())}
+                              style: const TextStyle(fontSize: 16.0)),
+                          Container(
+                            width: 10,
+                          ),
+                        ],
+                      ),
+                    ]),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 20,
+                    ),
+                    const Text(
+                      'Stocks & Options',
+                      style: TextStyle(fontSize: 10.0),
+                    ),
+                    Container(
+                      width: 10,
+                    ),
+                    Text(
+                      formatCurrency.format(portfolios[0].marketValue),
+                      style: const TextStyle(fontSize: 13.0),
+                    ),
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                      ],
+                    ),
+                    Column(children: [
+                      const Text(
+                        'Cash',
+                        style: TextStyle(fontSize: 10.0),
+                      )
+                    ]),
+                    Container(
+                      width: 10,
+                    ),
+                    Column(children: [
+                      Text(
+                        formatCurrency.format(accounts![0].portfolioCash),
+                        style: const TextStyle(fontSize: 13.0),
+                      )
+                    ]),
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                      ],
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Crypto',
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          formatCurrency.format(nummusEquity),
+                          style: const TextStyle(fontSize: 13.0),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                /*
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,19 +899,19 @@ class _HomePageState extends State<HomePage> {
                         children: [
                           const Text(
                             'Portfolio Equity',
-                            style: TextStyle(fontSize: 15.0),
+                            style: TextStyle(fontSize: 12.0),
                           ),
                           const Text(
-                            '\t\tMarket Value',
-                            style: TextStyle(fontSize: 12.0),
+                            '\t\tStocks & Options',
+                            style: TextStyle(fontSize: 10.0),
                           ),
                           const Text(
                             '\t\tCash',
-                            style: TextStyle(fontSize: 12.0),
+                            style: TextStyle(fontSize: 10.0),
                           ),
                           const Text(
                             '\t\tCrypto', //'\t\t\tChange',
-                            style: TextStyle(fontSize: 12.0),
+                            style: TextStyle(fontSize: 10.0),
                           ),
                         ],
                       ),
@@ -778,6 +938,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                     ]),
+                    */
               ]),
             ));
       }),
