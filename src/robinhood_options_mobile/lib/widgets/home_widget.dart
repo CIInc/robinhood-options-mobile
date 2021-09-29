@@ -6,9 +6,6 @@ import 'package:intl/intl.dart';
 
 //import 'dart:async';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:csv/csv.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:open_file/open_file.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -24,7 +21,6 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
-import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 import 'option_position_widget.dart';
 
@@ -76,9 +72,11 @@ class _HomePageState extends State<HomePage> {
   Future<dynamic>? futurePortfolioHistoricals;
   Future<List<Position>>? futurePositions;
 
-  final List<bool> isSelected = [true, false];
-  List<OptionPosition> optionPositions = [];
   Stream<List<OptionPosition>>? optionPositionsStream;
+  List<OptionPosition> optionPositions = [];
+  List<String> chainSymbols = [];
+  final List<bool> hasQuantityFilters = [true, false];
+  final List<String> chainSymbolFilters = <String>[];
 
   Future<List<dynamic>>? futureWatchlists;
   Future<User>? futureUser;
@@ -176,25 +174,19 @@ class _HomePageState extends State<HomePage> {
                         snapshotUser, null);
               }
               */
-              /*
-              if (futurePositions == null) {
-                futurePositions =
-                    RobinhoodService.downloadPositions(snapshotUser);
-              }
-              if (futureWatchlists == null) {
-                futureWatchlists =
-                    RobinhoodService.downloadWatchlists(snapshotUser);
-              }
-              */
+              futurePositions ??=
+                  RobinhoodService.downloadPositions(snapshotUser);
+              futureWatchlists ??=
+                  RobinhoodService.downloadWatchlists(snapshotUser);
 
               return FutureBuilder(
                 future: Future.wait([
                   futureUser as Future,
                   futureAccounts as Future,
                   futurePortfolios as Future,
-                  //futurePositions as Future,
-                  //futureWatchlists as Future,
-                  futureNummusHoldings as Future
+                  futureNummusHoldings as Future,
+                  futurePositions as Future,
+                  futureWatchlists as Future,
                 ]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
@@ -203,13 +195,14 @@ class _HomePageState extends State<HomePage> {
                     var accounts = data.length > 1 ? data[1] : null;
                     var portfolios = data.length > 2 ? data[2] : null;
                     var nummusHoldings = data.length > 3 ? data[3] : null;
+                    var positions = data.length > 4 ? data[4] : null;
+                    var watchlist = data.length > 5 ? data[5] : null;
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
                     optionPositionsStream ??=
-                        RobinhoodService.streamOptionPositionList(
-                      snapshotUser,
-                      includeOpen: isSelected[0],
-                      includeClosed: isSelected[1],
-                    );
+                        RobinhoodService.streamOptionPositionList(snapshotUser,
+                            includeOpen: hasQuantityFilters[0],
+                            includeClosed: hasQuantityFilters[1],
+                            filters: chainSymbolFilters);
 
                     return StreamBuilder<List<OptionPosition>>(
                         stream: optionPositionsStream,
@@ -219,13 +212,14 @@ class _HomePageState extends State<HomePage> {
                           if (optionPositionSnapshot.hasData) {
                             optionPositions = optionPositionSnapshot.data!;
                             List<Widget> slivers = _buildSlivers(
-                              portfolios: portfolios,
-                              user: user,
-                              ru: snapshotUser,
-                              accounts: accounts,
-                              nummusHoldings: nummusHoldings,
-                              optionsPositions: optionPositions,
-                            );
+                                portfolios: portfolios,
+                                user: user,
+                                ru: snapshotUser,
+                                accounts: accounts,
+                                nummusHoldings: nummusHoldings,
+                                optionsPositions: optionPositions,
+                                positions: positions,
+                                watchLists: watchlist);
                             return RefreshIndicator(
                               child: CustomScrollView(
                                   controller: _controller, slivers: slivers),
@@ -375,15 +369,57 @@ class _HomePageState extends State<HomePage> {
             .map((e) =>
                 e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ?? 0)
             .reduce((a, b) => a + b);
+        chainSymbols =
+            optionsPositions.map((e) => e.chainSymbol).toSet().toList();
+        chainSymbols.sort((a, b) => (a.compareTo(b)));
         slivers.add(
           SliverPersistentHeader(
-            pinned: false,
+            pinned: true,
             delegate: PersistentHeader(
                 "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
           ),
         );
         slivers.add(SliverToBoxAdapter(
-          child: ToggleButtons(
+            child: Wrap(children: [
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              avatar: const Icon(Icons.new_releases_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Open Positions'),
+              selected: hasQuantityFilters[0],
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    hasQuantityFilters[0] = true;
+                  } else {
+                    hasQuantityFilters[0] = false;
+                  }
+                });
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(4.0),
+            child: FilterChip(
+              avatar: const Icon(Icons.history_outlined),
+              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+              label: const Text('Closed Positions'),
+              selected: hasQuantityFilters[1],
+              onSelected: (bool value) {
+                setState(() {
+                  if (value) {
+                    hasQuantityFilters[1] = true;
+                  } else {
+                    hasQuantityFilters[1] = false;
+                  }
+                  optionPositionsStream = null;
+                });
+              },
+            ),
+          )
+        ])
+            /*ToggleButtons(
             children: <Widget>[
               Padding(
                   padding: const EdgeInsets.all(14.0),
@@ -408,7 +444,7 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(fontSize: 16),
                       )
                     ],
-                  )),
+                  ))
               /*
               Icon(Icons.ac_unit),
               Icon(Icons.call),
@@ -433,6 +469,22 @@ class _HomePageState extends State<HomePage> {
               });
             },
             isSelected: isSelected,
+          ),*/
+            ));
+        slivers.add(SliverToBoxAdapter(
+          child:
+              /*
+          ListView.builder(itemBuilder: (context, index) {
+            return SingleChildScrollView(
+                child: Row(
+                    children:
+                        filterWidgets(chainSymbols, optionsPositions).toList()),
+                scrollDirection: Axis.horizontal);
+          }),
+          */
+              Wrap(
+            direction: Axis.horizontal,
+            children: filterWidgets(chainSymbols, optionsPositions).toList(),
           ),
         ));
         slivers.add(SliverList(
@@ -443,12 +495,7 @@ class _HomePageState extends State<HomePage> {
                 return _buildOptionPositionRow(optionsPositions, index, ru);
               }
               return null;
-              // To convert this infinite list to a list with three items,
-              // uncomment the following line:
-              // if (index > 3) return null;
             },
-            // Or, uncomment the following line:
-            // childCount: widgets.length + 10,
           ),
         ));
       } else {
@@ -464,13 +511,16 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (positions != null) {
-        var totalPositionEquity = positions
-            .map(
-                (e) => e.quantity! * e.instrumentObj!.quoteObj!.lastTradePrice!)
-            .reduce((a, b) => a + b);
+        var totalPositionEquity = 0;
+        if (positions.isNotEmpty) {
+          positions
+              .map((e) =>
+                  e.quantity! * e.instrumentObj!.quoteObj!.lastTradePrice!)
+              .reduce((a, b) => a + b);
+        }
         slivers.add(
           SliverPersistentHeader(
-            pinned: false,
+            pinned: true,
             delegate: PersistentHeader(
                 "Positions ${formatCurrency.format(totalPositionEquity)}"),
           ),
@@ -495,7 +545,7 @@ class _HomePageState extends State<HomePage> {
       if (watchLists != null) {
         slivers.add(
           SliverPersistentHeader(
-            pinned: false,
+            pinned: true,
             delegate: PersistentHeader("Watch Lists"),
           ),
         );
@@ -565,38 +615,40 @@ class _HomePageState extends State<HomePage> {
     return slivers;
   }
 
-  Widget getAppBarTitle(
-      User? user, double changeToday, double changeTodayPercentage) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text(user!.profileName),
-        Container(
-          width: 10,
+//Iterable<Widget> get filterWidgets sync* {
+  Iterable<Widget> filterWidgets(
+      List<String> chainSymbols, List<OptionPosition> options) sync* {
+    for (final String chainSymbol in chainSymbols) {
+      var optionCount =
+          options.where((element) => element.chainSymbol == chainSymbol).length;
+      /*
+          options
+              .where((element) => element.chainSymbol == chainSymbol)
+              .map((e) => e.quantity)
+              .reduce((a, b) => a! + b!)!
+              .round();
+              */
+
+      yield Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: FilterChip(
+          avatar: CircleAvatar(child: Text(optionCount.toString())),
+          label: Text(chainSymbol),
+          selected: chainSymbolFilters.contains(chainSymbol),
+          onSelected: (bool value) {
+            setState(() {
+              if (value) {
+                chainSymbolFilters.add(chainSymbol);
+              } else {
+                chainSymbolFilters.removeWhere((String name) {
+                  return name == chainSymbol;
+                });
+              }
+            });
+          },
         ),
-        Wrap(
-          children: [
-            Icon(
-                changeToday > 0
-                    ? Icons.trending_up
-                    : (changeToday < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (changeToday > 0
-                    ? Colors.lightGreenAccent
-                    : (changeToday < 0 ? Colors.red : Colors.grey)),
-                size: 18.0),
-            Container(
-              width: 2,
-            ),
-            Text(
-                '${formatCurrency.format(changeToday)} ${formatPercentage.format(changeTodayPercentage)}',
-                style: const TextStyle(fontSize: 15.0))
-          ],
-        ),
-      ],
-    );
+      );
+    }
   }
 
   SliverAppBar buildSliverAppBar(
@@ -646,7 +698,38 @@ class _HomePageState extends State<HomePage> {
                 Row(children: [const Text('')]),
                 Row(children: [const Text('')]),
                 Row(children: [const Text('')]),
-                getAppBarTitle(user, changeToday, changeTodayPercentage),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(user!.profileName,
+                        style: const TextStyle(fontSize: 21.0)),
+                    Container(
+                      width: 10,
+                    ),
+                    Wrap(
+                      children: [
+                        Icon(
+                            changeToday > 0
+                                ? Icons.trending_up
+                                : (changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changeToday > 0
+                                ? Colors.lightGreenAccent
+                                : (changeToday < 0 ? Colors.red : Colors.grey)),
+                            size: 18.0),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            '${formatCurrency.format(changeToday.abs())} ${formatPercentage.format(changeTodayPercentage.abs())}',
+                            style: const TextStyle(fontSize: 15.0))
+                      ],
+                    ),
+                  ],
+                ),
                 Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -816,17 +899,22 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildOptionPositionRow(
       List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
-    if (optionsPositions[index].optionInstrument == null) {
+    if (optionsPositions[index].optionInstrument == null ||
+        (chainSymbolFilters.isNotEmpty &&
+            !chainSymbolFilters
+                .contains(optionsPositions[index].chainSymbol))) {
       return Container();
     }
-    final double gainLoss = (optionsPositions[index]
+    final double gainLossPerContract = (optionsPositions[index]
                 .optionInstrument!
                 .optionMarketData!
                 .adjustedMarkPrice! -
             (optionsPositions[index].averagePrice! / 100)) *
         100;
+    final double gainLoss =
+        gainLossPerContract * optionsPositions[index].quantity!;
     final double gainLossPercent =
-        gainLoss / optionsPositions[index].averagePrice!;
+        gainLossPerContract / optionsPositions[index].averagePrice!;
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -846,21 +934,21 @@ class _HomePageState extends State<HomePage> {
               child: Text('${optionsPositions[index].quantity!.round()}',
                   style: const TextStyle(fontSize: 18))),
           title: Text(
-              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].type.toUpperCase()} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].type} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
           subtitle: Text(
               'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
           trailing: Wrap(
             spacing: 12,
             children: [
               Icon(
-                  gainLoss > 0
+                  gainLossPerContract > 0
                       ? Icons.trending_up
-                      : (gainLoss < 0
+                      : (gainLossPerContract < 0
                           ? Icons.trending_down
                           : Icons.trending_flat),
-                  color: (gainLoss > 0
+                  color: (gainLossPerContract > 0
                       ? Colors.green
-                      : (gainLoss < 0 ? Colors.red : Colors.grey))),
+                      : (gainLossPerContract < 0 ? Colors.red : Colors.grey))),
               Text(
                 "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
                 style: const TextStyle(fontSize: 16.0),
@@ -882,6 +970,7 @@ class _HomePageState extends State<HomePage> {
                         OptionPositionWidget(ru, optionsPositions[index])));
           },
         ),
+        /*
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -909,6 +998,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(width: 8),
           ],
         ),
+        */
       ],
     ));
     /*

@@ -7,27 +7,30 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-        color: Colors.white,
-        child: Card(
+    return Material(
+        elevation: 1,
+        child: Container(
+            color: Colors.white,
+            child: /*Card(
             color: Colors.white,
             elevation: 3.0,
-            child: SizedBox(
-              height: 80.0,
+            child: */
+                SizedBox(
+              height: 40.0,
               child: Center(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 20.0),
+                  style: const TextStyle(fontSize: 21.0),
                 ),
               ),
             )));
   }
 
   @override
-  double get maxExtent => 80.0;
+  double get maxExtent => 40.0;
 
   @override
-  double get minExtent => 80.0;
+  double get minExtent => 40.0;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {

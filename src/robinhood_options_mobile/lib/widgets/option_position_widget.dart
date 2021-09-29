@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 class OptionPositionWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -188,8 +189,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     }
 
     return ListTile(
-      title: Text(title), //, style: TextStyle(fontSize: 18.0)),
-      subtitle: Text(value),
+      title: Text(value), //, style: TextStyle(fontSize: 18.0)),
+      subtitle: Text(title),
     );
   }
 
@@ -198,12 +199,26 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return Scaffold(
         appBar: AppBar(
           title: Text(
-              '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.optionInstrument!.type.toUpperCase()}'),
+              '${optionPosition.chainSymbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.type} ${optionPosition.optionInstrument!.type.toUpperCase()}'),
           //new Text("${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
+          actions: <Widget>[
+            IconButton(
+              icon: const Icon(Icons.shopping_cart),
+              tooltip: "Trade",
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            TradeOptionWidget(user, optionPosition)));
+              },
+            ),
+          ],
         ),
         body: Builder(builder: (context) {
           return _buildPosition(optionPosition);
         })
+
         /*
         body: new FutureBuilder(
             future: futureOptionPosition,

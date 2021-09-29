@@ -213,9 +213,10 @@ class RobinhoodService {
   static Stream<List<OptionPosition>> streamOptionPositionList(
       RobinhoodUser user,
       {bool includeOpen = true,
-      bool includeClosed = false}) async* {
+      bool includeClosed = false,
+      List<String> filters = const []}) async* {
     List<OptionPosition> optionPositions =
-        await getOptionPositions(user, includeOpen, includeClosed);
+        await getOptionPositions(user, includeOpen, includeClosed, filters);
     List<String> optionIds =
         optionPositions.map((e) => e.option).toSet().toList();
     for (var i = 0; i < optionIds.length; i++) {
@@ -251,8 +252,8 @@ class RobinhoodService {
     yield optionPositions;
   }
 
-  static Future<List<OptionPosition>> getOptionPositions(
-      RobinhoodUser user, bool includeOpen, bool includeClosed) async {
+  static Future<List<OptionPosition>> getOptionPositions(RobinhoodUser user,
+      bool includeOpen, bool includeClosed, List<String> filters) async {
     var result = await user.oauth2Client!
         .read(Uri.parse('${Constants.robinHoodEndpoint}/options/positions/'));
     //print(result);
@@ -262,8 +263,9 @@ class RobinhoodService {
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
       var op = OptionPosition.fromJson(result);
-      if ((includeOpen && op.quantity! > 0) ||
-          (includeClosed && op.quantity! <= 0)) {
+      if (((includeOpen && op.quantity! > 0) ||
+              (includeClosed && op.quantity! <= 0)) &&
+          (filters.isEmpty || filters.contains(op.chainSymbol))) {
         optionPositions.add(op);
       }
     }
