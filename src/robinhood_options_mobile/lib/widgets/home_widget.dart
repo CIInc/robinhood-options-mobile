@@ -11,6 +11,7 @@ import 'package:open_file/open_file.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
@@ -64,7 +65,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<RobinhoodUser>? futureRobinhoodUser;
-  late RobinhoodUser snapshotUser;
+  late RobinhoodUser robinhoodUser;
 
   Future<List<Account>>? futureAccounts;
   Future<List<Holding>>? futureNummusHoldings;
@@ -72,8 +73,10 @@ class _HomePageState extends State<HomePage> {
   Future<dynamic>? futurePortfolioHistoricals;
   Future<List<Position>>? futurePositions;
 
-  Stream<List<OptionPosition>>? optionPositionsStream;
-  List<OptionPosition> optionPositions = [];
+  Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
+  List<OptionAggregatePosition> optionAggregatePositions = [];
+  //Stream<List<OptionPosition>>? optionPositionStream;
+  //List<OptionPosition> optionPositions = [];
   List<String> chainSymbols = [];
   final List<bool> hasQuantityFilters = [true, false];
   final List<String> chainSymbolFilters = <String>[];
@@ -81,8 +84,10 @@ class _HomePageState extends State<HomePage> {
   Future<List<dynamic>>? futureWatchlists;
   Future<User>? futureUser;
 
+/*
   late ScrollController _controller;
   bool silverCollapsed = false;
+*/
 
   // int _selectedDrawerIndex = 0;
   // bool _showDrawerContents = true;
@@ -92,7 +97,7 @@ class _HomePageState extends State<HomePage> {
     super.initState();
 
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
-
+    /*
     _controller = ScrollController();
     _controller.addListener(() {
       if (_controller.offset > 220 && !_controller.position.outOfRange) {
@@ -112,6 +117,7 @@ class _HomePageState extends State<HomePage> {
         }
       }
     });
+    */
   }
 
   @override
@@ -154,18 +160,17 @@ class _HomePageState extends State<HomePage> {
 
           print("${userSnapshot.connectionState}");
           if (userSnapshot.hasData) {
-            snapshotUser = userSnapshot.data!;
+            robinhoodUser = userSnapshot.data!;
             //print("snapshotUser: ${jsonEncode(snapshotUser)}");
 
-            if (snapshotUser.userName != null) {
-              futureUser ??= RobinhoodService.downloadUser(snapshotUser);
-              futureAccounts ??=
-                  RobinhoodService.downloadAccounts(snapshotUser);
+            if (robinhoodUser.userName != null) {
+              futureUser ??= RobinhoodService.getUser(robinhoodUser);
+              futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser);
               futurePortfolios ??=
-                  RobinhoodService.downloadPortfolios(snapshotUser);
+                  RobinhoodService.getPortfolios(robinhoodUser);
               //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(snapshotUser);
               futureNummusHoldings ??=
-                  RobinhoodService.downloadNummusHoldings(snapshotUser);
+                  RobinhoodService.getNummusHoldings(robinhoodUser);
 
               /*
               if (futurePortfolioHistoricals == null) {
@@ -174,10 +179,9 @@ class _HomePageState extends State<HomePage> {
                         snapshotUser, null);
               }
               */
-              futurePositions ??=
-                  RobinhoodService.downloadPositions(snapshotUser);
+              futurePositions ??= RobinhoodService.getPositions(robinhoodUser);
               futureWatchlists ??=
-                  RobinhoodService.downloadWatchlists(snapshotUser);
+                  RobinhoodService.getWatchlists(robinhoodUser);
 
               return FutureBuilder(
                 future: Future.wait([
@@ -198,42 +202,51 @@ class _HomePageState extends State<HomePage> {
                     var positions = data.length > 4 ? data[4] : null;
                     var watchlist = data.length > 5 ? data[5] : null;
                     //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
+                    optionAggregatePositionStream ??=
+                        RobinhoodService.streamOptionAggregatePositionList(
+                            robinhoodUser,
+                            includeOpen: hasQuantityFilters[0],
+                            includeClosed: hasQuantityFilters[1],
+                            filters: chainSymbolFilters);
+                    /*
                     optionPositionsStream ??=
                         RobinhoodService.streamOptionPositionList(snapshotUser,
                             includeOpen: hasQuantityFilters[0],
                             includeClosed: hasQuantityFilters[1],
                             filters: chainSymbolFilters);
-
-                    return StreamBuilder<List<OptionPosition>>(
-                        stream: optionPositionsStream,
+                            */
+                    return StreamBuilder<List<OptionAggregatePosition>>(
+                        stream: optionAggregatePositionStream,
                         builder: (BuildContext context,
-                            AsyncSnapshot<List<OptionPosition>>
-                                optionPositionSnapshot) {
-                          if (optionPositionSnapshot.hasData) {
-                            optionPositions = optionPositionSnapshot.data!;
+                            AsyncSnapshot<List<OptionAggregatePosition>>
+                                optionAggregatePositionSnapshot) {
+                          if (optionAggregatePositionSnapshot.hasData) {
+                            optionAggregatePositions =
+                                optionAggregatePositionSnapshot.data!;
                             List<Widget> slivers = _buildSlivers(
                                 portfolios: portfolios,
                                 user: user,
-                                ru: snapshotUser,
+                                ru: robinhoodUser,
                                 accounts: accounts,
                                 nummusHoldings: nummusHoldings,
-                                optionsPositions: optionPositions,
+                                optionAggregatePositions:
+                                    optionAggregatePositions,
                                 positions: positions,
                                 watchLists: watchlist);
                             return RefreshIndicator(
                               child: CustomScrollView(
-                                  controller: _controller, slivers: slivers),
+                                  slivers: slivers), //controller: _controller,
                               onRefresh: _pullRefresh,
                             );
                           } else {
                             List<Widget> slivers = _buildSlivers(
                                 portfolios: portfolios,
                                 user: user,
-                                ru: snapshotUser,
+                                ru: robinhoodUser,
                                 accounts: accounts);
                             return RefreshIndicator(
                               child: CustomScrollView(
-                                  controller: _controller, slivers: slivers),
+                                  slivers: slivers), // controller: _controller
                               onRefresh: _pullRefresh,
                             );
                           }
@@ -250,29 +263,27 @@ class _HomePageState extends State<HomePage> {
                         welcomeWidget: Text("${dataSnapshot.error}"));
                     return RefreshIndicator(
                       child: CustomScrollView(
-                          controller: _controller, slivers: slivers),
+                          slivers: slivers), // controller: _controller,
                       onRefresh: _pullRefresh,
                     );
                   } else {
                     List<Widget> slivers = _buildSlivers(
-                        ru: snapshotUser,
+                        ru: robinhoodUser,
                         welcomeWidget: const Center(
                           child: CircularProgressIndicator(),
                         ));
                     return RefreshIndicator(
-                      child: CustomScrollView(
-                          controller: _controller, slivers: slivers),
+                      child: CustomScrollView(slivers: slivers),
                       onRefresh: _pullRefresh,
                     );
                   }
                 },
               );
             } else {
-              List<Widget> slivers =
-                  _buildSlivers(ru: snapshotUser, welcomeWidget: _buildLogin());
+              List<Widget> slivers = _buildSlivers(
+                  ru: robinhoodUser, welcomeWidget: _buildLogin());
               return RefreshIndicator(
-                child:
-                    CustomScrollView(controller: _controller, slivers: slivers),
+                child: CustomScrollView(slivers: slivers),
                 onRefresh: _pullRefresh,
               );
             }
@@ -281,8 +292,7 @@ class _HomePageState extends State<HomePage> {
             List<Widget> slivers =
                 _buildSlivers(welcomeWidget: Text("${userSnapshot.error}"));
             return RefreshIndicator(
-              child:
-                  CustomScrollView(controller: _controller, slivers: slivers),
+              child: CustomScrollView(slivers: slivers),
               onRefresh: _pullRefresh,
             );
           } else {
@@ -294,8 +304,7 @@ class _HomePageState extends State<HomePage> {
                   : null,
             ));
             return RefreshIndicator(
-              child:
-                  CustomScrollView(controller: _controller, slivers: slivers),
+              child: CustomScrollView(slivers: slivers),
               onRefresh: _pullRefresh,
             );
           }
@@ -309,7 +318,7 @@ class _HomePageState extends State<HomePage> {
       List<Account>? accounts,
       List<Holding>? nummusHoldings,
       Widget? welcomeWidget,
-      List<OptionPosition>? optionsPositions,
+      List<OptionAggregatePosition>? optionAggregatePositions,
       List<Position>? positions,
       List<WatchlistItem>? watchLists}) {
     var slivers = <Widget>[];
@@ -364,13 +373,13 @@ class _HomePageState extends State<HomePage> {
         ));
       }
       */
-      if (optionsPositions != null) {
-        var totalAdjustedMarkPrice = optionsPositions
+      if (optionAggregatePositions != null) {
+        var totalAdjustedMarkPrice = optionAggregatePositions
             .map((e) =>
                 e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ?? 0)
             .reduce((a, b) => a + b);
         chainSymbols =
-            optionsPositions.map((e) => e.chainSymbol).toSet().toList();
+            optionAggregatePositions.map((e) => e.symbol).toSet().toList();
         chainSymbols.sort((a, b) => (a.compareTo(b)));
         slivers.add(
           SliverPersistentHeader(
@@ -386,7 +395,7 @@ class _HomePageState extends State<HomePage> {
             child: FilterChip(
               avatar: const Icon(Icons.new_releases_outlined),
               //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Open Positions'),
+              label: const Text('Open Options'),
               selected: hasQuantityFilters[0],
               onSelected: (bool value) {
                 setState(() {
@@ -404,7 +413,7 @@ class _HomePageState extends State<HomePage> {
             child: FilterChip(
               avatar: const Icon(Icons.history_outlined),
               //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Closed Positions'),
+              label: const Text('Closed Options'),
               selected: hasQuantityFilters[1],
               onSelected: (bool value) {
                 setState(() {
@@ -413,7 +422,7 @@ class _HomePageState extends State<HomePage> {
                   } else {
                     hasQuantityFilters[1] = false;
                   }
-                  optionPositionsStream = null;
+                  optionAggregatePositionStream = null;
                 });
               },
             ),
@@ -484,9 +493,9 @@ class _HomePageState extends State<HomePage> {
                       scrollDirection: Axis.horizontal,
                       itemBuilder: (context, index) {
                         return Row(
-                            children:
-                                filterWidgets(chainSymbols, optionsPositions)
-                                    .toList());
+                            children: filterWidgets(
+                                    chainSymbols, optionAggregatePositions)
+                                .toList());
                       },
                       itemCount: 1,
                     ))
@@ -501,8 +510,9 @@ class _HomePageState extends State<HomePage> {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              if (optionsPositions.length > index) {
-                return _buildOptionPositionRow(optionsPositions, index, ru);
+              if (optionAggregatePositions.length > index) {
+                return _buildOptionPositionRow(
+                    optionAggregatePositions, index, ru);
               }
               return null;
             },
@@ -627,10 +637,10 @@ class _HomePageState extends State<HomePage> {
 
 //Iterable<Widget> get filterWidgets sync* {
   Iterable<Widget> filterWidgets(
-      List<String> chainSymbols, List<OptionPosition> options) sync* {
+      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
     for (final String chainSymbol in chainSymbols) {
       var optionCount =
-          options.where((element) => element.chainSymbol == chainSymbol).length;
+          options.where((element) => element.symbol == chainSymbol).length;
       /*
           options
               .where((element) => element.chainSymbol == chainSymbol)
@@ -999,11 +1009,11 @@ class _HomePageState extends State<HomePage> {
       futureAccounts = null;
       futurePortfolios = null;
       //futureOptionPositions = null;
-      optionPositionsStream = null;
+      optionAggregatePositionStream = null;
     });
 
-    var accounts = await RobinhoodService.downloadAccounts(snapshotUser);
-    var portfolios = await RobinhoodService.downloadPortfolios(snapshotUser);
+    var accounts = await RobinhoodService.getAccounts(robinhoodUser);
+    var portfolios = await RobinhoodService.getPortfolios(robinhoodUser);
     //var optionPositions = await RobinhoodService.downloadOptionPositions(snapshotUser);
     /*
     var positions = await RobinhoodService.downloadPositions(snapshotUser);
@@ -1058,24 +1068,23 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildOptionPositionRow(
-      List<OptionPosition> optionsPositions, int index, RobinhoodUser ru) {
+  Widget _buildOptionPositionRow(List<OptionAggregatePosition> optionsPositions,
+      int index, RobinhoodUser ru) {
     if (optionsPositions[index].optionInstrument == null ||
         (chainSymbolFilters.isNotEmpty &&
-            !chainSymbolFilters
-                .contains(optionsPositions[index].chainSymbol))) {
+            !chainSymbolFilters.contains(optionsPositions[index].symbol))) {
       return Container();
     }
     final double gainLossPerContract = (optionsPositions[index]
                 .optionInstrument!
                 .optionMarketData!
                 .adjustedMarkPrice! -
-            (optionsPositions[index].averagePrice! / 100)) *
+            (optionsPositions[index].averageOpenPrice! / 100)) *
         100;
     final double gainLoss =
         gainLossPerContract * optionsPositions[index].quantity!;
     final double gainLossPercent =
-        gainLossPerContract / optionsPositions[index].averagePrice!;
+        gainLossPerContract / optionsPositions[index].averageOpenPrice!;
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -1095,7 +1104,7 @@ class _HomePageState extends State<HomePage> {
               child: Text('${optionsPositions[index].quantity!.round()}',
                   style: const TextStyle(fontSize: 18))),
           title: Text(
-              '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].type} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+              '${optionsPositions[index].symbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].strategy.split('_').first} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
           subtitle: Text(
               'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
           trailing: Wrap(
@@ -1127,8 +1136,8 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) =>
-                        OptionPositionWidget(ru, optionsPositions[index])));
+                    builder: (context) => OptionPositionWidget(
+                        ru, optionAggregatePositions[index])));
           },
         ),
         /*
@@ -1404,7 +1413,8 @@ class _HomePageState extends State<HomePage> {
   }
   */
   void _generateCsvFile() async {
-    File file = await OptionPosition.generateCsv(optionPositions);
+    File file =
+        await OptionAggregatePosition.generateCsv(optionAggregatePositions);
 
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()

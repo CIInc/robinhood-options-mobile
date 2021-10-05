@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 
 final formatCurrency = NumberFormat.simpleCurrency();
 
 class TradeOptionWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final OptionPosition optionPosition;
+  final OptionAggregatePosition optionPosition;
   TradeOptionWidget(this.user, this.optionPosition);
 
   @override
@@ -18,7 +18,7 @@ class TradeOptionWidget extends StatefulWidget {
 
 class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   final RobinhoodUser user;
-  final OptionPosition optionPosition;
+  final OptionAggregatePosition optionPosition;
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
@@ -51,7 +51,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     return Scaffold(
         appBar: AppBar(
           title: Text(
-              "Trade ${optionPosition.chainSymbol} \$${optionPosition.averagePrice!.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
+              "Trade ${optionPosition.symbol} \$${optionPosition.averageOpenPrice!.toStringAsFixed(2)} ${optionPosition.legs.first.optionType.toUpperCase()}"),
         ),
         body: Builder(builder: (context) {
           return ListView(

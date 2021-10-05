@@ -69,8 +69,8 @@ class Instrument {
   final String? ipoAccessStatus;
   final DateTime? ipoAccessCobDeadline;
   final double? ipoAllocatedPrice;
-  final double? ipoCustomersReceived;
-  final double? ipoCustomersRequested;
+  final int? ipoCustomersReceived;
+  final int? ipoCustomersRequested;
   final DateTime? ipoDate;
   final String? ipoS1Url;
   final bool isSpac;
@@ -148,12 +148,8 @@ class Instrument {
         ipoAllocatedPrice = json['ipo_allocated_price'] == null
             ? null
             : double.tryParse(json['ipo_allocated_price']),
-        ipoCustomersReceived = json['ipo_customers_received'] == null
-            ? null
-            : double.tryParse(json['ipo_customers_received']),
-        ipoCustomersRequested = json['ipo_customers_requested'] == null
-            ? null
-            : double.tryParse(json['ipo_customers_requested']),
+        ipoCustomersReceived = json['ipo_customers_received'],
+        ipoCustomersRequested = json['ipo_customers_requested'],
         ipoDate = json['ipo_date'] == null
             ? null
             : DateTime.tryParse(json['ipo_date']),

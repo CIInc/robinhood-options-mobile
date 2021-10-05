@@ -1,0 +1,3051 @@
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": "517abb31-f2e8-4cb6-83e0-036a125c5397",
+            "chain": "https://api.robinhood.com/options/chains/1c9d052c-165d-43a3-878d-3a0a0ca1ab49/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "QQQ",
+            "strategy": "long_call",
+            "average_open_price": "435.0000",
+            "legs": [
+                {
+                    "id": "85de8709-6ab8-4be5-99c6-001babfdc1d9",
+                    "position": "https://api.robinhood.com/options/positions/3ebe398b-472e-4403-8327-cdc481e305e1/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/091ec309-cd48-47f0-81c1-813c61187a1e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-13",
+                    "strike_price": "365.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-28T15:29:09.733985Z",
+            "updated_at": "2021-09-28T15:29:09.742100Z",
+            "strategy_code": "091ec309-cd48-47f0-81c1-813c61187a1e_L1"
+        },
+        {
+            "id": "76c5f9ad-00d8-41cd-9ced-8262054aa2b8",
+            "chain": "https://api.robinhood.com/options/chains/769007c0-78c3-42ba-b275-e20da201a4cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "HOOD",
+            "strategy": "short_put",
+            "average_open_price": "195.0000",
+            "legs": [
+                {
+                    "id": "0e0828ae-5fc0-447c-a933-92d49a7309b7",
+                    "position": "https://api.robinhood.com/options/positions/86d2ea92-0fed-4b7a-93fd-3c163adcf3f8/",
+                    "position_type": "short",
+                    "option": "https://api.robinhood.com/options/instruments/a5a1f89a-6c23-4658-9364-b7564117fa93/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "42.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "credit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-28T13:30:01.281633Z",
+            "updated_at": "2021-09-28T13:30:01.295140Z",
+            "strategy_code": "a5a1f89a-6c23-4658-9364-b7564117fa93_S1"
+        },
+        {
+            "id": "804559a1-6f1e-4438-be36-e79a45617158",
+            "chain": "https://api.robinhood.com/options/chains/1c9d052c-165d-43a3-878d-3a0a0ca1ab49/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "QQQ",
+            "strategy": "long_call",
+            "average_open_price": "157.0000",
+            "legs": [
+                {
+                    "id": "c4b29bbc-0251-4e38-b1a2-4481c08e7d79",
+                    "position": "https://api.robinhood.com/options/positions/88396426-1475-471e-9e7c-0bd5629e757b/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c7e9904c-9781-4f6a-b997-867c95a89a2b/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-13",
+                    "strike_price": "375.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "4.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-27T15:26:58.304594Z",
+            "updated_at": "2021-09-28T14:23:55.648465Z",
+            "strategy_code": "c7e9904c-9781-4f6a-b997-867c95a89a2b_L1"
+        },
+        {
+            "id": "0fff3739-7c37-4e00-9b5b-d27a77db55d4",
+            "chain": "https://api.robinhood.com/options/chains/6776f71b-2eb1-4a46-a4ec-dd1b368f42d4/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "UVXY",
+            "strategy": "long_call",
+            "average_open_price": "240.0000",
+            "legs": [
+                {
+                    "id": "1e015227-7ef4-44ee-90dd-5f3ab584ef34",
+                    "position": "https://api.robinhood.com/options/positions/bf2e1eeb-c8db-43f5-99a9-6dcd497072dd/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/b4be4ced-5048-4998-a010-c61ca8dbdd73/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-22",
+                    "strike_price": "21.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-24T18:48:46.787511Z",
+            "updated_at": "2021-09-24T18:48:46.795895Z",
+            "strategy_code": "b4be4ced-5048-4998-a010-c61ca8dbdd73_L1"
+        },
+        {
+            "id": "7400cbcc-9957-4dc3-b187-11d4d176fe54",
+            "chain": "https://api.robinhood.com/options/chains/17e0569d-af98-4e33-a69d-d47c04a2f3df/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CS",
+            "strategy": "short_put",
+            "average_open_price": "43.0000",
+            "legs": [
+                {
+                    "id": "31f02e0b-0496-4a0b-8c52-c80f9bf8d6c3",
+                    "position": "https://api.robinhood.com/options/positions/1bea4b3c-aa3f-4428-8551-7ee8a8f1d863/",
+                    "position_type": "short",
+                    "option": "https://api.robinhood.com/options/instruments/deed177b-e4d8-41e9-bb38-cf739b67a1e6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "9.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "5.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "credit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-23T13:53:13.343151Z",
+            "updated_at": "2021-09-23T13:53:13.351175Z",
+            "strategy_code": "deed177b-e4d8-41e9-bb38-cf739b67a1e6_S1"
+        },
+        {
+            "id": "a4ef8c7b-20da-4bed-bd2b-ea11f421f7d5",
+            "chain": "https://api.robinhood.com/options/chains/6776f71b-2eb1-4a46-a4ec-dd1b368f42d4/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "UVXY",
+            "strategy": "long_call",
+            "average_open_price": "425.0000",
+            "legs": [
+                {
+                    "id": "50269823-cae9-4be1-8426-291e184f9f52",
+                    "position": "https://api.robinhood.com/options/positions/a3ffba51-de3e-4e83-b6ba-5690c309d781/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/306c6f43-8d47-4d5b-8674-34a92f21af68/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-22",
+                    "strike_price": "23.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-22T17:19:24.333632Z",
+            "updated_at": "2021-09-22T17:19:24.340293Z",
+            "strategy_code": "306c6f43-8d47-4d5b-8674-34a92f21af68_L1"
+        },
+        {
+            "id": "5adcb2b7-963c-4c1c-9e9c-5ba092f9a9c4",
+            "chain": "https://api.robinhood.com/options/chains/769007c0-78c3-42ba-b275-e20da201a4cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "HOOD",
+            "strategy": "short_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "d48b9b0b-e610-4c05-ac96-a542ba245b36",
+                    "position": "https://api.robinhood.com/options/positions/63a694a6-11d9-43d1-a750-8cb88e7731cc/",
+                    "position_type": "short",
+                    "option": "https://api.robinhood.com/options/instruments/19f63a58-5981-4a36-b408-f9ea11ca9027/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-24",
+                    "strike_price": "44.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-16T15:24:58.714325Z",
+            "updated_at": "2021-09-25T04:03:16.637536Z",
+            "strategy_code": "19f63a58-5981-4a36-b408-f9ea11ca9027_S1"
+        },
+        {
+            "id": "746ba7f3-3ba9-4491-a887-ce04bff6fc60",
+            "chain": "https://api.robinhood.com/options/chains/0061b5b9-de1d-4f22-8aeb-94da9f7dca6e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "QSR",
+            "strategy": "short_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "4a8f1bc6-9a88-48d0-9c1c-f3e25fb6c26e",
+                    "position": "https://api.robinhood.com/options/positions/89d4f276-f70e-490e-a28b-2ac1abbf667a/",
+                    "position_type": "short",
+                    "option": "https://api.robinhood.com/options/instruments/d0a4404a-16f1-4d2f-aae8-b294dd983728/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "65.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-10T14:15:31.115068Z",
+            "updated_at": "2021-09-18T04:11:01.795874Z",
+            "strategy_code": "d0a4404a-16f1-4d2f-aae8-b294dd983728_S1"
+        },
+        {
+            "id": "7202a9ae-ac88-40d7-89fb-9c7fb7be5bd4",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "380.0000",
+            "legs": [
+                {
+                    "id": "cf58557c-3ab9-48f9-ac9b-66c1e3b8b27f",
+                    "position": "https://api.robinhood.com/options/positions/990ac950-3467-435e-8f1a-6a099119785f/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/067b92fb-8de4-42e2-a40a-ed04b39f428e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "49.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-09-08T16:57:38.040459Z",
+            "updated_at": "2021-09-08T16:57:38.048943Z",
+            "strategy_code": "067b92fb-8de4-42e2-a40a-ed04b39f428e_L1"
+        },
+        {
+            "id": "b162059e-2d57-4b36-8c66-c0db3be93fce",
+            "chain": "https://api.robinhood.com/options/chains/769007c0-78c3-42ba-b275-e20da201a4cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "HOOD",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "5846c7cb-bdca-485f-9a5d-cc6910953951",
+                    "position": "https://api.robinhood.com/options/positions/8d10197c-abc5-40ab-bcd6-dcce046f37cd/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/3c1cb942-0141-45a8-8623-4351c6d219a4/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-03",
+                    "strike_price": "45.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-30T14:46:09.051855Z",
+            "updated_at": "2021-09-04T04:03:21.904155Z",
+            "strategy_code": "3c1cb942-0141-45a8-8623-4351c6d219a4_L1"
+        },
+        {
+            "id": "2346e25d-c1e5-4598-a36b-a526493bcdf5",
+            "chain": "https://api.robinhood.com/options/chains/aa824eb4-b56a-4828-9b52-52acbdf6bac2/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MRK",
+            "strategy": "long_call",
+            "average_open_price": "274.0000",
+            "legs": [
+                {
+                    "id": "ddaa40e4-e90f-4941-ac98-439bf2fa9b2e",
+                    "position": "https://api.robinhood.com/options/positions/c18b965b-c492-4030-b423-5900931ebd46/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/7ad95e90-0a8e-44d1-afa0-fc453cf12ad6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "77.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-27T19:53:19.666726Z",
+            "updated_at": "2021-08-27T19:53:19.672946Z",
+            "strategy_code": "7ad95e90-0a8e-44d1-afa0-fc453cf12ad6_L1"
+        },
+        {
+            "id": "f1be6cfc-3ed5-4739-a459-4cdfcd0e566e",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "c23177df-a453-4891-8595-cf4411f9a55f",
+                    "position": "https://api.robinhood.com/options/positions/f06acbf6-2a0c-4245-9947-feb35c658f2a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/d80feea6-4c88-445f-8f1a-2661ec442ccf/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "50.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-26T13:34:28.666102Z",
+            "updated_at": "2021-09-27T13:43:16.728340Z",
+            "strategy_code": "d80feea6-4c88-445f-8f1a-2661ec442ccf_L1"
+        },
+        {
+            "id": "8c30f624-94ee-4cfb-809f-a63f150b6bef",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "dff495b4-0508-47ec-ba27-60e788026971",
+                    "position": "https://api.robinhood.com/options/positions/56182173-5d39-482a-8758-dd982ff4b2f7/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/4dd0ebda-d666-4168-becd-80311fc0fa80/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "48.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-23T17:18:31.052866Z",
+            "updated_at": "2021-09-15T17:44:47.099291Z",
+            "strategy_code": "4dd0ebda-d666-4168-becd-80311fc0fa80_L1"
+        },
+        {
+            "id": "0a2c4128-cf33-4143-b045-81ec95c1685a",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "9ccff825-5926-4e2b-af2d-fb315341617a",
+                    "position": "https://api.robinhood.com/options/positions/9ccd351b-ff28-47f7-b8d8-c887d61fa9f8/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/b724c2ec-556c-4402-811b-e6b0076f2723/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "49.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-20T16:48:41.343096Z",
+            "updated_at": "2021-09-18T04:11:02.124381Z",
+            "strategy_code": "b724c2ec-556c-4402-811b-e6b0076f2723_L1"
+        },
+        {
+            "id": "4e512754-4da2-4d68-ae02-8c383f291706",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "c56a41d8-091d-4c39-93b4-068bebd62a23",
+                    "position": "https://api.robinhood.com/options/positions/d46c9b95-d704-4a05-b8e1-4db242f37ee1/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/92999e9b-40da-496e-8981-6cfaeed3c890/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "50.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-17T16:45:08.406049Z",
+            "updated_at": "2021-09-17T19:02:08.845868Z",
+            "strategy_code": "92999e9b-40da-496e-8981-6cfaeed3c890_L1"
+        },
+        {
+            "id": "dbb413ec-66eb-467b-9403-8ae2fc361645",
+            "chain": "https://api.robinhood.com/options/chains/aa824eb4-b56a-4828-9b52-52acbdf6bac2/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MRK",
+            "strategy": "long_call",
+            "average_open_price": "200.0000",
+            "legs": [
+                {
+                    "id": "28a542cd-5047-4208-9dd1-3d721594e03f",
+                    "position": "https://api.robinhood.com/options/positions/551c6d92-8ba2-45d3-8b83-410d5f3af690/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/5ba3f870-d13f-4ccb-b4d7-b1279660db30/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "75.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-10T13:31:13.213659Z",
+            "updated_at": "2021-08-10T13:31:13.219503Z",
+            "strategy_code": "5ba3f870-d13f-4ccb-b4d7-b1279660db30_L1"
+        },
+        {
+            "id": "11f740f1-011c-406b-8299-5de960c42524",
+            "chain": "https://api.robinhood.com/options/chains/0061b5b9-de1d-4f22-8aeb-94da9f7dca6e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "QSR",
+            "strategy": "short_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "6a9655b2-513d-4a15-9603-c5b26dc905e0",
+                    "position": "https://api.robinhood.com/options/positions/2e44f11d-9834-4b71-a5e8-7154bdbc3e65/",
+                    "position_type": "short",
+                    "option": "https://api.robinhood.com/options/instruments/baf9b16f-f5e5-4de3-a126-9cbc6bf9ca45/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "65.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-09T13:37:42.221734Z",
+            "updated_at": "2021-08-21T04:06:31.007015Z",
+            "strategy_code": "baf9b16f-f5e5-4de3-a126-9cbc6bf9ca45_S1"
+        },
+        {
+            "id": "29a48799-7f51-402b-b947-2028845c3433",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "8d7ee03e-fe7d-4887-86b9-3e2a986e2d52",
+                    "position": "https://api.robinhood.com/options/positions/a9cce799-4841-4deb-8d3e-280508cc00a9/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/b17a5f66-a32c-45d8-9222-f5aed65b839b/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "52.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-08-04T18:25:15.170683Z",
+            "updated_at": "2021-09-18T04:11:02.222910Z",
+            "strategy_code": "b17a5f66-a32c-45d8-9222-f5aed65b839b_L1"
+        },
+        {
+            "id": "bbf821d4-dbe2-4cef-8971-151b24adb528",
+            "chain": "https://api.robinhood.com/options/chains/906cc004-28d2-4da8-b079-376fef976070/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE1",
+            "strategy": "long_call",
+            "average_open_price": "85.0000",
+            "legs": [
+                {
+                    "id": "1e0117f7-d7fe-44cf-a8fd-680e946beaa9",
+                    "position": "https://api.robinhood.com/options/positions/3e326387-39b9-4863-b6cc-68418ecd2cb5/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/3c731485-689d-4493-a9f3-0ee6757d65a1/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "15.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "2.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-31T07:07:49.224034Z",
+            "updated_at": "2021-08-19T07:08:17.017156Z",
+            "strategy_code": "3c731485-689d-4493-a9f3-0ee6757d65a1_L1"
+        },
+        {
+            "id": "deef5e6b-48eb-4023-ba86-824a60ab0bcf",
+            "chain": "https://api.robinhood.com/options/chains/906cc004-28d2-4da8-b079-376fef976070/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE1",
+            "strategy": "long_call",
+            "average_open_price": "92.0000",
+            "legs": [
+                {
+                    "id": "2a8c6900-1bff-4f8c-a968-1306df4f9369",
+                    "position": "https://api.robinhood.com/options/positions/d0ba4aa8-afcb-4f9c-ab00-d2b5b9bc467b/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/5daab214-c5c0-4fc0-809f-3db0fa394a79/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "14.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-31T07:07:49.191939Z",
+            "updated_at": "2021-08-19T07:08:17.045356Z",
+            "strategy_code": "5daab214-c5c0-4fc0-809f-3db0fa394a79_L1"
+        },
+        {
+            "id": "1483687e-6e7a-4f94-86d8-ac5d4779e01d",
+            "chain": "https://api.robinhood.com/options/chains/906cc004-28d2-4da8-b079-376fef976070/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE1",
+            "strategy": "long_call",
+            "average_open_price": "132.0000",
+            "legs": [
+                {
+                    "id": "19e1c8ae-9e17-4942-a227-68d99658bdba",
+                    "position": "https://api.robinhood.com/options/positions/9f9b0d31-c1d8-4838-9770-a46b6d8d9a89/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/a88c95f2-150b-458b-a895-e0d41ea7cadd/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "13.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-31T07:07:49.160097Z",
+            "updated_at": "2021-08-19T07:08:16.989206Z",
+            "strategy_code": "a88c95f2-150b-458b-a895-e0d41ea7cadd_L1"
+        },
+        {
+            "id": "492ca6aa-ca27-4e42-b36a-c30d272cb2ee",
+            "chain": "https://api.robinhood.com/options/chains/906cc004-28d2-4da8-b079-376fef976070/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE1",
+            "strategy": "long_call",
+            "average_open_price": "122.0000",
+            "legs": [
+                {
+                    "id": "693089c2-6345-428b-b6ef-b7bf245cce14",
+                    "position": "https://api.robinhood.com/options/positions/a2b3d80e-cdf7-4a7d-ac56-4f837e3d5c37/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/917bb6c8-736c-4dfe-aed4-f4c6d2bbae7d/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "12.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-31T07:07:49.128187Z",
+            "updated_at": "2021-08-19T07:08:16.958976Z",
+            "strategy_code": "917bb6c8-736c-4dfe-aed4-f4c6d2bbae7d_L1"
+        },
+        {
+            "id": "bbebeef4-87fb-4c68-9bfa-b6d553e66cfd",
+            "chain": "https://api.robinhood.com/options/chains/906cc004-28d2-4da8-b079-376fef976070/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE1",
+            "strategy": "long_call",
+            "average_open_price": "181.0000",
+            "legs": [
+                {
+                    "id": "4a39cf7b-a177-44c1-9f4d-429847d05973",
+                    "position": "https://api.robinhood.com/options/positions/56c119b9-9935-4c55-88e5-cb9e65d91ade/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/609c9ef7-6eed-47b8-afc2-170be4676322/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "11.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-31T07:07:49.096179Z",
+            "updated_at": "2021-08-19T07:08:16.929516Z",
+            "strategy_code": "609c9ef7-6eed-47b8-afc2-170be4676322_L1"
+        },
+        {
+            "id": "b171238c-4a24-40b0-9aed-60bc6725e29f",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "3b737851-fdaa-4a29-8198-6e68aee8dec3",
+                    "position": "https://api.robinhood.com/options/positions/5df0c749-81c0-40e1-a0c6-208b0058fbcd/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/69b3b4fe-8a5a-4313-80da-08fad7cbd8c5/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "55.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-27T17:57:47.191960Z",
+            "updated_at": "2021-09-18T04:11:02.288904Z",
+            "strategy_code": "69b3b4fe-8a5a-4313-80da-08fad7cbd8c5_L1"
+        },
+        {
+            "id": "782890ee-3ffb-4c5c-8966-c01924ab6b84",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "71370770-812f-4d58-8c2d-2efaf0b65984",
+                    "position": "https://api.robinhood.com/options/positions/8d49ddce-c4df-469d-badb-47030e87e428/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c1d88b24-601b-4081-8185-76bd87b49514/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "57.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-27T17:48:02.932782Z",
+            "updated_at": "2021-09-18T04:11:02.368724Z",
+            "strategy_code": "c1d88b24-601b-4081-8185-76bd87b49514_L1"
+        },
+        {
+            "id": "1baad297-9317-4f7a-ad20-cac3658d50cc",
+            "chain": "https://api.robinhood.com/options/chains/f082d652-6b71-450d-b4b8-330a2fe9e88f/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BCS",
+            "strategy": "long_call",
+            "average_open_price": "115.0000",
+            "legs": [
+                {
+                    "id": "879c149c-ce6f-4e83-be51-e8200f754408",
+                    "position": "https://api.robinhood.com/options/positions/932c7a7b-5655-4c1e-8ce4-11f670cde838/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/6750fd48-103d-4e6a-8004-40f178f7559a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "9.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-27T13:30:24.181383Z",
+            "updated_at": "2021-07-27T13:30:24.190189Z",
+            "strategy_code": "6750fd48-103d-4e6a-8004-40f178f7559a_L1"
+        },
+        {
+            "id": "d38c9d23-34bd-43ff-8876-5a5d0cd59f39",
+            "chain": "https://api.robinhood.com/options/chains/f082d652-6b71-450d-b4b8-330a2fe9e88f/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BCS",
+            "strategy": "long_call",
+            "average_open_price": "65.0000",
+            "legs": [
+                {
+                    "id": "e83ef003-43ea-4e83-b389-c315a1ed389a",
+                    "position": "https://api.robinhood.com/options/positions/92c57fd7-315e-4de0-a662-c68608b3dd41/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/a8205d63-9a17-4e4b-aa27-e2cfe5d6e138/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "10.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "2.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-26T18:53:45.047674Z",
+            "updated_at": "2021-07-26T18:53:45.055479Z",
+            "strategy_code": "a8205d63-9a17-4e4b-aa27-e2cfe5d6e138_L1"
+        },
+        {
+            "id": "d33bbc87-c446-46d1-a249-44abe11dc219",
+            "chain": "https://api.robinhood.com/options/chains/b2587550-5159-4d27-87f3-86f07dfed5cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "C",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "916a2b52-9bc0-4813-9a44-9c41ba1650f0",
+                    "position": "https://api.robinhood.com/options/positions/d26657ac-c323-4898-97f3-4546629145e8/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/367dc513-0c94-458e-9f8a-40c029b387e3/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "67.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-26T13:30:41.606457Z",
+            "updated_at": "2021-09-27T13:41:09.246319Z",
+            "strategy_code": "367dc513-0c94-458e-9f8a-40c029b387e3_L1"
+        },
+        {
+            "id": "2ac0b2bd-a5f5-45b9-bc4b-def91d6fb6da",
+            "chain": "https://api.robinhood.com/options/chains/b2587550-5159-4d27-87f3-86f07dfed5cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "C",
+            "strategy": "long_call",
+            "average_open_price": "240.0000",
+            "legs": [
+                {
+                    "id": "4a69b158-0c47-4dd5-bc64-42bf107f2579",
+                    "position": "https://api.robinhood.com/options/positions/4b216c1a-f613-4ec4-ae0f-01202819c2bb/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/44ba72e2-213a-414c-a97e-783bca0ff01c/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-11-19",
+                    "strike_price": "70.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-26T13:30:21.025769Z",
+            "updated_at": "2021-07-26T13:30:21.033955Z",
+            "strategy_code": "44ba72e2-213a-414c-a97e-783bca0ff01c_L1"
+        },
+        {
+            "id": "d0bf76f2-08d5-4aa6-b5ef-24ee23dee424",
+            "chain": "https://api.robinhood.com/options/chains/9b4a7685-9415-4504-acc0-c130f3d40096/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "WBA",
+            "strategy": "long_call",
+            "average_open_price": "179.0000",
+            "legs": [
+                {
+                    "id": "78833895-0614-423f-9975-482ad1daba0d",
+                    "position": "https://api.robinhood.com/options/positions/ffc51195-b393-4a03-b309-aca9e73ad397/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/444cfd50-5d9a-4a26-8256-71962ea10636/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "47.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-22T13:30:16.602709Z",
+            "updated_at": "2021-09-02T13:49:58.923112Z",
+            "strategy_code": "444cfd50-5d9a-4a26-8256-71962ea10636_L1"
+        },
+        {
+            "id": "c3c20bca-a834-42ad-864a-56665c1cc1c0",
+            "chain": "https://api.robinhood.com/options/chains/e66696b4-9a3f-48e2-8fd5-b05ea8443687/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "65d984fc-c5f0-4b6a-8177-99e4e5b6865d",
+                    "position": "https://api.robinhood.com/options/positions/4cdb1364-d852-4db9-ad94-1fc4790575d5/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/46ef800b-b0ec-4c2c-b815-a40bf179674d/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "11.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-19T17:05:06.228456Z",
+            "updated_at": "2021-07-31T07:07:49.089773Z",
+            "strategy_code": "46ef800b-b0ec-4c2c-b815-a40bf179674d_L1"
+        },
+        {
+            "id": "f6d32651-8503-4d06-b1f3-b433ce3fa176",
+            "chain": "https://api.robinhood.com/options/chains/e66696b4-9a3f-48e2-8fd5-b05ea8443687/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "d6151baf-c606-48e7-a3d6-a61b51f5bc7d",
+                    "position": "https://api.robinhood.com/options/positions/e2f1e0ec-6e03-4255-947c-961a154bbd5d/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/1423b1d7-ff86-483c-a6d2-251d23b1e5e6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "12.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-19T14:41:35.427483Z",
+            "updated_at": "2021-07-31T07:07:49.122498Z",
+            "strategy_code": "1423b1d7-ff86-483c-a6d2-251d23b1e5e6_L1"
+        },
+        {
+            "id": "f28a2852-561b-4fea-b558-c66c18a8bfe7",
+            "chain": "https://api.robinhood.com/options/chains/e8b882a1-914d-4f04-82fb-811f0a4db3de/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GM",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "57ebf11e-f246-4dae-9b69-9144245e45f9",
+                    "position": "https://api.robinhood.com/options/positions/296d5de6-4b1a-47df-bc1e-711d78207a09/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/ec1a6afa-1e2a-40d1-86e5-5e968a35f61a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-09-17",
+                    "strike_price": "60.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-07T17:32:19.007627Z",
+            "updated_at": "2021-09-18T04:11:02.025717Z",
+            "strategy_code": "ec1a6afa-1e2a-40d1-86e5-5e968a35f61a_L1"
+        },
+        {
+            "id": "2a782d1e-dccb-45b8-bd3a-25376eeb5552",
+            "chain": "https://api.robinhood.com/options/chains/e66696b4-9a3f-48e2-8fd5-b05ea8443687/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "a03ea723-7fb5-47a5-bd1c-ff5ede09acce",
+                    "position": "https://api.robinhood.com/options/positions/65d6d632-7fe4-45b2-8084-329abc0c3763/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/7d42db4e-9b96-4acc-8532-d9392c166c37/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "13.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-06T14:25:57.621189Z",
+            "updated_at": "2021-07-31T07:07:49.154105Z",
+            "strategy_code": "7d42db4e-9b96-4acc-8532-d9392c166c37_L1"
+        },
+        {
+            "id": "e6ff2de3-ef5f-4b5e-a886-beeed93e6e19",
+            "chain": "https://api.robinhood.com/options/chains/e66696b4-9a3f-48e2-8fd5-b05ea8443687/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "89d0847d-c738-41b2-94fa-2e9ef4cee2f8",
+                    "position": "https://api.robinhood.com/options/positions/85a85efb-feb3-4cf4-9833-1df5098bd0b6/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/ea0eaa27-aacc-43d0-84dc-bbc211f25e7e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "14.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-06T14:23:28.335540Z",
+            "updated_at": "2021-07-31T07:07:49.185712Z",
+            "strategy_code": "ea0eaa27-aacc-43d0-84dc-bbc211f25e7e_L1"
+        },
+        {
+            "id": "634b79b1-d533-4963-9ba4-cb17abaaf0a9",
+            "chain": "https://api.robinhood.com/options/chains/e66696b4-9a3f-48e2-8fd5-b05ea8443687/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "452810e7-3c2b-44e7-961b-4575a4671fdd",
+                    "position": "https://api.robinhood.com/options/positions/7b764b6e-272f-47f4-a383-e99acd8c2c0d/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/9c73605a-6705-47a9-9cb8-e5f87b108568/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "15.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-02T13:30:31.227123Z",
+            "updated_at": "2021-07-31T07:07:49.218296Z",
+            "strategy_code": "9c73605a-6705-47a9-9cb8-e5f87b108568_L1"
+        },
+        {
+            "id": "814c032d-3163-4c62-940e-62e3a92279bf",
+            "chain": "https://api.robinhood.com/options/chains/6bbe69bb-06f3-4f01-a03e-d7bda1fc2cb9/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CSX",
+            "strategy": "long_call",
+            "average_open_price": "147.5000",
+            "legs": [
+                {
+                    "id": "040b74c2-4b4c-4d2b-8e65-32edad55abcd",
+                    "position": "https://api.robinhood.com/options/positions/d1e4ecc2-f7c5-4d4a-b6c1-23d02db66c4d/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/44781af1-2d76-42df-ab13-4460de991b00/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-11-19",
+                    "strike_price": "32.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "2.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-01T19:49:47.337168Z",
+            "updated_at": "2021-07-08T18:18:51.871416Z",
+            "strategy_code": "44781af1-2d76-42df-ab13-4460de991b00_L1"
+        },
+        {
+            "id": "0143af13-eaa6-4866-b2bc-a6a70b98ce44",
+            "chain": "https://api.robinhood.com/options/chains/6bbe69bb-06f3-4f01-a03e-d7bda1fc2cb9/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CSX",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "1b98e660-e2b0-4c02-b650-9c6744680d62",
+                    "position": "https://api.robinhood.com/options/positions/83468674-8484-4c91-9b76-3f72881662cc/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/0df60217-3615-4c81-b249-3ef1cc119ac7/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-07-23",
+                    "strike_price": "32.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-07-01T16:13:54.699256Z",
+            "updated_at": "2021-07-23T14:25:26.008044Z",
+            "strategy_code": "0df60217-3615-4c81-b249-3ef1cc119ac7_L1"
+        },
+        {
+            "id": "db405720-4a5e-40ca-a996-6477420470ba",
+            "chain": "https://api.robinhood.com/options/chains/6bbe69bb-06f3-4f01-a03e-d7bda1fc2cb9/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CSX",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "621f0447-59ba-40ad-b563-436261544ae9",
+                    "position": "https://api.robinhood.com/options/positions/ec27db3c-7774-41a7-a7cf-417841354332/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/fbc3f652-000f-442d-abec-6e5e7c0c4f4d/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-07-23",
+                    "strike_price": "31.8300",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-30T15:02:55.023453Z",
+            "updated_at": "2021-07-22T14:58:12.509980Z",
+            "strategy_code": "fbc3f652-000f-442d-abec-6e5e7c0c4f4d_L1"
+        },
+        {
+            "id": "55fb5b9a-dc3b-4f13-a31d-c41419cefbe7",
+            "chain": "https://api.robinhood.com/options/chains/368d0e2d-ca3b-47af-8683-33f37c785d48/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BODY",
+            "strategy": "long_call",
+            "average_open_price": "155.0000",
+            "legs": [
+                {
+                    "id": "b51dfe5d-7754-48e6-913a-f2d35df17a04",
+                    "position": "https://api.robinhood.com/options/positions/fe26fcb3-ed3f-4a59-9455-9a87503ae173/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/87539ddb-2770-4354-ba67-8e7262617258/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "12.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-29T19:32:22.074787Z",
+            "updated_at": "2021-06-29T19:32:22.082372Z",
+            "strategy_code": "87539ddb-2770-4354-ba67-8e7262617258_L1"
+        },
+        {
+            "id": "6f4df569-748e-4464-89ab-e39548a225eb",
+            "chain": "https://api.robinhood.com/options/chains/368d0e2d-ca3b-47af-8683-33f37c785d48/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BODY",
+            "strategy": "long_call",
+            "average_open_price": "140.0000",
+            "legs": [
+                {
+                    "id": "aa40d0f2-5920-4fb3-8178-f330d9bb9bf4",
+                    "position": "https://api.robinhood.com/options/positions/0a38855b-71d6-41c4-aa1b-bcfb97b7a03d/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/ff101a7b-9c9f-4ace-b2ba-d5a130015532/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-10-15",
+                    "strike_price": "15.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "1.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-29T16:26:33.316941Z",
+            "updated_at": "2021-06-29T16:26:33.325071Z",
+            "strategy_code": "ff101a7b-9c9f-4ace-b2ba-d5a130015532_L1"
+        },
+        {
+            "id": "d82d9da1-dfb2-4711-84ce-ae2119075953",
+            "chain": "https://api.robinhood.com/options/chains/aa824eb4-b56a-4828-9b52-52acbdf6bac2/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MRK",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "f7a49c0c-aee0-43e5-a8e8-d9677e20f9ed",
+                    "position": "https://api.robinhood.com/options/positions/a029ff43-d250-4e87-ac3f-17b522597407/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/d4b7fa23-99c8-4a30-b27d-6922e719d1ca/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "72.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-08T16:56:02.274703Z",
+            "updated_at": "2021-08-16T13:45:45.872257Z",
+            "strategy_code": "d4b7fa23-99c8-4a30-b27d-6922e719d1ca_L1"
+        },
+        {
+            "id": "8dc60a74-5b99-4a31-b4c9-087a44e78347",
+            "chain": "https://api.robinhood.com/options/chains/aa824eb4-b56a-4828-9b52-52acbdf6bac2/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MRK",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "c29a3d93-b02c-443c-b699-af5d94d56d81",
+                    "position": "https://api.robinhood.com/options/positions/e2f47b4c-f6e5-440b-b021-4503df49a903/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/de0753f7-6606-4a22-bbe5-53fdfa69ff32/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "77.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-07T13:40:17.411211Z",
+            "updated_at": "2021-08-20T14:43:44.936347Z",
+            "strategy_code": "de0753f7-6606-4a22-bbe5-53fdfa69ff32_L1"
+        },
+        {
+            "id": "a56f36f8-8997-43da-b8a2-ff59363e60d4",
+            "chain": "https://api.robinhood.com/options/chains/aa824eb4-b56a-4828-9b52-52acbdf6bac2/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MRK",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "f3c40b48-7478-4667-96c5-0a581a5abae6",
+                    "position": "https://api.robinhood.com/options/positions/20359e46-77bb-47df-b254-80cecd1c1bce/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/725551d9-a713-4097-907f-8822cd2ecfa9/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "75.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-06-07T13:31:26.643798Z",
+            "updated_at": "2021-08-16T16:02:53.312591Z",
+            "strategy_code": "725551d9-a713-4097-907f-8822cd2ecfa9_L1"
+        },
+        {
+            "id": "c3e4a18d-e9f1-4ef3-9b50-2d10477f460f",
+            "chain": "https://api.robinhood.com/options/chains/14f524ac-62b4-4f8d-9fdb-f851cfa99f53/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "VIAC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "e5723ca3-8576-47d9-af15-f95c9c8e3b6b",
+                    "position": "https://api.robinhood.com/options/positions/ba808359-1eed-4206-8ad3-660c9c5a4e23/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/bc2a7efb-8c49-4bb5-9c17-940251630687/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "42.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-05-19T14:02:54.954831Z",
+            "updated_at": "2021-08-21T04:06:31.236368Z",
+            "strategy_code": "bc2a7efb-8c49-4bb5-9c17-940251630687_L1"
+        },
+        {
+            "id": "77d3ea22-2fe7-4e16-8172-f40e5dfe224a",
+            "chain": "https://api.robinhood.com/options/chains/14f524ac-62b4-4f8d-9fdb-f851cfa99f53/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "VIAC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "565a900a-2756-4f05-a7f9-6ebae3835bdd",
+                    "position": "https://api.robinhood.com/options/positions/6c77c5b6-2b7c-4a44-b722-fd47313c5a38/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/041ef07f-fe07-4f67-84dc-6d12af90b6c2/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "45.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-05-19T13:30:56.644910Z",
+            "updated_at": "2021-08-21T04:06:31.327577Z",
+            "strategy_code": "041ef07f-fe07-4f67-84dc-6d12af90b6c2_L1"
+        },
+        {
+            "id": "d1232d26-06a1-418f-8eae-cbdc696a74a3",
+            "chain": "https://api.robinhood.com/options/chains/e66ce029-db96-4572-87a0-b144613c08bf/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AMD",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "57cad10f-f6d5-4448-9d20-1fffc828c851",
+                    "position": "https://api.robinhood.com/options/positions/d6533e8e-bb97-4bed-ad57-f206da12a5eb/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/0d0f989f-42ba-475a-961c-1b79d2ae1e2f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-08-20",
+                    "strike_price": "82.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-05-19T13:30:29.905375Z",
+            "updated_at": "2021-06-28T13:36:59.707625Z",
+            "strategy_code": "0d0f989f-42ba-475a-961c-1b79d2ae1e2f_L1"
+        },
+        {
+            "id": "207732b1-e755-408e-a5ae-433eb73b12b8",
+            "chain": "https://api.robinhood.com/options/chains/17e0569d-af98-4e33-a69d-d47c04a2f3df/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CS",
+            "strategy": "long_call",
+            "average_open_price": "107.1429",
+            "legs": [
+                {
+                    "id": "3cc66843-f0e5-45ad-abb5-85f78cf0e209",
+                    "position": "https://api.robinhood.com/options/positions/0bd63161-13f5-4185-b91e-7e9ce831a0f1/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/9b02469a-3769-45a9-a1b3-a6817e77d2f5/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "10.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "7.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-04-14T13:30:57.744120Z",
+            "updated_at": "2021-07-15T13:34:25.894413Z",
+            "strategy_code": "9b02469a-3769-45a9-a1b3-a6817e77d2f5_L1"
+        },
+        {
+            "id": "47e1412a-cc05-4ff2-8772-2ccd71b5d2af",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "78619dac-1a85-4a49-8ebf-30de643328af",
+                    "position": "https://api.robinhood.com/options/positions/04717576-1e52-4f60-a1a0-fd82d475430f/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-04-16",
+                    "strike_price": "255.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-02-22T20:02:30.677172Z",
+            "updated_at": "2021-04-15T17:31:05.174787Z",
+            "strategy_code": "f48cc8d3-cb4f-42bb-8c89-4f53ce43aebc_L1"
+        },
+        {
+            "id": "40db41b7-f8a3-453b-b03c-8fc611c9b79d",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "7f7d2243-78b8-453a-b4f1-9ffe41378b8e",
+                    "position": "https://api.robinhood.com/options/positions/5eb489b7-90c0-4513-b0ff-34f3890abb4e/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/9c85994d-1f5a-4818-98d1-886ea6f8e6dd/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-04-16",
+                    "strike_price": "260.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-02-22T14:31:49.332417Z",
+            "updated_at": "2021-04-16T19:05:54.569826Z",
+            "strategy_code": "9c85994d-1f5a-4818-98d1-886ea6f8e6dd_L1"
+        },
+        {
+            "id": "d45b4d25-ae73-4d33-8dbf-e30ab9aa906d",
+            "chain": "https://api.robinhood.com/options/chains/eefb80a4-efc0-4b5f-ba27-a7aa9a358469/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "KODK",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "2c994a86-1603-4fa9-b305-e2e0a9d95d6b",
+                    "position": "https://api.robinhood.com/options/positions/dbe6cc5b-99c5-4b27-b4bf-33b7451deae7/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c9b32d07-30bf-420b-b18d-9e7b3f5b9de2/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-03-19",
+                    "strike_price": "12.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-02-09T19:09:20.587928Z",
+            "updated_at": "2021-03-19T19:07:05.250873Z",
+            "strategy_code": "c9b32d07-30bf-420b-b18d-9e7b3f5b9de2_L1"
+        },
+        {
+            "id": "78b2f2db-4211-42d8-8049-466d99d515d6",
+            "chain": "https://api.robinhood.com/options/chains/eefb80a4-efc0-4b5f-ba27-a7aa9a358469/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "KODK",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "6f390600-ca11-4e58-8b0b-5bff82d2b47c",
+                    "position": "https://api.robinhood.com/options/positions/88af294f-a79d-40b4-aea4-34df5cdd131c/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/8278f44d-3d9c-4f9e-8479-896f47be5578/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-03-19",
+                    "strike_price": "10.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-02-01T19:04:57.762113Z",
+            "updated_at": "2021-03-19T19:07:05.057241Z",
+            "strategy_code": "8278f44d-3d9c-4f9e-8479-896f47be5578_L1"
+        },
+        {
+            "id": "1ef262ed-05a6-4eeb-ae73-37e011e2d888",
+            "chain": "https://api.robinhood.com/options/chains/b2587550-5159-4d27-87f3-86f07dfed5cc/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "C",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "c6f3c343-1b37-4ca3-a918-631d80f76939",
+                    "position": "https://api.robinhood.com/options/positions/205860c1-88c6-4dd1-a527-f80808a57d60/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/942d3704-7247-454f-9fb6-1f98f5d41702/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-06-18",
+                    "strike_price": "67.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-27T15:04:11.196319Z",
+            "updated_at": "2021-05-17T14:47:29.857713Z",
+            "strategy_code": "942d3704-7247-454f-9fb6-1f98f5d41702_L1"
+        },
+        {
+            "id": "a5ca0e14-770d-44b8-971e-977e4db056fa",
+            "chain": "https://api.robinhood.com/options/chains/2da260b8-5821-4819-80a3-9711f7d4e04e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BBBY",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "0b561d41-a6c1-4506-9ecc-4e062263bcbb",
+                    "position": "https://api.robinhood.com/options/positions/e7c13e42-eaf1-40cc-8658-347053be4af5/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/189cd725-24ef-4ea7-9332-bca0ff697488/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-05-21",
+                    "strike_price": "23.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-27T14:31:21.606034Z",
+            "updated_at": "2021-05-22T04:40:42.041871Z",
+            "strategy_code": "189cd725-24ef-4ea7-9332-bca0ff697488_L1"
+        },
+        {
+            "id": "3a4a1c52-276d-4a60-95b6-87ab3282db45",
+            "chain": "https://api.robinhood.com/options/chains/0061b5b9-de1d-4f22-8aeb-94da9f7dca6e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "QSR",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "a1b200cd-e5cb-4836-b46e-ba35c5cd4b25",
+                    "position": "https://api.robinhood.com/options/positions/080dce91-a468-494c-a568-0d5a58ba11d2/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/f94e0dc3-9b11-4add-ac72-d2442c1ee0ab/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-06-18",
+                    "strike_price": "65.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-25T14:58:46.334364Z",
+            "updated_at": "2021-06-19T06:00:21.902668Z",
+            "strategy_code": "f94e0dc3-9b11-4add-ac72-d2442c1ee0ab_L1"
+        },
+        {
+            "id": "525d0f1a-93ae-43d6-8d0d-84e242de3479",
+            "chain": "https://api.robinhood.com/options/chains/d1f2f9eb-4e30-4380-a69b-708efea079f0/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "PFE",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "0dd2e2d1-7556-49f3-8b79-e5db605c4d67",
+                    "position": "https://api.robinhood.com/options/positions/23bcfccb-b088-49db-bc82-475164dab36f/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/85e28d13-fd45-470e-b42b-68ed080913a4/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-02-05",
+                    "strike_price": "37.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-25T14:32:32.052727Z",
+            "updated_at": "2021-02-06T06:08:24.066220Z",
+            "strategy_code": "85e28d13-fd45-470e-b42b-68ed080913a4_L1"
+        },
+        {
+            "id": "c4cc782d-2460-4391-ba95-94f0343c4d4b",
+            "chain": "https://api.robinhood.com/options/chains/2da260b8-5821-4819-80a3-9711f7d4e04e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BBBY",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "3258c360-a78f-452a-8417-678f9e5f3216",
+                    "position": "https://api.robinhood.com/options/positions/76429730-608f-4ce7-982b-16385804968a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/f92b79bb-edff-449a-aa72-4c56235c3de2/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-05-21",
+                    "strike_price": "22.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-25T14:30:03.741281Z",
+            "updated_at": "2021-05-22T04:40:41.946706Z",
+            "strategy_code": "f92b79bb-edff-449a-aa72-4c56235c3de2_L1"
+        },
+        {
+            "id": "bcd4d22c-d37b-404c-bd92-e4a4ec0b7c53",
+            "chain": "https://api.robinhood.com/options/chains/ad8063b3-4755-4476-bc11-2212484d8b48/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "X",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "35b9632d-0c43-4224-a9a9-b66841038cf9",
+                    "position": "https://api.robinhood.com/options/positions/ba3aa470-c0b7-4229-8e56-7d0635421a0a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/078dc480-bd05-4836-9fba-7f29f17eff19/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-03-19",
+                    "strike_price": "19.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-20T14:33:33.249263Z",
+            "updated_at": "2021-03-20T09:00:56.147047Z",
+            "strategy_code": "078dc480-bd05-4836-9fba-7f29f17eff19_L1"
+        },
+        {
+            "id": "ac4f268f-9f0c-4da0-8be1-b62c6df18c36",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "b6bc5e75-3a01-4720-ace3-7350ab134734",
+                    "position": "https://api.robinhood.com/options/positions/62d2c511-06d4-42be-9f64-da7b8070c347/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/3f3672fe-1a15-4ac6-a2c9-8667a7ca6282/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-02-19",
+                    "strike_price": "220.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2021-01-12T20:06:09.507686Z",
+            "updated_at": "2021-02-19T20:03:54.924778Z",
+            "strategy_code": "3f3672fe-1a15-4ac6-a2c9-8667a7ca6282_L1"
+        },
+        {
+            "id": "6210498d-0e67-4ebb-b64e-91333cc36e57",
+            "chain": "https://api.robinhood.com/options/chains/4a2b2c78-d9f2-476c-a9d1-ea32653332fa/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AMC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "d889fcb2-f33d-4d28-8e73-04fa4ca2beec",
+                    "position": "https://api.robinhood.com/options/positions/838ff34b-08ad-4757-861c-f232288faaf7/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/5afdafc3-8aa0-4b57-906a-bd3e72991df8/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "2.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-30T15:07:15.609323Z",
+            "updated_at": "2021-08-20T14:41:13.058817Z",
+            "strategy_code": "5afdafc3-8aa0-4b57-906a-bd3e72991df8_L1"
+        },
+        {
+            "id": "c99310a7-501a-4d9b-8835-ec8207002091",
+            "chain": "https://api.robinhood.com/options/chains/f3ba22c5-7015-4c31-97ab-1d0c6da27a11/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "ACB",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "eb0b5ce4-8d2c-4403-87fd-1e573902d3d5",
+                    "position": "https://api.robinhood.com/options/positions/33d74250-b201-42a8-a0f1-f510fd12f81f/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/436e1910-e884-4c37-b87f-2a0c59c02d9f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-03-19",
+                    "strike_price": "9.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-30T14:30:43.620209Z",
+            "updated_at": "2021-03-19T16:43:52.980729Z",
+            "strategy_code": "436e1910-e884-4c37-b87f-2a0c59c02d9f_L1"
+        },
+        {
+            "id": "00dceb92-14b1-4d25-822e-4a99a0430c9a",
+            "chain": "https://api.robinhood.com/options/chains/4a2b2c78-d9f2-476c-a9d1-ea32653332fa/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AMC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "4d9a70dc-4730-4e43-aa93-8ee1992029a5",
+                    "position": "https://api.robinhood.com/options/positions/9560cda5-3c76-47bc-8b6b-1f867aa99896/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2022-01-21",
+                    "strike_price": "2.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-30T14:30:38.141575Z",
+            "updated_at": "2021-06-02T19:14:30.220981Z",
+            "strategy_code": "8b6ba744-7ef7-4b0e-845b-1a12f50c25fa_L1"
+        },
+        {
+            "id": "8c34a4a2-6863-449a-a33c-8eac3541b452",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "3735e067-f4a8-46c5-b3c5-29d880f74cf1",
+                    "position": "https://api.robinhood.com/options/positions/a8541476-97e4-48c9-b5fd-0760f3d34fc9/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/3cfc3409-39d4-42ab-bd08-a6923ec353a6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "48.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-22T15:27:22.288822Z",
+            "updated_at": "2021-01-21T18:45:44.550377Z",
+            "strategy_code": "3cfc3409-39d4-42ab-bd08-a6923ec353a6_L1"
+        },
+        {
+            "id": "147aeda6-ba88-45e7-8bdd-4ba071b3d7f9",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "9b0ceaa6-4f46-4875-940c-77486ec6805f",
+                    "position": "https://api.robinhood.com/options/positions/8d763b9d-b0eb-4059-95ae-88d7800a1b7a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/35963396-a2f2-4994-a1a0-8b658adf46e4/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "48.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-22T15:25:33.661777Z",
+            "updated_at": "2021-01-21T18:01:55.913318Z",
+            "strategy_code": "35963396-a2f2-4994-a1a0-8b658adf46e4_L1"
+        },
+        {
+            "id": "30a5b784-1836-4a94-ba79-201824c6f45f",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "371cd872-f9f9-44d8-84e3-00f5d73c485d",
+                    "position": "https://api.robinhood.com/options/positions/fd778245-a9a1-44b9-8019-8e2dbb3f6f22/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/166b49f1-7edf-4332-adfc-74c995b995af/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "49.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-22T14:50:49.360223Z",
+            "updated_at": "2021-01-21T14:31:27.643229Z",
+            "strategy_code": "166b49f1-7edf-4332-adfc-74c995b995af_L1"
+        },
+        {
+            "id": "5a8f9cd7-91c1-4d5a-ab86-b8f869c00c32",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "724a4138-6373-4181-95ca-d246acca7937",
+                    "position": "https://api.robinhood.com/options/positions/c206d782-4820-49ce-b537-4247fe51c128/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/0a6147f5-435d-4f5f-a0f3-0d744d6d966f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "49.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-21T20:34:37.839483Z",
+            "updated_at": "2021-01-13T14:52:18.640321Z",
+            "strategy_code": "0a6147f5-435d-4f5f-a0f3-0d744d6d966f_L1"
+        },
+        {
+            "id": "1781ec66-b098-4bf1-bec1-4b4b9419b867",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "99664939-3467-4e24-b627-ef7cbca0a285",
+                    "position": "https://api.robinhood.com/options/positions/0bacb1bc-fe8d-47dd-b341-922d6f53f060/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c2a480a1-47e6-4bd3-a01c-39976ebc9f9e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "50.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-21T20:09:21.802443Z",
+            "updated_at": "2021-01-12T20:45:51.466615Z",
+            "strategy_code": "c2a480a1-47e6-4bd3-a01c-39976ebc9f9e_L1"
+        },
+        {
+            "id": "fedc5163-0351-4015-8f6a-a3ca9ccc229a",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "eba9e9c0-5fad-4456-8b68-f1052af86f68",
+                    "position": "https://api.robinhood.com/options/positions/6c03e697-1f11-4b2b-98df-d998af5a52e9/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/2b04d269-1dec-493b-8881-97ffc22b4032/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-22",
+                    "strike_price": "50.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-12-21T14:32:31.414784Z",
+            "updated_at": "2020-12-29T18:32:42.087867Z",
+            "strategy_code": "2b04d269-1dec-493b-8881-97ffc22b4032_L1"
+        },
+        {
+            "id": "b1ccf8f1-7d29-4d91-a6a4-6f13ae45394e",
+            "chain": "https://api.robinhood.com/options/chains/48739fa5-eebc-4e65-afda-4138f7416a12/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CVS",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "db3e35a0-e520-4fd6-94f1-4c291d3d33cf",
+                    "position": "https://api.robinhood.com/options/positions/b3cc246b-4faa-4c83-9e3c-aea3b77e3dbd/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/20e7055c-361f-4674-9cf9-0147118b5358/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-02-19",
+                    "strike_price": "70.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-30T14:32:51.644798Z",
+            "updated_at": "2021-02-19T20:03:54.493894Z",
+            "strategy_code": "20e7055c-361f-4674-9cf9-0147118b5358_L1"
+        },
+        {
+            "id": "7bb19a0b-8926-4c19-a77f-a84a918e09c3",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "838d5361-4b8c-4361-a6ec-bed669b8b4e7",
+                    "position": "https://api.robinhood.com/options/positions/88612fca-9a71-493b-96da-a85bfc5965ec/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/a53182fb-9142-4883-a2de-ddba25b76aaf/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-02-19",
+                    "strike_price": "225.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-30T14:31:57.031469Z",
+            "updated_at": "2021-02-19T20:03:54.732690Z",
+            "strategy_code": "a53182fb-9142-4883-a2de-ddba25b76aaf_L1"
+        },
+        {
+            "id": "4cbdbaf4-34ec-4345-88ae-4f4d76883a0f",
+            "chain": "https://api.robinhood.com/options/chains/ff228d55-c9b3-44bd-80a6-8570c29bc7d6/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "IDEX",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "18ea73b4-3adf-42ab-a950-06ffdbee2717",
+                    "position": "https://api.robinhood.com/options/positions/5ae3268f-0610-4442-ab33-06ebced28c32/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/977a5b0e-f811-4565-9dc8-84fa0cb34dd6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-12-18",
+                    "strike_price": "2.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-23T20:43:09.267830Z",
+            "updated_at": "2020-12-18T20:24:34.427589Z",
+            "strategy_code": "977a5b0e-f811-4565-9dc8-84fa0cb34dd6_L1"
+        },
+        {
+            "id": "88ae8bd2-b30d-4aee-aeb6-ff2e60568098",
+            "chain": "https://api.robinhood.com/options/chains/c49063f0-557b-44b7-aeef-11fbc6a51243/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "TLRY",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "db226a1b-2a52-44c8-8114-b1650bc1b125",
+                    "position": "https://api.robinhood.com/options/positions/a8eb1be0-a402-4d35-b059-0bb0539fbfcf/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/1e09395e-b3dc-4f5f-ae31-483424bc39ef/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-12-04",
+                    "strike_price": "6.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-23T20:30:11.493930Z",
+            "updated_at": "2020-12-05T05:02:09.729470Z",
+            "strategy_code": "1e09395e-b3dc-4f5f-ae31-483424bc39ef_L1"
+        },
+        {
+            "id": "5d79a44d-c2e1-4640-911f-bbd910c1d5ca",
+            "chain": "https://api.robinhood.com/options/chains/ef19159f-22b6-4a14-bc1a-477810fd5a4d/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "SNAP",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "ee838bd2-7d18-4f8f-8392-cac6601be3d8",
+                    "position": "https://api.robinhood.com/options/positions/8edafe1b-2438-4539-811d-2f063dd7d32a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/d8929dbe-3365-43c8-9e1f-25733cb0ad2b/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-11-27",
+                    "strike_price": "44.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-23T19:30:37.795101Z",
+            "updated_at": "2020-11-24T15:24:08.184825Z",
+            "strategy_code": "d8929dbe-3365-43c8-9e1f-25733cb0ad2b_L1"
+        },
+        {
+            "id": "511a0e3e-0ab6-4213-9b41-ca8fd1db6748",
+            "chain": "https://api.robinhood.com/options/chains/f5530a3a-70c7-41b3-960e-1f5655f66f15/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "ARKQ",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "89f63734-e752-4af8-8bf2-cfe19d76928c",
+                    "position": "https://api.robinhood.com/options/positions/86d50945-1ad2-4563-a7a0-af6dcde87cbf/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/0bbfee68-f363-4e54-a0a7-d6b828a19f1f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-12-18",
+                    "strike_price": "70.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-23T19:18:26.111859Z",
+            "updated_at": "2020-12-17T17:48:06.413741Z",
+            "strategy_code": "0bbfee68-f363-4e54-a0a7-d6b828a19f1f_L1"
+        },
+        {
+            "id": "ae34ce40-c5c8-41db-be01-10aa7144730e",
+            "chain": "https://api.robinhood.com/options/chains/4a2b2c78-d9f2-476c-a9d1-ea32653332fa/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AMC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "6edfb651-64ef-4267-b5e6-dee36c2609a1",
+                    "position": "https://api.robinhood.com/options/positions/fd2a137e-6cef-4c5e-89f9-7981e3b6528c/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c13c6267-d46d-49f5-bb2f-e7293fe4929c/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-15",
+                    "strike_price": "4.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-23T17:30:28.853956Z",
+            "updated_at": "2021-01-16T09:37:16.065964Z",
+            "strategy_code": "c13c6267-d46d-49f5-bb2f-e7293fe4929c_L1"
+        },
+        {
+            "id": "11cd375b-a622-4be2-abd5-5693c8b20d56",
+            "chain": "https://api.robinhood.com/options/chains/3b524025-c79c-40d1-b659-aad95582db31/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "SAP",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "d849746f-a072-4886-a268-185bea1bb7cc",
+                    "position": "https://api.robinhood.com/options/positions/85531e5a-91b4-4b98-be1d-64eec91f684f/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/57606904-b952-4dd3-9e96-0bc5db6a76bc/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-12-18",
+                    "strike_price": "125.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-16T14:34:52.005485Z",
+            "updated_at": "2020-12-18T20:03:48.648979Z",
+            "strategy_code": "57606904-b952-4dd3-9e96-0bc5db6a76bc_L1"
+        },
+        {
+            "id": "4aae4945-2862-4557-986a-c969da7cbf63",
+            "chain": "https://api.robinhood.com/options/chains/71b2a769-4781-4df1-a776-222206504c43/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "XPEV",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "1cdb1e13-0c9a-4247-9ae2-380c0e63fd72",
+                    "position": "https://api.robinhood.com/options/positions/5f0594a9-1481-4570-974f-53696d7fe774/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/9b617709-0d07-4f81-b338-3c185d40fb6a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2021-01-15",
+                    "strike_price": "45.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-11-16T14:32:21.746385Z",
+            "updated_at": "2020-11-23T17:46:48.460563Z",
+            "strategy_code": "9b617709-0d07-4f81-b338-3c185d40fb6a_L1"
+        },
+        {
+            "id": "95fcd0be-ed8a-43a6-aa3f-4ce5e0a98792",
+            "chain": "https://api.robinhood.com/options/chains/75d57c38-c15a-4e41-91ff-5113594b2c04/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "DNKN",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "8b8c6b32-2778-4f4e-8d7d-18231eb1e182",
+                    "position": "https://api.robinhood.com/options/positions/02850b54-9b6e-4a4a-b4d8-089f9e0bd834/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/261d306d-48f9-480f-9b07-dd234944022e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-11-20",
+                    "strike_price": "100.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-10-27T14:30:13.422982Z",
+            "updated_at": "2020-11-21T05:56:27.995353Z",
+            "strategy_code": "261d306d-48f9-480f-9b07-dd234944022e_L1"
+        },
+        {
+            "id": "67a7bf8a-42f1-4edf-b7cf-27e3e86dfb12",
+            "chain": "https://api.robinhood.com/options/chains/8db1d323-87ec-41f9-b48a-8d14c47e8a96/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "HTZ",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "9780fa1c-f875-4e34-8023-b39e8f9325fa",
+                    "position": "https://api.robinhood.com/options/positions/76f72250-e397-43da-b7a8-6e756f98eada/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/d5c07f90-104e-4f49-8993-ed51956fa59f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-10-23",
+                    "strike_price": "2.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-10-16T19:00:02.803865Z",
+            "updated_at": "2020-10-23T18:57:00.722247Z",
+            "strategy_code": "d5c07f90-104e-4f49-8993-ed51956fa59f_L1"
+        },
+        {
+            "id": "1a38019a-d1f5-4d98-9edd-f7a5cc6320a9",
+            "chain": "https://api.robinhood.com/options/chains/6a05bacc-183c-4532-ab0f-548df924bff3/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "NKLA",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "b1e0376f-7240-457c-b98a-03da91d6754f",
+                    "position": "https://api.robinhood.com/options/positions/bbde321e-2751-42e0-9e66-f020b1965a06/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/18625140-8bab-4120-801e-3678f1dee8dd/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-10-16",
+                    "strike_price": "20.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-10-02T14:08:04.022277Z",
+            "updated_at": "2020-10-16T18:40:27.133731Z",
+            "strategy_code": "18625140-8bab-4120-801e-3678f1dee8dd_L1"
+        },
+        {
+            "id": "9bf97a24-ff07-480f-a989-816e7833a771",
+            "chain": "https://api.robinhood.com/options/chains/eefb80a4-efc0-4b5f-ba27-a7aa9a358469/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "KODK",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "7bde1712-fc0a-47ac-a6c1-c4bd8c67873a",
+                    "position": "https://api.robinhood.com/options/positions/732688b4-1a7e-4650-8ab8-ec0c50bded75/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/d64dcca5-646f-4c51-8364-8704106fe04c/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-09-25",
+                    "strike_price": "8.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-09-18T13:34:50.387186Z",
+            "updated_at": "2020-09-26T04:17:11.659712Z",
+            "strategy_code": "d64dcca5-646f-4c51-8364-8704106fe04c_L1"
+        },
+        {
+            "id": "1a9c92f4-be2f-4276-a4e9-96786d36d5e4",
+            "chain": "https://api.robinhood.com/options/chains/30a69d74-3d38-4077-a5cc-dbb1b33bd90f/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "CRM",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "4c7bb738-09b6-4174-aaee-d742db49d21f",
+                    "position": "https://api.robinhood.com/options/positions/aeb4b242-0ad1-4c36-acc5-fead47d18805/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/9c358b34-04d8-4930-87f2-5b53d5e03aae/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-09-04",
+                    "strike_price": "235.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-08-27T13:48:47.138831Z",
+            "updated_at": "2020-09-05T04:13:08.547708Z",
+            "strategy_code": "9c358b34-04d8-4930-87f2-5b53d5e03aae_L1"
+        },
+        {
+            "id": "2956d6ff-68d1-4579-b8e8-e3e91ca62fcd",
+            "chain": "https://api.robinhood.com/options/chains/0f2feae6-75dc-4888-a5e7-8219efa39936/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MESO",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "a550c699-cc82-4fb5-8623-7e5637730e0b",
+                    "position": "https://api.robinhood.com/options/positions/3a0e3a95-2a51-48a4-bb87-11e8bbb83ef7/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/588b85da-5796-4d9f-bf7d-fa4bdcdede6f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-08-21",
+                    "strike_price": "12.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-08-17T13:43:13.868495Z",
+            "updated_at": "2020-08-22T05:26:15.814572Z",
+            "strategy_code": "588b85da-5796-4d9f-bf7d-fa4bdcdede6f_L1"
+        },
+        {
+            "id": "9644ea8e-fc3e-417f-91b2-01795755e132",
+            "chain": "https://api.robinhood.com/options/chains/3cf4da9a-c5b5-44ed-a518-ea98757404fe/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AYX",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "10efb0ff-dc44-4058-a1d2-6b3a4886d32c",
+                    "position": "https://api.robinhood.com/options/positions/fa4aacc9-a172-4dfd-9671-5c325da90158/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/afe0df5a-1dfa-4294-a715-8fbbf529ae5a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-08-21",
+                    "strike_price": "160.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-08-10T13:53:45.561283Z",
+            "updated_at": "2020-08-22T05:26:15.340025Z",
+            "strategy_code": "afe0df5a-1dfa-4294-a715-8fbbf529ae5a_L1"
+        },
+        {
+            "id": "d89387b6-39e5-49a0-af62-25c5fce292a6",
+            "chain": "https://api.robinhood.com/options/chains/eefb80a4-efc0-4b5f-ba27-a7aa9a358469/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "KODK",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "9b5d9233-7645-468e-96b9-9d1fa53943e4",
+                    "position": "https://api.robinhood.com/options/positions/7825777e-20a8-4b09-9deb-40a0f3e99a9e/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/dde4b2ba-7a5b-4fc0-9304-274e95659f32/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-08-07",
+                    "strike_price": "20.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-07-30T18:49:25.155664Z",
+            "updated_at": "2020-08-07T18:51:06.229936Z",
+            "strategy_code": "dde4b2ba-7a5b-4fc0-9304-274e95659f32_L1"
+        },
+        {
+            "id": "2d8ae454-ae56-41f0-9472-47608d39a692",
+            "chain": "https://api.robinhood.com/options/chains/251a3b79-85a9-4ac9-be1e-41f362de5e69/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "SIX",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "891f314e-814a-43e3-874b-82de23682c30",
+                    "position": "https://api.robinhood.com/options/positions/116221ff-beec-4d22-9ffa-78d8f0fd2544/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/cbc003d3-db1e-4edb-bf75-f480d57cbefc/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-06-19",
+                    "strike_price": "17.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-06-15T13:59:18.963076Z",
+            "updated_at": "2020-06-19T20:27:16.891116Z",
+            "strategy_code": "cbc003d3-db1e-4edb-bf75-f480d57cbefc_L1"
+        },
+        {
+            "id": "3642273c-2d64-4bd9-bd87-badc6cd0edbc",
+            "chain": "https://api.robinhood.com/options/chains/8db1d323-87ec-41f9-b48a-8d14c47e8a96/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "HTZ",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "1e5218a0-fc6d-4b1f-b686-adb79c60e1e2",
+                    "position": "https://api.robinhood.com/options/positions/f973af8e-cbb8-4c1a-a2ed-af771de29f5e/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/8ab3ee4b-9697-4930-8386-126c61b8baa1/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-06-19",
+                    "strike_price": "2.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-06-15T13:59:16.468666Z",
+            "updated_at": "2020-06-19T18:55:54.211367Z",
+            "strategy_code": "8ab3ee4b-9697-4930-8386-126c61b8baa1_L1"
+        },
+        {
+            "id": "8dc5d88e-6e98-486c-8693-675e989e8eb8",
+            "chain": "https://api.robinhood.com/options/chains/28814a38-08df-4472-bf08-c3a1036f3b1e/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "DLTH",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "ac1fef0d-38e4-4d48-bc02-24c4fd5ff5b8",
+                    "position": "https://api.robinhood.com/options/positions/71d9fc26-6eca-4606-8d87-be923437ebfd/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/5d3ed6cc-20f0-40bb-bf9b-a4ea204669bc/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-06-19",
+                    "strike_price": "10.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-06-10T14:05:42.728542Z",
+            "updated_at": "2020-06-19T20:27:16.965957Z",
+            "strategy_code": "5d3ed6cc-20f0-40bb-bf9b-a4ea204669bc_L1"
+        },
+        {
+            "id": "8c82d4e5-47d8-4e5e-9c0e-a4d2c144c1b4",
+            "chain": "https://api.robinhood.com/options/chains/4a2b2c78-d9f2-476c-a9d1-ea32653332fa/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AMC",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "031c5a9d-17a0-45fa-b1db-b940b2d11780",
+                    "position": "https://api.robinhood.com/options/positions/337daab0-296f-4bf8-bca8-7cd154a69429/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/633e2f2e-c27d-4ce2-93d7-c9f6e913eb79/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-05-08",
+                    "strike_price": "3.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-04-20T13:44:09.426679Z",
+            "updated_at": "2020-05-08T20:24:28.728887Z",
+            "strategy_code": "633e2f2e-c27d-4ce2-93d7-c9f6e913eb79_L1"
+        },
+        {
+            "id": "51f1f3e1-d21b-4f65-8207-1591427d1549",
+            "chain": "https://api.robinhood.com/options/chains/eaa38263-3cde-4336-bf4f-1f0e2ef4824c/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GME",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "a5cdf2fe-a22c-4aff-b145-2e303b887175",
+                    "position": "https://api.robinhood.com/options/positions/3e2dd090-c1ce-4f9f-9d62-9f1d76a5be79/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/a0824170-388e-427e-9fa0-d6da4381d7ff/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-04-24",
+                    "strike_price": "3.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-04-20T13:44:02.503726Z",
+            "updated_at": "2020-04-24T20:28:34.277329Z",
+            "strategy_code": "a0824170-388e-427e-9fa0-d6da4381d7ff_L1"
+        },
+        {
+            "id": "e51dc570-7d6a-4cc6-b027-cc468e7d4482",
+            "chain": "https://api.robinhood.com/options/chains/bd91f7b8-2108-43de-9623-26f9e482b524/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GILD",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "73fab74f-2b09-489e-8399-ec60b7c347a6",
+                    "position": "https://api.robinhood.com/options/positions/a084b64d-1ba6-4444-82e3-f9850ba645d2/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/79ba4340-b882-4b69-b0f6-fa3e64c7f85d/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-04-17",
+                    "strike_price": "77.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-04-13T14:00:18.858824Z",
+            "updated_at": "2020-04-17T13:58:01.717021Z",
+            "strategy_code": "79ba4340-b882-4b69-b0f6-fa3e64c7f85d_L1"
+        },
+        {
+            "id": "1e597ed4-4088-410c-bd96-9f8cfbaa54b0",
+            "chain": "https://api.robinhood.com/options/chains/0f032a31-e372-4058-a56f-22132c5b86ad/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "GORO",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "a81573b5-51a5-49a3-9e81-9153624e7c93",
+                    "position": "https://api.robinhood.com/options/positions/5c3826a7-f481-48e3-a9b0-8e81272d891a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/225c488b-32a9-4a6c-ab8b-4b8e33d6dcc8/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-02-21",
+                    "strike_price": "5.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-01-30T14:30:05.176340Z",
+            "updated_at": "2020-02-21T21:32:59.055485Z",
+            "strategy_code": "225c488b-32a9-4a6c-ab8b-4b8e33d6dcc8_L1"
+        },
+        {
+            "id": "6d80f389-1ac2-460f-82b6-5d5945fac422",
+            "chain": "https://api.robinhood.com/options/chains/251a3b79-85a9-4ac9-be1e-41f362de5e69/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "SIX",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "da31746b-f43c-45a7-a16d-2735f9386b01",
+                    "position": "https://api.robinhood.com/options/positions/dfbfc299-3379-4765-825b-ef2c8cd195ce/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/a3b01ec8-5912-4773-b09a-84505640820e/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-01-17",
+                    "strike_price": "37.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-01-13T14:42:18.230459Z",
+            "updated_at": "2020-01-17T20:10:11.944054Z",
+            "strategy_code": "a3b01ec8-5912-4773-b09a-84505640820e_L1"
+        },
+        {
+            "id": "0ec3f245-6121-41d1-9954-64195f031065",
+            "chain": "https://api.robinhood.com/options/chains/e8a425ab-0e15-4f9a-a7f4-0a1a9d941d5b/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "PTON",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "5f631646-1942-4422-8885-09da5ca19c7c",
+                    "position": "https://api.robinhood.com/options/positions/3b325972-1e2b-4ddf-ac9f-78dbba8c76dc/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/2e449ab0-ef6d-4ebe-9911-03a66e677b62/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2020-01-10",
+                    "strike_price": "27.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2020-01-06T14:56:24.841893Z",
+            "updated_at": "2020-01-10T15:27:41.011125Z",
+            "strategy_code": "2e449ab0-ef6d-4ebe-9911-03a66e677b62_L1"
+        },
+        {
+            "id": "a1392e48-0963-4d61-aa0a-be1e764ce583",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "eb2eeb8f-4f22-47de-b02b-18b6651d454e",
+                    "position": "https://api.robinhood.com/options/positions/bceccdad-5bfb-429a-9d0f-274d937dd0c1/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c5677ca8-5af8-4de8-b34f-19ea02ef7523/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-11-29",
+                    "strike_price": "152.5000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-11-22T18:50:03.890663Z",
+            "updated_at": "2019-11-27T20:58:51.621248Z",
+            "strategy_code": "c5677ca8-5af8-4de8-b34f-19ea02ef7523_L1"
+        },
+        {
+            "id": "0ad7bf88-dbaf-4128-b1cb-09340725fbcb",
+            "chain": "https://api.robinhood.com/options/chains/1ac71e01-0677-42c6-a490-1457980954f8/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "MSFT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "f495c9c2-f072-433e-a78a-e94e570d2ebc",
+                    "position": "https://api.robinhood.com/options/positions/078aadf2-ed46-4cc4-a6ed-1e10612eebef/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/49bf3a78-efea-4897-bae2-f8386918d6a6/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-11-29",
+                    "strike_price": "155.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-11-22T14:43:15.386155Z",
+            "updated_at": "2019-11-29T18:48:19.212413Z",
+            "strategy_code": "49bf3a78-efea-4897-bae2-f8386918d6a6_L1"
+        },
+        {
+            "id": "236079df-b599-4f20-9534-3c4e9bd8ddd1",
+            "chain": "https://api.robinhood.com/options/chains/b8e3e9da-ac5b-4ff7-bc22-b4c62645df40/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "ACB",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "149e7dec-d678-46e1-b014-affb8402cf35",
+                    "position": "https://api.robinhood.com/options/positions/9b27d6cc-2d38-47b5-a8a7-a00489b24a6c/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c6e9dd7a-9305-49cc-a15e-0abc6b8adab5/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-11-22",
+                    "strike_price": "3.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-11-18T14:33:00.343040Z",
+            "updated_at": "2019-11-22T21:28:46.279466Z",
+            "strategy_code": "c6e9dd7a-9305-49cc-a15e-0abc6b8adab5_L1"
+        },
+        {
+            "id": "bc2712c4-c965-40be-9f94-0e5bf364c054",
+            "chain": "https://api.robinhood.com/options/chains/d8dab074-132a-4ff7-87de-fde0c384228d/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "FIT",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "75ab4091-4360-4fba-ba13-4f0c14988559",
+                    "position": "https://api.robinhood.com/options/positions/821df948-1c6b-4e18-9d44-5dc49ee33c39/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/1c647db9-a304-4ac0-9a34-827616cc6a84/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-11-08",
+                    "strike_price": "7.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-11-05T14:33:37.619549Z",
+            "updated_at": "2019-11-08T21:23:00.524690Z",
+            "strategy_code": "1c647db9-a304-4ac0-9a34-827616cc6a84_L1"
+        },
+        {
+            "id": "4caf9a0e-5a60-4356-a27b-85fdc392af2f",
+            "chain": "https://api.robinhood.com/options/chains/0bcf7552-59df-4ddc-8a5b-341379b99a1d/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "PCG",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "9ccbfeed-a626-4b21-b90f-52d247dfdd1b",
+                    "position": "https://api.robinhood.com/options/positions/7bc839e7-35e0-470c-a018-60f35184d7c4/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/82577624-137a-4d8a-9949-91f16e99d071/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-11-08",
+                    "strike_price": "7.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-11-01T19:41:45.174011Z",
+            "updated_at": "2019-11-08T21:23:00.377210Z",
+            "strategy_code": "82577624-137a-4d8a-9949-91f16e99d071_L1"
+        },
+        {
+            "id": "53b5312e-2292-42e3-88f1-06b5b4edf487",
+            "chain": "https://api.robinhood.com/options/chains/bdf714f5-18fe-4955-bbc8-8546fae73bbb/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "LB",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "e0b6f37e-3403-40a6-a1c4-dbdf50f5f88f",
+                    "position": "https://api.robinhood.com/options/positions/9b2577c5-9441-45f9-8e5c-cc01337ba99e/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/0f109148-cba5-467f-abea-d1c4fc3e435a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-10-25",
+                    "strike_price": "15.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-10-21T13:39:20.474121Z",
+            "updated_at": "2019-10-25T20:31:42.621893Z",
+            "strategy_code": "0f109148-cba5-467f-abea-d1c4fc3e435a_L1"
+        },
+        {
+            "id": "e11897ec-a8ae-4ed3-b52a-7a70c277f2cf",
+            "chain": "https://api.robinhood.com/options/chains/cee01a93-626e-4ee6-9b04-60e2fd1392d1/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "AAPL",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "7bf12b8a-bf7f-4993-b07f-5bed83af8217",
+                    "position": "https://api.robinhood.com/options/positions/6ce9218e-0270-4375-ac7b-ff53f244c637/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/b648eb28-ed45-4429-93e7-f4ed8f8c5b6f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-07-26",
+                    "strike_price": "190.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-07-17T17:50:30.899766Z",
+            "updated_at": "2019-07-26T20:22:23.571246Z",
+            "strategy_code": "b648eb28-ed45-4429-93e7-f4ed8f8c5b6f_L1"
+        },
+        {
+            "id": "3b31728b-f85b-4d96-9516-5b7c54477708",
+            "chain": "https://api.robinhood.com/options/chains/d8157ab2-0897-41d0-ae14-0898ef02c60f/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BYND",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "30ab3cb8-5e99-4abe-8146-e0a10c7ef93c",
+                    "position": "https://api.robinhood.com/options/positions/9fb319e1-4d05-429c-8781-f70abedb6daf/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/c88fa472-134c-4ec0-ad94-60f47ca53e0a/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-07-12",
+                    "strike_price": "130.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-07-05T18:48:55.867480Z",
+            "updated_at": "2019-07-12T20:22:18.016096Z",
+            "strategy_code": "c88fa472-134c-4ec0-ad94-60f47ca53e0a_L1"
+        },
+        {
+            "id": "e9e46724-6b3e-4794-a96e-6328cdbf437e",
+            "chain": "https://api.robinhood.com/options/chains/d8157ab2-0897-41d0-ae14-0898ef02c60f/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "BYND",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "ae8f1895-9cb6-4925-9622-621763b917a4",
+                    "position": "https://api.robinhood.com/options/positions/f377470b-2b06-450a-9b7b-67f7db37ff5b/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/851e9552-e433-4139-a3c1-15e844a55a12/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-07-05",
+                    "strike_price": "145.0000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-06-28T18:11:16.247985Z",
+            "updated_at": "2019-07-05T20:23:50.414956Z",
+            "strategy_code": "851e9552-e433-4139-a3c1-15e844a55a12_L1"
+        },
+        {
+            "id": "fee2f90d-e5c0-4cae-bd5d-4a835ef87233",
+            "chain": "https://api.robinhood.com/options/chains/c5a11b65-4c5b-4501-99ba-932f203effbf/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "FB",
+            "strategy": "long_put",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "02a06ca8-7f49-4ec8-994d-2ac6c0a9cd19",
+                    "position": "https://api.robinhood.com/options/positions/93db892d-79fc-43a6-a902-329c32feed11/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/f29abeba-c7ed-4b73-9423-4184737f746f/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2019-03-29",
+                    "strike_price": "162.5000",
+                    "option_type": "put"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2019-03-26T13:30:45.980192Z",
+            "updated_at": "2019-03-29T20:24:32.718721Z",
+            "strategy_code": "f29abeba-c7ed-4b73-9423-4184737f746f_L1"
+        },
+        {
+            "id": "05ec56f0-fb30-47f1-94e3-ab082d67b4a4",
+            "chain": "https://api.robinhood.com/options/chains/cd15fc05-93fa-4def-9f79-19d4cdd6d660/",
+            "account": "https://api.robinhood.com/accounts/5QR24141/",
+            "symbol": "INTC",
+            "strategy": "long_call",
+            "average_open_price": "0.0000",
+            "legs": [
+                {
+                    "id": "e4f67b88-6c1c-48a9-b093-00c9dd05fb91",
+                    "position": "https://api.robinhood.com/options/positions/918b02a2-c35a-4848-be88-a9136979fb8a/",
+                    "position_type": "long",
+                    "option": "https://api.robinhood.com/options/instruments/6d595d1f-a666-47b9-8f44-8959f093e1eb/",
+                    "ratio_quantity": 1,
+                    "expiration_date": "2018-07-13",
+                    "strike_price": "54.0000",
+                    "option_type": "call"
+                }
+            ],
+            "quantity": "0.0000",
+            "intraday_average_open_price": "0.0000",
+            "intraday_quantity": "0.0000",
+            "direction": "debit",
+            "intraday_direction": "debit",
+            "trade_value_multiplier": "100.0000",
+            "created_at": "2018-06-27T13:30:04.703823Z",
+            "updated_at": "2018-07-13T20:14:12.900507Z",
+            "strategy_code": "6d595d1f-a666-47b9-8f44-8959f093e1eb_L1"
+        }
+    ]
+}
