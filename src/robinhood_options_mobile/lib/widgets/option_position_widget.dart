@@ -85,7 +85,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         optionPosition.averageOpenPrice! * optionPosition.quantity!;
     final double shortCollateral =
         optionPosition.legs.first.strikePrice! * 100 * optionPosition.quantity!;
-    final double collateralReturn = gainLoss / shortCollateral * 100;
+    final double collateralReturn = totalCost / shortCollateral;
     final double equity =
         optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice! *
             optionPosition.quantity! *
@@ -235,7 +235,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           optionPosition.legs.first.positionType == "long"
               ? Container()
               : ListTile(
-                  title: Text("Collateral %"),
+                  title: Text("Credit to Collateral"),
                   trailing: Text("${formatPercentage.format(collateralReturn)}",
                       style: const TextStyle(fontSize: 18)),
                 ),
@@ -256,7 +256,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           ),
           ListTile(
             title: Text("Days to Expiration"),
-            trailing: Text("${dte} of ${originalDte}",
+            trailing: Text("${dte.isNegative ? 0 : dte} of ${originalDte}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(

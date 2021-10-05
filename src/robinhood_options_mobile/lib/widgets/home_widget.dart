@@ -12,7 +12,6 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -79,6 +78,8 @@ class _HomePageState extends State<HomePage> {
   //List<OptionPosition> optionPositions = [];
   List<String> chainSymbols = [];
   final List<bool> hasQuantityFilters = [true, false];
+  final List<bool> optionFilters = [true, true];
+  final List<bool> positionFilters = [true, true];
   final List<String> chainSymbolFilters = <String>[];
 
   Future<List<dynamic>>? futureWatchlists;
@@ -376,7 +377,8 @@ class _HomePageState extends State<HomePage> {
       if (optionAggregatePositions != null) {
         var totalAdjustedMarkPrice = optionAggregatePositions
             .map((e) =>
-                e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ?? 0)
+                e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ??
+                0 * (e.legs.first.positionType == "long" ? 1 : -1))
             .reduce((a, b) => a + b);
         chainSymbols =
             optionAggregatePositions.map((e) => e.symbol).toSet().toList();
@@ -388,6 +390,7 @@ class _HomePageState extends State<HomePage> {
                 "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
           ),
         );
+        /*
         slivers.add(SliverToBoxAdapter(
             child: Wrap(children: [
           Padding(
@@ -427,59 +430,161 @@ class _HomePageState extends State<HomePage> {
               },
             ),
           )
-        ])
-            /*ToggleButtons(
-            children: <Widget>[
-              Padding(
-                  padding: const EdgeInsets.all(14.0),
+        ])));
+        */
+        slivers.add(SliverToBoxAdapter(
+            child:
+                /*SingleChildScrollView(
                   child: Row(
-                    children: const [
-                      Icon(Icons.new_releases),
-                      SizedBox(width: 10),
-                      Text(
-                        'Open',
-                        style: TextStyle(fontSize: 18),
-                      )
-                    ],
-                  )),
-              Padding(
-                  padding: const EdgeInsets.all(14.0),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.history),
-                      SizedBox(width: 10),
-                      Text(
-                        'Closed',
-                        style: TextStyle(fontSize: 16),
-                      )
-                    ],
-                  ))
-              /*
-              Icon(Icons.ac_unit),
-              Icon(Icons.call),
-              Icon(Icons.cake),
-              */
-            ],
-            onPressed: (int index) {
-              setState(() {
-                /* For mutually exclusive selection requiring at least one selection.
-                for (int buttonIndex = 0;
-                    buttonIndex < isSelected.length;
-                    buttonIndex++) {
-                  if (buttonIndex == index) {
-                    isSelected[buttonIndex] = true;
-                  } else {
-                    isSelected[buttonIndex] = false;
-                  }
-                }
-                */
-                isSelected[index] = !isSelected[index];
-                optionPositionsStream = null;
-              });
-            },
-            isSelected: isSelected,
-          ),*/
+                      children: filterWidgets(chainSymbols, optionsPositions)
+                          .toList()),
+                )*/
+                SizedBox(
+                    height: 56,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        return Row(children: [
+                          Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: FilterChip(
+                              avatar: const Icon(Icons.new_releases_outlined),
+                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                              label: const Text('Open Options'),
+                              selected: hasQuantityFilters[0],
+                              onSelected: (bool value) {
+                                setState(() {
+                                  if (value) {
+                                    hasQuantityFilters[0] = true;
+                                  } else {
+                                    hasQuantityFilters[0] = false;
+                                  }
+                                });
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: FilterChip(
+                              avatar: const Icon(Icons.history_outlined),
+                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                              label: const Text('Closed Options'),
+                              selected: hasQuantityFilters[1],
+                              onSelected: (bool value) {
+                                setState(() {
+                                  if (value) {
+                                    hasQuantityFilters[1] = true;
+                                  } else {
+                                    hasQuantityFilters[1] = false;
+                                  }
+                                  optionAggregatePositionStream = null;
+                                });
+                              },
+                            ),
+                          )
+                        ]);
+                      },
+                      itemCount: 1,
+                    ))
+            /*
+              Wrap(
+            direction: Axis.horizontal,
+            children: filterWidgets(chainSymbols, optionsPositions).toList(),
+          ),
+          */
             ));
+
+        slivers.add(SliverToBoxAdapter(
+            child:
+                /*SingleChildScrollView(
+                  child: Row(
+                      children: filterWidgets(chainSymbols, optionsPositions)
+                          .toList()),
+                )*/
+                SizedBox(
+                    height: 56,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemBuilder: (context, index) {
+                        return Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: FilterChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Long Positions'),
+                                selected: positionFilters[0],
+                                onSelected: (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      positionFilters[0] = true;
+                                    } else {
+                                      positionFilters[0] = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: FilterChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Short Positions'),
+                                selected: positionFilters[1],
+                                onSelected: (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      positionFilters[1] = true;
+                                    } else {
+                                      positionFilters[1] = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: FilterChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Call Options'),
+                                selected: optionFilters[0],
+                                onSelected: (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      optionFilters[0] = true;
+                                    } else {
+                                      optionFilters[0] = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: FilterChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Put Options'),
+                                selected: optionFilters[1],
+                                onSelected: (bool value) {
+                                  setState(() {
+                                    if (value) {
+                                      optionFilters[1] = true;
+                                    } else {
+                                      optionFilters[1] = false;
+                                    }
+                                  });
+                                },
+                              ),
+                            )
+                          ],
+                        );
+                      },
+                      itemCount: 1,
+                    ))));
         slivers.add(SliverToBoxAdapter(
             child:
                 /*SingleChildScrollView(
@@ -1072,7 +1177,15 @@ class _HomePageState extends State<HomePage> {
       int index, RobinhoodUser ru) {
     if (optionsPositions[index].optionInstrument == null ||
         (chainSymbolFilters.isNotEmpty &&
-            !chainSymbolFilters.contains(optionsPositions[index].symbol))) {
+            !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
+        (optionsPositions[index].legs.first.positionType == 'long' &&
+            positionFilters[0] == false) ||
+        (optionsPositions[index].legs.first.positionType == 'short' &&
+            positionFilters[1] == false) ||
+        (optionsPositions[index].legs.first.optionType == 'call' &&
+            optionFilters[0] == false) ||
+        (optionsPositions[index].legs.first.optionType == 'put' &&
+            optionFilters[1] == false)) {
       return Container();
     }
     final double gainLossPerContract = (optionsPositions[index]
