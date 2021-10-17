@@ -107,4 +107,24 @@ class Position {
         createdAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
             DateTime.tryParse(json['created_at']);
+
+  double get marketValue {
+    return instrumentObj!.quoteObj!.lastExtendedHoursTradePrice! * quantity!;
+  }
+
+  double get totalCost {
+    return averageBuyPrice! * quantity!;
+  }
+
+  double get gainLoss {
+    return marketValue - totalCost;
+  }
+
+  double get gainLossPerShare {
+    return gainLoss / quantity!;
+  }
+
+  double get gainLossPercent {
+    return gainLoss / totalCost;
+  }
 }

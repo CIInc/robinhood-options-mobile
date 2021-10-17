@@ -5,42 +5,6 @@ import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 
-/*
-{
-  "id":"da5fb84a-e6d4-467c-8a36-4feb9c2abf4d",
-  "url":"https:\/\/api.robinhood.com\/instruments\/da5fb84a-e6d4-467c-8a36-4feb9c2abf4d\/",
-  "quote":"https:\/\/api.robinhood.com\/quotes\/QQQJ\/",
-  "fundamentals":"https:\/\/api.robinhood.com\/fundamentals\/QQQJ\/",
-  "splits":"https:\/\/api.robinhood.com\/instruments\/da5fb84a-e6d4-467c-8a36-4feb9c2abf4d\/splits\/",
-  "state":"active",
-  "market":"https:\/\/api.robinhood.com\/markets\/XNAS\/",
-  "simple_name":null,
-  "name":"Invesco Exchange-Traded Fund Trust II Invesco NASDAQ Next Gen 100 ETF",
-  "tradeable":true,
-  "tradability":"tradable",
-  "symbol":"QQQJ",
-  "bloomberg_unique":"EQ0000000088005853",
-  "margin_initial_ratio":"0.5000",
-  "maintenance_ratio":"0.2500",
-  "country":"US",
-  "day_trade_ratio":"0.2500",
-  "list_date":"2020-10-13",
-  "min_tick_size":null,
-  "type":"etp",
-  "tradable_chain_id":"2d9df0db-08b1-4ba6-bce6-2c502e5d88dd",
-  "rhs_tradability":"tradable",
-  "fractional_tradability":"tradable",
-  "default_collar_fraction":"0.05",
-  "ipo_access_status":null,
-  "ipo_access_cob_deadline":null,
-  "ipo_allocated_price":null,
-  "ipo_customers_received":null,
-  "ipo_customers_requested":null,
-  "ipo_date":null,
-  "ipo_s1_url":null,
-  "is_spac":false
-  }
-*/
 class Instrument {
   final String id;
   final String url;
@@ -73,7 +37,10 @@ class Instrument {
   final int? ipoCustomersRequested;
   final DateTime? ipoDate;
   final String? ipoS1Url;
+  final String? ipoRoadshowUrl;
   final bool isSpac;
+  final bool isTest;
+  final bool ipoAccessSupportsDsp;
 
   Quote? quoteObj;
   Fundamentals? fundamentalsObj;
@@ -111,7 +78,10 @@ class Instrument {
       this.ipoCustomersRequested,
       this.ipoDate,
       this.ipoS1Url,
-      this.isSpac);
+      this.ipoRoadshowUrl,
+      this.isSpac,
+      this.isTest,
+      this.ipoAccessSupportsDsp);
 
   Instrument.fromJson(dynamic json)
       : id = json['id'],
@@ -154,7 +124,10 @@ class Instrument {
             ? null
             : DateTime.tryParse(json['ipo_date']),
         ipoS1Url = json['ipo_s1_url'],
-        isSpac = json['is_spac'];
+        ipoRoadshowUrl = json['ipo_roadshow_url'],
+        isSpac = json['is_spac'],
+        isTest = json['is_test'],
+        ipoAccessSupportsDsp = json['ipo_access_supports_dsp'];
 
   Map<String, dynamic> toJson() => {
         'id': id,

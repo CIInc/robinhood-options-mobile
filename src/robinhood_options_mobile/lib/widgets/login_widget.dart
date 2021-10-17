@@ -85,9 +85,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     // Clean up the focus node when the Form is disposed.
     myFocusNode.dispose();
 
-    clipboardContentStream.close();
-
-    clipboardTriggerTime!.cancel();
+    _stopMonitoringClipboard();
 
     super.dispose();
   }
@@ -229,6 +227,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                       null);
                   var user = RobinhoodUser(
                       userCtl.text, client!.credentials.toJson(), client);
+
+                  _stopMonitoringClipboard();
                   /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                   Future.delayed(Duration.zero, () {
                     Navigator.pop(context, user);
@@ -358,6 +358,12 @@ class _LoginWidgetState extends State<LoginWidget> {
         });
       },
     );
+  }
+
+  void _stopMonitoringClipboard() {
+    clipboardContentStream.close();
+
+    clipboardTriggerTime!.cancel();
   }
 
   String generateDeviceToken() {

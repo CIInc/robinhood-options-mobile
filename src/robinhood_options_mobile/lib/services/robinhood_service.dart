@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
@@ -146,6 +147,7 @@ class RobinhoodService {
   }
 
   static Future<Quote> getQuote(RobinhoodUser user, String symbol) async {
+    print("${Constants.robinHoodEndpoint}/quotes/$symbol/");
     var result = await user.oauth2Client!.read(Uri.parse(
         "${Constants.robinHoodEndpoint}/quotes/$symbol/")); // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
 
@@ -263,6 +265,7 @@ class RobinhoodService {
     yield optionPositions;
   }
 
+  /*
   static Stream<List<OptionPosition>> streamOptionPositionList(
       RobinhoodUser user,
       {bool includeOpen = true,
@@ -279,11 +282,6 @@ class RobinhoodService {
 
       optionInstrument.optionMarketData = optionMarketData;
 
-/*
-      optionPositions
-          .where((element) => element.option == optionIds[i])
-          .map((e) => e.optionInstrument = optionInstrument);
-*/
       for (var j = 0; j < optionPositions.length; j++) {
         if (optionPositions[j].option == optionIds[i]) {
           if (optionPositions[j].optionInstrument == null) {
@@ -303,19 +301,20 @@ class RobinhoodService {
     }
     yield optionPositions;
   }
+  */
 
   static Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
       RobinhoodUser user,
       bool includeOpen,
       bool includeClosed,
       List<String> filters) async {
-    var result = await user.oauth2Client!.read(Uri.parse(
-        '${Constants.robinHoodEndpoint}/options/aggregate_positions/'));
-    var resultJson = jsonDecode(result);
-
     List<OptionAggregatePosition> optionPositions = [];
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
+
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodEndpoint}/options/aggregate_positions/");
+
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
       var op = OptionAggregatePosition.fromJson(result);
       if (((includeOpen && op.quantity! > 0) ||
               (includeClosed && op.quantity! <= 0)) &&
@@ -356,12 +355,12 @@ class RobinhoodService {
     return oi;
   }
 
-  static Future<List<OptionInstrument>> downloadOptionInstruments(
+  static Stream<List<OptionInstrument>> streamOptionInstruments(
       RobinhoodUser user,
       Instrument instrument,
       String? expirationDates, // 2021-03-05
       String? type, // call or put
-      {String? state = "active"}) async {
+      {String? state = "active"}) async* {
     // options/chain (see below)
     var url =
         "${Constants.robinHoodEndpoint}/options/instruments/?chain_id=${instrument.tradeableChainId}";
@@ -376,15 +375,30 @@ class RobinhoodService {
     }
     print(url);
 
-    var results = await RobinhoodService.pagedGet(user, url);
     List<OptionInstrument> optionInstruments = [];
+
+    var pageStream = RobinhoodService.streamedGet(user, url);
+    await for (final results in pageStream) {
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var op = OptionInstrument.fromJson(result);
+        optionInstruments.add(op);
+        yield optionInstruments;
+      }
+      optionInstruments
+          .sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
+      yield optionInstruments;
+    }
+    /*
+    var results = await RobinhoodService.pagedGet(user, url);
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = OptionInstrument.fromJson(result);
       optionInstruments.add(op);
     }
     optionInstruments.sort((a, b) => a.strikePrice!.compareTo(b.strikePrice!));
-    return optionInstruments;
+    yield optionInstruments;
+    */
   }
 
 /*
@@ -401,6 +415,21 @@ class RobinhoodService {
     var resultJson = jsonDecode(result);
     var oi = OptionMarketData.fromJson(resultJson['results'][0]);
     return oi;
+  }
+
+  static Future<List<OptionOrder>> getOptionOrders(RobinhoodUser user) async {
+    // , Instrument instrument
+    var results = await RobinhoodService.pagedGet(user,
+        "${Constants.robinHoodEndpoint}/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
+    //print(results);
+    List<OptionOrder> optionOrders = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      // print(result["id"]);
+      var op = OptionOrder.fromJson(result);
+      optionOrders.add(op);
+    }
+    return optionOrders;
   }
 
   /*
@@ -568,6 +597,7 @@ WATCHLIST
       ...{...instrumentUrls}
     ];
     for (var i = 0; i < distinctInstrumentUrls.length; i++) {
+      print(distinctInstrumentUrls[i]);
       var instrumentResponse =
           await user.oauth2Client!.read(Uri.parse(distinctInstrumentUrls[i]));
       var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
@@ -608,16 +638,35 @@ WATCHLIST
   }
 
   /* COMMON */
-  static pagedGet(RobinhoodUser user, String url) async {
-    var responseStr = await user.oauth2Client!.read(Uri.parse(url));
+
+  static Future<dynamic> getJson(RobinhoodUser user, String url) async {
     print(url);
-    var responseJson = jsonDecode(responseStr);
+    String responseStr = await user.oauth2Client!.read(Uri.parse(url));
+    dynamic responseJson = jsonDecode(responseStr);
+    return responseJson;
+  }
+
+  static Stream<List<dynamic>> streamedGet(
+      RobinhoodUser user, String url) async* {
+    List<dynamic> results = [];
+    dynamic responseJson = await getJson(user, url);
+    results = responseJson['results'];
+    yield results;
+    var nextUrl = responseJson['next'];
+    while (nextUrl != null) {
+      responseJson = await getJson(user, nextUrl);
+      results.addAll(responseJson['results']);
+      yield results;
+      nextUrl = responseJson['next'];
+    }
+  }
+
+  static pagedGet(RobinhoodUser user, String url) async {
+    dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
     var nextUrl = responseJson['next'];
     while (nextUrl != null) {
-      responseStr = await user.oauth2Client!.read(Uri.parse(nextUrl));
-      print(nextUrl);
-      responseJson = jsonDecode(responseStr);
+      responseJson = await getJson(user, nextUrl);
       results.addAll(responseJson['results']);
       //results.push.apply(results, responseJson['results']);
       nextUrl = responseJson['next'];

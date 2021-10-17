@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -27,6 +28,7 @@ import 'option_position_widget.dart';
 final dateFormat = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatCompactNumber = NumberFormat.compact();
 
 /*
 class DrawerItem {
@@ -64,13 +66,14 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<RobinhoodUser>? futureRobinhoodUser;
-  late RobinhoodUser robinhoodUser;
+  RobinhoodUser? robinhoodUser;
 
   Future<List<Account>>? futureAccounts;
   Future<List<Holding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
   Future<dynamic>? futurePortfolioHistoricals;
   Future<List<Position>>? futurePositions;
+  Future<List<OptionOrder>>? futureOptionOrders;
 
   Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
   List<OptionAggregatePosition> optionAggregatePositions = [];
@@ -145,11 +148,14 @@ class _HomePageState extends State<HomePage> {
         ),
         */
       body: _buildHomePage(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _generateCsvFile,
-        tooltip: 'Export to CSV',
-        child: const Icon(Icons.download),
-      ),
+      floatingActionButton:
+          (robinhoodUser != null && robinhoodUser!.userName != null)
+              ? FloatingActionButton(
+                  onPressed: _generateCsvFile,
+                  tooltip: 'Export to CSV',
+                  child: const Icon(Icons.download),
+                )
+              : null,
     );
   }
 
@@ -164,14 +170,14 @@ class _HomePageState extends State<HomePage> {
             robinhoodUser = userSnapshot.data!;
             //print("snapshotUser: ${jsonEncode(snapshotUser)}");
 
-            if (robinhoodUser.userName != null) {
-              futureUser ??= RobinhoodService.getUser(robinhoodUser);
-              futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser);
+            if (robinhoodUser!.userName != null) {
+              futureUser ??= RobinhoodService.getUser(robinhoodUser!);
+              futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
               futurePortfolios ??=
-                  RobinhoodService.getPortfolios(robinhoodUser);
+                  RobinhoodService.getPortfolios(robinhoodUser!);
               //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(snapshotUser);
               futureNummusHoldings ??=
-                  RobinhoodService.getNummusHoldings(robinhoodUser);
+                  RobinhoodService.getNummusHoldings(robinhoodUser!);
 
               /*
               if (futurePortfolioHistoricals == null) {
@@ -180,9 +186,12 @@ class _HomePageState extends State<HomePage> {
                         snapshotUser, null);
               }
               */
-              futurePositions ??= RobinhoodService.getPositions(robinhoodUser);
+              futurePositions ??= RobinhoodService.getPositions(robinhoodUser!);
               futureWatchlists ??=
-                  RobinhoodService.getWatchlists(robinhoodUser);
+                  RobinhoodService.getWatchlists(robinhoodUser!);
+
+              futureOptionOrders ??=
+                  RobinhoodService.getOptionOrders(robinhoodUser!);
 
               return FutureBuilder(
                 future: Future.wait([
@@ -192,6 +201,7 @@ class _HomePageState extends State<HomePage> {
                   futureNummusHoldings as Future,
                   futurePositions as Future,
                   futureWatchlists as Future,
+                  futureOptionOrders as Future,
                 ]),
                 builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
                   if (dataSnapshot.hasData) {
@@ -202,10 +212,10 @@ class _HomePageState extends State<HomePage> {
                     var nummusHoldings = data.length > 3 ? data[3] : null;
                     var positions = data.length > 4 ? data[4] : null;
                     var watchlist = data.length > 5 ? data[5] : null;
-                    //var welcomeWidget = _buildWelcomeWidget(snapshotUser);
+                    var optionOrders = data.length > 6 ? data[6] : null;
                     optionAggregatePositionStream ??=
                         RobinhoodService.streamOptionAggregatePositionList(
-                            robinhoodUser,
+                            robinhoodUser!,
                             includeOpen: hasQuantityFilters[0],
                             includeClosed: hasQuantityFilters[1],
                             filters: chainSymbolFilters);
@@ -244,7 +254,10 @@ class _HomePageState extends State<HomePage> {
                                 portfolios: portfolios,
                                 user: user,
                                 ru: robinhoodUser,
-                                accounts: accounts);
+                                accounts: accounts,
+                                nummusHoldings: nummusHoldings,
+                                positions: positions,
+                                watchLists: watchlist);
                             return RefreshIndicator(
                               child: CustomScrollView(
                                   slivers: slivers), // controller: _controller
@@ -257,7 +270,8 @@ class _HomePageState extends State<HomePage> {
                     if (dataSnapshot.error.toString() ==
                         "OAuth authorization error (invalid_grant).") {
                       RobinhoodUser.clearUserFromStore();
-                      _openLogin();
+                      // Causes: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4841 pos 12: '!_debugLocked': is not true.
+                      //_openLogin();
                     }
                     List<Widget> slivers = _buildSlivers(
                         //ru: snapshotUser,
@@ -385,7 +399,7 @@ class _HomePageState extends State<HomePage> {
         chainSymbols.sort((a, b) => (a.compareTo(b)));
         slivers.add(
           SliverPersistentHeader(
-            pinned: true,
+            pinned: false,
             delegate: PersistentHeader(
                 "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
           ),
@@ -432,185 +446,157 @@ class _HomePageState extends State<HomePage> {
           )
         ])));
         */
+        // Open/Closed Filters
         slivers.add(SliverToBoxAdapter(
-            child:
-                /*SingleChildScrollView(
-                  child: Row(
-                      children: filterWidgets(chainSymbols, optionsPositions)
-                          .toList()),
-                )*/
-                SizedBox(
-                    height: 56,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        return Row(children: [
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: FilterChip(
-                              avatar: const Icon(Icons.new_releases_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Open Options'),
-                              selected: hasQuantityFilters[0],
-                              onSelected: (bool value) {
-                                setState(() {
-                                  if (value) {
-                                    hasQuantityFilters[0] = true;
-                                  } else {
-                                    hasQuantityFilters[0] = false;
-                                  }
-                                });
-                              },
-                            ),
+            child: SizedBox(
+                height: 56,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return Row(children: [
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: const Icon(Icons.new_releases_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('Open Options'),
+                          selected: hasQuantityFilters[0],
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                hasQuantityFilters[0] = true;
+                              } else {
+                                hasQuantityFilters[0] = false;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: Container(),
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('Closed Options'),
+                          selected: hasQuantityFilters[1],
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                hasQuantityFilters[1] = true;
+                              } else {
+                                hasQuantityFilters[1] = false;
+                              }
+                              optionAggregatePositionStream = null;
+                            });
+                          },
+                        ),
+                      )
+                    ]);
+                  },
+                  itemCount: 1,
+                ))));
+        // Option/Position Type Filters
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+                height: 56,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return Row(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: FilterChip(
+                            //avatar: const Icon(Icons.history_outlined),
+                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                            label: const Text('Long Positions'),
+                            selected: positionFilters[0],
+                            onSelected: (bool value) {
+                              setState(() {
+                                if (value) {
+                                  positionFilters[0] = true;
+                                } else {
+                                  positionFilters[0] = false;
+                                }
+                              });
+                            },
                           ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: FilterChip(
-                              avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Closed Options'),
-                              selected: hasQuantityFilters[1],
-                              onSelected: (bool value) {
-                                setState(() {
-                                  if (value) {
-                                    hasQuantityFilters[1] = true;
-                                  } else {
-                                    hasQuantityFilters[1] = false;
-                                  }
-                                  optionAggregatePositionStream = null;
-                                });
-                              },
-                            ),
-                          )
-                        ]);
-                      },
-                      itemCount: 1,
-                    ))
-            /*
-              Wrap(
-            direction: Axis.horizontal,
-            children: filterWidgets(chainSymbols, optionsPositions).toList(),
-          ),
-          */
-            ));
-
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: FilterChip(
+                            //avatar: const Icon(Icons.history_outlined),
+                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                            label: const Text('Short Positions'),
+                            selected: positionFilters[1],
+                            onSelected: (bool value) {
+                              setState(() {
+                                if (value) {
+                                  positionFilters[1] = true;
+                                } else {
+                                  positionFilters[1] = false;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: FilterChip(
+                            //avatar: const Icon(Icons.history_outlined),
+                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                            label: const Text('Call Options'),
+                            selected: optionFilters[0],
+                            onSelected: (bool value) {
+                              setState(() {
+                                if (value) {
+                                  optionFilters[0] = true;
+                                } else {
+                                  optionFilters[0] = false;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: FilterChip(
+                            //avatar: const Icon(Icons.history_outlined),
+                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                            label: const Text('Put Options'),
+                            selected: optionFilters[1],
+                            onSelected: (bool value) {
+                              setState(() {
+                                if (value) {
+                                  optionFilters[1] = true;
+                                } else {
+                                  optionFilters[1] = false;
+                                }
+                              });
+                            },
+                          ),
+                        )
+                      ],
+                    );
+                  },
+                  itemCount: 1,
+                ))));
+        // Symbol Filters
         slivers.add(SliverToBoxAdapter(
-            child:
-                /*SingleChildScrollView(
-                  child: Row(
-                      children: filterWidgets(chainSymbols, optionsPositions)
-                          .toList()),
-                )*/
-                SizedBox(
-                    height: 56,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        return Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: FilterChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Long Positions'),
-                                selected: positionFilters[0],
-                                onSelected: (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      positionFilters[0] = true;
-                                    } else {
-                                      positionFilters[0] = false;
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: FilterChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Short Positions'),
-                                selected: positionFilters[1],
-                                onSelected: (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      positionFilters[1] = true;
-                                    } else {
-                                      positionFilters[1] = false;
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: FilterChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Call Options'),
-                                selected: optionFilters[0],
-                                onSelected: (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      optionFilters[0] = true;
-                                    } else {
-                                      optionFilters[0] = false;
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: FilterChip(
-                                //avatar: const Icon(Icons.history_outlined),
-                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                label: const Text('Put Options'),
-                                selected: optionFilters[1],
-                                onSelected: (bool value) {
-                                  setState(() {
-                                    if (value) {
-                                      optionFilters[1] = true;
-                                    } else {
-                                      optionFilters[1] = false;
-                                    }
-                                  });
-                                },
-                              ),
-                            )
-                          ],
-                        );
-                      },
-                      itemCount: 1,
-                    ))));
-        slivers.add(SliverToBoxAdapter(
-            child:
-                /*SingleChildScrollView(
-                  child: Row(
-                      children: filterWidgets(chainSymbols, optionsPositions)
-                          .toList()),
-                )*/
-                SizedBox(
-                    height: 56,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        return Row(
-                            children: filterWidgets(
-                                    chainSymbols, optionAggregatePositions)
-                                .toList());
-                      },
-                      itemCount: 1,
-                    ))
-            /*
-              Wrap(
-            direction: Axis.horizontal,
-            children: filterWidgets(chainSymbols, optionsPositions).toList(),
-          ),
-          */
-            ));
+            child: SizedBox(
+                height: 56,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return Row(
+                        children: filterWidgets(
+                                chainSymbols, optionAggregatePositions)
+                            .toList());
+                  },
+                  itemCount: 1,
+                ))));
+        // Option Positions
         slivers.add(SliverList(
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
@@ -636,16 +622,17 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (positions != null) {
-        var totalPositionEquity = 0;
+        double totalPositionEquity = 0;
         if (positions.isNotEmpty) {
-          positions
+          totalPositionEquity = positions
               .map((e) =>
-                  e.quantity! * e.instrumentObj!.quoteObj!.lastTradePrice!)
+                  e.quantity! *
+                  e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice!)
               .reduce((a, b) => a + b);
         }
         slivers.add(
           SliverPersistentHeader(
-            pinned: true,
+            pinned: false,
             delegate: PersistentHeader(
                 "Positions ${formatCurrency.format(totalPositionEquity)}"),
           ),
@@ -670,7 +657,7 @@ class _HomePageState extends State<HomePage> {
       if (watchLists != null) {
         slivers.add(
           SliverPersistentHeader(
-            pinned: true,
+            pinned: false,
             delegate: PersistentHeader("Watch Lists"),
           ),
         );
@@ -691,39 +678,69 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
       }
-      slivers.add(SliverPersistentHeader(
-        pinned: false,
-        delegate: PersistentHeader("Account"),
-      ));
-      slivers.add(SliverToBoxAdapter(
-          child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [Text('Welcome ${ru.userName}')]),
-        portfolios != null
-            ? Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  'Trading since ${dateFormat.format(portfolios[0].startDate!)}',
-                )
-              ])
-            : Container(),
-      ])));
-      /*
-          Container(
-              height: 80.0,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: new Text("Welcome ${ru.userName}, ")))));
-                  */
-      /*
-      slivers.add(SliverToBoxAdapter(
-          child: Container(
-        // color: Colors.white,
-        height: 150.0,
-        child: Align(alignment: Alignment.center, child: Text("Lorem ipsum")),
-      )));
-      */
-
+      if (user != null) {
+        slivers.add(SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("User"),
+        ));
+        slivers.add(SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          ListTile(
+            title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
+            trailing:
+                Text(user.profileName, style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Username", style: TextStyle(fontSize: 14)),
+            trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Full Name", style: TextStyle(fontSize: 14)),
+            trailing: Text("${user.firstName} ${user.lastName}",
+                style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Email", style: TextStyle(fontSize: 14)),
+            trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Joined", style: TextStyle(fontSize: 14)),
+            trailing: Text(dateFormat.format(user.createdAt!),
+                style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Locality", style: TextStyle(fontSize: 14)),
+            trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Id", style: TextStyle(fontSize: 14)),
+            trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
+          ),
+          /*
+        ListTile(
+          title: const Text("Id Info", style: const TextStyle(fontSize: 14)),
+          trailing: Text(user.idInfo, style: const TextStyle(fontSize: 12)),
+        ),
+        ListTile(
+          title: const Text("Url", style: const TextStyle(fontSize: 14)),
+          trailing: Text(user.url, style: const TextStyle(fontSize: 12)),
+        ),
+        */
+        ]))));
+      }
+      if (accounts != null) {
+        slivers.add(SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("Accounts"),
+        ));
+        slivers.add(SliverToBoxAdapter(
+            child: Card(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: accountWidgets(accounts).toList()))));
+      }
     }
     slivers.add(SliverPersistentHeader(
       // pinned: true,
@@ -740,12 +757,34 @@ class _HomePageState extends State<HomePage> {
     return slivers;
   }
 
+  Iterable<Widget> accountWidgets(List<Account> accounts) sync* {
+    for (Account account in accounts) {
+      yield ListTile(
+        title: const Text("Account", style: TextStyle(fontSize: 14)),
+        trailing:
+            Text(account.accountNumber, style: const TextStyle(fontSize: 16)),
+      );
+      yield ListTile(
+        title: const Text("Type", style: TextStyle(fontSize: 14)),
+        trailing: Text(account.type, style: const TextStyle(fontSize: 16)),
+      );
+      yield ListTile(
+        title: const Text("Portfolio Cash", style: TextStyle(fontSize: 14)),
+        trailing: Text(formatCurrency.format(account.portfolioCash),
+            style: const TextStyle(fontSize: 16)),
+      );
+    }
+  }
+
 //Iterable<Widget> get filterWidgets sync* {
   Iterable<Widget> filterWidgets(
       List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
     for (final String chainSymbol in chainSymbols) {
-      var optionCount =
-          options.where((element) => element.symbol == chainSymbol).length;
+      var contractCount = options
+          .where((element) => element.symbol == chainSymbol)
+          .map((element) => element.quantity)
+          .reduce((a, b) => (a! + b!))!
+          .round();
       /*
           options
               .where((element) => element.chainSymbol == chainSymbol)
@@ -757,7 +796,7 @@ class _HomePageState extends State<HomePage> {
       yield Padding(
         padding: const EdgeInsets.all(4.0),
         child: FilterChip(
-          avatar: CircleAvatar(child: Text(optionCount.toString())),
+          avatar: CircleAvatar(child: Text(contractCount.toString())),
           label: Text(chainSymbol),
           selected: chainSymbolFilters.contains(chainSymbol),
           onSelected: (bool value) {
@@ -879,7 +918,7 @@ class _HomePageState extends State<HomePage> {
                                   : (changeToday < 0
                                       ? Colors.red
                                       : Colors.grey)),
-                              size: 14.0),
+                              size: 16.0),
                           Container(
                             width: 2,
                           ),
@@ -1117,8 +1156,8 @@ class _HomePageState extends State<HomePage> {
       optionAggregatePositionStream = null;
     });
 
-    var accounts = await RobinhoodService.getAccounts(robinhoodUser);
-    var portfolios = await RobinhoodService.getPortfolios(robinhoodUser);
+    var accounts = await RobinhoodService.getAccounts(robinhoodUser!);
+    var portfolios = await RobinhoodService.getPortfolios(robinhoodUser!);
     //var optionPositions = await RobinhoodService.downloadOptionPositions(snapshotUser);
     /*
     var positions = await RobinhoodService.downloadPositions(snapshotUser);
@@ -1139,38 +1178,58 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildPositionRow(
       List<Position> positions, int index, RobinhoodUser ru) {
-    return ListTile(
-      title: Text(positions[index].instrumentObj!.symbol),
-      subtitle: Text(
-          '${positions[index].quantity} shares - avg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-      trailing: Text(formatCurrency.format(positions[index].quantity! *
-          positions[index].instrumentObj!.quoteObj!.lastTradePrice!)),
-      /*
-      leading: CircleAvatar(
-          //backgroundImage: AssetImage(user.profilePicture),
-          child: optionsPositions[index].optionInstrument.type == 'call'
-              ? new Icon(Icons.trending_up)
-              : new Icon(Icons.trending_down)
-          // child: new Text(optionsPositions[i].symbol)
-          ),
-      // trailing: user.icon,
-      title: new Text(
-          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
-      subtitle: new Text(
-          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
-      trailing: new Text(
-        "\$${optionsPositions[index].averagePrice.toString()}",
-        //style: TextStyle(fontSize: 18.0),
-      ),
-      */
-      onTap: () {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => InstrumentWidget(
-                    ru, positions[index].instrumentObj as Instrument)));
-      },
-    );
+    return Card(
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        leading: CircleAvatar(
+            child: Text(formatCompactNumber.format(positions[index].quantity!),
+                style: const TextStyle(fontSize: 18))),
+        title: Text(positions[index].instrumentObj!.symbol),
+        subtitle: Text(
+            'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+        /*
+        subtitle: Text(
+            '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+            */
+        trailing: Wrap(
+          spacing: 8,
+          children: [
+            Icon(
+                positions[index].gainLossPerShare > 0
+                    ? Icons.trending_up
+                    : (positions[index].gainLossPerShare < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (positions[index].gainLossPerShare > 0
+                    ? Colors.green
+                    : (positions[index].gainLossPerShare < 0
+                        ? Colors.red
+                        : Colors.grey))),
+            Text(
+              "${formatCurrency.format(positions[index].marketValue)}",
+              style: const TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.right,
+            ),
+            /*
+            Text(
+              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+              style: const TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.right,
+            ),*/
+          ],
+        ),
+        // isThreeLine: true,
+        onTap: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(
+                      ru,
+                      positions[index].instrumentObj as Instrument,
+                      positions[index])));
+        },
+      )
+    ]));
   }
 
   Widget _buildOptionPositionRow(List<OptionAggregatePosition> optionsPositions,
@@ -1188,16 +1247,7 @@ class _HomePageState extends State<HomePage> {
             optionFilters[1] == false)) {
       return Container();
     }
-    final double gainLossPerContract = (optionsPositions[index]
-                .optionInstrument!
-                .optionMarketData!
-                .adjustedMarkPrice! -
-            (optionsPositions[index].averageOpenPrice! / 100)) *
-        100;
-    final double gainLoss =
-        gainLossPerContract * optionsPositions[index].quantity!;
-    final double gainLossPercent =
-        gainLossPerContract / optionsPositions[index].averageOpenPrice!;
+
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -1217,34 +1267,60 @@ class _HomePageState extends State<HomePage> {
               child: Text('${optionsPositions[index].quantity!.round()}',
                   style: const TextStyle(fontSize: 18))),
           title: Text(
-              '${optionsPositions[index].symbol} \$${optionsPositions[index].optionInstrument!.strikePrice} ${optionsPositions[index].strategy.split('_').first} ${optionsPositions[index].optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+              '${optionsPositions[index].symbol} \$${formatCompactNumber.format(optionsPositions[index].optionInstrument!.strikePrice)} ${optionsPositions[index].strategy.split('_').first} ${optionsPositions[index].optionInstrument!.type}'), // , style: TextStyle(fontSize: 18.0)),
           subtitle: Text(
               'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
-          trailing: Wrap(
+          trailing: Wrap(spacing: 8, children: [
+            Icon(
+                optionsPositions[index].gainLossPerContract > 0
+                    ? Icons.trending_up
+                    : (optionsPositions[index].gainLossPerContract < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (optionsPositions[index].gainLossPerContract > 0
+                    ? Colors.green
+                    : (optionsPositions[index].gainLossPerContract < 0
+                        ? Colors.red
+                        : Colors.grey))),
+            Text(
+              "${formatCurrency.format(optionsPositions[index].marketValue)}",
+              style: const TextStyle(fontSize: 18.0),
+              textAlign: TextAlign.right,
+            )
+          ]),
+
+          /*Wrap(
             spacing: 12,
             children: [
-              Icon(
-                  gainLossPerContract > 0
-                      ? Icons.trending_up
-                      : (gainLossPerContract < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (gainLossPerContract > 0
-                      ? Colors.green
-                      : (gainLossPerContract < 0 ? Colors.red : Colors.grey))),
-              Text(
-                "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-                style: const TextStyle(fontSize: 16.0),
-                textAlign: TextAlign.right,
-              ),
-              /*
-              new Text(
-                "${formatPercentage.format(gainLossPercent)}",
-                style: TextStyle(fontSize: 15.0),
+              Column(children: [
+                Text(
+                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                  style: const TextStyle(fontSize: 15.0),
+                  textAlign: TextAlign.right,
+                ),
+                Icon(
+                    gainLossPerContract > 0
+                        ? Icons.trending_up
+                        : (gainLossPerContract < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (gainLossPerContract > 0
+                        ? Colors.green
+                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
+              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "${formatCurrency.format(marketValue)}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
               )
-              */
             ],
-          ),
+          ),*/
+          //isThreeLine: true,
           onTap: () {
             Navigator.push(
                 context,
@@ -1253,70 +1329,16 @@ class _HomePageState extends State<HomePage> {
                         ru, optionAggregatePositions[index])));
           },
         ),
-        /*
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('TRADE INSTRUMENT'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            TradeOptionWidget(ru, optionsPositions[index])));
-              },
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              child: const Text('VIEW MARKET DATA'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            OptionPositionWidget(ru, optionsPositions[index])));
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        */
       ],
     ));
-    /*
-    return new ListTile(
-      leading: CircleAvatar(
-          //backgroundImage: AssetImage(user.profilePicture),
-          child: optionsPositions[index].optionInstrument.type == 'call'
-              ? new Icon(Icons.trending_up)
-              : new Icon(Icons.trending_down)
-          // child: new Text(optionsPositions[i].symbol)
-          ),
-      // trailing: user.icon,
-      title: new Text(
-          '${optionsPositions[index].chainSymbol} \$${optionsPositions[index].optionInstrument.strikePrice} ${optionsPositions[index].optionInstrument.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)
-      subtitle: new Text(
-          '${optionsPositions[index].quantity.round()}x Expires ${dateFormat.format(optionsPositions[index].optionInstrument.expirationDate)}'),
-      trailing: new Text(
-        "\$${optionsPositions[index].averagePrice.toString()}",
-        //style: TextStyle(fontSize: 18.0),
-      ),
-      onTap: () {
-        Navigator.push(
-            context,
-            new MaterialPageRoute(
-                builder: (context) =>
-                    new OptionPositionWidget(ru, optionsPositions[index])));
-      },
-    );
-    */
   }
 
   Widget _buildWatchlistRow(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
-    return ListTile(
-      /*
+    return Card(
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        /*
       leading: CircleAvatar(
           //backgroundImage: AssetImage(user.profilePicture),
           child: watchLists[index].type == 'call'
@@ -1325,40 +1347,26 @@ class _HomePageState extends State<HomePage> {
           // child: new Text(optionsPositions[i].symbol)
           ),
           */
-      // trailing: user.icon,
-      title: Text(watchLists[index]
-          .instrumentObj!
-          .symbol), // , style: TextStyle(fontSize: 18.0)
-      subtitle: Text(
-          '${watchLists[index].instrumentObj!.name} ${watchLists[index].instrumentObj!.country}'),
-      trailing: Text(
-        dateFormat.format(watchLists[index].instrumentObj!.listDate!),
-        //style: TextStyle(fontSize: 18.0),
-      ),
-      onTap: () {
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => InstrumentWidget(
-                    ru, watchLists[index].instrumentObj as Instrument)));
-      },
-    );
+        // trailing: user.icon,
+        title: Text(watchLists[index]
+            .instrumentObj!
+            .symbol), // , style: TextStyle(fontSize: 18.0)
+        subtitle: Text(
+            '${watchLists[index].instrumentObj!.name} ${watchLists[index].instrumentObj!.country}'),
+        trailing: Text(
+          dateFormat.format(watchLists[index].instrumentObj!.listDate!),
+          //style: TextStyle(fontSize: 18.0),
+        ),
+        onTap: () {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(ru,
+                      watchLists[index].instrumentObj as Instrument, null)));
+        },
+      )
+    ]));
   }
-
-/*
-  Widget _buildWelcomeWidget(RobinhoodUser ru) {
-    return Column(
-      children: [
-        Container(height: 10),
-        Align(alignment: Alignment.center, child: new Text("Logged in.")),
-        Align(
-            alignment: Alignment.center,
-            child: new Text("Welcome ${ru.userName}")),
-        Container(height: 10),
-      ],
-    );
-  }
-  */
 
   _buildLogin() {
     return Column(
@@ -1390,7 +1398,7 @@ class _HomePageState extends State<HomePage> {
       // and show the new result.
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("${result.userName}")));
+        ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
     }
   }
 
@@ -1525,6 +1533,7 @@ class _HomePageState extends State<HomePage> {
         });
   }
   */
+
   void _generateCsvFile() async {
     File file =
         await OptionAggregatePosition.generateCsv(optionAggregatePositions);

@@ -67,6 +67,43 @@ class OptionAggregatePosition {
             DateTime.tryParse(json['updated_at']),
         strategyCode = json['strategy_code'];
 
+  // Helpers
+  double get marketValue {
+    return optionInstrument!.optionMarketData!.adjustedMarkPrice! *
+        quantity! *
+        100;
+  }
+
+  double get totalCost {
+    return averageOpenPrice! * quantity!;
+  }
+
+  double get gainLoss {
+    return marketValue - totalCost;
+  }
+
+  double get gainLossPerContract {
+    return gainLoss / quantity!;
+  }
+
+  double get gainLossPercent {
+    return gainLoss / totalCost;
+  }
+
+  double get shortCollateral {
+    return legs.first.strikePrice! * 100 * quantity!;
+  }
+
+  double get collateralReturn {
+    return totalCost / shortCollateral;
+  }
+
+  double get equity {
+    return optionInstrument!.optionMarketData!.adjustedMarkPrice! *
+        quantity! *
+        100;
+  }
+
   /* CSV Generation */
 
   List<dynamic> convertToDynamic() {

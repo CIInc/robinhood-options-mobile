@@ -79,4 +79,12 @@ class Quote {
         updatedAt = DateTime.tryParse(json['updated_at']),
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
+
+  double get changeToday {
+    return lastExtendedHoursTradePrice! - adjustedPreviousClose!;
+  }
+
+  double get changeTodayPercent {
+    return changeToday / adjustedPreviousClose!;
+  }
 }

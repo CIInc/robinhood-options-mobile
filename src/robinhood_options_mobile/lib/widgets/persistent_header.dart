@@ -20,7 +20,7 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
               child: Center(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 21.0),
+                  style: const TextStyle(fontSize: 19.0),
                 ),
               ),
             )));

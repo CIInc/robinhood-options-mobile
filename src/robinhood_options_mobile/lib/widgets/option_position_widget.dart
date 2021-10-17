@@ -9,7 +9,6 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
-import 'package:robinhood_options_mobile/widgets/quote_widget.dart';
 
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -73,23 +72,6 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   }
 
   Widget _buildPage(Instrument instrument) {
-    final double gainLossPerContract =
-        (optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice! -
-                (optionPosition.averageOpenPrice! / 100)) *
-            100 *
-            (optionPosition.legs.first.positionType == "long" ? 1 : -1);
-    final double gainLoss = gainLossPerContract * optionPosition.quantity!;
-    final double gainLossPercent =
-        gainLossPerContract / optionPosition.averageOpenPrice!;
-    final double totalCost =
-        optionPosition.averageOpenPrice! * optionPosition.quantity!;
-    final double shortCollateral =
-        optionPosition.legs.first.strikePrice! * 100 * optionPosition.quantity!;
-    final double collateralReturn = totalCost / shortCollateral;
-    final double equity =
-        optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice! *
-            optionPosition.quantity! *
-            100;
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionPosition.optionInstrument!.expirationDate!
@@ -119,13 +101,16 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
               ),
               Row(children: [
                 Text(
-                    '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice}'),
+                    '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}',
+                    style: const TextStyle(fontSize: 17.0)),
               ]),
+              /*
               Row(children: [
                 Text(
                     '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
                     style: const TextStyle(fontSize: 17.0)),
               ])
+              */
             ]))),
         pinned: true,
       ),
@@ -137,6 +122,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          /*
           ListTile(
             leading: CircleAvatar(
                 //backgroundImage: AssetImage(user.profilePicture),
@@ -152,34 +138,28 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                 child: Text('${optionPosition.quantity!.round()}',
                     style: const TextStyle(fontSize: 18))),
             title: Text(
-                '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}'), // , style: TextStyle(fontSize: 18.0)),
+                '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}'), // , style: TextStyle(fontSize: 18.0)),
             subtitle: Text(
                 'Expires ${dateFormat.format(optionPosition.optionInstrument!.expirationDate!)}'),
             trailing: Wrap(
-              spacing: 12,
+              spacing: 8,
               children: [
                 Icon(
-                    gainLossPerContract > 0
+                    optionPosition.gainLossPerContract > 0
                         ? Icons.trending_up
-                        : (gainLossPerContract < 0
+                        : (optionPosition.gainLossPerContract < 0
                             ? Icons.trending_down
                             : Icons.trending_flat),
-                    color: (gainLossPerContract > 0
+                    color: (optionPosition.gainLossPerContract > 0
                         ? Colors.green
-                        : (gainLossPerContract < 0
+                        : (optionPosition.gainLossPerContract < 0
                             ? Colors.red
                             : Colors.grey))),
                 Text(
-                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                  "${formatCurrency.format(optionPosition.gainLoss)}\n${formatPercentage.format(optionPosition.gainLossPercent)}",
                   style: const TextStyle(fontSize: 16.0),
                   textAlign: TextAlign.right,
                 ),
-                /*
-              new Text(
-                "${formatPercentage.format(gainLossPercent)}",
-                style: TextStyle(fontSize: 15.0),
-              )
-              */
               ],
             ),
             /*
@@ -191,6 +171,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           OptionPositionWidget(user, optionPosition)));
             },*/
           ),
+          */
+          Text("Option", style: const TextStyle(fontSize: 20)),
           ListTile(
             title: Text("Contracts"),
             trailing: Text(
@@ -224,34 +206,62 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           optionPosition.legs.first.positionType == "long"
               ? ListTile(
                   title: Text("Total Cost"),
-                  trailing: Text("${formatCurrency.format(totalCost)}",
+                  trailing: Text(
+                      "${formatCurrency.format(optionPosition.totalCost)}",
                       style: const TextStyle(fontSize: 18)),
                 )
               : ListTile(
                   title: Text("Short Collateral"),
-                  trailing: Text("${formatCurrency.format(shortCollateral)}",
+                  trailing: Text(
+                      "${formatCurrency.format(optionPosition.shortCollateral)}",
                       style: const TextStyle(fontSize: 18)),
                 ),
           optionPosition.legs.first.positionType == "long"
               ? Container()
               : ListTile(
                   title: Text("Credit to Collateral"),
-                  trailing: Text("${formatPercentage.format(collateralReturn)}",
+                  trailing: Text(
+                      "${formatPercentage.format(optionPosition.collateralReturn)}",
                       style: const TextStyle(fontSize: 18)),
                 ),
           ListTile(
-            title: Text("Value"), //Equity
-            trailing: Text("${formatCurrency.format(equity)}",
+            title: Text("Market Value"), //Equity
+            trailing: Text("${formatCurrency.format(optionPosition.equity)}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Return"),
-            trailing: Text("${formatCurrency.format(gainLoss)}",
+              title: Text("Return"),
+              trailing: Wrap(
+                spacing: 8,
+                children: [
+                  Icon(
+                    optionPosition.gainLossPerContract > 0
+                        ? Icons.trending_up
+                        : (optionPosition.gainLossPerContract < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (optionPosition.gainLossPerContract > 0
+                        ? Colors.green
+                        : (optionPosition.gainLossPerContract < 0
+                            ? Colors.red
+                            : Colors.grey)),
+                  ), //size: 18.0
+                  Text(
+                    "${formatCurrency.format(optionPosition.gainLoss)}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              )
+              /*
+            Text("${formatCurrency.format(optionPosition.gainLoss)}",
                 style: const TextStyle(fontSize: 18)),
-          ),
+                */
+              ),
           ListTile(
             title: Text("Return %"),
-            trailing: Text("${formatPercentage.format(gainLossPercent)}",
+            trailing: Text(
+                "${formatPercentage.format(optionPosition.gainLossPercent)}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
@@ -305,6 +315,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         */
         ],
       ))),
+      /*
       SliverList(
           delegate: SliverChildBuilderDelegate((BuildContext context, int i) {
         if (i < 20) {
@@ -312,46 +323,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         }
         return null;
       }))
+      */
     ]);
-    /*
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(
-              '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}'),
-          //new Text("${optionPosition.chainSymbol} \$${optionPosition.averagePrice.toStringAsFixed(2)} ${optionPosition.type.toUpperCase()}"),
-          actions: <Widget>[
-            IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              tooltip: "Trade",
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) =>
-                            TradeOptionWidget(user, optionPosition)));
-              },
-            ),
-          ],
-        ),
-        body: Builder(builder: (context) {
-          return ListView.builder(
-              itemCount: 2,
-              itemBuilder: (context, i) {
-                if (i == 0) {
-                  return _buildStockView(instrument);
-                } else {
-                  return _buildPosition(optionPosition, instrument);
-                }
-              });
-          /*
-          Stack(children: [
-            //QuoteWidget(user, optionPosition),
-            _buildStockView(instrument),
-            _buildPosition(optionPosition, instrument)
-          ]);
-          */
-        }));
-        */
   }
 
   Widget _buildStockView(Instrument instrument) {
@@ -363,18 +336,45 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           leading: const Icon(Icons.album),
           title: Text('${instrument.simpleName}'),
           subtitle: Text(instrument.name),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Icon(
+                  instrument.quoteObj!.changeToday > 0
+                      ? Icons.trending_up
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (instrument.quoteObj!.changeToday > 0
+                      ? Colors.green
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+              /*
+            Text(
+              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+              style: const TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.right,
+            ),*/
+            ],
+          ),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
-              child: const Text('VIEW'),
+              child: const Text('VIEW STOCK'),
               onPressed: () {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) =>
-                            InstrumentWidget(user, instrument)));
+                            InstrumentWidget(user, instrument, null)));
               },
             ),
           ],
@@ -383,43 +383,17 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     ));
   }
 
+  /*
   Widget _buildPosition(
       OptionAggregatePosition optionPosition, Instrument instrument) {
     return Card(
       child: ListView.builder(
           padding: const EdgeInsets.all(16.0),
           itemCount: 20,
-          itemBuilder: /*1*/ (context, i) {
-            /*
-          if (i.isOdd) return Divider(); /*2*/
-
-          final index = i ~/ 2; /*3*/
-          if (index >= _suggestions.length) {
-            _suggestions
-                .addAll([OptionPosition()]); //generateWordPairs().take(10)
-          }
-          */
-
+          itemBuilder: (context, i) {
             return _buildAggregateRow(i, optionPosition);
           }),
     );
-    /*
-    return ListView.builder(
-        padding: EdgeInsets.all(16.0),
-        itemCount: 22,
-        itemBuilder: /*1*/ (context, i) {
-          /*
-          if (i.isOdd) return Divider(); /*2*/
-
-          final index = i ~/ 2; /*3*/
-          if (index >= _suggestions.length) {
-            _suggestions
-                .addAll([OptionPosition()]); //generateWordPairs().take(10)
-          }
-          */
-          return _buildRow(i, optionPosition);
-        });
-        */
   }
 
   Widget _buildAggregateRow(int pos, OptionAggregatePosition optionPosition) {
@@ -617,4 +591,5 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
       subtitle: Text(title),
     );
   }
+  */
 }

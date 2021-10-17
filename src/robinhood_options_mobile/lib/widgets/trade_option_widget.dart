@@ -51,7 +51,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     return Scaffold(
         appBar: AppBar(
           title: Text(
-              "Trade ${optionPosition.symbol} \$${optionPosition.averageOpenPrice!.toStringAsFixed(2)} ${optionPosition.legs.first.optionType.toUpperCase()}"),
+              "Trade ${optionPosition.symbol} \$${optionPosition.averageOpenPrice!.toStringAsFixed(2)} ${optionPosition.legs.first.optionType}"),
         ),
         body: Builder(builder: (context) {
           return ListView(
