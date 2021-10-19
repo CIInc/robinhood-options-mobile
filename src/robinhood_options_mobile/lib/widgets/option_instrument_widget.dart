@@ -54,7 +54,18 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 return Text("${instrumentSnapshot.error}");
               }
               return Container();
-            }));
+            }),
+        floatingActionButton: (user != null && user.userName != null)
+            ? FloatingActionButton(
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionInstrument: optionInstrument))),
+                tooltip: 'Trade',
+                child: const Icon(Icons.shopping_cart),
+              )
+            : null);
   }
 
   Widget _buildPage(Instrument instrument) {
@@ -67,44 +78,49 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         optionInstrument.expirationDate!.difference(createdAt).inDays;
     return CustomScrollView(slivers: [
       SliverAppBar(
-        //title: Text(instrument.symbol), // Text('${optionInstrument.symbol} \$${optionInstrument.strikePrice} ${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}')
-        expandedHeight: 160,
-        flexibleSpace: FlexibleSpaceBar(
-            background: const FlutterLogo(),
-            title: SingleChildScrollView(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Row(
-                    children: const [Text('')],
-                  ),
-                  Row(
-                    children: const [Text('')],
-                  ),
-                  Row(
-                    children: const [Text('')],
-                  ),
-                  Text(
-                    '${optionInstrument.chainSymbol} \$${optionInstrument.strikePrice} ${optionInstrument.type}',
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.left,
-                  ),
-                  Text(
-                    '${formatDate.format(optionInstrument.expirationDate!)}',
-                    style: const TextStyle(fontSize: 14.0),
-                    textAlign: TextAlign.left,
-                  ),
-
-                  /*
+          //title: Text(instrument.symbol), // Text('${optionInstrument.symbol} \$${optionInstrument.strikePrice} ${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}')
+          expandedHeight: 160,
+          flexibleSpace: FlexibleSpaceBar(
+              background: const FlutterLogo(),
+              title: SingleChildScrollView(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Row(children: const [SizedBox(height: 70)]),
+                    Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.end,
+                        //runAlignment: WrapAlignment.end,
+                        //alignment: WrapAlignment.end,
+                        spacing: 20,
+                        //runSpacing: 5,
+                        children: [
+                          Text(
+                              '${optionInstrument.chainSymbol} \$${optionInstrument.strikePrice} ${optionInstrument.type}',
+                              style: const TextStyle(fontSize: 20.0)),
+                          Text(
+                              '${formatDate.format(optionInstrument!.expirationDate!)}',
+                              style: const TextStyle(fontSize: 16.0))
+                        ]),
+                    /*
               Row(children: [
                 Text(
                     '${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}',
                     style: const TextStyle(fontSize: 17.0)),
               ])
               */
-                ]))),
-        pinned: true,
-      ),
+                  ]))),
+          pinned: true,
+          actions: <Widget>[
+            IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                tooltip: 'Trade',
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionInstrument: optionInstrument)))),
+          ]),
+      //SliverToBoxAdapter(child: buildOverview()),
       SliverToBoxAdapter(
         child: _buildStockView(instrument),
       ),
@@ -261,146 +277,157 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         children: _buildLegs(optionInstrument).toList(),
       ))),
       */
+
       SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ListTile(
-              title: const Text("Market Data", style: TextStyle(fontSize: 20))),
-          ListTile(
-            title: const Text("Break Even Price"),
-            trailing: Text(
-                formatCurrency
-                    .format(optionInstrument.optionMarketData!.breakEvenPrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid - Mark - Ask"),
-            trailing: Text(
-                "${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid Size - Ask Size"),
-            trailing: Text(
-                "${formatCompactNumber.format(optionInstrument.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionInstrument.optionMarketData!.askSize)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Adjusted Mark Price"),
-            trailing: Text(
-                formatCurrency.format(
-                    optionInstrument.optionMarketData!.adjustedMarkPrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Last Trade"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.lastTradePrice != null
-                    ? "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}"
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Low Price - High Price"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.lowPrice != null
-                    ? "${formatCurrency.format(optionInstrument.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.highPrice)}"
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: Text(
-                "Previous Close (${formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!)})"),
-            trailing: Text(
-                formatCurrency.format(
-                    optionInstrument.optionMarketData!.previousClosePrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Volume"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(optionInstrument.optionMarketData!.volume),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Open Interest"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(optionInstrument.optionMarketData!.openInterest),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Implied Volatility"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.impliedVolatility != null
-                    ? formatPercentage.format(
-                        optionInstrument.optionMarketData!.impliedVolatility)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Chance of Profit (Long)"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.chanceOfProfitLong != null
-                    ? formatPercentage.format(
-                        optionInstrument.optionMarketData!.chanceOfProfitLong)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Chance of Profit (Short)"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.chanceOfProfitShort != null
-                    ? formatPercentage.format(
-                        optionInstrument.optionMarketData!.chanceOfProfitShort)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Delta"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.delta != null
-                    ? "${optionInstrument.optionMarketData!.delta}"
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Gamma"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.gamma != null
-                    ? "${optionInstrument.optionMarketData!.gamma}"
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Theta"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.theta != null
-                    ? "${optionInstrument.optionMarketData!.theta}"
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Vega"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.vega != null
-                    ? "${optionInstrument.optionMarketData!.vega}"
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Rho"),
-            trailing: Text(
-                optionInstrument.optionMarketData!.rho != null
-                    ? "${optionInstrument.optionMarketData!.rho}"
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-      ))),
+          child: optionInstrument.optionMarketData != null
+              ? Card(
+                  child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                        title: const Text("Market Data",
+                            style: TextStyle(fontSize: 20))),
+                    ListTile(
+                      title: const Text("Break Even Price"),
+                      trailing: Text(
+                          formatCurrency.format(optionInstrument
+                              .optionMarketData!.breakEvenPrice),
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Bid - Mark - Ask"),
+                      trailing: Text(
+                          "${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Bid Size - Ask Size"),
+                      trailing: Text(
+                          "${formatCompactNumber.format(optionInstrument.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionInstrument.optionMarketData!.askSize)}",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Adjusted Mark Price"),
+                      trailing: Text(
+                          formatCurrency.format(optionInstrument
+                              .optionMarketData!.adjustedMarkPrice),
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Last Trade"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.lastTradePrice !=
+                                  null
+                              ? "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}"
+                              : "-",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Low Price - High Price"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.lowPrice != null
+                              ? "${formatCurrency.format(optionInstrument.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.highPrice)}"
+                              : "-",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: Text(
+                          "Previous Close (${formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!)})"),
+                      trailing: Text(
+                          formatCurrency.format(optionInstrument
+                              .optionMarketData!.previousClosePrice),
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Volume"),
+                      trailing: Text(
+                          formatCompactNumber.format(
+                              optionInstrument.optionMarketData!.volume),
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Open Interest"),
+                      trailing: Text(
+                          formatCompactNumber.format(
+                              optionInstrument.optionMarketData!.openInterest),
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Implied Volatility"),
+                      trailing: Text(
+                          optionInstrument
+                                      .optionMarketData!.impliedVolatility !=
+                                  null
+                              ? formatPercentage.format(optionInstrument
+                                  .optionMarketData!.impliedVolatility)
+                              : "-",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Chance of Profit (Long)"),
+                      trailing: Text(
+                          optionInstrument
+                                      .optionMarketData!.chanceOfProfitLong !=
+                                  null
+                              ? formatPercentage.format(optionInstrument
+                                  .optionMarketData!.chanceOfProfitLong)
+                              : "-",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Chance of Profit (Short)"),
+                      trailing: Text(
+                          optionInstrument
+                                      .optionMarketData!.chanceOfProfitShort !=
+                                  null
+                              ? formatPercentage.format(optionInstrument
+                                  .optionMarketData!.chanceOfProfitShort)
+                              : "-",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Delta"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.delta != null
+                              ? "${optionInstrument.optionMarketData!.delta}"
+                              : "",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Gamma"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.gamma != null
+                              ? "${optionInstrument.optionMarketData!.gamma}"
+                              : "",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Theta"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.theta != null
+                              ? "${optionInstrument.optionMarketData!.theta}"
+                              : "",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Vega"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.vega != null
+                              ? "${optionInstrument.optionMarketData!.vega}"
+                              : "",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                    ListTile(
+                      title: const Text("Rho"),
+                      trailing: Text(
+                          optionInstrument.optionMarketData!.rho != null
+                              ? "${optionInstrument.optionMarketData!.rho}"
+                              : "",
+                          style: const TextStyle(fontSize: 18)),
+                    ),
+                  ],
+                ))
+              : Container()),
     ]);
   }
 
@@ -437,6 +464,87 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     }
   }
 
+  Card buildOverview() {
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+                child: const Text('TRADE'),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionInstrument: optionInstrument)))),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
+    ));
+  }
+
+  Widget _buildStockView(Instrument instrument) {
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ListTile(
+          // leading: const Icon(Icons.album),
+          title: Text('${instrument.simpleName}'),
+          subtitle: Text(instrument.name),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Icon(
+                  instrument.quoteObj!.changeToday > 0
+                      ? Icons.trending_up
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (instrument.quoteObj!.changeToday > 0
+                      ? Colors.green
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+            ],
+          ),
+        ),
+        /*
+        ListTile(
+        title: const Text("Expiration Date"),
+        trailing: Text(formatDate.format(leg.expirationDate!),
+            style: const TextStyle(fontSize: 18)),
+        ),
+        */
+        /*
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+              child: const Text('VIEW STOCK'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            InstrumentWidget(user, instrument)));
+              },
+            ),
+          ],
+        ),
+        */
+      ],
+    ));
+  }
+/*
   Widget _buildStockView(Instrument instrument) {
     return Card(
         child: Column(
@@ -495,4 +603,5 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       ],
     ));
   }
+  */
 }

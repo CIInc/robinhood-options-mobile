@@ -88,11 +88,11 @@ class Quote {
     return lastExtendedHoursTradePrice! - adjustedPreviousClose!;
   }
 
-  double get changeTodayPercent {
+  double get changePercentToday {
     return changeToday / adjustedPreviousClose!;
   }
 
-  double get extendedHoursChangeTodayPercent {
+  double get extendedHoursChangePercentToday {
     return extendedHoursChangeToday / adjustedPreviousClose!;
   }
 }

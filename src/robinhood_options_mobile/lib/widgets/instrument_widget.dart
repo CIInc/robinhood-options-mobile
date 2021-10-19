@@ -3,14 +3,13 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/persistent_chain_header.dart';
-import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
 final dateFormat = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -21,17 +20,20 @@ class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Instrument instrument;
   final Position? position;
-  InstrumentWidget(this.user, this.instrument, this.position);
+  final OptionAggregatePosition? optionPosition;
+  InstrumentWidget(this.user, this.instrument,
+      {this.position, this.optionPosition});
 
   @override
   _InstrumentWidgetState createState() =>
-      _InstrumentWidgetState(user, instrument, position);
+      _InstrumentWidgetState(user, instrument, position, optionPosition);
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
   final RobinhoodUser user;
   final Instrument instrument;
   final Position? position;
+  final OptionAggregatePosition? optionPosition;
   Future<Quote>? futureQuote;
   late Quote quote;
 
@@ -47,7 +49,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   //final dataKey = GlobalKey();
 
-  _InstrumentWidgetState(this.user, this.instrument, this.position);
+  _InstrumentWidgetState(
+      this.user, this.instrument, this.position, this.optionPosition);
 
   @override
   void initState() {
@@ -90,8 +93,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       .toSet()
                       .toList();
                   expirationDates!.sort((a, b) => a.compareTo(b));
-
-                  expirationDateFilter ??= expirationDates!.first;
+                  if (expirationDates!.length > 0) {
+                    expirationDateFilter ??= expirationDates!.first;
+                  }
                   /*
                   var optionInstrumentsForDate = optionInstruments!.where((element) => element.expirationDate! == expirationDateFilter!);
                   for (var op in optionInstrumentsForDate) {
@@ -147,43 +151,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(title: const Text("Position", style: TextStyle(fontSize: 20))),
         ListTile(
           title: Text("Quantity"),
-          trailing: Text("${formatCompactNumber.format(position!.quantity!)}",
+          trailing: Text(formatCompactNumber.format(position!.quantity!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Average Cost"),
-          trailing: Text("${formatCurrency.format(position!.averageBuyPrice)}",
+          trailing: Text(formatCurrency.format(position!.averageBuyPrice),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Total Cost"),
-          trailing: Text("${formatCurrency.format(position!.totalCost)}",
+          trailing: Text(formatCurrency.format(position!.totalCost),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Market Value"),
-          trailing: Text("${formatCurrency.format(position!.marketValue)}",
+          trailing: Text(formatCurrency.format(position!.marketValue),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Return"),
-          trailing: Text("${formatCurrency.format(position!.gainLoss)}",
+          trailing: Text(formatCurrency.format(position!.gainLoss),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Return %"),
-          trailing: Text(
-              "${formatPercentage.format(position!.gainLossPercent)}",
+          trailing: Text(formatPercentage.format(position!.gainLossPercent),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Created"),
-          trailing: Text("${dateFormat.format(position!.createdAt!)}",
+          trailing: Text(dateFormat.format(position!.createdAt!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Updated"),
-          trailing: Text("${dateFormat.format(position!.updatedAt!)}",
+          trailing: Text(dateFormat.format(position!.updatedAt!),
               style: const TextStyle(fontSize: 18)),
         ),
       ]))));
@@ -404,7 +407,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           title: Text("Change Today %"),
           trailing: Text(
-              "${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}",
+              "${formatPercentage.format(instrument.quoteObj!.changePercentToday)}",
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
@@ -628,7 +631,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     children: [
                       optionInstruments[index].optionMarketData != null
                           ? Text(
-                              "${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)}",
+                              formatCurrency.format(optionInstruments[index]
+                                  .optionMarketData!
+                                  .markPrice),
                               //"${formatCurrency.format(optionInstruments[index].optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.askPrice)}",
                               style: const TextStyle(fontSize: 18))
                           : const Text(""),
@@ -646,7 +651,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                     : Colors.grey)),
                             size: 16),
                         Text(
-                          "${optionInstruments[index].optionMarketData != null && optionInstruments[index].optionMarketData!.gainLossPercentToday != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.gainLossPercentToday) : "-"}",
+                          optionInstruments[index].optionMarketData != null
+                              ? formatPercentage.format(optionInstruments[index]
+                                  .optionMarketData!
+                                  .gainLossPercentToday)
+                              : "-",
                           //style: TextStyle(fontSize: 16),
                         )
                       ]),
@@ -675,9 +684,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Iterable<Widget> get headerWidgets sync* {
-    yield Row(children: [const SizedBox(height: 70)]);
+    yield Row(children: const [SizedBox(height: 70)]);
     yield Row(children: [
-      Text('${instrument.symbol}', style: const TextStyle(fontSize: 20.0)),
+      Text(instrument.symbol, style: const TextStyle(fontSize: 20.0)),
     ]);
     yield Text(
       '${instrument.simpleName}',
@@ -686,11 +695,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       //overflow: TextOverflow.ellipsis
     );
     yield Text(
-      '${instrument.name}',
+      instrument.name,
       style: const TextStyle(fontSize: 10.0),
       //overflow: TextOverflow.visible
     );
-    yield Row(children: [const SizedBox(height: 10)]);
+    yield Row(children: const [SizedBox(height: 10)]);
     if (instrument.quoteObj != null) {
       if (instrument.quoteObj!.changeToday != null) {
         yield Row(
@@ -701,15 +710,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Container(
                 width: 10,
               ),
-              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                const SizedBox(
-                  width: 70,
-                  child: Text(
-                    "Change Today",
-                    style: TextStyle(fontSize: 10.0),
-                  ),
-                )
-              ]),
+              Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: const [
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        "Today",
+                        style: TextStyle(fontSize: 10.0),
+                      ),
+                    )
+                  ]),
               Container(
                 width: 5,
               ),
@@ -733,7 +744,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         width: 2,
                       ),
                       Text(
-                          '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
+                          formatPercentage
+                              .format(instrument.quoteObj!.changePercentToday),
                           style: const TextStyle(fontSize: 12.0)),
                     ]))
               ]),
@@ -743,7 +755,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               SizedBox(
                   width: 50,
                   child: Text(
-                      "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
+                      formatCurrency.format(instrument.quoteObj!.changeToday),
                       style: const TextStyle(fontSize: 12.0),
                       textAlign: TextAlign.right)),
               Container(
@@ -759,8 +771,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Container(
               width: 10,
             ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              const SizedBox(
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
+              SizedBox(
                 width: 70,
                 child: Text(
                   "Last Price",
@@ -774,7 +786,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             SizedBox(
                 width: 115,
                 child: Text(
-                    "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
+                    formatCurrency.format(instrument.quoteObj!.lastTradePrice),
                     style: const TextStyle(fontSize: 12.0),
                     textAlign: TextAlign.right)),
             Container(
@@ -790,22 +802,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Container(
                 width: 10,
               ),
-              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                const SizedBox(
-                  width: 70,
-                  child: Text(
-                    "After Hours",
-                    style: TextStyle(fontSize: 10.0),
-                  ),
-                )
-              ]),
+              Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: const [
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        "After Hours",
+                        style: TextStyle(fontSize: 10.0),
+                      ),
+                    )
+                  ]),
               Container(
                 width: 5,
               ),
               SizedBox(
                   width: 115,
                   child: Text(
-                      "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                      formatCurrency.format(
+                          instrument.quoteObj!.lastExtendedHoursTradePrice),
                       style: const TextStyle(fontSize: 12.0),
                       textAlign: TextAlign.right)),
               Container(
@@ -821,8 +836,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Container(
               width: 10,
             ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              const SizedBox(
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
+              SizedBox(
                 width: 70,
                 child: Text(
                   "Bid",
@@ -854,8 +869,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Container(
               width: 10,
             ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              const SizedBox(
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
+              SizedBox(
                 width: 70,
                 child: Text(
                   "Ask",
@@ -884,8 +899,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             Container(
               width: 10,
             ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              const SizedBox(
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
+              SizedBox(
                 width: 70,
                 child: Text(
                   "Previous Close",
@@ -899,7 +914,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             SizedBox(
                 width: 115,
                 child: Text(
-                    "${formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose)}",
+                    formatCurrency
+                        .format(instrument.quoteObj!.adjustedPreviousClose),
                     style: const TextStyle(fontSize: 12.0),
                     textAlign: TextAlign.right)),
             Container(
@@ -955,7 +971,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(4.0),
           child: ChoiceChip(
             //avatar: CircleAvatar(child: Text(contractCount.toString())),
-            label: Text("${dateFormat.format(expirationDate)}"),
+            label: Text(dateFormat.format(expirationDate)),
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {

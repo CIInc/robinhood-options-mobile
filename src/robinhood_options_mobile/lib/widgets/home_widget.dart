@@ -384,10 +384,10 @@ class _HomePageState extends State<HomePage> {
       bool done = false}) {
     var slivers = <Widget>[];
     double changeToday = 0;
-    double changeTodayPercentage = 0;
+    double changePercentToday = 0;
     if (portfolios != null) {
       changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
-      changeTodayPercentage = changeToday / portfolios[0].equity!;
+      changePercentToday = changeToday / portfolios[0].equity!;
     }
     double positionEquity = 0;
     if (positions != null) {
@@ -422,7 +422,7 @@ class _HomePageState extends State<HomePage> {
         nummusEquity,
         optionEquity,
         changeToday,
-        changeTodayPercentage);
+        changePercentToday);
     slivers.add(sliverAppBar);
 
     if (ru != null && ru.userName != null) {
@@ -1012,6 +1012,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget watchListWidget(List<WatchlistItem> watchLists) {
+    return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 150.0,
+            mainAxisSpacing: 6.0,
+            crossAxisSpacing: 2.0,
+            childAspectRatio: 1.3,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              return _buildWatchlistGridItem(watchLists, index, robinhoodUser!);
+              /*
+          return Container(
+            alignment: Alignment.center,
+            color: Colors.teal[100 * (index % 9)],
+            child: Text('grid item $index'),
+          );
+          */
+            },
+            childCount: watchLists.length,
+          ),
+        ));
+    /*
     return SliverList(
       // delegate: SliverChildListDelegate(widgets),
       delegate: SliverChildBuilderDelegate(
@@ -1028,6 +1052,7 @@ class _HomePageState extends State<HomePage> {
         // childCount: widgets.length + 10,
       ),
     );
+    */
   }
 
   Widget get symbolFilterWidget {
@@ -1233,7 +1258,7 @@ class _HomePageState extends State<HomePage> {
       double nummusEquity,
       double optionEquity,
       double changeToday,
-      double changeTodayPercentage) {
+      double changePercentToday) {
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
                     leading: IconButton(
@@ -1255,7 +1280,7 @@ class _HomePageState extends State<HomePage> {
       snap: false,
       /*
       title: silverCollapsed && user != null && portfolios != null
-          ? getAppBarTitle(user, changeToday, changeTodayPercentage)
+          ? getAppBarTitle(user, changeToday, changePercentToday)
           : Container(),
           */
       flexibleSpace: LayoutBuilder(
@@ -1316,13 +1341,13 @@ class _HomePageState extends State<HomePage> {
                             width: 2,
                           ),
                           Text(
-                              '${formatPercentage.format(changeTodayPercentage.abs())}',
+                              '${formatPercentage.format(changePercentToday.abs())}',
                               style: const TextStyle(fontSize: 16.0)),
                           Container(
                             width: 10,
                           ),
                           Text(
-                              "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
+                              "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
                               style: const TextStyle(fontSize: 16.0)),
                           Container(
                             width: 10,
@@ -1716,9 +1741,8 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
-                      ru,
-                      positions[index].instrumentObj as Instrument,
-                      positions[index])));
+                      ru, positions[index].instrumentObj as Instrument,
+                      position: positions[index])));
         },
       )
     ]));
@@ -1825,20 +1849,72 @@ class _HomePageState extends State<HomePage> {
     ));
   }
 
+  Widget _buildWatchlistGridItem(
+      List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+    var instrumentObj = watchLists[index].instrumentObj!;
+    var quoteObj = instrumentObj.quoteObj!;
+    return Card(
+        child: Padding(
+            padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+            child: InkWell(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Text(instrumentObj.symbol, style: TextStyle(fontSize: 16.0)),
+                Wrap(
+                  children: [
+                    Icon(
+                        quoteObj.changeToday > 0
+                            ? Icons.trending_up
+                            : (quoteObj.changeToday < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (quoteObj.changeToday > 0
+                            ? Colors.green
+                            : (quoteObj.changeToday < 0
+                                ? Colors.red
+                                : Colors.grey)),
+                        size: 20),
+                    Container(
+                      width: 2,
+                    ),
+                    Text(
+                        '${formatPercentage.format(quoteObj.changePercentToday.abs())}',
+                        style: const TextStyle(fontSize: 16.0)),
+                  ],
+                ),
+                Container(
+                  height: 5,
+                ),
+                Wrap(children: [
+                  Text(
+                      '${watchLists[index].instrumentObj!.name}', // ${watchLists[index].instrumentObj!.country}',
+                      style: TextStyle(fontSize: 12.0),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis)
+                ]),
+              ]),
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(ru,
+                            watchLists[index].instrumentObj as Instrument)));
+              },
+            )));
+  }
+
+  /*
   Widget _buildWatchlistRow(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
-        /*
-      leading: CircleAvatar(
-          //backgroundImage: AssetImage(user.profilePicture),
-          child: watchLists[index].type == 'call'
-              ? new Icon(Icons.trending_up)
-              : new Icon(Icons.trending_down)
-          // child: new Text(optionsPositions[i].symbol)
-          ),
-          */
+//      leading: CircleAvatar(
+//          //backgroundImage: AssetImage(user.profilePicture),
+//          child: watchLists[index].type == 'call'
+//              ? new Icon(Icons.trending_up)
+//              : new Icon(Icons.trending_down)
+//          // child: new Text(optionsPositions[i].symbol)
+//          ),
         // trailing: user.icon,
         title: Text(watchLists[index]
             .instrumentObj!
@@ -1859,6 +1935,7 @@ class _HomePageState extends State<HomePage> {
       )
     ]));
   }
+  */
 
   _buildLogin() {
     return Column(

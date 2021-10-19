@@ -45,31 +45,41 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder(
-          future: futureQuote,
-          builder: (context, AsyncSnapshot<Quote> snapshot) {
-            if (snapshot.hasData) {
-              var quote = snapshot.data!;
-              futureInstrument = RobinhoodService.getInstrument(
-                  user, snapshot.data!.instrument);
-              return FutureBuilder(
-                  future: futureInstrument,
-                  builder:
-                      (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
-                    if (instrumentSnapshot.hasData) {
-                      var instrument = instrumentSnapshot.data!;
-                      instrument.quoteObj = quote;
-                      return _buildPage(instrument);
-                    } else if (instrumentSnapshot.hasError) {
-                      print("${instrumentSnapshot.error}");
-                      return Text("${instrumentSnapshot.error}");
-                    }
-                    return Container();
-                  });
-            }
-            return Container();
-          }),
-    );
+        body: FutureBuilder(
+            future: futureQuote,
+            builder: (context, AsyncSnapshot<Quote> snapshot) {
+              if (snapshot.hasData) {
+                var quote = snapshot.data!;
+                futureInstrument = RobinhoodService.getInstrument(
+                    user, snapshot.data!.instrument);
+                return FutureBuilder(
+                    future: futureInstrument,
+                    builder: (context,
+                        AsyncSnapshot<Instrument> instrumentSnapshot) {
+                      if (instrumentSnapshot.hasData) {
+                        var instrument = instrumentSnapshot.data!;
+                        instrument.quoteObj = quote;
+                        return _buildPage(instrument);
+                      } else if (instrumentSnapshot.hasError) {
+                        print("${instrumentSnapshot.error}");
+                        return Text("${instrumentSnapshot.error}");
+                      }
+                      return Container();
+                    });
+              }
+              return Container();
+            }),
+        floatingActionButton: (user != null && user.userName != null)
+            ? FloatingActionButton(
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionPosition: optionPosition))),
+                tooltip: 'Trade',
+                child: const Icon(Icons.shopping_cart),
+              )
+            : null);
   }
 
   Widget _buildPage(Instrument instrument) {
@@ -130,7 +140,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                               SizedBox(
                                 width: 60,
                                 child: Text(
-                                  "Change Today",
+                                  "Today",
                                   style: TextStyle(fontSize: 10.0),
                                 ),
                               )
@@ -173,7 +183,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                         SizedBox(
                             width: 60,
                             child: Text(
-                                "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
+                                "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -240,7 +250,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                         SizedBox(
                             width: 60,
                             child: Text(
-                                "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
+                                "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -341,7 +351,18 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                   ),
                 ]))),
         pinned: true,
+        actions: <Widget>[
+          IconButton(
+              icon: const Icon(Icons.shopping_cart),
+              tooltip: 'Trade',
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => TradeOptionWidget(user,
+                          optionPosition: optionPosition))))
+        ],
       ),
+      //SliverToBoxAdapter(child: buildOverview()),
       SliverToBoxAdapter(
         child: _buildStockView(instrument),
       ),
@@ -520,7 +541,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) =>
-                            TradeOptionWidget(ru, optionsPositions[index])));
+                            TradeOptionWidget(ru, optionsPosition: optionsPositions[index])));
               },
             ),
             const SizedBox(width: 8),
@@ -708,6 +729,28 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     }
   }
 
+  Card buildOverview() {
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+                child: const Text('TRADE'),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionPosition: optionPosition)))),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
+    ));
+  }
+
   Widget _buildStockView(Instrument instrument) {
     return Card(
         child: Column(
@@ -755,8 +798,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            InstrumentWidget(user, instrument, null)));
+                        builder: (context) => InstrumentWidget(user, instrument,
+                            optionPosition: optionPosition)));
               },
             ),
           ],

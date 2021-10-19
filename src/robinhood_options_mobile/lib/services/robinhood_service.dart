@@ -28,9 +28,21 @@ class RobinhoodService {
   */
 
   static Future<User> getUser(RobinhoodUser user) async {
+    print('${Constants.robinHoodEndpoint}/user/');
     var result = await user.oauth2Client!
         .read(Uri.parse('${Constants.robinHoodEndpoint}/user/'));
     // print(result);
+    /*
+    print('${Constants.robinHoodEndpoint}/user/basic_info/');
+    var basicInfoResult = await user.oauth2Client!
+        .read(Uri.parse('${Constants.robinHoodEndpoint}/user/basic_info/'));
+    print('${Constants.robinHoodEndpoint}/user/investment_profile/');
+    var investmentProfileResult = await user.oauth2Client!.read(
+        Uri.parse('${Constants.robinHoodEndpoint}/user/investment_profile/'));
+    print('${Constants.robinHoodEndpoint}/user/additional_info/');
+    var additionalInfoResult = await user.oauth2Client!.read(
+        Uri.parse('${Constants.robinHoodEndpoint}/user/additional_info/'));
+        */
 
     var resultJson = jsonDecode(result);
     var usr = User.fromJson(resultJson);
@@ -57,7 +69,6 @@ class RobinhoodService {
   */
 
   static Future<List<Portfolio>> getPortfolios(RobinhoodUser user) async {
-    //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/portfolios/");
     //print(results);
@@ -74,7 +85,6 @@ class RobinhoodService {
   // Not working
   static Future<dynamic> getPortfolioHistoricals(
       RobinhoodUser user, String account) async {
-    //var results = await user.oauth2Client.read("${Constants.robinHoodEndpoint}/portfolios/");
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodEndpoint}/portfolios/historicals/"); //${account}/
     print(results);
@@ -372,6 +382,7 @@ class RobinhoodService {
     return optionPositions;
   }
 
+  /*
   static Future<List<OptionPosition>> getOptionPositions(RobinhoodUser user,
       bool includeOpen, bool includeClosed, List<String> filters) async {
     var result = await user.oauth2Client!
@@ -390,6 +401,7 @@ class RobinhoodService {
     }
     return optionPositions;
   }
+  */
 
   static Future<OptionInstrument> getOptionInstrument(
       RobinhoodUser user, String option) async {
@@ -633,6 +645,17 @@ WATCHLIST
   static Stream<List<WatchlistItem>> streamWatchlists(
       RobinhoodUser user) async* {
     List<WatchlistItem> watchlistItems = [];
+
+    /*
+    try {
+      var watchLists = await user.oauth2Client!
+          .read(Uri.parse("${Constants.robinHoodEndpoint}/lists/Default"));
+      var watchListsJson = jsonDecode(watchLists);
+    } on Exception catch (e) {
+      print('Error: $e');
+    }
+    */
+
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/watchlists/Default/"); // ?chain_id=${instrument.tradeableChainId}
     //print(results);
@@ -641,10 +664,16 @@ WATCHLIST
         var result = results[i];
         var op = WatchlistItem.fromJson(result);
 
+        /*
         var instrumentResponse =
             await user.oauth2Client!.read(Uri.parse(op.instrument));
         var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
-        op.instrumentObj = instrument;
+        */
+        var instrumentObj = await getInstrument(user, op.instrument);
+        op.instrumentObj = instrumentObj;
+
+        var quoteObj = await getQuote(user, op.instrumentObj!.symbol);
+        op.instrumentObj!.quoteObj = quoteObj;
 
         watchlistItems.add(op);
         yield watchlistItems;
@@ -652,23 +681,6 @@ WATCHLIST
       watchlistItems.sort((a, b) => b.watchlist.compareTo(a.watchlist));
       yield watchlistItems;
     }
-    /*
-    var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
-    List<String> distinctInstrumentUrls = [
-      ...{...instrumentUrls}
-    ];
-    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
-      print(distinctInstrumentUrls[i]);
-      var instrumentResponse =
-          await user.oauth2Client!.read(Uri.parse(distinctInstrumentUrls[i]));
-      var instrument = Instrument.fromJson(jsonDecode(instrumentResponse));
-      var itemsToUpdate = watchlistItems
-          .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      for (var element in itemsToUpdate) {
-        element.instrumentObj = instrument;
-      }
-    }
-    */
   }
 
   static Future<List<WatchlistItem>> getWatchlists(RobinhoodUser user) async {
@@ -686,25 +698,6 @@ WATCHLIST
       var op = WatchlistItem.fromJson(result);
       watchlistItems.add(op);
     }
-    /*
-    var watchLists = watchlistItems.map((e) => e.url).toList();
-    List<String> distinctwatchLists = [
-      ...{...watchLists}
-    ];
-    for (var i = 0; i < distinctwatchLists.length; i++) {
-      print(distinctwatchLists[i]);
-      var watchlistResponse =
-          await user.oauth2Client.read(distinctwatchLists[i]);
-      print(watchlistResponse);
-      var watchlist = Watchlist.fromJson(jsonDecode(watchlistResponse));
-      var itemsToUpdate = watchlistItems
-          .where((element) => element.instrument == distinctwatchLists[i]);
-      itemsToUpdate.forEach((element) {
-        element.watchlistObj = watchlist;
-      });
-    }
-      */
-
     var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
     List<String> distinctInstrumentUrls = [
       ...{...instrumentUrls}
@@ -792,38 +785,6 @@ WATCHLIST
 
 
 /*
-def login_url():
-    return('https://api.robinhood.com/oauth2/token/')
-
-
-def challenge_url(challenge_id):
-    return('https://api.robinhood.com/challenge/{0}/respond/'.format(challenge_id))
-
-# Profiles
-
-
-def account_profile_url():
-    return('https://api.robinhood.com/accounts/')
-
-
-def basic_profile_url():
-    return('https://api.robinhood.com/user/basic_info/')
-
-
-def investment_profile_url():
-    return('https://api.robinhood.com/user/investment_profile/')
-
-
-def portfolio_profile_url():
-    return('https://api.robinhood.com/portfolios/')
-
-
-def security_profile_url():
-    return('https://api.robinhood.com/user/additional_info/')
-
-
-def user_profile_url():
-    return('https://api.robinhood.com/user/')
 
 def portfolis_historicals_url(account_number):
     return('https://api.robinhood.com/portfolios/historicals/{0}/'.format(account_number))
@@ -940,6 +901,7 @@ def wiretransfers_url():
     return('https://api.robinhood.com/wire/transfers')
 
 
+// URLS DO NOT WORK
 def watchlists_url(name=None, add=False):
     if name:
         return('https://api.robinhood.com/midlands/lists/items/')
