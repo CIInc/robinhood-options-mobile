@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 
 //import 'dart:async';
 import 'dart:io';
@@ -449,208 +450,60 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (optionAggregatePositions != null) {
+        slivers.add(SliverStickyHeader(
+          header: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                      //height: 40,
+                      padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
+                      //const EdgeInsets.all(4.0),
+                      //EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text(
+                        'Options ${formatCurrency.format(optionEquity)}',
+                        style: const TextStyle(
+                            //color: Colors.white,
+                            fontSize: 19.0),
+                      )),
+                  openClosedFilterWidget,
+                  optionTypeFilterWidget,
+                  symbolFilterWidget
+                ],
+              )),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                if (optionAggregatePositions.length > index) {
+                  return _buildOptionPositionRow(
+                      optionAggregatePositions, index, ru);
+                }
+                return null;
+              },
+            ),
+          ),
+        ));
+        /*
         slivers.add(
           SliverPersistentHeader(
-            pinned: false,
+            pinned: true,
             delegate: PersistentHeader(
                 "Options ${formatCurrency.format(optionEquity)}"),
           ),
         );
-        /*
-        slivers.add(SliverToBoxAdapter(
-            child: Wrap(children: [
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              avatar: const Icon(Icons.new_releases_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Open Options'),
-              selected: hasQuantityFilters[0],
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    hasQuantityFilters[0] = true;
-                  } else {
-                    hasQuantityFilters[0] = false;
-                  }
-                });
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(4.0),
-            child: FilterChip(
-              avatar: const Icon(Icons.history_outlined),
-              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-              label: const Text('Closed Options'),
-              selected: hasQuantityFilters[1],
-              onSelected: (bool value) {
-                setState(() {
-                  if (value) {
-                    hasQuantityFilters[1] = true;
-                  } else {
-                    hasQuantityFilters[1] = false;
-                  }
-                  optionAggregatePositionStream = null;
-                });
-              },
-            ),
-          )
-        ])));
-        */
         // Open/Closed Filters
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: 56,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(4.0),
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return Row(children: [
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.new_releases_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Open Options'),
-                          selected: hasQuantityFilters[0],
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                hasQuantityFilters[0] = true;
-                              } else {
-                                hasQuantityFilters[0] = false;
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: Container(),
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Closed Options'),
-                          selected: hasQuantityFilters[1],
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                hasQuantityFilters[1] = true;
-                              } else {
-                                hasQuantityFilters[1] = false;
-                              }
-                              optionAggregatePositionStream = null;
-                            });
-                          },
-                        ),
-                      )
-                    ]);
-                  },
-                  itemCount: 1,
-                ))));
+        slivers.add(SliverToBoxAdapter(child: openClosedFilterWidget));
         // Option/Position Type Filters
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: 56,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(4.0),
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: FilterChip(
-                            //avatar: const Icon(Icons.history_outlined),
-                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                            label: const Text('Long Positions'),
-                            selected: positionFilters[0],
-                            onSelected: (bool value) {
-                              setState(() {
-                                if (value) {
-                                  positionFilters[0] = true;
-                                } else {
-                                  positionFilters[0] = false;
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: FilterChip(
-                            //avatar: const Icon(Icons.history_outlined),
-                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                            label: const Text('Short Positions'),
-                            selected: positionFilters[1],
-                            onSelected: (bool value) {
-                              setState(() {
-                                if (value) {
-                                  positionFilters[1] = true;
-                                } else {
-                                  positionFilters[1] = false;
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: FilterChip(
-                            //avatar: const Icon(Icons.history_outlined),
-                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                            label: const Text('Call Options'),
-                            selected: optionFilters[0],
-                            onSelected: (bool value) {
-                              setState(() {
-                                if (value) {
-                                  optionFilters[0] = true;
-                                } else {
-                                  optionFilters[0] = false;
-                                }
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: FilterChip(
-                            //avatar: const Icon(Icons.history_outlined),
-                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                            label: const Text('Put Options'),
-                            selected: optionFilters[1],
-                            onSelected: (bool value) {
-                              setState(() {
-                                if (value) {
-                                  optionFilters[1] = true;
-                                } else {
-                                  optionFilters[1] = false;
-                                }
-                              });
-                            },
-                          ),
-                        )
-                      ],
-                    );
-                  },
-                  itemCount: 1,
-                ))));
+        slivers.add(SliverToBoxAdapter(child: optionTypeFilterWidget));
         // Symbol Filters
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: 56,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(4.0),
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return Row(
-                        children: filterWidgets(
-                                chainSymbols, optionAggregatePositions)
-                            .toList());
-                  },
-                  itemCount: 1,
-                ))));
+        slivers.add(SliverToBoxAdapter(child: symbolFilterWidget));
         // Option Positions
         slivers.add(SliverList(
           // delegate: SliverChildListDelegate(widgets),
@@ -664,11 +517,50 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ));
+        */
       }
       if (positions != null) {
+        slivers.add(SliverStickyHeader(
+            header: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  children: [
+                    Container(
+                        //height: 40,
+                        padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
+                        //padding: const EdgeInsets.all(4.0), //EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          'Positions ${formatCurrency.format(positionEquity)}',
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        )),
+                  ],
+                )),
+            sliver: SliverList(
+              // delegate: SliverChildListDelegate(widgets),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  if (positions.length > index) {
+                    return _buildPositionRow(positions, index, ru);
+                  }
+                  return null;
+                  // To convert this infinite list to a list with three items,
+                  // uncomment the following line:
+                  // if (index > 3) return null;
+                },
+                // Or, uncomment the following line:
+                // childCount: widgets.length + 10,
+              ),
+            )));
+        /*
         slivers.add(
           SliverPersistentHeader(
-            pinned: false,
+            pinned: true,
             delegate: PersistentHeader(
                 "Positions ${formatCurrency.format(positionEquity)}"),
           ),
@@ -689,290 +581,172 @@ class _HomePageState extends State<HomePage> {
             // childCount: widgets.length + 10,
           ),
         ));
+        */
       }
       if (watchLists != null) {
-        slivers.add(
-          SliverPersistentHeader(
-            pinned: false,
-            delegate: PersistentHeader("Watch Lists"),
-          ),
-        );
-        slivers.add(SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              if (watchLists.length > index) {
-                return _buildWatchlistRow(watchLists, index, ru);
-              }
-              return null;
-              // To convert this infinite list to a list with three items,
-              // uncomment the following line:
-              // if (index > 3) return null;
-            },
-            // Or, uncomment the following line:
-            // childCount: widgets.length + 10,
-          ),
-        ));
-      }
-      if (portfolios != null) {
-        slivers.add(
-          SliverPersistentHeader(
-            pinned: false,
-            delegate: PersistentHeader("Portfolios"),
-          ),
-        );
-        slivers.add(SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              if (portfolios.length > index) {
-                var accountSplit = portfolios[index].account.split("/");
-                return Card(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: <
-                        Widget>[
-                  ListTile(
-                    title:
-                        const Text("Account", style: TextStyle(fontSize: 14)),
-                    trailing: Text(accountSplit[accountSplit.length - 2],
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Equity", style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index].equity),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Extended Hours Equity",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].extendedHoursEquity),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Last Core Equity",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index].lastCoreEquity),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Last Core Portfolio Equity",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].lastCorePortfolioEquity),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Extended Hours Portfolio Equity",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(
-                            portfolios[index].extendedHoursPortfolioEquity),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Equity Previous Close",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].equityPreviousClose),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Adjusted Equity Previous Close",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(
-                            portfolios[index].adjustedEquityPreviousClose),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Portfolio Equity Previous Close",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(
-                            portfolios[index].portfolioEquityPreviousClose),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text(
-                        "Adjusted Portfolio Equity Previous Close",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index]
-                            .adjustedPortfolioEquityPreviousClose),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Market Value",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index].marketValue),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Extended Hours Market Value",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].extendedHoursMarketValue),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Last Core Market Value",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].lastCoreMarketValue),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Excess Maintenance",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].excessMaintenance),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text(
-                        "Excess Maintenance With Uncleared Deposits",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index]
-                            .excessMaintenanceWithUnclearedDeposits),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Excess Margin",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index].excessMargin),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Excess Margin With Uncleared Deposits",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency.format(portfolios[index]
-                            .excessMarginWithUnclearedDeposits),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Start Date",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatDate.format(portfolios[index].startDate!),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Unwithdrawable Deposits",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].unwithdrawableDeposits),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Unwithdrawable Grants",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].unwithdrawableGrants),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Withdrawable Amount",
-                        style: TextStyle(fontSize: 14)),
-                    trailing: Text(
-                        formatCurrency
-                            .format(portfolios[index].withdrawableAmount),
-                        style: const TextStyle(fontSize: 16)),
-                  ),
-                  ListTile(
-                    title: const Text("Url", style: TextStyle(fontSize: 14)),
-                    trailing: Text(portfolios[index].url,
-                        style: const TextStyle(fontSize: 14)),
-                  ),
-                ]));
-              }
-              return null;
-              // To convert this infinite list to a list with three items,
-              // uncomment the following line:
-              // if (index > 3) return null;
-            },
-            // Or, uncomment the following line:
-            // childCount: widgets.length + 10,
-          ),
-        ));
-      }
-      if (user != null) {
-        slivers.add(SliverPersistentHeader(
+        slivers.add(SliverStickyHeader(
+            header: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  children: [
+                    Container(
+                        //height: 40,
+                        padding: const EdgeInsets.all(12.0),
+                        child: Text(
+                          'Watch List',
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        )),
+                  ],
+                )),
+            sliver: watchListWidget(watchLists)));
+        /*
+      slivers.add(
+        SliverPersistentHeader(
           pinned: false,
-          delegate: PersistentHeader("User"),
-        ));
-        slivers.add(SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          ListTile(
-            title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
-            trailing:
-                Text(user.profileName, style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Username", style: TextStyle(fontSize: 14)),
-            trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Full Name", style: TextStyle(fontSize: 14)),
-            trailing: Text("${user.firstName} ${user.lastName}",
-                style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Email", style: TextStyle(fontSize: 14)),
-            trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Joined", style: TextStyle(fontSize: 14)),
-            trailing: Text(dateFormat.format(user.createdAt!),
-                style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Locality", style: TextStyle(fontSize: 14)),
-            trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text("Id", style: TextStyle(fontSize: 14)),
-            trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
-          ),
-          /*
-        ListTile(
-          title: const Text("Id Info", style: const TextStyle(fontSize: 14)),
-          trailing: Text(user.idInfo, style: const TextStyle(fontSize: 12)),
+          delegate: PersistentHeader("Watch Lists"),
         ),
-        ListTile(
-          title: const Text("Url", style: const TextStyle(fontSize: 14)),
-          trailing: Text(user.url, style: const TextStyle(fontSize: 12)),
-        ),
-        */
-        ]))));
+      );
+      slivers.add(watchListWidget(watchLists));
+      */
       }
       if (accounts != null) {
+        slivers.add(SliverStickyHeader(
+            header: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  children: [
+                    Container(
+                        //height: 40,
+                        padding: const EdgeInsets.all(12.0),
+                        child: Text(
+                          'Accounts',
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        )),
+                  ],
+                )),
+            sliver: SliverToBoxAdapter(
+                child: Card(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: accountWidgets(accounts).toList())))));
+        /*        
         slivers.add(SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Accounts"),
+          pinned: true,
+          delegate: PersistentHeader(
+              "Accounts ${formatCurrency.format(accounts[0].portfolioCash)}"),
         ));
         slivers.add(SliverToBoxAdapter(
             child: Card(
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: accountWidgets(accounts).toList()))));
+                    */
       }
     }
+    if (portfolios != null) {
+      slivers.add(SliverStickyHeader(
+          header: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: Column(
+                children: [
+                  Container(
+                      //height: 40,
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        'Portfolios',
+                        style: const TextStyle(
+                            //color: Colors.white,
+                            fontSize: 19.0),
+                      )),
+                ],
+              )),
+          sliver: portfoliosWidget(portfolios)));
+      /*
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: false,
+          delegate: PersistentHeader("Portfolios"),
+        ),
+      );
+      slivers.add(portfoliosWidget(portfolios));
+      */
+    }
+    if (user != null) {
+      slivers.add(SliverStickyHeader(
+          header: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: Column(
+                children: [
+                  Container(
+                      //height: 40,
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text(
+                        'User',
+                        style: const TextStyle(
+                            //color: Colors.white,
+                            fontSize: 19.0),
+                      )),
+                ],
+              )),
+          sliver: userWidget(user)));
+      /*
+      slivers.add(SliverPersistentHeader(
+        pinned: false,
+        delegate: PersistentHeader("User"),
+      ));
+      slivers.add(userWidget(user));
+      */
+    }
+    slivers.add(SliverStickyHeader(
+        header: Container(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: Column(
+              children: [
+                Container(
+                    //height: 40,
+                    padding: const EdgeInsets.all(12.0),
+                    child: Text(
+                      'Disclaimer',
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    )),
+              ],
+            )),
+        sliver: SliverToBoxAdapter(
+            child: Container(
+                color: Colors.white,
+                //height: 420.0,
+                padding: const EdgeInsets.all(12.0),
+                child: const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                        "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque."))))));
+    /*
     slivers.add(SliverPersistentHeader(
       // pinned: true,
       delegate: PersistentHeader("Disclaimer"),
@@ -985,6 +759,7 @@ class _HomePageState extends State<HomePage> {
                 alignment: Alignment.center,
                 child: Text(
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
+                    */
     return slivers;
   }
 
@@ -1005,6 +780,409 @@ class _HomePageState extends State<HomePage> {
             style: const TextStyle(fontSize: 16)),
       );
     }
+  }
+
+  Widget portfoliosWidget(List<Portfolio> portfolios) {
+    return SliverList(
+      // delegate: SliverChildListDelegate(widgets),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          if (portfolios.length > index) {
+            var accountSplit = portfolios[index].account.split("/");
+            return Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              ListTile(
+                title: const Text("Account", style: TextStyle(fontSize: 14)),
+                trailing: Text(accountSplit[accountSplit.length - 2],
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Equity", style: TextStyle(fontSize: 14)),
+                trailing: Text(formatCurrency.format(portfolios[index].equity),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Extended Hours Equity",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].extendedHoursEquity),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Last Core Equity",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index].lastCoreEquity),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Last Core Portfolio Equity",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].lastCorePortfolioEquity),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Extended Hours Portfolio Equity",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].extendedHoursPortfolioEquity),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Equity Previous Close",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].equityPreviousClose),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Adjusted Equity Previous Close",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].adjustedEquityPreviousClose),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Portfolio Equity Previous Close",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].portfolioEquityPreviousClose),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Adjusted Portfolio Equity Previous Close",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(
+                        portfolios[index].adjustedPortfolioEquityPreviousClose),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title:
+                    const Text("Market Value", style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index].marketValue),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Extended Hours Market Value",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].extendedHoursMarketValue),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Last Core Market Value",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].lastCoreMarketValue),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Excess Maintenance",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index].excessMaintenance),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Excess Maintenance With Uncleared Deposits",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index]
+                        .excessMaintenanceWithUnclearedDeposits),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title:
+                    const Text("Excess Margin", style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index].excessMargin),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Excess Margin With Uncleared Deposits",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(
+                        portfolios[index].excessMarginWithUnclearedDeposits),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Start Date", style: TextStyle(fontSize: 14)),
+                trailing: Text(formatDate.format(portfolios[index].startDate!),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Unwithdrawable Deposits",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].unwithdrawableDeposits),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Unwithdrawable Grants",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency
+                        .format(portfolios[index].unwithdrawableGrants),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Withdrawable Amount",
+                    style: TextStyle(fontSize: 14)),
+                trailing: Text(
+                    formatCurrency.format(portfolios[index].withdrawableAmount),
+                    style: const TextStyle(fontSize: 16)),
+              ),
+              ListTile(
+                title: const Text("Url", style: TextStyle(fontSize: 14)),
+                trailing: Text(portfolios[index].url,
+                    style: const TextStyle(fontSize: 14)),
+              ),
+            ]));
+          }
+          return null;
+          // To convert this infinite list to a list with three items,
+          // uncomment the following line:
+          // if (index > 3) return null;
+        },
+        // Or, uncomment the following line:
+        // childCount: widgets.length + 10,
+      ),
+    );
+  }
+
+  Widget userWidget(User user) {
+    return SliverToBoxAdapter(
+        child: Card(
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
+        trailing: Text(user.profileName, style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Username", style: TextStyle(fontSize: 14)),
+        trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Full Name", style: TextStyle(fontSize: 14)),
+        trailing: Text("${user.firstName} ${user.lastName}",
+            style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Email", style: TextStyle(fontSize: 14)),
+        trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Joined", style: TextStyle(fontSize: 14)),
+        trailing: Text(dateFormat.format(user.createdAt!),
+            style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Locality", style: TextStyle(fontSize: 14)),
+        trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
+      ),
+      ListTile(
+        title: const Text("Id", style: TextStyle(fontSize: 14)),
+        trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
+      ),
+      /*
+        ListTile(
+          title: const Text("Id Info", style: const TextStyle(fontSize: 14)),
+          trailing: Text(user.idInfo, style: const TextStyle(fontSize: 12)),
+        ),
+        ListTile(
+          title: const Text("Url", style: const TextStyle(fontSize: 14)),
+          trailing: Text(user.url, style: const TextStyle(fontSize: 12)),
+        ),
+        */
+    ])));
+  }
+
+  Widget watchListWidget(List<WatchlistItem> watchLists) {
+    return SliverList(
+      // delegate: SliverChildListDelegate(widgets),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          if (watchLists.length > index) {
+            return _buildWatchlistRow(watchLists, index, robinhoodUser!);
+          }
+          return null;
+          // To convert this infinite list to a list with three items,
+          // uncomment the following line:
+          // if (index > 3) return null;
+        },
+        // Or, uncomment the following line:
+        // childCount: widgets.length + 10,
+      ),
+    );
+  }
+
+  Widget get symbolFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+                children: filterWidgets(chainSymbols, optionAggregatePositions)
+                    .toList());
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get optionTypeFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Long Positions'),
+                    selected: positionFilters[0],
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters[0] = true;
+                        } else {
+                          positionFilters[0] = false;
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Short Positions'),
+                    selected: positionFilters[1],
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters[1] = true;
+                        } else {
+                          positionFilters[1] = false;
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Call Options'),
+                    selected: optionFilters[0],
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters[0] = true;
+                        } else {
+                          optionFilters[0] = false;
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Put Options'),
+                    selected: optionFilters[1],
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters[1] = true;
+                        } else {
+                          optionFilters[1] = false;
+                        }
+                      });
+                    },
+                  ),
+                )
+              ],
+            );
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get openClosedFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.new_releases_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Open Options'),
+                  selected: hasQuantityFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[0] = true;
+                      } else {
+                        hasQuantityFilters[0] = false;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: Container(),
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Closed Options'),
+                  selected: hasQuantityFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[1] = true;
+                      } else {
+                        hasQuantityFilters[1] = false;
+                      }
+                      optionAggregatePositionStream = null;
+                    });
+                  },
+                ),
+              )
+            ]);
+          },
+          itemCount: 1,
+        ));
   }
 
 //Iterable<Widget> get filterWidgets sync* {
@@ -1065,7 +1243,7 @@ class _HomePageState extends State<HomePage> {
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 260.0,
+      expandedHeight: 300.0,
       // collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(

@@ -94,7 +94,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  Row(children: [const SizedBox(height: 70)]),
+                  Row(children: const [SizedBox(height: 70)]),
                   Wrap(
                       crossAxisAlignment: WrapCrossAlignment.end,
                       //runAlignment: WrapAlignment.end,
@@ -126,11 +126,11 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                width: 70,
+                            children: const [
+                              SizedBox(
+                                width: 60,
                                 child: Text(
-                                  "Return Today",
+                                  "Change Today",
                                   style: TextStyle(fontSize: 10.0),
                                 ),
                               )
@@ -156,7 +156,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                                             : (optionPosition.changeToday < 0
                                                 ? Colors.red
                                                 : Colors.grey)),
-                                        size: 16.0),
+                                        size: 14.0),
                                     Container(
                                       width: 2,
                                     ),
@@ -171,7 +171,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           width: 5,
                         ),
                         SizedBox(
-                            width: 50,
+                            width: 60,
                             child: Text(
                                 "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
                                 style: const TextStyle(fontSize: 12.0),
@@ -190,9 +190,9 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
-                                width: 70,
+                            children: const [
+                              SizedBox(
+                                width: 60,
                                 child: Text(
                                   "Return",
                                   style: TextStyle(fontSize: 10.0),
@@ -225,7 +225,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                                                     0
                                                 ? Colors.red
                                                 : Colors.grey)),
-                                        size: 16.0),
+                                        size: 14.0),
                                     Container(
                                       width: 2,
                                     ),
@@ -238,7 +238,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           width: 5,
                         ),
                         SizedBox(
-                            width: 50,
+                            width: 60,
                             child: Text(
                                 "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
                                 style: const TextStyle(fontSize: 12.0),
@@ -257,8 +257,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                       ),
                       Column(
                           mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            const SizedBox(
+                          children: const [
+                            SizedBox(
                               width: 70,
                               child: Text(
                                 "Market Value",
@@ -271,11 +271,11 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                       ),
                       Column(
                           mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
+                          children: const [
                             SizedBox(
                                 width: 60,
                                 child: Text("", //${formatPercentage.format(1)}
-                                    style: const TextStyle(fontSize: 10.0),
+                                    style: TextStyle(fontSize: 10.0),
                                     textAlign: TextAlign.right))
                           ]),
                       Container(
@@ -303,10 +303,12 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                       Column(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            const SizedBox(
+                            SizedBox(
                               width: 70,
                               child: Text(
-                                "Cost",
+                                optionPosition.legs.first.positionType == "long"
+                                    ? "Cost"
+                                    : "Credit",
                                 style: TextStyle(fontSize: 10.0),
                               ),
                             )
@@ -316,11 +318,11 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                       ),
                       Column(
                           mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
+                          children: const [
                             SizedBox(
                                 width: 60,
                                 child: Text("", //${formatPercentage.format(1)}
-                                    style: const TextStyle(fontSize: 10.0),
+                                    style: TextStyle(fontSize: 10.0),
                                     textAlign: TextAlign.right))
                           ]),
                       Container(
@@ -586,7 +588,13 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           ListTile(
             title: const Text("Low Price - High Price"),
             trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.lowPrice != null ? formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lowPrice) : "-"} - ${optionPosition.optionInstrument!.optionMarketData!.highPrice != null ? formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.highPrice) : "-"}",
+                optionPosition.optionInstrument!.optionMarketData!.lowPrice !=
+                            null &&
+                        optionPosition.optionInstrument!.optionMarketData!
+                                .highPrice !=
+                            null
+                    ? "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.highPrice)}"
+                    : "-",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
@@ -706,7 +714,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
-          leading: const Icon(Icons.album),
+          // leading: const Icon(Icons.album),
           title: Text('${instrument.simpleName}'),
           subtitle: Text(instrument.name),
           trailing: Wrap(

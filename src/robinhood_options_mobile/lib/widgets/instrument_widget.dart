@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -9,6 +10,7 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_chain_header.dart';
+import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
 final dateFormat = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -119,154 +121,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     slivers.add(SliverAppBar(
       //title: Text(instrument.symbol),
       //expandedHeight: 160,
-      expandedHeight: 230.0,
+      expandedHeight: 300.0,
       flexibleSpace: FlexibleSpaceBar(
         background: const FlutterLogo(),
         title: SingleChildScrollView(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [const SizedBox(height: 70)]),
-          Row(children: [
-            Text('${instrument.symbol}',
-                style: const TextStyle(fontSize: 20.0)),
-          ]),
-          Text(
-            '${instrument.simpleName}',
-            style: const TextStyle(fontSize: 16.0),
-            textAlign: TextAlign.left,
-            //overflow: TextOverflow.ellipsis
-          ),
-          Text(
-            '${instrument.name}',
-            style: const TextStyle(fontSize: 10.0),
-            //overflow: TextOverflow.visible
-          ),
-          Row(children: [const SizedBox(height: 10)]),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Container(
-                  width: 10,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  const SizedBox(
-                    width: 70,
-                    child: Text(
-                      "Change Today",
-                      style: TextStyle(fontSize: 10.0),
-                    ),
-                  )
-                ]),
-                Container(
-                  width: 5,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: 60,
-                      child: Wrap(children: [
-                        Icon(
-                            instrument.quoteObj!.changeToday > 0
-                                ? Icons.trending_up
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (instrument.quoteObj!.changeToday > 0
-                                ? Colors.lightGreenAccent
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Colors.red
-                                    : Colors.grey)),
-                            size: 16.0),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
-                            style: const TextStyle(fontSize: 12.0)),
-                      ]))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: 50,
-                    child: Text(
-                        "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
-                        style: const TextStyle(fontSize: 12.0),
-                        textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
-              ]),
-          Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Container(
-                  width: 10,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  const SizedBox(
-                    width: 70,
-                    child: Text(
-                      "Last Price",
-                      style: TextStyle(fontSize: 10.0),
-                    ),
-                  )
-                ]),
-                Container(
-                  width: 5,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: 60,
-                      child: Wrap(children: [
-                        /*
-                        Icon(
-                            instrument.quoteObj!.changeToday > 0
-                                ? Icons.trending_up
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (instrument.quoteObj!.changeToday > 0
-                                ? Colors.lightGreenAccent
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Colors.red
-                                    : Colors.grey)),
-                            size: 16.0),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
-                            style: const TextStyle(fontSize: 12.0)),
-                            */
-                      ]))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: 50,
-                    child: Text(
-                        "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
-                        style: const TextStyle(fontSize: 12.0),
-                        textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
-              ]),
-
-          /*
-              Row(children: [
-                Text(
-                    '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
-                    style: const TextStyle(fontSize: 17.0)),
-              ])
-              */
-        ])),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: headerWidgets.toList())),
         /*
           ListTile(
             title: Text('${instrument.simpleName}'),
@@ -334,11 +195,299 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         pinned: true,
         delegate: PersistentChainHeader()
       ));*/
+    if (optionInstruments != null) {
+      slivers.add(SliverStickyHeader(
+        header: Container(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                    //height: 40,
+                    padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
+                    //const EdgeInsets.all(4.0),
+                    //EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Option Chain',
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    )),
+                optionChainFilterWidget
+              ],
+            )),
+        sliver: optionInstrumentsWidget(optionInstruments),
+      ));
+    }
+
+    /*
+    slivers.add(SliverPersistentHeader(
+      pinned: true,
+      delegate: PersistentHeader("Option Chain",
+          size: 195, widget: optionChainFilterWidget),
+    ));
+    */
+    /*
     slivers.add(SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       const ListTile(
           title: Text("Option Chain", style: TextStyle(fontSize: 20))),
+      SizedBox(
+          height: 56,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Buy'),
+                      selected: actionFilter == "Buy",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          actionFilter = selected ? "Buy" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Sell'),
+                      selected: actionFilter == "Sell",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          actionFilter = selected ? "Sell" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Call'),
+                      selected: typeFilter == "Call",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          typeFilter = selected ? "Call" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      //avatar: const Icon(Icons.history_outlined),
+                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                      label: const Text('Put'),
+                      selected: typeFilter == "Put",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          typeFilter = selected ? "Put" : null;
+                        });
+                      },
+                    ),
+                  )
+                ],
+              );
+            },
+            itemCount: 1,
+          )),
+      SizedBox(
+          height: 56,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return Row(children: expirationDateWidgets.toList());
+            },
+            itemCount: 1,
+          )),
+    ]))));
+    */
+    /*
+    slivers.add(
+      SliverToBoxAdapter(
+          child: SizedBox(
+              height: 56,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return Row(children: expirationDateWidgets.toList());
+                },
+                itemCount: 1,
+              ))
+          //Align(
+          //    alignment: Alignment.center, child: buildExpirationDates())
+          ),
+    );
+    */
+    /*
+    if (optionInstruments != null) {
+      /*
+      var optionsInstrumentsSorted = optionInstruments;
+      optionsInstrumentsSorted.sort((a, b) =>
+          a.strikePrice!.compareTo(instrument.quoteObj!.lastTradePrice!));
+      var firstOptionsInstrumentsSorted = optionsInstrumentsSorted.first;
+      print(firstOptionsInstrumentsSorted.id);
+      */
+      slivers.add(optionInstrumentsWidget(optionInstruments));
+    } else {
+      slivers.add(const SliverToBoxAdapter(
+          child: Center(
+        child: CircularProgressIndicator(),
+      )));
+    }
+    */
+    return CustomScrollView(slivers: slivers);
+    /*
+    return Container(
+        color: Colors.grey[200],
+        child: CustomScrollView(controller: _controller, slivers: slivers));
+        */
+  }
+
+  Card buildOverview() {
+    if (instrument.quoteObj == null) {
+      return Card();
+    }
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        /*
+        ListTile(
+          leading: const Icon(Icons.album),
+          title: Text('${instrument.simpleName}'),
+          subtitle: Text(instrument.name),
+        ),
+        */
+        /*
+        ListTile(
+            title: Text("Last Trade Price"),
+            trailing: Wrap(spacing: 8, children: [
+              Icon(
+                  instrument.quoteObj!.changeToday > 0
+                      ? Icons.trending_up
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (instrument.quoteObj!.changeToday > 0
+                      ? Colors.green
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+            ])),
+        ListTile(
+          title: Text("Adjusted Previous Close"),
+          trailing: Text(
+              "${formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: Text("Change Today"),
+          trailing: Text(
+              "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: Text("Change Today %"),
+          trailing: Text(
+              "${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: Text("Bid - Ask Price"),
+          trailing: Text(
+              "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: Text("Bid - Ask Size"),
+          trailing: Text(
+              "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: Text("Last Extended Hours Trade Price"),
+          trailing: Text(
+              "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        */
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            TextButton(
+              child: const Text('VIEW FUNDAMENTALS'),
+              onPressed: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  title: const Text('Alert'),
+                  content: const Text('This feature is not implemented.'),
+                  actions: <Widget>[
+                    /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'OK'),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              child: const Text('VIEW SPLITS'),
+              onPressed: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  title: const Text('Alert'),
+                  content: const Text('This feature is not implemented.'),
+                  actions: <Widget>[
+                    /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'OK'),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ],
+    ));
+  }
+
+  Widget get optionChainFilterWidget {
+    return Card(
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      /*
+      const ListTile(
+          title: Text("Option Chain", style: TextStyle(fontSize: 20))),
+          */
       SizedBox(
           height: 56,
           child: ListView.builder(
@@ -425,61 +574,39 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //print('If you stand for nothing, Burr, what’ll you fall for?');
           })
           */
-    ]))));
-    /*
-    slivers.add(
-      SliverToBoxAdapter(
-          child: SizedBox(
-              height: 56,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemBuilder: (context, index) {
-                  return Row(children: expirationDateWidgets.toList());
-                },
-                itemCount: 1,
-              ))
-          //Align(
-          //    alignment: Alignment.center, child: buildExpirationDates())
-          ),
-    );
-    */
-    if (optionInstruments != null) {
-      /*
-      var optionsInstrumentsSorted = optionInstruments;
-      optionsInstrumentsSorted.sort((a, b) =>
-          a.strikePrice!.compareTo(instrument.quoteObj!.lastTradePrice!));
-      var firstOptionsInstrumentsSorted = optionsInstrumentsSorted.first;
-      print(firstOptionsInstrumentsSorted.id);
-      */
-      slivers.add(SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            if (optionInstruments.length > index) {
-              if (typeFilter!.toLowerCase() !=
-                      optionInstruments[index].type.toLowerCase() ||
-                  !expirationDateFilter!.isAtSameMomentAs(
-                      optionInstruments[index].expirationDate!)) {
-                return Container();
-              }
-              if (optionInstruments[index].optionMarketData == null) {
-                RobinhoodService.getOptionMarketData(
-                        user, optionInstruments[index])
-                    .then((value) => setState(() {
-                          optionInstruments[index].optionMarketData = value;
-                        }));
-              }
-              return Card(
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                ListTile(
-                  //key: index == 0 ? dataKey : null,
-                  /*optionInstruments[index].id ==
+    ]));
+  }
+
+  Widget optionInstrumentsWidget(List<OptionInstrument> optionInstruments) {
+    return SliverList(
+      // delegate: SliverChildListDelegate(widgets),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          if (optionInstruments.length > index) {
+            if (typeFilter!.toLowerCase() !=
+                    optionInstruments[index].type.toLowerCase() ||
+                !expirationDateFilter!.isAtSameMomentAs(
+                    optionInstruments[index].expirationDate!)) {
+              return Container();
+            }
+            if (optionInstruments[index].optionMarketData == null) {
+              RobinhoodService.getOptionMarketData(
+                      user, optionInstruments[index])
+                  .then((value) => setState(() {
+                        optionInstruments[index].optionMarketData = value;
+                      }));
+            }
+            return Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              ListTile(
+                //key: index == 0 ? dataKey : null,
+                /*optionInstruments[index].id ==
                           firstOptionsInstrumentsSorted.id
                       ? dataKey
                       : null,
                       */
-                  /*
+                /*
                   leading: CircleAvatar(
                       backgroundColor: optionInstruments[index].type == 'call'
                           ? Colors.green
@@ -489,201 +616,336 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? const Text('Call')
                           : const Text('Put')),
                           */
-                  // leading: Icon(Icons.ac_unit),
-                  title: Text(//${optionInstruments[index].chainSymbol}
-                      '\$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
-                  subtitle: Text(optionInstruments[index].optionMarketData !=
-                          null
-                      ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
-                      : ""),
-                  //'Issued ${dateFormat.format(optionInstruments[index].issueDate as DateTime)}'),
-                  trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        optionInstruments[index].optionMarketData != null
-                            ? Text(
-                                "${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)}",
-                                //"${formatCurrency.format(optionInstruments[index].optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.askPrice)}",
-                                style: const TextStyle(fontSize: 18))
-                            : const Text(""),
-                        Wrap(spacing: 8, children: [
-                          Icon(
-                              instrument.quoteObj!.changeToday > 0
-                                  ? Icons.trending_up
-                                  : (instrument.quoteObj!.changeToday < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (instrument.quoteObj!.changeToday > 0
-                                  ? Colors.green
-                                  : (instrument.quoteObj!.changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                              size: 16),
-                          Text(
-                            "${optionInstruments[index].optionMarketData != null && optionInstruments[index].optionMarketData!.gainLossPercentToday != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.gainLossPercentToday) : "-"}",
-                            //style: TextStyle(fontSize: 16),
-                          )
-                        ]),
+                // leading: Icon(Icons.ac_unit),
+                title: Text(//${optionInstruments[index].chainSymbol}
+                    '\$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
+                subtitle: Text(optionInstruments[index].optionMarketData != null
+                    ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
+                    : ""),
+                //'Issued ${dateFormat.format(optionInstruments[index].issueDate as DateTime)}'),
+                trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      optionInstruments[index].optionMarketData != null
+                          ? Text(
+                              "${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)}",
+                              //"${formatCurrency.format(optionInstruments[index].optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.askPrice)}",
+                              style: const TextStyle(fontSize: 18))
+                          : const Text(""),
+                      Wrap(spacing: 8, children: [
+                        Icon(
+                            instrument.quoteObj!.changeToday > 0
+                                ? Icons.trending_up
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (instrument.quoteObj!.changeToday > 0
+                                ? Colors.green
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 16),
+                        Text(
+                          "${optionInstruments[index].optionMarketData != null && optionInstruments[index].optionMarketData!.gainLossPercentToday != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.gainLossPercentToday) : "-"}",
+                          //style: TextStyle(fontSize: 16),
+                        )
                       ]),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => OptionInstrumentWidget(
-                                user, optionInstruments[index], quote)));
-                  },
-                )
-              ]));
+                    ]),
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => OptionInstrumentWidget(
+                              user, optionInstruments[index], quote)));
+                },
+              )
+            ]));
 
-              //return Text('\$${optionInstruments[index].strikePrice}');
-            }
-            return null;
-            // To convert this infinite list to a list with three items,
-            // uncomment the following line:
-            // if (index > 3) return null;
-          },
-          // Or, uncomment the following line:
-          // childCount: widgets.length + 10,
-        ),
-      ));
-    } else {
-      slivers.add(const SliverToBoxAdapter(
-          child: Center(
-        child: CircularProgressIndicator(),
-      )));
-    }
-    return CustomScrollView(slivers: slivers);
-    /*
-    return Container(
-        color: Colors.grey[200],
-        child: CustomScrollView(controller: _controller, slivers: slivers));
-        */
+            //return Text('\$${optionInstruments[index].strikePrice}');
+          }
+          return null;
+          // To convert this infinite list to a list with three items,
+          // uncomment the following line:
+          // if (index > 3) return null;
+        },
+        // Or, uncomment the following line:
+        // childCount: widgets.length + 10,
+      ),
+    );
   }
 
-  Card buildOverview() {
-    if (instrument.quoteObj == null) {
-      return Card();
-    }
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        /*
-        ListTile(
-          leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
-          subtitle: Text(instrument.name),
-        ),
-        */
-        ListTile(
-            title: Text("Last Trade Price"),
-            trailing: Wrap(spacing: 8, children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
+  Iterable<Widget> get headerWidgets sync* {
+    yield Row(children: [const SizedBox(height: 70)]);
+    yield Row(children: [
+      Text('${instrument.symbol}', style: const TextStyle(fontSize: 20.0)),
+    ]);
+    yield Text(
+      '${instrument.simpleName}',
+      style: const TextStyle(fontSize: 16.0),
+      textAlign: TextAlign.left,
+      //overflow: TextOverflow.ellipsis
+    );
+    yield Text(
+      '${instrument.name}',
+      style: const TextStyle(fontSize: 10.0),
+      //overflow: TextOverflow.visible
+    );
+    yield Row(children: [const SizedBox(height: 10)]);
+    if (instrument.quoteObj != null) {
+      if (instrument.quoteObj!.changeToday != null) {
+        yield Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Container(
+                width: 10,
               ),
-            ])),
-        ListTile(
-          title: Text("Adjusted Previous Close"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Change Today"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Change Today %"),
-          trailing: Text(
-              "${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Bid - Ask Price"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Bid - Ask Size"),
-          trailing: Text(
-              "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Last Extended Hours Trade Price"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        Row(
+              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                const SizedBox(
+                  width: 70,
+                  child: Text(
+                    "Change Today",
+                    style: TextStyle(fontSize: 10.0),
+                  ),
+                )
+              ]),
+              Container(
+                width: 5,
+              ),
+              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                SizedBox(
+                    width: 60,
+                    child: Wrap(children: [
+                      Icon(
+                          instrument.quoteObj!.changeToday > 0
+                              ? Icons.trending_up
+                              : (instrument.quoteObj!.changeToday < 0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color: (instrument.quoteObj!.changeToday > 0
+                              ? Colors.lightGreenAccent
+                              : (instrument.quoteObj!.changeToday < 0
+                                  ? Colors.red
+                                  : Colors.grey)),
+                          size: 14.0),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(
+                          '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
+                          style: const TextStyle(fontSize: 12.0)),
+                    ]))
+              ]),
+              Container(
+                width: 5,
+              ),
+              SizedBox(
+                  width: 50,
+                  child: Text(
+                      "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
+                      style: const TextStyle(fontSize: 12.0),
+                      textAlign: TextAlign.right)),
+              Container(
+                width: 10,
+              ),
+            ]);
+      }
+      yield Row(
           mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('VIEW FUNDAMENTALS'),
-              onPressed: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text('Alert'),
-                  content: const Text('This feature is not implemented.'),
-                  actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'OK'),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              ),
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
             ),
-            const SizedBox(width: 8),
-            TextButton(
-              child: const Text('VIEW SPLITS'),
-              onPressed: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text('Alert'),
-                  content: const Text('This feature is not implemented.'),
-                  actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'OK'),
-                      child: const Text('OK'),
-                    ),
-                  ],
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              const SizedBox(
+                width: 70,
+                child: Text(
+                  "Last Price",
+                  style: TextStyle(fontSize: 10.0),
                 ),
-              ),
+              )
+            ]),
+            Container(
+              width: 5,
             ),
-            const SizedBox(width: 8),
-          ],
-        ),
-      ],
-    ));
+            SizedBox(
+                width: 115,
+                child: Text(
+                    "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
+                    style: const TextStyle(fontSize: 12.0),
+                    textAlign: TextAlign.right)),
+            Container(
+              width: 10,
+            ),
+          ]);
+      if (instrument.quoteObj!.lastExtendedHoursTradePrice != null) {
+        yield Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Container(
+                width: 10,
+              ),
+              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                const SizedBox(
+                  width: 70,
+                  child: Text(
+                    "After Hours",
+                    style: TextStyle(fontSize: 10.0),
+                  ),
+                )
+              ]),
+              Container(
+                width: 5,
+              ),
+              SizedBox(
+                  width: 115,
+                  child: Text(
+                      "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                      style: const TextStyle(fontSize: 12.0),
+                      textAlign: TextAlign.right)),
+              Container(
+                width: 10,
+              ),
+            ]);
+      }
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              const SizedBox(
+                width: 70,
+                child: Text(
+                  "Bid",
+                  style: TextStyle(fontSize: 10.0),
+                ),
+              )
+            ]),
+            Container(
+              width: 5,
+            ),
+            SizedBox(
+                width: 115,
+                child: //Wrap(children: [
+                    Text(
+                        "${formatCurrency.format(instrument.quoteObj!.bidPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.bidSize)}",
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)
+                //]),
+                ),
+            Container(
+              width: 10,
+            ),
+          ]);
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              const SizedBox(
+                width: 70,
+                child: Text(
+                  "Ask",
+                  style: TextStyle(fontSize: 10.0),
+                ),
+              )
+            ]),
+            Container(
+              width: 5,
+            ),
+            SizedBox(
+                width: 115,
+                child: Text(
+                    "${formatCurrency.format(instrument.quoteObj!.askPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+                    style: const TextStyle(fontSize: 12.0),
+                    textAlign: TextAlign.right)),
+            Container(
+              width: 10,
+            ),
+          ]);
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              const SizedBox(
+                width: 70,
+                child: Text(
+                  "Previous Close",
+                  style: TextStyle(fontSize: 10.0),
+                ),
+              )
+            ]),
+            Container(
+              width: 5,
+            ),
+            SizedBox(
+                width: 115,
+                child: Text(
+                    "${formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose)}",
+                    style: const TextStyle(fontSize: 12.0),
+                    textAlign: TextAlign.right)),
+            Container(
+              width: 10,
+            ),
+          ]);
+    }
+    /*
+    yield Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Container(
+            width: 10,
+          ),
+          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+            const SizedBox(
+              width: 70,
+              child: Text(
+                "Extended Hours Price",
+                style: TextStyle(fontSize: 10.0),
+              ),
+            )
+          ]),
+          Container(
+            width: 5,
+          ),
+          SizedBox(
+              width: 115,
+              child: Text(
+                  "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                  style: const TextStyle(fontSize: 12.0),
+                  textAlign: TextAlign.right)),
+          Container(
+            width: 10,
+          ),
+        ]);
+        */
+    /*
+      Row(children: [
+        Text(
+            '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
+            style: const TextStyle(fontSize: 17.0)),
+      ])
+      */
   }
 
   Iterable<Widget> get expirationDateWidgets sync* {

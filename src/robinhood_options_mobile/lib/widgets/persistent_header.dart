@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 
 class PersistentHeader extends SliverPersistentHeaderDelegate {
   final String title;
-  PersistentHeader(this.title);
+  final Widget? widget;
+  final double size;
+  PersistentHeader(this.title, {this.widget, this.size = 34.0});
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
+    if (widget != null) {
+      return widget!;
+    }
     return Material(
         elevation: 1,
         child: Container(
@@ -16,21 +21,21 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
             elevation: 3.0,
             child: */
                 SizedBox(
-              height: 40.0,
+              height: size,
               child: Center(
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 19.0),
+                  style: const TextStyle(fontSize: 18.0),
                 ),
               ),
             )));
   }
 
   @override
-  double get maxExtent => 40.0;
+  double get maxExtent => size;
 
   @override
-  double get minExtent => 40.0;
+  double get minExtent => size;
 
   @override
   bool shouldRebuild(covariant SliverPersistentHeaderDelegate oldDelegate) {
