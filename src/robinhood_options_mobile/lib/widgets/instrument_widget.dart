@@ -7,6 +7,8 @@ import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/persistent_chain_header.dart';
 
 final dateFormat = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -29,6 +31,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final Instrument instrument;
   final Position? position;
   Future<Quote>? futureQuote;
+  late Quote quote;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
@@ -38,8 +41,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   String? actionFilter = "Buy";
   String? typeFilter = "Call";
 
-  //late ScrollController _controller;
   final List<bool> isSelected = [true, false];
+
+  //final dataKey = GlobalKey();
 
   _InstrumentWidgetState(this.user, this.instrument, this.position);
 
@@ -47,10 +51,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void initState() {
     super.initState();
 
-    //_controller = ScrollController();
-
     if (instrument.quoteObj == null) {
       futureQuote = RobinhoodService.getQuote(user, instrument.symbol);
+    } else {
+      futureQuote = Future.value(instrument.quoteObj);
     }
     optionInstrumentStream = RobinhoodService.streamOptionInstruments(
         user, instrument, null, null); // 'call'
@@ -70,7 +74,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       future: futureQuote,
       builder: (context, AsyncSnapshot<Quote> snapshot) {
         if (snapshot.hasData) {
-          var quote = snapshot.data!;
+          quote = snapshot.data!;
           instrument.quoteObj = quote;
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
@@ -86,6 +90,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   expirationDates!.sort((a, b) => a.compareTo(b));
 
                   expirationDateFilter ??= expirationDates!.first;
+                  /*
+                  var optionInstrumentsForDate = optionInstruments!.where((element) => element.expirationDate! == expirationDateFilter!);
+                  for (var op in optionInstrumentsForDate) {
+                    var optionMarketData = await RobinhoodService.getOptionMarketData(user, op);
+                    op.optionMarketData = optionMarketData;
+                  }
+                  */
 
                   return buildScrollView(optionInstruments: optionInstruments);
                 } else if (snapshot.hasError) {
@@ -107,31 +118,147 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
       //title: Text(instrument.symbol),
-      expandedHeight: 160,
+      //expandedHeight: 160,
+      expandedHeight: 230.0,
       flexibleSpace: FlexibleSpaceBar(
         background: const FlutterLogo(),
         title: SingleChildScrollView(
-            child: Column(children: [
-          Row(
-            children: const [Text('')],
-          ),
-          Row(
-            children: const [Text('')],
-          ),
-          Row(
-            children: const [Text('')],
-          ),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [const SizedBox(height: 70)]),
           Row(children: [
             Text('${instrument.symbol}',
-                style: const TextStyle(fontSize: 17.0)),
+                style: const TextStyle(fontSize: 20.0)),
           ]),
-          Row(children: [
-            Text('${instrument.simpleName}',
-                style: const TextStyle(fontSize: 17.0)),
-          ]),
-          Row(children: [
-            Text('${instrument.name}', style: const TextStyle(fontSize: 9.0)),
-          ]),
+          Text(
+            '${instrument.simpleName}',
+            style: const TextStyle(fontSize: 16.0),
+            textAlign: TextAlign.left,
+            //overflow: TextOverflow.ellipsis
+          ),
+          Text(
+            '${instrument.name}',
+            style: const TextStyle(fontSize: 10.0),
+            //overflow: TextOverflow.visible
+          ),
+          Row(children: [const SizedBox(height: 10)]),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  const SizedBox(
+                    width: 70,
+                    child: Text(
+                      "Change Today",
+                      style: TextStyle(fontSize: 10.0),
+                    ),
+                  )
+                ]),
+                Container(
+                  width: 5,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                      width: 60,
+                      child: Wrap(children: [
+                        Icon(
+                            instrument.quoteObj!.changeToday > 0
+                                ? Icons.trending_up
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (instrument.quoteObj!.changeToday > 0
+                                ? Colors.lightGreenAccent
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 16.0),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
+                            style: const TextStyle(fontSize: 12.0)),
+                      ]))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 50,
+                    child: Text(
+                        "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ]),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  const SizedBox(
+                    width: 70,
+                    child: Text(
+                      "Last Price",
+                      style: TextStyle(fontSize: 10.0),
+                    ),
+                  )
+                ]),
+                Container(
+                  width: 5,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                      width: 60,
+                      child: Wrap(children: [
+                        /*
+                        Icon(
+                            instrument.quoteObj!.changeToday > 0
+                                ? Icons.trending_up
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (instrument.quoteObj!.changeToday > 0
+                                ? Colors.lightGreenAccent
+                                : (instrument.quoteObj!.changeToday < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 16.0),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            '${formatPercentage.format(instrument.quoteObj!.changeTodayPercent)}',
+                            style: const TextStyle(fontSize: 12.0)),
+                            */
+                      ]))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 50,
+                    child: Text(
+                        "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ]),
+
           /*
               Row(children: [
                 Text(
@@ -156,7 +283,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        Text("Position", style: const TextStyle(fontSize: 20)),
+        ListTile(title: const Text("Position", style: TextStyle(fontSize: 20))),
         ListTile(
           title: Text("Quantity"),
           trailing: Text("${formatCompactNumber.format(position!.quantity!)}",
@@ -200,74 +327,106 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ]))));
     }
+    // ListTile(title: const Text("Market Data", style: TextStyle(fontSize: 20))),
+    /*
+    slivers.add(
+      SliverPersistentHeader(
+        pinned: true,
+        delegate: PersistentChainHeader()
+      ));*/
     slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: 56,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemBuilder: (context, index) {
-                    return Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ChoiceChip(
-                            label: const Text('Buy'),
-                            selected: actionFilter == "Buy",
-                            onSelected: (bool selected) {
-                              setState(() {
-                                actionFilter = selected ? "Buy" : null;
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ChoiceChip(
-                            label: const Text('Sell'),
-                            selected: actionFilter == "Sell",
-                            onSelected: (bool selected) {
-                              setState(() {
-                                actionFilter = selected ? "Sell" : null;
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ChoiceChip(
-                            label: const Text('Call'),
-                            selected: typeFilter == "Call",
-                            onSelected: (bool selected) {
-                              setState(() {
-                                typeFilter = selected ? "Call" : null;
-                              });
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ChoiceChip(
-                            //avatar: const Icon(Icons.history_outlined),
-                            //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                            label: const Text('Put'),
-                            selected: typeFilter == "Put",
-                            onSelected: (bool selected) {
-                              setState(() {
-                                typeFilter = selected ? "Put" : null;
-                              });
-                            },
-                          ),
-                        )
-                      ],
-                    );
-                  },
-                  itemCount: 1,
-                )))
-        /*
-      SliverToBoxAdapter(
-          child: Align(alignment: Alignment.center, child: buildOptions())),
+        child: Card(
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      const ListTile(
+          title: Text("Option Chain", style: TextStyle(fontSize: 20))),
+      SizedBox(
+          height: 56,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Buy'),
+                      selected: actionFilter == "Buy",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          actionFilter = selected ? "Buy" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Sell'),
+                      selected: actionFilter == "Sell",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          actionFilter = selected ? "Sell" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      label: const Text('Call'),
+                      selected: typeFilter == "Call",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          typeFilter = selected ? "Call" : null;
+                        });
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: ChoiceChip(
+                      //avatar: const Icon(Icons.history_outlined),
+                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                      label: const Text('Put'),
+                      selected: typeFilter == "Put",
+                      onSelected: (bool selected) {
+                        setState(() {
+                          typeFilter = selected ? "Put" : null;
+                        });
+                      },
+                    ),
+                  )
+                ],
+              );
+            },
+            itemCount: 1,
+          )),
+      SizedBox(
+          height: 56,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return Row(children: expirationDateWidgets.toList());
+            },
+            itemCount: 1,
+          )),
+      /*
+      ActionChip(
+          avatar: CircleAvatar(
+            backgroundColor: Colors.grey.shade800,
+            child: const Text('AB'),
+          ),
+          label: const Text('Scroll to current price'),
+          onPressed: () {
+            //_animateToIndex(20);
+            if (dataKey.currentContext != null) {
+              Scrollable.ensureVisible(dataKey.currentContext!);
+            }
+            //print('If you stand for nothing, Burr, what’ll you fall for?');
+          })
           */
-        );
+    ]))));
+    /*
     slivers.add(
       SliverToBoxAdapter(
           child: SizedBox(
@@ -283,8 +442,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //    alignment: Alignment.center, child: buildExpirationDates())
           ),
     );
-
+    */
     if (optionInstruments != null) {
+      /*
+      var optionsInstrumentsSorted = optionInstruments;
+      optionsInstrumentsSorted.sort((a, b) =>
+          a.strikePrice!.compareTo(instrument.quoteObj!.lastTradePrice!));
+      var firstOptionsInstrumentsSorted = optionsInstrumentsSorted.first;
+      print(firstOptionsInstrumentsSorted.id);
+      */
       slivers.add(SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate(
@@ -296,10 +462,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       optionInstruments[index].expirationDate!)) {
                 return Container();
               }
+              if (optionInstruments[index].optionMarketData == null) {
+                RobinhoodService.getOptionMarketData(
+                        user, optionInstruments[index])
+                    .then((value) => setState(() {
+                          optionInstruments[index].optionMarketData = value;
+                        }));
+              }
               return Card(
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                 ListTile(
+                  //key: index == 0 ? dataKey : null,
+                  /*optionInstruments[index].id ==
+                          firstOptionsInstrumentsSorted.id
+                      ? dataKey
+                      : null,
+                      */
                   /*
                   leading: CircleAvatar(
                       backgroundColor: optionInstruments[index].type == 'call'
@@ -311,10 +490,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           : const Text('Put')),
                           */
                   // leading: Icon(Icons.ac_unit),
-                  title: Text(
-                      '${optionInstruments[index].chainSymbol} \$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
-                  subtitle: Text(
-                      'Expires ${dateFormat.format(optionInstruments[index].expirationDate as DateTime)}'),
+                  title: Text(//${optionInstruments[index].chainSymbol}
+                      '\$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
+                  subtitle: Text(optionInstruments[index].optionMarketData !=
+                          null
+                      ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
+                      : ""),
+                  //'Issued ${dateFormat.format(optionInstruments[index].issueDate as DateTime)}'),
+                  trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        optionInstruments[index].optionMarketData != null
+                            ? Text(
+                                "${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)}",
+                                //"${formatCurrency.format(optionInstruments[index].optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.askPrice)}",
+                                style: const TextStyle(fontSize: 18))
+                            : const Text(""),
+                        Wrap(spacing: 8, children: [
+                          Icon(
+                              instrument.quoteObj!.changeToday > 0
+                                  ? Icons.trending_up
+                                  : (instrument.quoteObj!.changeToday < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              color: (instrument.quoteObj!.changeToday > 0
+                                  ? Colors.green
+                                  : (instrument.quoteObj!.changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                              size: 16),
+                          Text(
+                            "${optionInstruments[index].optionMarketData != null && optionInstruments[index].optionMarketData!.gainLossPercentToday != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.gainLossPercentToday) : "-"}",
+                            //style: TextStyle(fontSize: 16),
+                          )
+                        ]),
+                      ]),
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => OptionInstrumentWidget(
+                                user, optionInstruments[index], quote)));
+                  },
                 )
               ]));
 
@@ -373,7 +590,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? Colors.red
                           : Colors.grey))),
               Text(
-                "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
                 style: const TextStyle(fontSize: 18.0),
                 textAlign: TextAlign.right,
               ),
@@ -409,7 +626,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Last Extended Trade Price"),
+          title: Text("Last Extended Hours Trade Price"),
           trailing: Text(
               "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
               style: const TextStyle(fontSize: 18)),
@@ -419,12 +636,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           children: <Widget>[
             TextButton(
               child: const Text('VIEW FUNDAMENTALS'),
-              onPressed: () {/* ... */},
+              onPressed: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  title: const Text('Alert'),
+                  content: const Text('This feature is not implemented.'),
+                  actions: <Widget>[
+                    /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'OK'),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(width: 8),
             TextButton(
               child: const Text('VIEW SPLITS'),
-              onPressed: () {/* ... */},
+              onPressed: () => showDialog<String>(
+                context: context,
+                builder: (BuildContext context) => AlertDialog(
+                  title: const Text('Alert'),
+                  content: const Text('This feature is not implemented.'),
+                  actions: <Widget>[
+                    /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'OK'),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(width: 8),
           ],

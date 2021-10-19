@@ -69,7 +69,11 @@ class OptionAggregatePosition {
 
   // Helpers
   double get marketValue {
-    return optionInstrument!.optionMarketData!.adjustedMarkPrice! *
+    if (optionInstrument == null) {
+      return 0;
+    }
+    return (optionInstrument!.optionMarketData!.adjustedMarkPrice ??
+            optionInstrument!.optionMarketData!.markPrice!) *
         quantity! *
         100;
   }
@@ -102,6 +106,14 @@ class OptionAggregatePosition {
     return optionInstrument!.optionMarketData!.adjustedMarkPrice! *
         quantity! *
         100;
+  }
+
+  double get changeToday {
+    return optionInstrument!.optionMarketData!.gainLossToday * quantity! * 100;
+  }
+
+  double get changePercentToday {
+    return optionInstrument!.optionMarketData!.gainLossPercentToday;
   }
 
   /* CSV Generation */

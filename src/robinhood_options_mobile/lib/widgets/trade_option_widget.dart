@@ -46,8 +46,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             return;
           },
         ));
-    priceCtl.text = formatCurrency.format(
-        optionPosition.optionInstrument!.optionMarketData!.adjustedMarkPrice);
+    priceCtl.text = formatCurrency
+        .format(optionPosition.optionInstrument!.optionMarketData!.markPrice);
     return Scaffold(
         appBar: AppBar(
           title: Text(

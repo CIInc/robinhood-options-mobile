@@ -109,6 +109,10 @@ class Position {
             DateTime.tryParse(json['created_at']);
 
   double get marketValue {
+    return instrumentObj!.quoteObj!.lastTradePrice! * quantity!;
+  }
+
+  double get extendedHoursMarketValue {
     return instrumentObj!.quoteObj!.lastExtendedHoursTradePrice! * quantity!;
   }
 

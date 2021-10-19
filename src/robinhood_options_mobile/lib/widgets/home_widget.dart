@@ -71,9 +71,11 @@ class _HomePageState extends State<HomePage> {
   Future<List<Account>>? futureAccounts;
   Future<List<Holding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
-  Future<dynamic>? futurePortfolioHistoricals;
-  Future<List<Position>>? futurePositions;
-  Future<List<OptionOrder>>? futureOptionOrders;
+  //Future<dynamic>? futurePortfolioHistoricals;
+  //Future<List<Position>>? futurePositions;
+  Stream<List<Position>>? positionStream;
+  // Future<List<OptionOrder>>? futureOptionOrders;
+  Stream<List<OptionOrder>>? optionOrderStream;
 
   Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
   List<OptionAggregatePosition> optionAggregatePositions = [];
@@ -85,7 +87,8 @@ class _HomePageState extends State<HomePage> {
   final List<bool> positionFilters = [true, true];
   final List<String> chainSymbolFilters = <String>[];
 
-  Future<List<dynamic>>? futureWatchlists;
+  Stream<List<WatchlistItem>>? watchlistStream;
+  // Future<List<dynamic>>? futureWatchlists;
   Future<User>? futureUser;
 
 /*
@@ -142,7 +145,7 @@ class _HomePageState extends State<HomePage> {
             }
             // By default, show a loading spinner
             return Center(
-              child: CircularProgressIndicator(),
+              child: LinearProgressIndicator(),
             );
           },
         ),
@@ -179,85 +182,133 @@ class _HomePageState extends State<HomePage> {
               futureNummusHoldings ??=
                   RobinhoodService.getNummusHoldings(robinhoodUser!);
 
-              /*
-              if (futurePortfolioHistoricals == null) {
-                futurePortfolioHistoricals =
-                    RobinhoodService.downloadPortfolioHistoricals(
-                        snapshotUser, null);
-              }
-              */
-              futurePositions ??= RobinhoodService.getPositions(robinhoodUser!);
-              futureWatchlists ??=
-                  RobinhoodService.getWatchlists(robinhoodUser!);
-
-              futureOptionOrders ??=
-                  RobinhoodService.getOptionOrders(robinhoodUser!);
-
               return FutureBuilder(
                 future: Future.wait([
                   futureUser as Future,
                   futureAccounts as Future,
                   futurePortfolios as Future,
                   futureNummusHoldings as Future,
-                  futurePositions as Future,
-                  futureWatchlists as Future,
-                  futureOptionOrders as Future,
                 ]),
-                builder: (context1, AsyncSnapshot<List<dynamic>> dataSnapshot) {
+                builder: (context1, dataSnapshot) {
                   if (dataSnapshot.hasData) {
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     var user = data.isNotEmpty ? data[0] : null;
                     var accounts = data.length > 1 ? data[1] : null;
                     var portfolios = data.length > 2 ? data[2] : null;
                     var nummusHoldings = data.length > 3 ? data[3] : null;
-                    var positions = data.length > 4 ? data[4] : null;
-                    var watchlist = data.length > 5 ? data[5] : null;
-                    var optionOrders = data.length > 6 ? data[6] : null;
-                    optionAggregatePositionStream ??=
-                        RobinhoodService.streamOptionAggregatePositionList(
-                            robinhoodUser!,
-                            includeOpen: hasQuantityFilters[0],
-                            includeClosed: hasQuantityFilters[1],
-                            filters: chainSymbolFilters);
-                    /*
-                    optionPositionsStream ??=
-                        RobinhoodService.streamOptionPositionList(snapshotUser,
-                            includeOpen: hasQuantityFilters[0],
-                            includeClosed: hasQuantityFilters[1],
-                            filters: chainSymbolFilters);
-                            */
-                    return StreamBuilder<List<OptionAggregatePosition>>(
-                        stream: optionAggregatePositionStream,
-                        builder: (BuildContext context,
-                            AsyncSnapshot<List<OptionAggregatePosition>>
-                                optionAggregatePositionSnapshot) {
-                          if (optionAggregatePositionSnapshot.hasData) {
-                            optionAggregatePositions =
-                                optionAggregatePositionSnapshot.data!;
-                            List<Widget> slivers = _buildSlivers(
-                                portfolios: portfolios,
-                                user: user,
-                                ru: robinhoodUser,
-                                accounts: accounts,
-                                nummusHoldings: nummusHoldings,
-                                optionAggregatePositions:
-                                    optionAggregatePositions,
-                                positions: positions,
-                                watchLists: watchlist);
-                            return RefreshIndicator(
-                              child: CustomScrollView(
-                                  slivers: slivers), //controller: _controller,
-                              onRefresh: _pullRefresh,
-                            );
+
+                    positionStream ??=
+                        RobinhoodService.streamPositions(robinhoodUser!);
+
+                    return StreamBuilder(
+                        stream: positionStream,
+                        builder: (context2, positionSnapshot) {
+                          if (positionSnapshot.hasData) {
+                            var positions =
+                                positionSnapshot.data as List<Position>;
+
+                            optionAggregatePositionStream ??= RobinhoodService
+                                .streamOptionAggregatePositionList(
+                                    robinhoodUser!,
+                                    includeOpen: hasQuantityFilters[0],
+                                    includeClosed: hasQuantityFilters[1],
+                                    filters: chainSymbolFilters);
+
+                            optionOrderStream ??=
+                                RobinhoodService.streamOptionOrders(
+                                    robinhoodUser!);
+
+                            return StreamBuilder<List<OptionAggregatePosition>>(
+                                stream: optionAggregatePositionStream,
+                                builder: (BuildContext context3,
+                                    AsyncSnapshot<List<OptionAggregatePosition>>
+                                        optionAggregatePositionSnapshot) {
+                                  if (optionAggregatePositionSnapshot.hasData) {
+                                    optionAggregatePositions =
+                                        optionAggregatePositionSnapshot.data!;
+
+                                    watchlistStream ??=
+                                        RobinhoodService.streamWatchlists(
+                                            robinhoodUser!);
+
+                                    return StreamBuilder(
+                                        stream: watchlistStream,
+                                        builder: (context4, watchlistSnapshot) {
+                                          if (watchlistSnapshot.hasData) {
+                                            List<WatchlistItem> watchLists =
+                                                watchlistSnapshot.data!
+                                                    as List<WatchlistItem>;
+                                            List<Widget> slivers = _buildSlivers(
+                                                portfolios: portfolios,
+                                                user: user,
+                                                ru: robinhoodUser,
+                                                accounts: accounts,
+                                                nummusHoldings: nummusHoldings,
+                                                optionAggregatePositions:
+                                                    optionAggregatePositions,
+                                                positions: positions,
+                                                watchLists: watchLists,
+                                                done: positionSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    optionAggregatePositionSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState
+                                                            .done /* &&
+                                                    watchlistSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done*/
+                                                );
+                                            return RefreshIndicator(
+                                              child: CustomScrollView(
+                                                  slivers:
+                                                      slivers), //controller: _controller,
+                                              onRefresh: _pullRefresh,
+                                            );
+                                          } else {
+                                            List<Widget> slivers =
+                                                _buildSlivers(
+                                              portfolios: portfolios,
+                                              user: user,
+                                              ru: robinhoodUser,
+                                              accounts: accounts,
+                                              nummusHoldings: nummusHoldings,
+                                              optionAggregatePositions:
+                                                  optionAggregatePositions,
+                                              positions: positions,
+                                            );
+                                            return RefreshIndicator(
+                                              child: CustomScrollView(
+                                                  slivers:
+                                                      slivers), //controller: _controller,
+                                              onRefresh: _pullRefresh,
+                                            );
+                                          }
+                                        });
+                                  } else {
+                                    List<Widget> slivers = _buildSlivers(
+                                      portfolios: portfolios,
+                                      user: user,
+                                      ru: robinhoodUser,
+                                      accounts: accounts,
+                                      nummusHoldings: nummusHoldings,
+                                      positions: positions,
+                                    );
+                                    return RefreshIndicator(
+                                      child: CustomScrollView(
+                                          slivers:
+                                              slivers), // controller: _controller
+                                      onRefresh: _pullRefresh,
+                                    );
+                                  }
+                                });
                           } else {
                             List<Widget> slivers = _buildSlivers(
                                 portfolios: portfolios,
                                 user: user,
                                 ru: robinhoodUser,
                                 accounts: accounts,
-                                nummusHoldings: nummusHoldings,
-                                positions: positions,
-                                watchLists: watchlist);
+                                nummusHoldings: nummusHoldings);
                             return RefreshIndicator(
                               child: CustomScrollView(
                                   slivers: slivers), // controller: _controller
@@ -283,10 +334,8 @@ class _HomePageState extends State<HomePage> {
                     );
                   } else {
                     List<Widget> slivers = _buildSlivers(
-                        ru: robinhoodUser,
-                        welcomeWidget: const Center(
-                          child: CircularProgressIndicator(),
-                        ));
+                      ru: robinhoodUser,
+                    );
                     return RefreshIndicator(
                       child: CustomScrollView(slivers: slivers),
                       onRefresh: _pullRefresh,
@@ -312,12 +361,7 @@ class _HomePageState extends State<HomePage> {
             );
           } else {
             List<Widget> slivers = _buildSlivers(
-                //ru: snapshotUser,
-                welcomeWidget: Center(
-              child: userSnapshot.connectionState != ConnectionState.done
-                  ? const CircularProgressIndicator()
-                  : null,
-            ));
+                done: userSnapshot.connectionState == ConnectionState.done);
             return RefreshIndicator(
               child: CustomScrollView(slivers: slivers),
               onRefresh: _pullRefresh,
@@ -335,7 +379,8 @@ class _HomePageState extends State<HomePage> {
       Widget? welcomeWidget,
       List<OptionAggregatePosition>? optionAggregatePositions,
       List<Position>? positions,
-      List<WatchlistItem>? watchLists}) {
+      List<WatchlistItem>? watchLists,
+      bool done = false}) {
     var slivers = <Widget>[];
     double changeToday = 0;
     double changeTodayPercentage = 0;
@@ -343,17 +388,58 @@ class _HomePageState extends State<HomePage> {
       changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
       changeTodayPercentage = changeToday / portfolios[0].equity!;
     }
+    double positionEquity = 0;
+    if (positions != null) {
+      if (positions.isNotEmpty) {
+        positionEquity =
+            positions.map((e) => e.marketValue).reduce((a, b) => a + b);
+      }
+    }
     double nummusEquity = 0;
     if (nummusHoldings != null) {
       nummusEquity = nummusHoldings
           .map((e) => e.value! * e.quantity!)
           .reduce((a, b) => a + b);
     }
-    SliverAppBar sliverAppBar = buildSliverAppBar(ru, portfolios, user,
-        accounts, nummusEquity, changeToday, changeTodayPercentage);
+    double optionEquity = 0;
+    if (optionAggregatePositions != null) {
+      optionEquity = optionAggregatePositions
+          .map((e) => e.legs.first.positionType == "long"
+              ? e.marketValue
+              : e.marketValue) // TODO: Match portfolios[0].marketValue (e.totalCost - e.marketValue)
+          .reduce((a, b) => a + b);
+      chainSymbols =
+          optionAggregatePositions.map((e) => e.symbol).toSet().toList();
+      chainSymbols.sort((a, b) => (a.compareTo(b)));
+    }
+    SliverAppBar sliverAppBar = buildSliverAppBar(
+        ru,
+        portfolios,
+        user,
+        accounts,
+        positionEquity,
+        nummusEquity,
+        optionEquity,
+        changeToday,
+        changeTodayPercentage);
     slivers.add(sliverAppBar);
 
     if (ru != null && ru.userName != null) {
+      if (done == false) {
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 3, //150.0,
+          child: Align(
+              alignment: Alignment.center,
+              child: Center(
+                  child: LinearProgressIndicator(
+                      //value: controller.value,
+                      //semanticsLabel: 'Linear progress indicator',
+                      ) //CircularProgressIndicator(),
+                  )),
+        )));
+      }
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -362,46 +448,12 @@ class _HomePageState extends State<HomePage> {
           child: Align(alignment: Alignment.center, child: welcomeWidget),
         )));
       }
-      /*
-      if (portfolios != null) {
-        slivers.add(
-          SliverPersistentHeader(
-            pinned: false,
-            delegate: PersistentHeader("Portfolios"),
-          ),
-        );
-        slivers.add(SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              if (portfolios.length > index) {
-                return Text('\$${portfolios[index].equity}');
-              }
-              return null;
-              // To convert this infinite list to a list with three items,
-              // uncomment the following line:
-              // if (index > 3) return null;
-            },
-            // Or, uncomment the following line:
-            // childCount: widgets.length + 10,
-          ),
-        ));
-      }
-      */
       if (optionAggregatePositions != null) {
-        var totalAdjustedMarkPrice = optionAggregatePositions
-            .map((e) =>
-                e.optionInstrument?.optionMarketData!.adjustedMarkPrice! ??
-                0 * (e.legs.first.positionType == "long" ? 1 : -1))
-            .reduce((a, b) => a + b);
-        chainSymbols =
-            optionAggregatePositions.map((e) => e.symbol).toSet().toList();
-        chainSymbols.sort((a, b) => (a.compareTo(b)));
         slivers.add(
           SliverPersistentHeader(
             pinned: false,
             delegate: PersistentHeader(
-                "Options ${formatCurrency.format(totalAdjustedMarkPrice * 100)}"),
+                "Options ${formatCurrency.format(optionEquity)}"),
           ),
         );
         /*
@@ -451,6 +503,7 @@ class _HomePageState extends State<HomePage> {
             child: SizedBox(
                 height: 56,
                 child: ListView.builder(
+                  padding: const EdgeInsets.all(4.0),
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
                     return Row(children: [
@@ -501,6 +554,7 @@ class _HomePageState extends State<HomePage> {
             child: SizedBox(
                 height: 56,
                 child: ListView.builder(
+                  padding: const EdgeInsets.all(4.0),
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
                     return Row(
@@ -587,6 +641,7 @@ class _HomePageState extends State<HomePage> {
             child: SizedBox(
                 height: 56,
                 child: ListView.builder(
+                  padding: const EdgeInsets.all(4.0),
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
                     return Row(
@@ -609,32 +664,13 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ));
-      } else {
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          // color: Colors.white,
-          height: 150.0,
-          child: Align(
-              alignment: Alignment.center,
-              child: Center(
-                child: CircularProgressIndicator(),
-              )),
-        )));
       }
       if (positions != null) {
-        double totalPositionEquity = 0;
-        if (positions.isNotEmpty) {
-          totalPositionEquity = positions
-              .map((e) =>
-                  e.quantity! *
-                  e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice!)
-              .reduce((a, b) => a + b);
-        }
         slivers.add(
           SliverPersistentHeader(
             pinned: false,
             delegate: PersistentHeader(
-                "Positions ${formatCurrency.format(totalPositionEquity)}"),
+                "Positions ${formatCurrency.format(positionEquity)}"),
           ),
         );
         slivers.add(SliverList(
@@ -667,6 +703,201 @@ class _HomePageState extends State<HomePage> {
             (BuildContext context, int index) {
               if (watchLists.length > index) {
                 return _buildWatchlistRow(watchLists, index, ru);
+              }
+              return null;
+              // To convert this infinite list to a list with three items,
+              // uncomment the following line:
+              // if (index > 3) return null;
+            },
+            // Or, uncomment the following line:
+            // childCount: widgets.length + 10,
+          ),
+        ));
+      }
+      if (portfolios != null) {
+        slivers.add(
+          SliverPersistentHeader(
+            pinned: false,
+            delegate: PersistentHeader("Portfolios"),
+          ),
+        );
+        slivers.add(SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              if (portfolios.length > index) {
+                var accountSplit = portfolios[index].account.split("/");
+                return Card(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: <
+                        Widget>[
+                  ListTile(
+                    title:
+                        const Text("Account", style: TextStyle(fontSize: 14)),
+                    trailing: Text(accountSplit[accountSplit.length - 2],
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Equity", style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index].equity),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Extended Hours Equity",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].extendedHoursEquity),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Last Core Equity",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index].lastCoreEquity),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Last Core Portfolio Equity",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].lastCorePortfolioEquity),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Extended Hours Portfolio Equity",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(
+                            portfolios[index].extendedHoursPortfolioEquity),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Equity Previous Close",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].equityPreviousClose),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Adjusted Equity Previous Close",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(
+                            portfolios[index].adjustedEquityPreviousClose),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Portfolio Equity Previous Close",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(
+                            portfolios[index].portfolioEquityPreviousClose),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text(
+                        "Adjusted Portfolio Equity Previous Close",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index]
+                            .adjustedPortfolioEquityPreviousClose),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Market Value",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index].marketValue),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Extended Hours Market Value",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].extendedHoursMarketValue),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Last Core Market Value",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].lastCoreMarketValue),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Excess Maintenance",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].excessMaintenance),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text(
+                        "Excess Maintenance With Uncleared Deposits",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index]
+                            .excessMaintenanceWithUnclearedDeposits),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Excess Margin",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index].excessMargin),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Excess Margin With Uncleared Deposits",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency.format(portfolios[index]
+                            .excessMarginWithUnclearedDeposits),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Start Date",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatDate.format(portfolios[index].startDate!),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Unwithdrawable Deposits",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].unwithdrawableDeposits),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Unwithdrawable Grants",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].unwithdrawableGrants),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Withdrawable Amount",
+                        style: TextStyle(fontSize: 14)),
+                    trailing: Text(
+                        formatCurrency
+                            .format(portfolios[index].withdrawableAmount),
+                        style: const TextStyle(fontSize: 16)),
+                  ),
+                  ListTile(
+                    title: const Text("Url", style: TextStyle(fontSize: 14)),
+                    trailing: Text(portfolios[index].url,
+                        style: const TextStyle(fontSize: 14)),
+                  ),
+                ]));
               }
               return null;
               // To convert this infinite list to a list with three items,
@@ -820,7 +1051,9 @@ class _HomePageState extends State<HomePage> {
       List<Portfolio>? portfolios,
       User? user,
       List<Account>? accounts,
+      double positionEquity,
       double nummusEquity,
+      double optionEquity,
       double changeToday,
       double changeTodayPercentage) {
     var sliverAppBar = SliverAppBar(
@@ -832,7 +1065,7 @@ class _HomePageState extends State<HomePage> {
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 240.0,
+      expandedHeight: 260.0,
       // collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
@@ -854,14 +1087,22 @@ class _HomePageState extends State<HomePage> {
         } /* else if (silverCollapsed) {
           return Container();
         }*/
+        var portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
+        var stockAndOptionsEquityPercent =
+            portfolios[0].marketValue! / portfolioValue;
+        var optionEquityPercent = optionEquity / portfolioValue;
+        var positionEquityPercent = positionEquity / portfolioValue;
+        var portfolioCash = accounts![0].portfolioCash ?? 0;
+        var cashPercent = portfolioCash / portfolioValue;
+        var cryptoPercent = nummusEquity / portfolioValue;
         return FlexibleSpaceBar(
             background: const FlutterLogo(),
             title: SingleChildScrollView(
               child: Column(//mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                Row(children: [const Text('')]),
-                Row(children: [const Text('')]),
-                Row(children: [const Text('')]),
+                Row(children: [const SizedBox(height: 65)]),
+                //Row(children: [const Text('')]),
+                //Row(children: [const Text('')]),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -871,32 +1112,6 @@ class _HomePageState extends State<HomePage> {
                         style: const TextStyle(fontSize: 24.0)),
                     Container(
                       width: 10,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Text(
-                      formatCurrency
-                          .format((portfolios[0].equity ?? 0) + nummusEquity),
-                      style: const TextStyle(fontSize: 18.0),
-                    ),
-                    Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -929,7 +1144,7 @@ class _HomePageState extends State<HomePage> {
                             width: 10,
                           ),
                           Text(
-                              '${formatCurrency.format(changeToday.abs())}', //${formatPercentage.format(changeTodayPercentage.abs())}
+                              "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
                               style: const TextStyle(fontSize: 16.0)),
                           Container(
                             width: 10,
@@ -943,25 +1158,39 @@ class _HomePageState extends State<HomePage> {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Container(
-                      width: 20,
-                    ),
-                    const Text(
-                      'Stocks & Options',
-                      style: TextStyle(fontSize: 10.0),
-                    ),
-                    Container(
                       width: 10,
                     ),
-                    Text(
-                      formatCurrency.format(portfolios[0].marketValue),
-                      style: const TextStyle(fontSize: 13.0),
-                    ),
                     Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Portfolio Value",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text("", //${formatPercentage.format(1)}
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text("${formatCurrency.format(portfolioValue)}",
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
                     ),
                   ],
                 ),
@@ -970,34 +1199,42 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Column(children: [
-                      const Text(
-                        'Cash',
-                        style: TextStyle(fontSize: 10.0),
-                      )
-                    ]),
                     Container(
                       width: 10,
                     ),
-                    Column(children: [
-                      Text(
-                        formatCurrency.format(accounts![0].portfolioCash),
-                        style: const TextStyle(fontSize: 13.0),
-                      )
-                    ]),
                     Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Stocks & Options",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              "${formatPercentage.format(stockAndOptionsEquityPercent)}",
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(
+                            "${formatCurrency.format(portfolios[0].marketValue)}",
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
                     ),
                   ],
                 ),
@@ -1006,93 +1243,170 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.baseline,
                   textBaseline: TextBaseline.alphabetic,
                   children: [
-                    Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Crypto',
-                          style: TextStyle(fontSize: 10.0),
-                        ),
-                      ],
-                    ),
                     Container(
                       width: 10,
                     ),
                     Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          formatCurrency.format(nummusEquity),
-                          style: const TextStyle(fontSize: 13.0),
-                        ),
-                      ],
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Options",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
                     ),
-                    Column(
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              "${formatPercentage.format(optionEquityPercent)}",
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text("${formatCurrency.format(optionEquity)}",
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
                     ),
                   ],
                 ),
-                /*
                 Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Portfolio Equity',
-                            style: TextStyle(fontSize: 12.0),
-                          ),
-                          const Text(
-                            '\t\tStocks & Options',
-                            style: TextStyle(fontSize: 10.0),
-                          ),
-                          const Text(
-                            '\t\tCash',
-                            style: TextStyle(fontSize: 10.0),
-                          ),
-                          const Text(
-                            '\t\tCrypto', //'\t\t\tChange',
-                            style: TextStyle(fontSize: 10.0),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            formatCurrency.format(
-                                (portfolios[0].equity ?? 0) + nummusEquity),
-                            style: const TextStyle(fontSize: 15.0),
-                          ),
-                          Text(
-                            formatCurrency.format(portfolios[0].marketValue),
-                            style: const TextStyle(fontSize: 12.0),
-                          ),
-                          Text(
-                            formatCurrency.format(accounts![0].portfolioCash),
-                            style: const TextStyle(fontSize: 12.0),
-                          ),
-                          Text(
-                            formatCurrency.format(nummusEquity),
-                            style: const TextStyle(fontSize: 12.0),
-                          ),
-                        ],
-                      ),
+                          const SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Stocks",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              "${formatPercentage.format(positionEquityPercent)}",
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
                     ]),
-                    */
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text("${formatCurrency.format(positionEquity)}",
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                              width: 80,
+                              child: Text(
+                                "Crypto",
+                                style: TextStyle(fontSize: 10.0),
+                              )),
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              "${formatPercentage.format(cryptoPercent)}",
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(nummusEquity),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          const SizedBox(
+                              width: 80,
+                              child: Text(
+                                "Cash",
+                                style: TextStyle(fontSize: 10.0),
+                              )),
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text("${formatPercentage.format(cashPercent)}",
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(portfolioCash),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
               ]),
             ));
       }),
@@ -1325,8 +1639,8 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => OptionPositionWidget(
-                        ru, optionAggregatePositions[index])));
+                    builder: (context) =>
+                        OptionPositionWidget(ru, optionsPositions[index])));
           },
         ),
       ],

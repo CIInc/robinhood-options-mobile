@@ -81,10 +81,18 @@ class Quote {
         instrumentId = json['instrument_id'];
 
   double get changeToday {
+    return lastTradePrice! - adjustedPreviousClose!;
+  }
+
+  double get extendedHoursChangeToday {
     return lastExtendedHoursTradePrice! - adjustedPreviousClose!;
   }
 
   double get changeTodayPercent {
     return changeToday / adjustedPreviousClose!;
+  }
+
+  double get extendedHoursChangeTodayPercent {
+    return extendedHoursChangeToday / adjustedPreviousClose!;
   }
 }

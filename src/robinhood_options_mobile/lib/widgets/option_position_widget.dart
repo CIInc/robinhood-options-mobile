@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
+final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
@@ -85,33 +86,258 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}')
-        expandedHeight: 160,
+        expandedHeight: 230,
+        //expandedHeight: 260.0,
         flexibleSpace: FlexibleSpaceBar(
             background: const FlutterLogo(),
             title: SingleChildScrollView(
-                child: Column(children: [
-              Row(
-                children: const [Text('')],
-              ),
-              Row(
-                children: const [Text('')],
-              ),
-              Row(
-                children: const [Text('')],
-              ),
-              Row(children: [
-                Text(
-                    '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}',
-                    style: const TextStyle(fontSize: 17.0)),
-              ]),
-              /*
-              Row(children: [
-                Text(
-                    '${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}',
-                    style: const TextStyle(fontSize: 17.0)),
-              ])
-              */
-            ]))),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Row(children: [const SizedBox(height: 70)]),
+                  Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.end,
+                      //runAlignment: WrapAlignment.end,
+                      //alignment: WrapAlignment.end,
+                      spacing: 20,
+                      //runSpacing: 5,
+                      children: [
+                        Text(
+                            '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}',
+                            style: const TextStyle(fontSize: 20.0)),
+                        Text(
+                            '${formatDate.format(optionPosition.optionInstrument!.expirationDate!)}',
+                            style: const TextStyle(fontSize: 16.0))
+                      ]),
+                  /*
+                  Text(
+                    '${formatDate.format(optionPosition.optionInstrument!.expirationDate!)}',
+                    style: const TextStyle(fontSize: 14.0),
+                    textAlign: TextAlign.left,
+                  ),
+                  */
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const SizedBox(
+                                width: 70,
+                                child: Text(
+                                  "Return Today",
+                                  style: TextStyle(fontSize: 10.0),
+                                ),
+                              )
+                            ]),
+                        Container(
+                          width: 5,
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                                width: 60,
+                                child: Wrap(
+                                  children: [
+                                    Icon(
+                                        optionPosition.changeToday > 0
+                                            ? Icons.trending_up
+                                            : (optionPosition.changeToday < 0
+                                                ? Icons.trending_down
+                                                : Icons.trending_flat),
+                                        color: (optionPosition.changeToday > 0
+                                            ? Colors.lightGreenAccent
+                                            : (optionPosition.changeToday < 0
+                                                ? Colors.red
+                                                : Colors.grey)),
+                                        size: 16.0),
+                                    Container(
+                                      width: 2,
+                                    ),
+                                    Text(
+                                        '${formatPercentage.format(optionPosition.changePercentToday.abs())}',
+                                        style: const TextStyle(fontSize: 12.0)),
+                                  ],
+                                ))
+                          ],
+                        ),
+                        Container(
+                          width: 5,
+                        ),
+                        SizedBox(
+                            width: 50,
+                            child: Text(
+                                "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
+                                style: const TextStyle(fontSize: 12.0),
+                                textAlign: TextAlign.right)),
+                        Container(
+                          width: 10,
+                        ),
+                      ]),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Container(
+                          width: 10,
+                        ),
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              const SizedBox(
+                                width: 70,
+                                child: Text(
+                                  "Return",
+                                  style: TextStyle(fontSize: 10.0),
+                                ),
+                              )
+                            ]),
+                        Container(
+                          width: 5,
+                        ),
+                        Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                  width: 60,
+                                  child: Wrap(children: [
+                                    Icon(
+                                        optionPosition.gainLossPerContract > 0
+                                            ? Icons.trending_up
+                                            : (optionPosition
+                                                        .gainLossPerContract <
+                                                    0
+                                                ? Icons.trending_down
+                                                : Icons.trending_flat),
+                                        color: (optionPosition
+                                                    .gainLossPerContract >
+                                                0
+                                            ? Colors.lightGreenAccent
+                                            : (optionPosition
+                                                        .gainLossPerContract <
+                                                    0
+                                                ? Colors.red
+                                                : Colors.grey)),
+                                        size: 16.0),
+                                    Container(
+                                      width: 2,
+                                    ),
+                                    Text(
+                                        '${formatPercentage.format(optionPosition.gainLossPercent.abs())}',
+                                        style: const TextStyle(fontSize: 12.0)),
+                                  ]))
+                            ]),
+                        Container(
+                          width: 5,
+                        ),
+                        SizedBox(
+                            width: 50,
+                            child: Text(
+                                "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}", //${formatPercentage.format(changeTodayPercentage.abs())}
+                                style: const TextStyle(fontSize: 12.0),
+                                textAlign: TextAlign.right)),
+                        Container(
+                          width: 10,
+                        ),
+                      ]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const SizedBox(
+                              width: 70,
+                              child: Text(
+                                "Market Value",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                                width: 60,
+                                child: Text("", //${formatPercentage.format(1)}
+                                    style: const TextStyle(fontSize: 10.0),
+                                    textAlign: TextAlign.right))
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 50,
+                          child: Text(
+                              "${formatCurrency.format(optionPosition.marketValue)}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const SizedBox(
+                              width: 70,
+                              child: Text(
+                                "Cost",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                                width: 60,
+                                child: Text("", //${formatPercentage.format(1)}
+                                    style: const TextStyle(fontSize: 10.0),
+                                    textAlign: TextAlign.right))
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 50,
+                          child: Text(
+                              "${formatCurrency.format(optionPosition.totalCost)}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                ]))),
         pinned: true,
       ),
       SliverToBoxAdapter(
@@ -172,65 +398,67 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
             },*/
           ),
           */
-          Text("Option", style: const TextStyle(fontSize: 20)),
+          ListTile(title: const Text("Option", style: TextStyle(fontSize: 20))),
           ListTile(
-            title: Text("Contracts"),
+            title: const Text("Contracts"),
             trailing: Text(
                 "${optionPosition.quantity!.round()} ${optionPosition.legs.first.positionType} ${optionPosition.legs.first.optionType}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Strike"),
+            title: const Text("Strike"),
             trailing: Text(
-                "${formatCurrency.format(optionPosition.optionInstrument!.strikePrice)}",
+                formatCurrency
+                    .format(optionPosition.optionInstrument!.strikePrice),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Expiration"),
+            title: const Text("Expiration"),
             trailing: Text(
-                "${dateFormat.format(optionPosition.optionInstrument!.expirationDate!)}",
+                dateFormat
+                    .format(optionPosition.optionInstrument!.expirationDate!),
                 style: const TextStyle(fontSize: 18)),
           ),
           optionPosition.legs.first.positionType == "long"
               ? ListTile(
-                  title: Text("Average Open Price"),
+                  title: const Text("Average Open Price"),
                   trailing: Text(
-                      "${formatCurrency.format(optionPosition.averageOpenPrice)}",
+                      formatCurrency.format(optionPosition.averageOpenPrice),
                       style: const TextStyle(fontSize: 18)))
               : ListTile(
-                  title: Text("Credit"),
+                  title: const Text("Credit"),
                   trailing: Text(
-                      "${formatCurrency.format(optionPosition.averageOpenPrice)}",
+                      formatCurrency.format(optionPosition.averageOpenPrice),
                       style: const TextStyle(fontSize: 18)),
                 ),
           optionPosition.legs.first.positionType == "long"
               ? ListTile(
-                  title: Text("Total Cost"),
+                  title: const Text("Total Cost"),
                   trailing: Text(
-                      "${formatCurrency.format(optionPosition.totalCost)}",
+                      formatCurrency.format(optionPosition.totalCost),
                       style: const TextStyle(fontSize: 18)),
                 )
               : ListTile(
-                  title: Text("Short Collateral"),
+                  title: const Text("Short Collateral"),
                   trailing: Text(
-                      "${formatCurrency.format(optionPosition.shortCollateral)}",
+                      formatCurrency.format(optionPosition.shortCollateral),
                       style: const TextStyle(fontSize: 18)),
                 ),
           optionPosition.legs.first.positionType == "long"
               ? Container()
               : ListTile(
-                  title: Text("Credit to Collateral"),
+                  title: const Text("Credit to Collateral"),
                   trailing: Text(
-                      "${formatPercentage.format(optionPosition.collateralReturn)}",
+                      formatPercentage.format(optionPosition.collateralReturn),
                       style: const TextStyle(fontSize: 18)),
                 ),
           ListTile(
-            title: Text("Market Value"), //Equity
-            trailing: Text("${formatCurrency.format(optionPosition.equity)}",
+            title: const Text("Market Value"), //Equity
+            trailing: Text(formatCurrency.format(optionPosition.equity),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-              title: Text("Return"),
+              title: const Text("Return"),
               trailing: Wrap(
                 spacing: 8,
                 children: [
@@ -247,7 +475,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             : Colors.grey)),
                   ), //size: 18.0
                   Text(
-                    "${formatCurrency.format(optionPosition.gainLoss)}",
+                    formatCurrency.format(optionPosition.gainLoss),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
                   ),
@@ -259,29 +487,24 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                 */
               ),
           ListTile(
-            title: Text("Return %"),
+            title: const Text("Return %"),
             trailing: Text(
-                "${formatPercentage.format(optionPosition.gainLossPercent)}",
+                formatPercentage.format(optionPosition.gainLossPercent),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Days to Expiration"),
+            title: const Text("Days to Expiration"),
             trailing: Text("${dte.isNegative ? 0 : dte} of ${originalDte}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Created"),
-            trailing: Text("${dateFormat.format(optionPosition.createdAt!)}",
+            title: const Text("Created"),
+            trailing: Text(dateFormat.format(optionPosition.createdAt!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Updated"),
-            trailing: Text("${dateFormat.format(optionPosition.updatedAt!)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: Text("Legs"),
-            trailing: Text("${optionPosition.legs.length}",
+            title: const Text("Updated"),
+            trailing: Text(dateFormat.format(optionPosition.updatedAt!),
                 style: const TextStyle(fontSize: 18)),
           ),
           /*
@@ -315,16 +538,166 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         */
         ],
       ))),
-      /*
-      SliverList(
-          delegate: SliverChildBuilderDelegate((BuildContext context, int i) {
-        if (i < 20) {
-          return _buildAggregateRow(i, optionPosition);
-        }
-        return null;
-      }))
-      */
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _buildLegs(optionPosition).toList(),
+      ))),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+              title: const Text("Market Data", style: TextStyle(fontSize: 20))),
+          ListTile(
+            title: const Text("Break Even Price"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.breakEvenPrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid - Mark - Ask"),
+            trailing: Text(
+                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.markPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.askPrice)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid Size - Ask Size"),
+            trailing: Text(
+                "${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.askSize)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Adjusted Mark Price"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.adjustedMarkPrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Last Trade"),
+            trailing: Text(
+                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.lastTradeSize)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Low Price - High Price"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.lowPrice != null ? formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lowPrice) : "-"} - ${optionPosition.optionInstrument!.optionMarketData!.highPrice != null ? formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.highPrice) : "-"}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text(
+                "Previous Close (${formatDate.format(optionPosition.optionInstrument!.optionMarketData!.previousCloseDate!)})"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.previousClosePrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Volume"),
+            trailing: Text(
+                formatCompactNumber.format(
+                    optionPosition.optionInstrument!.optionMarketData!.volume),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Open Interest"),
+            trailing: Text(
+                formatCompactNumber.format(optionPosition
+                    .optionInstrument!.optionMarketData!.openInterest),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Implied Volatility"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.impliedVolatility),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Chance of Profit (Long)"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.chanceOfProfitLong),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Chance of Profit (Short)"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.chanceOfProfitShort),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Delta"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.delta}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Gamma"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.gamma}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Theta"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.theta}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Vega"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.vega}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Rho"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.rho}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
+      ))),
     ]);
+  }
+
+  Iterable<Widget> _buildLegs(OptionAggregatePosition optionPosition) sync* {
+    for (int i = 0; i < optionPosition.legs.length; i++) {
+      var leg = optionPosition.legs[i];
+      yield ListTile(
+          title: Text("Leg ${i + 1}", style: TextStyle(fontSize: 20)));
+      // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
+      yield ListTile(
+        title: const Text("Expiration Date"),
+        trailing: Text(formatDate.format(leg.expirationDate!),
+            style: const TextStyle(fontSize: 18)),
+      );
+      yield ListTile(
+        title: const Text("Position Type"),
+        trailing:
+            Text("${leg.positionType}", style: const TextStyle(fontSize: 18)),
+      );
+      yield ListTile(
+        title: const Text("Option Type"),
+        trailing: Text(leg.optionType, style: const TextStyle(fontSize: 18)),
+      );
+      yield ListTile(
+        title: const Text("Strike Price"),
+        trailing: Text("${formatCurrency.format(leg.strikePrice)}",
+            style: const TextStyle(fontSize: 18)),
+      );
+      yield ListTile(
+        title: const Text("Ratio Quantity"),
+        trailing:
+            Text("${leg.ratioQuantity}", style: const TextStyle(fontSize: 18)),
+      );
+    }
   }
 
   Widget _buildStockView(Instrument instrument) {
@@ -351,19 +724,20 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           ? Colors.red
                           : Colors.grey))),
               Text(
-                "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
+                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
                 style: const TextStyle(fontSize: 18.0),
                 textAlign: TextAlign.right,
               ),
-              /*
-            Text(
-              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-              style: const TextStyle(fontSize: 16.0),
-              textAlign: TextAlign.right,
-            ),*/
             ],
           ),
         ),
+        /*
+        ListTile(
+        title: const Text("Expiration Date"),
+        trailing: Text(formatDate.format(leg.expirationDate!),
+            style: const TextStyle(fontSize: 18)),
+        ),
+        */
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -382,214 +756,4 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
       ],
     ));
   }
-
-  /*
-  Widget _buildPosition(
-      OptionAggregatePosition optionPosition, Instrument instrument) {
-    return Card(
-      child: ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: 20,
-          itemBuilder: (context, i) {
-            return _buildAggregateRow(i, optionPosition);
-          }),
-    );
-  }
-
-  Widget _buildAggregateRow(int pos, OptionAggregatePosition optionPosition) {
-    String title = "";
-    String value = "";
-    switch (pos) {
-      case 0:
-        title = "ID";
-        value = optionPosition.id;
-        break;
-      case 1:
-        title = "Account";
-        value = optionPosition.account;
-        break;
-      case 2:
-        title = "Chain";
-        value = optionPosition.chain;
-        break;
-      case 3:
-        title = "Symbol";
-        value = optionPosition.symbol;
-        break;
-      case 4:
-        title = "Strategy";
-        value = optionPosition.strategy;
-        break;
-      case 5:
-        title = "Average Open Price";
-        value = optionPosition.averageOpenPrice!.toStringAsFixed(2);
-        break;
-      case 6:
-        title = "Position Type";
-        value = optionPosition.legs.first.positionType;
-        break;
-      case 7:
-        title = "Option Type";
-        value = optionPosition.legs.first.optionType;
-        break;
-      case 8:
-        title = "Ratio Quantity";
-        value = optionPosition.legs.first.ratioQuantity.toStringAsFixed(0);
-        break;
-      case 9:
-        title = "Expiration Date";
-        value = optionPosition.legs.first.expirationDate.toString();
-        break;
-      case 10:
-        title = "Strike Price";
-        value = optionPosition.legs.first.strikePrice.toString();
-        break;
-      case 11:
-        title = "Quantity";
-        value = optionPosition.quantity!.toStringAsFixed(0);
-        break;
-      case 12:
-        title = "Intraday Average Open Price";
-        value = optionPosition.intradayAverageOpenPrice!.toStringAsFixed(2);
-        break;
-      case 13:
-        title = "Intraday Quantity";
-        value = optionPosition.intradayQuantity!.toStringAsFixed(0);
-        break;
-      case 14:
-        title = "Direction";
-        value = optionPosition.direction;
-        break;
-      case 15:
-        title = "Intraday Direction";
-        value = optionPosition.intradayDirection;
-        break;
-      case 16:
-        title = "Trade Value Multiplier";
-        value = optionPosition.tradeValueMultiplier!.toStringAsFixed(0);
-        break;
-      case 17:
-        title = "Created At";
-        value = optionPosition.createdAt!.toIso8601String();
-        break;
-      case 18:
-        title = "Updated At";
-        value = optionPosition.updatedAt!.toIso8601String();
-        break;
-      case 19:
-        title = "Strategy Code";
-        value = optionPosition.strategyCode;
-        break;
-      //default:
-      //  return new Text("Widget not implemented.");
-    }
-
-    return ListTile(
-      title: Text(value), //, style: TextStyle(fontSize: 18.0)),
-      subtitle: Text(title),
-    );
-  }
-
-  Widget _buildRow(int pos, OptionPosition optionPosition) {
-    String title = "";
-    String value = "";
-    switch (pos) {
-      case 0:
-        title = "Account";
-        value = optionPosition.account;
-        break;
-      case 1:
-        title = "Chain ID";
-        value = optionPosition.chainId;
-        break;
-      case 2:
-        title = "Chain Symbol";
-        value = optionPosition.chainSymbol;
-        break;
-      case 3:
-        title = "ID";
-        value = optionPosition.id;
-        break;
-      case 4:
-        title = "Option";
-        value = optionPosition.option;
-        break;
-      case 5:
-        title = "Option ID";
-        value = optionPosition.optionId;
-        break;
-      case 6:
-        title = "Type";
-        value = optionPosition.type;
-        break;
-      case 7:
-        title = "Url";
-        value = optionPosition.url;
-        break;
-      case 8:
-        title = "Average Price";
-        value = optionPosition.averagePrice!.toStringAsFixed(2);
-        break;
-      case 9:
-        title = "Intraday Average Open Price";
-        value = optionPosition.intradayAverageOpenPrice!.toStringAsFixed(2);
-        break;
-      case 10:
-        title = "Intraday Quantity";
-        value = optionPosition.intradayQuantity!.toStringAsFixed(0);
-        break;
-      case 11:
-        title = "Pending Assignment Quantity";
-        value = optionPosition.pendingAssignmentQuantity!.toStringAsFixed(0);
-        break;
-      case 12:
-        title = "Pending Buy Quantity";
-        value = optionPosition.pendingBuyQuantity!.toStringAsFixed(0);
-        break;
-      case 13:
-        title = "Pending Exercise Quantity";
-        value = optionPosition.pendingExerciseQuantity!.toStringAsFixed(0);
-        break;
-      case 14:
-        title = "Pending Expiration Quantity";
-        value = optionPosition.pendingExpirationQuantity!.toStringAsFixed(0);
-        break;
-      case 15:
-        title = "Pending Expired Quantity";
-        value = optionPosition.pendingExpiredQuantity!.toStringAsFixed(0);
-        break;
-      case 16:
-        title = "Pending Sell Quantity";
-        value = optionPosition.pendingSellQuantity!.toStringAsFixed(0);
-        break;
-      case 17:
-        title = "Quantity";
-        value = optionPosition.quantity!.toStringAsFixed(0);
-        break;
-      case 18:
-        title = "Trade Value Multiplier";
-        value = optionPosition.tradeValueMultiplier!.toStringAsFixed(0);
-        break;
-      case 19:
-        title = "Type";
-        value = optionPosition.type;
-        break;
-      case 20:
-        title = "Created At";
-        value = optionPosition.createdAt!.toIso8601String();
-        break;
-      case 21:
-        title = "Updated At";
-        value = optionPosition.updatedAt!.toIso8601String();
-        break;
-      //default:
-      //  return new Text("Widget not implemented.");
-    }
-
-    return ListTile(
-      title: Text(value), //, style: TextStyle(fontSize: 18.0)),
-      subtitle: Text(title),
-    );
-  }
-  */
 }
