@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:csv/csv.dart';
+import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
@@ -92,6 +93,50 @@ class OptionAggregatePosition {
 
   double get gainLossPercent {
     return gainLoss / totalCost;
+  }
+
+  Icon get trendingIcon {
+    return direction == "debit"
+        ? Icon(
+            gainLossPerContract > 0
+                ? Icons.trending_up
+                : (gainLossPerContract < 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLossPerContract > 0
+                ? Colors.lightGreenAccent
+                : (gainLossPerContract < 0 ? Colors.red : Colors.grey)),
+            size: 14.0)
+        : Icon(
+            gainLossPerContract < 0
+                ? Icons.trending_up
+                : (gainLossPerContract > 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLossPerContract < 0
+                ? Colors.lightGreenAccent
+                : (gainLossPerContract > 0 ? Colors.red : Colors.grey)),
+            size: 14.0);
+  }
+
+  Icon get trendingIconToday {
+    return direction == "debit"
+        ? Icon(
+            changeToday > 0
+                ? Icons.trending_up
+                : (changeToday < 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (changeToday > 0
+                ? Colors.lightGreenAccent
+                : (changeToday < 0 ? Colors.red : Colors.grey)),
+            size: 14.0)
+        : Icon(
+            changeToday < 0
+                ? Icons.trending_up
+                : (changeToday > 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (changeToday < 0
+                ? Colors.lightGreenAccent
+                : (changeToday > 0 ? Colors.red : Colors.grey)),
+            size: 14.0);
   }
 
   double get shortCollateral {

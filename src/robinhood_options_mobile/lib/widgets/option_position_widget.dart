@@ -13,6 +13,8 @@ import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatNumber = NumberFormat("0.####");
+final formatCompactNumber = NumberFormat.compact();
 
 class OptionPositionWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -45,30 +47,31 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: FutureBuilder(
-            future: futureQuote,
-            builder: (context, AsyncSnapshot<Quote> snapshot) {
-              if (snapshot.hasData) {
-                var quote = snapshot.data!;
-                futureInstrument = RobinhoodService.getInstrument(
-                    user, snapshot.data!.instrument);
-                return FutureBuilder(
-                    future: futureInstrument,
-                    builder: (context,
-                        AsyncSnapshot<Instrument> instrumentSnapshot) {
-                      if (instrumentSnapshot.hasData) {
-                        var instrument = instrumentSnapshot.data!;
-                        instrument.quoteObj = quote;
-                        return _buildPage(instrument);
-                      } else if (instrumentSnapshot.hasError) {
-                        print("${instrumentSnapshot.error}");
-                        return Text("${instrumentSnapshot.error}");
-                      }
-                      return Container();
-                    });
-              }
-              return Container();
-            }),
+      body: FutureBuilder(
+          future: futureQuote,
+          builder: (context, AsyncSnapshot<Quote> snapshot) {
+            if (snapshot.hasData) {
+              var quote = snapshot.data!;
+              futureInstrument = RobinhoodService.getInstrument(
+                  user, snapshot.data!.instrument);
+              return FutureBuilder(
+                  future: futureInstrument,
+                  builder:
+                      (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
+                    if (instrumentSnapshot.hasData) {
+                      var instrument = instrumentSnapshot.data!;
+                      instrument.quoteObj = quote;
+                      return _buildPage(instrument);
+                    } else if (instrumentSnapshot.hasError) {
+                      print("${instrumentSnapshot.error}");
+                      return Text("${instrumentSnapshot.error}");
+                    }
+                    return Container();
+                  });
+            }
+            return Container();
+          }),
+      /*
         floatingActionButton: (user != null && user.userName != null)
             ? FloatingActionButton(
                 onPressed: () => Navigator.push(
@@ -79,7 +82,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                 tooltip: 'Trade',
                 child: const Icon(Icons.shopping_cart),
               )
-            : null);
+            : null*/
+    );
   }
 
   Widget _buildPage(Instrument instrument) {
@@ -96,8 +100,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type.toUpperCase()}')
-        expandedHeight: 230,
-        //expandedHeight: 260.0,
+        expandedHeight: 260.0,
         flexibleSpace: FlexibleSpaceBar(
             background: const FlutterLogo(),
             title: SingleChildScrollView(
@@ -109,15 +112,15 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                       crossAxisAlignment: WrapCrossAlignment.end,
                       //runAlignment: WrapAlignment.end,
                       //alignment: WrapAlignment.end,
-                      spacing: 20,
+                      spacing: 5,
                       //runSpacing: 5,
                       children: [
                         Text(
-                            '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}',
+                            '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.optionInstrument!.type}', // ${optionPosition.strategy.split('_').first}
                             style: const TextStyle(fontSize: 20.0)),
                         Text(
                             '${formatDate.format(optionPosition.optionInstrument!.expirationDate!)}',
-                            style: const TextStyle(fontSize: 16.0))
+                            style: const TextStyle(fontSize: 15.0))
                       ]),
                   /*
                   Text(
@@ -126,6 +129,72 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                     textAlign: TextAlign.left,
                   ),
                   */
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                "Strategy",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 115,
+                          child: Text(
+                              "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                "Contracts",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 115,
+                          child: Text(
+                              "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
                   Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -155,18 +224,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                                 width: 60,
                                 child: Wrap(
                                   children: [
-                                    Icon(
-                                        optionPosition.changeToday > 0
-                                            ? Icons.trending_up
-                                            : (optionPosition.changeToday < 0
-                                                ? Icons.trending_down
-                                                : Icons.trending_flat),
-                                        color: (optionPosition.changeToday > 0
-                                            ? Colors.lightGreenAccent
-                                            : (optionPosition.changeToday < 0
-                                                ? Colors.red
-                                                : Colors.grey)),
-                                        size: 14.0),
+                                    optionPosition.trendingIconToday,
                                     Container(
                                       width: 2,
                                     ),
@@ -218,24 +276,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                               SizedBox(
                                   width: 60,
                                   child: Wrap(children: [
-                                    Icon(
-                                        optionPosition.gainLossPerContract > 0
-                                            ? Icons.trending_up
-                                            : (optionPosition
-                                                        .gainLossPerContract <
-                                                    0
-                                                ? Icons.trending_down
-                                                : Icons.trending_flat),
-                                        color: (optionPosition
-                                                    .gainLossPerContract >
-                                                0
-                                            ? Colors.lightGreenAccent
-                                            : (optionPosition
-                                                        .gainLossPerContract <
-                                                    0
-                                                ? Colors.red
-                                                : Colors.grey)),
-                                        size: 14.0),
+                                    optionPosition.trendingIcon,
                                     Container(
                                       width: 2,
                                     ),
@@ -351,6 +392,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                   ),
                 ]))),
         pinned: true,
+        /*
         actions: <Widget>[
           IconButton(
               icon: const Icon(Icons.shopping_cart),
@@ -360,68 +402,353 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                   MaterialPageRoute(
                       builder: (context) => TradeOptionWidget(user,
                           optionPosition: optionPosition))))
-        ],
+        ],*/
       ),
-      //SliverToBoxAdapter(child: buildOverview()),
       SliverToBoxAdapter(
-        child: _buildStockView(instrument),
+          child: Align(alignment: Alignment.center, child: buildOverview())),
+      SliverToBoxAdapter(
+        child: ListTile(
+          title: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+            const Text("Greeks",
+                style: const TextStyle(
+                    //color: Colors.white,
+                    fontSize: 20.0)),
+            Container(
+              width: 5,
+            ),
+            IconButton(
+                icon: const Icon(Icons.info_outline),
+                tooltip: "Greeks Help",
+                onPressed: () => showDialog<String>(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Greeks'),
+                        content: SingleChildScrollView(
+                            child: Column(children: [
+                          const Text(
+                              "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
+                          const Text(
+                              "Gamma, Γ, measures the rate of change in the delta with respect to changes in the underlying price.\n"),
+                          const Text(
+                              "Theta, Θ, measures the sensitivity of the value of the derivative to the passage of time.\n"),
+                          const Text(
+                              "Vega, v, measures sensitivity to volatility.\n"),
+                          const Text(
+                              "Rho, p, measures sensitivity to the interest rate."),
+                        ])),
+                        actions: <Widget>[
+                          /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, 'OK'),
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      ),
+                    ))
+          ]),
+          /*
+          Text("Greeks",
+              style: const TextStyle(
+                  //color: Colors.white,
+                  fontSize: 19.0)),
+                  */
+        ),
+        /*         
+          Material(
+              elevation: 2.0,
+              child: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Greeks",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                ),
+              ))*/
       ),
+      SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 97.0),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                switch (index) {
+                  case 0:
+                    return Card(
+                        child: Padding(
+                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                                "${formatNumber.format(optionPosition.optionInstrument!.optionMarketData!.delta)}",
+                                style: TextStyle(fontSize: 17.0)),
+                            Container(
+                              height: 5,
+                            ),
+                            Text("Δ", style: TextStyle(fontSize: 17.0)),
+                            Text("Delta", style: TextStyle(fontSize: 10.0)),
+                          ]),
+                    ));
+                    break;
+                  case 1:
+                    return Card(
+                        child: Padding(
+                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                                "${formatNumber.format(optionPosition.optionInstrument!.optionMarketData!.gamma!)}",
+                                style: TextStyle(fontSize: 17.0)),
+                            Container(
+                              height: 5,
+                            ),
+                            Text("Γ", style: TextStyle(fontSize: 17.0)),
+                            Text("Gamma", style: TextStyle(fontSize: 10.0)),
+                          ]),
+                    ));
+                    break;
+                  case 2:
+                    return Card(
+                        child: Padding(
+                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                                "${formatNumber.format(optionPosition.optionInstrument!.optionMarketData!.theta!)}",
+                                style: TextStyle(fontSize: 17.0)),
+                            Container(
+                              height: 5,
+                            ),
+                            Text("Θ", style: TextStyle(fontSize: 17.0)),
+                            Text("Theta", style: TextStyle(fontSize: 10.0)),
+                          ]),
+                    ));
+                    break;
+                  case 3:
+                    return Card(
+                        child: Padding(
+                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                                "${formatNumber.format(optionPosition.optionInstrument!.optionMarketData!.vega!)}",
+                                style: TextStyle(fontSize: 17.0)),
+                            Container(
+                              height: 5,
+                            ),
+                            Text("v", style: TextStyle(fontSize: 17.0)),
+                            Text("Vega", style: TextStyle(fontSize: 10.0)),
+                          ]),
+                    ));
+                    break;
+                  case 4:
+                    return Card(
+                        child: Padding(
+                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Text(
+                                "${formatNumber.format(optionPosition.optionInstrument!.optionMarketData!.rho!)}",
+                                style: TextStyle(fontSize: 17.0)),
+                            Container(
+                              height: 5,
+                            ),
+                            Text("p", style: TextStyle(fontSize: 17.0)),
+                            Text("Rho", style: TextStyle(fontSize: 10.0)),
+                          ]),
+                    ));
+                    break;
+                  default:
+                }
+                /*
+          return Container(
+            alignment: Alignment.center,
+            color: Colors.teal[100 * (index % 9)],
+            child: Text('grid item $index'),
+          );
+          */
+              },
+              childCount: 5,
+            ),
+          )),
+
+      //SliverToBoxAdapter(child: buildOverview()),
       SliverToBoxAdapter(
           child: Card(
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          ListTile(
+              title: const Text("Market Data", style: TextStyle(fontSize: 20))),
+          ListTile(
+            title: const Text("Break Even Price"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.breakEvenPrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid - Mark - Ask"),
+            trailing: Text(
+                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.markPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.askPrice)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid Size - Ask Size"),
+            trailing: Text(
+                "${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.askSize)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Adjusted Mark Price"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.adjustedMarkPrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Last Trade"),
+            trailing: Text(
+                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.lastTradeSize)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Low Price - High Price"),
+            trailing: Text(
+                optionPosition.optionInstrument!.optionMarketData!.lowPrice !=
+                            null &&
+                        optionPosition.optionInstrument!.optionMarketData!
+                                .highPrice !=
+                            null
+                    ? "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.highPrice)}"
+                    : "-",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text(
+                "Previous Close (${formatDate.format(optionPosition.optionInstrument!.optionMarketData!.previousCloseDate!)})"),
+            trailing: Text(
+                formatCurrency.format(optionPosition
+                    .optionInstrument!.optionMarketData!.previousClosePrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Volume"),
+            trailing: Text(
+                formatCompactNumber.format(
+                    optionPosition.optionInstrument!.optionMarketData!.volume),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Open Interest"),
+            trailing: Text(
+                formatCompactNumber.format(optionPosition
+                    .optionInstrument!.optionMarketData!.openInterest),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Implied Volatility"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.impliedVolatility),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Chance of Profit (Long)"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.chanceOfProfitLong),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Chance of Profit (Short)"),
+            trailing: Text(
+                formatPercentage.format(optionPosition
+                    .optionInstrument!.optionMarketData!.chanceOfProfitShort),
+                style: const TextStyle(fontSize: 18)),
+          ),
           /*
           ListTile(
-            leading: CircleAvatar(
-                //backgroundImage: AssetImage(user.profilePicture),
-                /*
-              backgroundColor:
-                  optionsPositions[index].optionInstrument!.type == 'call'
-                      ? Colors.green
-                      : Colors.amber,
-              child: optionsPositions[index].optionInstrument!.type == 'call'
-                  ? const Text('Call')
-                  : const Text('Put')),
-                      */
-                child: Text('${optionPosition.quantity!.round()}',
-                    style: const TextStyle(fontSize: 18))),
-            title: Text(
-                '${optionPosition.symbol} \$${optionPosition.optionInstrument!.strikePrice} ${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}'), // , style: TextStyle(fontSize: 18.0)),
-            subtitle: Text(
-                'Expires ${dateFormat.format(optionPosition.optionInstrument!.expirationDate!)}'),
-            trailing: Wrap(
-              spacing: 8,
-              children: [
-                Icon(
-                    optionPosition.gainLossPerContract > 0
-                        ? Icons.trending_up
-                        : (optionPosition.gainLossPerContract < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (optionPosition.gainLossPerContract > 0
-                        ? Colors.green
-                        : (optionPosition.gainLossPerContract < 0
-                            ? Colors.red
-                            : Colors.grey))),
-                Text(
-                  "${formatCurrency.format(optionPosition.gainLoss)}\n${formatPercentage.format(optionPosition.gainLossPercent)}",
-                  style: const TextStyle(fontSize: 16.0),
-                  textAlign: TextAlign.right,
-                ),
-              ],
-            ),
-            /*
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          OptionPositionWidget(user, optionPosition)));
-            },*/
+            title: const Text("Delta"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.delta}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Gamma"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.gamma}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Theta"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.theta}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Vega"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.vega}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Rho"),
+            trailing: Text(
+                "${optionPosition.optionInstrument!.optionMarketData!.rho}",
+                style: const TextStyle(fontSize: 18)),
           ),
           */
-          ListTile(title: const Text("Option", style: TextStyle(fontSize: 20))),
+        ],
+      ))),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+            title: const Text("Option", style: TextStyle(fontSize: 20)),
+            /*
+              trailing: Wrap(children: [
+                IconButton(
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Buy',
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(user,
+                                optionPosition: optionPosition,
+                                positionType: "Buy")))),
+                IconButton(
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'Sell',
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(
+                                  user,
+                                  optionPosition: optionPosition,
+                                  positionType: "Sell",
+                                ))))
+              ])*/
+          ),
           ListTile(
             title: const Text("Contracts"),
             trailing: Text(
@@ -568,131 +895,8 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         children: _buildLegs(optionPosition).toList(),
       ))),
       SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ListTile(
-              title: const Text("Market Data", style: TextStyle(fontSize: 20))),
-          ListTile(
-            title: const Text("Break Even Price"),
-            trailing: Text(
-                formatCurrency.format(optionPosition
-                    .optionInstrument!.optionMarketData!.breakEvenPrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid - Mark - Ask"),
-            trailing: Text(
-                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.markPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.askPrice)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid Size - Ask Size"),
-            trailing: Text(
-                "${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.askSize)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Adjusted Mark Price"),
-            trailing: Text(
-                formatCurrency.format(optionPosition
-                    .optionInstrument!.optionMarketData!.adjustedMarkPrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Last Trade"),
-            trailing: Text(
-                "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionPosition.optionInstrument!.optionMarketData!.lastTradeSize)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Low Price - High Price"),
-            trailing: Text(
-                optionPosition.optionInstrument!.optionMarketData!.lowPrice !=
-                            null &&
-                        optionPosition.optionInstrument!.optionMarketData!
-                                .highPrice !=
-                            null
-                    ? "${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.lowPrice)} - ${formatCurrency.format(optionPosition.optionInstrument!.optionMarketData!.highPrice)}"
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: Text(
-                "Previous Close (${formatDate.format(optionPosition.optionInstrument!.optionMarketData!.previousCloseDate!)})"),
-            trailing: Text(
-                formatCurrency.format(optionPosition
-                    .optionInstrument!.optionMarketData!.previousClosePrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Volume"),
-            trailing: Text(
-                formatCompactNumber.format(
-                    optionPosition.optionInstrument!.optionMarketData!.volume),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Open Interest"),
-            trailing: Text(
-                formatCompactNumber.format(optionPosition
-                    .optionInstrument!.optionMarketData!.openInterest),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Implied Volatility"),
-            trailing: Text(
-                formatPercentage.format(optionPosition
-                    .optionInstrument!.optionMarketData!.impliedVolatility),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Chance of Profit (Long)"),
-            trailing: Text(
-                formatPercentage.format(optionPosition
-                    .optionInstrument!.optionMarketData!.chanceOfProfitLong),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Chance of Profit (Short)"),
-            trailing: Text(
-                formatPercentage.format(optionPosition
-                    .optionInstrument!.optionMarketData!.chanceOfProfitShort),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Delta"),
-            trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.delta}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Gamma"),
-            trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.gamma}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Theta"),
-            trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.theta}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Vega"),
-            trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.vega}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Rho"),
-            trailing: Text(
-                "${optionPosition.optionInstrument!.optionMarketData!.rho}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-        ],
-      ))),
+        child: _buildStockView(instrument),
+      ),
     ]);
   }
 
@@ -738,17 +942,60 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
-                child: const Text('TRADE'),
+                child: Text(optionPosition.direction == "debit"
+                    ? "BUY"
+                    : "BUY TO CLOSE"),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => TradeOptionWidget(user,
-                            optionPosition: optionPosition)))),
+                            optionPosition: optionPosition,
+                            positionType: "Buy")))),
+            TextButton(
+                child: Text(optionPosition.direction == "debit"
+                    ? "SELL"
+                    : "SELL TO OPEN"),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => TradeOptionWidget(user,
+                            optionPosition: optionPosition,
+                            positionType: "Sell")))),
             const SizedBox(width: 8),
           ],
         ),
       ],
     ));
+    /*
+    return Card(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+              title: const Text("Option", style: TextStyle(fontSize: 20)),
+              trailing: Wrap(children: [
+                TextButton(
+                    child: const Text('BUY OPTION'),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(user,
+                                optionPosition: optionPosition,
+                                positionType: "Buy")))),
+                TextButton(
+                    child: const Text('SELL OPTION'),
+                    onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeOptionWidget(user,
+                                optionPosition: optionPosition,
+                                positionType: "Sell")))),
+                const SizedBox(width: 8),
+              ]))
+        ],
+      ),
+    );
+    */
   }
 
   Widget _buildStockView(Instrument instrument) {

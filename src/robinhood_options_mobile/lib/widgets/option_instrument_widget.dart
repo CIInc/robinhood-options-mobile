@@ -42,19 +42,20 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: FutureBuilder(
-            future: futureInstrument,
-            builder: (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
-              if (instrumentSnapshot.hasData) {
-                var instrument = instrumentSnapshot.data!;
-                instrument.quoteObj = quote;
-                return _buildPage(instrument);
-              } else if (instrumentSnapshot.hasError) {
-                print("${instrumentSnapshot.error}");
-                return Text("${instrumentSnapshot.error}");
-              }
-              return Container();
-            }),
+      body: FutureBuilder(
+          future: futureInstrument,
+          builder: (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
+            if (instrumentSnapshot.hasData) {
+              var instrument = instrumentSnapshot.data!;
+              instrument.quoteObj = quote;
+              return _buildPage(instrument);
+            } else if (instrumentSnapshot.hasError) {
+              print("${instrumentSnapshot.error}");
+              return Text("${instrumentSnapshot.error}");
+            }
+            return Container();
+          }),
+      /*
         floatingActionButton: (user != null && user.userName != null)
             ? FloatingActionButton(
                 onPressed: () => Navigator.push(
@@ -65,7 +66,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 tooltip: 'Trade',
                 child: const Icon(Icons.shopping_cart),
               )
-            : null);
+            : null*/
+    );
   }
 
   Widget _buildPage(Instrument instrument) {
@@ -78,38 +80,39 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         optionInstrument.expirationDate!.difference(createdAt).inDays;
     return CustomScrollView(slivers: [
       SliverAppBar(
-          //title: Text(instrument.symbol), // Text('${optionInstrument.symbol} \$${optionInstrument.strikePrice} ${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}')
-          expandedHeight: 160,
-          flexibleSpace: FlexibleSpaceBar(
-              background: const FlutterLogo(),
-              title: SingleChildScrollView(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        //title: Text(instrument.symbol), // Text('${optionInstrument.symbol} \$${optionInstrument.strikePrice} ${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}')
+        expandedHeight: 160,
+        flexibleSpace: FlexibleSpaceBar(
+            background: const FlutterLogo(),
+            title: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Row(children: const [SizedBox(height: 70)]),
+                  Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.end,
+                      //runAlignment: WrapAlignment.end,
+                      //alignment: WrapAlignment.end,
+                      spacing: 20,
+                      //runSpacing: 5,
                       children: [
-                    Row(children: const [SizedBox(height: 70)]),
-                    Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.end,
-                        //runAlignment: WrapAlignment.end,
-                        //alignment: WrapAlignment.end,
-                        spacing: 20,
-                        //runSpacing: 5,
-                        children: [
-                          Text(
-                              '${optionInstrument.chainSymbol} \$${optionInstrument.strikePrice} ${optionInstrument.type}',
-                              style: const TextStyle(fontSize: 20.0)),
-                          Text(
-                              '${formatDate.format(optionInstrument!.expirationDate!)}',
-                              style: const TextStyle(fontSize: 16.0))
-                        ]),
-                    /*
+                        Text(
+                            '${optionInstrument.chainSymbol} \$${optionInstrument.strikePrice} ${optionInstrument.type}',
+                            style: const TextStyle(fontSize: 20.0)),
+                        Text(
+                            formatDate.format(optionInstrument.expirationDate!),
+                            style: const TextStyle(fontSize: 15.0))
+                      ]),
+                  /*
               Row(children: [
                 Text(
                     '${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}',
                     style: const TextStyle(fontSize: 17.0)),
               ])
               */
-                  ]))),
-          pinned: true,
+                ]))),
+        pinned: true,
+        /*
           actions: <Widget>[
             IconButton(
                 icon: const Icon(Icons.shopping_cart),
@@ -119,7 +122,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     MaterialPageRoute(
                         builder: (context) => TradeOptionWidget(user,
                             optionInstrument: optionInstrument)))),
-          ]),
+          ]*/
+      ),
       //SliverToBoxAdapter(child: buildOverview()),
       SliverToBoxAdapter(
         child: _buildStockView(instrument),

@@ -13,22 +13,25 @@ class TradeOptionWidget extends StatefulWidget {
   final RobinhoodUser user;
   final OptionAggregatePosition? optionPosition;
   final OptionInstrument? optionInstrument;
-  TradeOptionWidget(this.user, {this.optionPosition, this.optionInstrument});
+  final String? positionType;
+
+  TradeOptionWidget(this.user,
+      {this.optionPosition, this.optionInstrument, this.positionType = "Buy"});
 
   @override
-  _TradeOptionWidgetState createState() =>
-      _TradeOptionWidgetState(user, optionPosition, optionInstrument);
+  _TradeOptionWidgetState createState() => _TradeOptionWidgetState(
+      user, optionPosition, optionInstrument, positionType);
 }
 
 class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   final RobinhoodUser user;
   final OptionAggregatePosition? optionPosition;
   OptionInstrument? optionInstrument;
+  String? positionType;
 
-  //String? actionFilter = "Buy";
-  //String? typeFilter = "Call";
+  //String? optionType = "Call";
 
-  final List<bool> isSelected = [true, false];
+  //final List<bool> isSelected = [true, false];
 
   var quantityCtl = TextEditingController(text: '1');
   var priceCtl = TextEditingController();
@@ -38,7 +41,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   //Future<OptionInstrument> futureOptionInstrument;
 
   _TradeOptionWidgetState(
-      this.user, this.optionPosition, this.optionInstrument);
+      this.user, this.optionPosition, this.optionInstrument, this.positionType);
 
   @override
   void initState() {
@@ -54,8 +57,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     var floatBtn = SizedBox(
         width: 340.0,
         child: ElevatedButton.icon(
-          label: Text(
-              isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
+          label: Text(positionType!),
+          //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
           icon: const Icon(Icons.attach_money),
           onPressed: () {
             return;
@@ -73,10 +76,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               //runSpacing: 5,
               children: [
                 Text(
-                    'Trade ${optionInstrument!.chainSymbol} \$${optionInstrument!.strikePrice} ${optionInstrument!.type}',
+                    '${optionInstrument!.chainSymbol} \$${optionInstrument!.strikePrice} ${optionInstrument!.type}',
                     style: const TextStyle(fontSize: 20.0)),
                 Text('${formatDate.format(optionInstrument!.expirationDate!)}',
-                    style: const TextStyle(fontSize: 16.0))
+                    style: const TextStyle(fontSize: 15.0))
               ]),
         ),
         body: Builder(builder: (context) {
@@ -86,58 +89,54 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               ListTile(
                 title: Text("Position Type"),
                 trailing: ToggleButtons(
-                  children: <Widget>[
-                    Padding(
+                    children: <Widget>[
+                      Padding(
+                          padding: const EdgeInsets.all(14.0),
+                          child: Row(
+                            children: const [
+                              Text(
+                                'Buy',
+                                style: TextStyle(fontSize: 16),
+                              )
+                            ],
+                          )),
+                      Padding(
                         padding: const EdgeInsets.all(14.0),
                         child: Row(
                           children: const [
                             Text(
-                              'Buy',
+                              'Sell',
                               style: TextStyle(fontSize: 16),
                             )
                           ],
-                        )),
-                    Padding(
-                      padding: const EdgeInsets.all(14.0),
-                      child: Row(
-                        children: const [
-                          Text(
-                            'Sell',
-                            style: TextStyle(fontSize: 16),
-                          )
-                        ],
+                        ),
                       ),
-                    ),
-                    //Icon(Icons.ac_unit),
-                    //Icon(Icons.call),
-                    //Icon(Icons.cake),
-                  ],
-                  onPressed: (int index) {
-                    setState(() {
+                      //Icon(Icons.ac_unit),
+                      //Icon(Icons.call),
+                      //Icon(Icons.cake),
+                    ],
+                    onPressed: (int index) {
+                      setState(() {
+                        positionType = index == 0 ? "Buy" : "Sell";
+                        /*
                       for (int buttonIndex = 0;
                           buttonIndex < isSelected.length;
                           buttonIndex++) {
                         if (buttonIndex == index) {
+                          positionType = buttonIndex
                           isSelected[buttonIndex] = true;
                         } else {
                           isSelected[buttonIndex] = false;
                         }
                       }
-                      /*
-          if (index == 0 && futureCallOptionInstruments == null) {
-            futureCallOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'call');
-          } else if (index == 1 && futurePutOptionInstruments == null) {
-            futurePutOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'put');
-          }
-          */
-                    });
-                  },
-                  isSelected: isSelected,
-                ),
+                      */
+                      });
+                    },
+                    isSelected: [
+                      positionType == "Buy",
+                      positionType == "Sell"
+                    ] //isSelected,
+                    ),
               ),
               ListTile(
                 title: TextField(

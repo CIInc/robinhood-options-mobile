@@ -31,6 +31,8 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
+enum SortType { alphabetical, change }
+
 /*
 class DrawerItem {
   String title;
@@ -83,13 +85,16 @@ class _HomePageState extends State<HomePage> {
   //Stream<List<OptionPosition>>? optionPositionStream;
   //List<OptionPosition> optionPositions = [];
   List<String> chainSymbols = [];
+
+  final List<bool> headersExpanded = [false, false, false];
   final List<bool> hasQuantityFilters = [true, false];
-  final List<bool> optionFilters = [true, true];
-  final List<bool> positionFilters = [true, true];
+  final List<String> optionFilters = <String>[];
+  final List<String> positionFilters = <String>[];
   final List<String> chainSymbolFilters = <String>[];
 
   Stream<List<WatchlistItem>>? watchlistStream;
-  // Future<List<dynamic>>? futureWatchlists;
+  SortType? _sortType = SortType.alphabetical;
+
   Future<User>? futureUser;
 
 /*
@@ -239,6 +244,24 @@ class _HomePageState extends State<HomePage> {
                                             List<WatchlistItem> watchLists =
                                                 watchlistSnapshot.data!
                                                     as List<WatchlistItem>;
+                                            if (_sortType ==
+                                                SortType.alphabetical) {
+                                              watchLists.sort((a, b) => (a
+                                                  .instrumentObj!.symbol
+                                                  .compareTo(b
+                                                      .instrumentObj!.symbol)));
+                                            } else if (_sortType ==
+                                                SortType.change) {
+                                              watchLists.sort((a, b) => (a
+                                                  .instrumentObj!
+                                                  .quoteObj!
+                                                  .changePercentToday
+                                                  .compareTo(b
+                                                      .instrumentObj!
+                                                      .quoteObj!
+                                                      .changePercentToday)));
+                                            }
+
                                             List<Widget> slivers = _buildSlivers(
                                                 portfolios: portfolios,
                                                 user: user,
@@ -452,12 +475,70 @@ class _HomePageState extends State<HomePage> {
       if (optionAggregatePositions != null) {
         slivers.add(SliverStickyHeader(
           header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: Column(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: ExpansionPanelList(
+                expansionCallback: (int index, bool isExpanded) {
+                  setState(() {
+                    headersExpanded[0] = !headersExpanded[0];
+                    //_data[index].isExpanded = !isExpanded;
+                  });
+                },
+                expandedHeaderPadding: EdgeInsets.all(0),
+                children: [
+                  ExpansionPanel(
+                    headerBuilder: (BuildContext context, bool isExpanded) {
+                      return ListTile(
+                        title: Text(
+                          "Options ${formatCurrency.format(optionEquity)}",
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        ),
+                      );
+                    },
+                    body: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /*
+                        Container(
+                            //height: 40,
+                            padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
+                            //const EdgeInsets.all(4.0),
+                            //EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Text(
+                              'Options ${formatCurrency.format(optionEquity)}',
+                              style: const TextStyle(
+                                  //color: Colors.white,
+                                  fontSize: 19.0),
+                            )),
+                            */
+                        openClosedFilterWidget,
+                        //optionTypeFilterWidget,
+                        symbolFilterWidget
+                      ],
+                    ),
+                    /*
+                    ListTile(
+                        title: Text("item.expandedValue"),
+                        subtitle: const Text(
+                            'To delete this panel, tap the trash can icon'),
+                        trailing: const Icon(Icons.delete),
+                        onTap: () {
+                          setState(() {
+                            expanded = false;
+                            //_data.removeWhere((Item currentItem) => item == currentItem);
+                          });
+                        }),*/
+                    isExpanded: headersExpanded[0], //item.isExpanded,
+                  )
+                ]),
+/*
+              Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -473,10 +554,11 @@ class _HomePageState extends State<HomePage> {
                             fontSize: 19.0),
                       )),
                   openClosedFilterWidget,
-                  optionTypeFilterWidget,
+                  //optionTypeFilterWidget,
                   symbolFilterWidget
                 ],
-              )),
+              )*/
+          ),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
@@ -522,6 +604,56 @@ class _HomePageState extends State<HomePage> {
       if (positions != null) {
         slivers.add(SliverStickyHeader(
             header: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ExpansionPanelList(
+                  expansionCallback: (int index, bool isExpanded) {
+                    setState(() {
+                      headersExpanded[1] = !headersExpanded[1];
+                      //_data[index].isExpanded = !isExpanded;
+                    });
+                  },
+                  expandedHeaderPadding: EdgeInsets.all(0),
+                  children: [
+                    ExpansionPanel(
+                      headerBuilder: (BuildContext context, bool isExpanded) {
+                        return ListTile(
+                          title: Text(
+                            "Positions ${formatCurrency.format(positionEquity)}",
+                            style: const TextStyle(
+                                //color: Colors.white,
+                                fontSize: 19.0),
+                          ),
+                        );
+                      },
+                      body: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          positionFilterWidget,
+                        ],
+                      ),
+                      /*
+                    ListTile(
+                        title: Text("item.expandedValue"),
+                        subtitle: const Text(
+                            'To delete this panel, tap the trash can icon'),
+                        trailing: const Icon(Icons.delete),
+                        onTap: () {
+                          setState(() {
+                            expanded = false;
+                            //_data.removeWhere((Item currentItem) => item == currentItem);
+                          });
+                        }),*/
+                      isExpanded: headersExpanded[1], //item.isExpanded,
+                    )
+                  ]),
+            ),
+/*
+            header: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
                 color: Colors.white,
@@ -534,13 +666,14 @@ class _HomePageState extends State<HomePage> {
                         padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
                         //padding: const EdgeInsets.all(4.0), //EdgeInsets.symmetric(horizontal: 16.0),
                         child: Text(
-                          'Positions ${formatCurrency.format(positionEquity)}',
+                          "Positions ${formatCurrency.format(positionEquity)}",
                           style: const TextStyle(
                               //color: Colors.white,
                               fontSize: 19.0),
                         )),
                   ],
                 )),
+                */
             sliver: SliverList(
               // delegate: SliverChildListDelegate(widgets),
               delegate: SliverChildBuilderDelegate(
@@ -585,6 +718,106 @@ class _HomePageState extends State<HomePage> {
       }
       if (watchLists != null) {
         slivers.add(SliverStickyHeader(
+            /*
+            header: Material(
+                elevation: 2.0,
+                child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: Text(
+                      "Watch Lists",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                  ),
+                )),
+                */
+            header: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ExpansionPanelList(
+                  expansionCallback: (int index, bool isExpanded) {
+                    setState(() {
+                      headersExpanded[2] = !headersExpanded[2];
+                      //_data[index].isExpanded = !isExpanded;
+                    });
+                  },
+                  expandedHeaderPadding: EdgeInsets.all(0),
+                  children: [
+                    ExpansionPanel(
+                      headerBuilder: (BuildContext context, bool isExpanded) {
+                        return ListTile(
+                          title: Text(
+                            "Watch List",
+                            style: const TextStyle(
+                                //color: Colors.white,
+                                fontSize: 19.0),
+                          ),
+                        );
+                      },
+                      body: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RadioListTile<SortType>(
+                            title: const Text('Alphabetical'),
+                            value: SortType.alphabetical,
+                            groupValue: _sortType,
+                            onChanged: (SortType? value) {
+                              /*
+                                watchLists.sort((a, b) => (a
+                                    .instrumentObj!.symbol
+                                    .compareTo(b.instrumentObj!.symbol)));
+                              */
+                              setState(() {
+                                _sortType = value;
+                              });
+                            },
+                          ),
+                          RadioListTile<SortType>(
+                            title: const Text('Change'),
+                            value: SortType.change,
+                            groupValue: _sortType,
+                            onChanged: (SortType? value) {
+                              /*
+                                watchLists.sort((a, b) => (a
+                                    .instrumentObj!.quoteObj!.changePercentToday
+                                    .compareTo(b.instrumentObj!.quoteObj!
+                                        .changePercentToday)));
+                              */
+                              setState(() {
+                                _sortType = value;
+                              });
+                            },
+                          ),
+                          //positionFilterWidget,
+                        ],
+                      ),
+                      /*
+                    ListTile(
+                        title: Text("item.expandedValue"),
+                        subtitle: const Text(
+                            'To delete this panel, tap the trash can icon'),
+                        trailing: const Icon(Icons.delete),
+                        onTap: () {
+                          setState(() {
+                            expanded = false;
+                            //_data.removeWhere((Item currentItem) => item == currentItem);
+                          });
+                        }),*/
+                      isExpanded: headersExpanded[2], //item.isExpanded,
+                    )
+                  ]),
+            ),
+/*
             header: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
@@ -604,6 +837,7 @@ class _HomePageState extends State<HomePage> {
                         )),
                   ],
                 )),
+                */
             sliver: watchListWidget(watchLists)));
         /*
       slivers.add(
@@ -617,6 +851,24 @@ class _HomePageState extends State<HomePage> {
       }
       if (accounts != null) {
         slivers.add(SliverStickyHeader(
+            header: Material(
+                elevation: 2.0,
+                child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: Text(
+                      "Accounts",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                  ),
+                )),
+            /*
             header: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
@@ -629,13 +881,14 @@ class _HomePageState extends State<HomePage> {
                         //height: 40,
                         padding: const EdgeInsets.all(12.0),
                         child: Text(
-                          'Accounts',
+                          "Accounts",
                           style: const TextStyle(
                               //color: Colors.white,
                               fontSize: 19.0),
                         )),
                   ],
                 )),
+                */
             sliver: SliverToBoxAdapter(
                 child: Card(
                     child: Column(
@@ -657,6 +910,24 @@ class _HomePageState extends State<HomePage> {
     }
     if (portfolios != null) {
       slivers.add(SliverStickyHeader(
+          header: Material(
+              elevation: 2.0,
+              child: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Portfolios",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                ),
+              )),
+/*
           header: Container(
               //height: 208.0, //60.0,
               //color: Colors.blue,
@@ -676,6 +947,7 @@ class _HomePageState extends State<HomePage> {
                       )),
                 ],
               )),
+              */
           sliver: portfoliosWidget(portfolios)));
       /*
       slivers.add(
@@ -689,6 +961,24 @@ class _HomePageState extends State<HomePage> {
     }
     if (user != null) {
       slivers.add(SliverStickyHeader(
+          header: Material(
+              elevation: 2.0,
+              child: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "User",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                ),
+              )),
+/*        
           header: Container(
               //height: 208.0, //60.0,
               //color: Colors.blue,
@@ -708,6 +998,7 @@ class _HomePageState extends State<HomePage> {
                       )),
                 ],
               )),
+              */
           sliver: userWidget(user)));
       /*
       slivers.add(SliverPersistentHeader(
@@ -718,6 +1009,24 @@ class _HomePageState extends State<HomePage> {
       */
     }
     slivers.add(SliverStickyHeader(
+        header: Material(
+            elevation: 2.0,
+            child: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: Text(
+                  "Disclaimer",
+                  style: const TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+              ),
+            )),
+        /*
         header: Container(
             //height: 208.0, //60.0,
             //color: Colors.blue,
@@ -737,6 +1046,7 @@ class _HomePageState extends State<HomePage> {
                     )),
               ],
             )),
+            */
         sliver: SliverToBoxAdapter(
             child: Container(
                 color: Colors.white,
@@ -806,8 +1116,10 @@ class _HomePageState extends State<HomePage> {
                 title: const Text("Extended Hours Equity",
                     style: TextStyle(fontSize: 14)),
                 trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].extendedHoursEquity),
+                    portfolios[index].extendedHoursEquity != null
+                        ? formatCurrency
+                            .format(portfolios[index].extendedHoursEquity)
+                        : "",
                     style: const TextStyle(fontSize: 16)),
               ),
               ListTile(
@@ -829,8 +1141,10 @@ class _HomePageState extends State<HomePage> {
                 title: const Text("Extended Hours Portfolio Equity",
                     style: TextStyle(fontSize: 14)),
                 trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].extendedHoursPortfolioEquity),
+                    portfolios[index].extendedHoursPortfolioEquity != null
+                        ? formatCurrency.format(
+                            portfolios[index].extendedHoursPortfolioEquity)
+                        : "",
                     style: const TextStyle(fontSize: 16)),
               ),
               ListTile(
@@ -876,8 +1190,10 @@ class _HomePageState extends State<HomePage> {
                 title: const Text("Extended Hours Market Value",
                     style: TextStyle(fontSize: 14)),
                 trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].extendedHoursMarketValue),
+                    portfolios[index].extendedHoursMarketValue != null
+                        ? formatCurrency
+                            .format(portfolios[index].extendedHoursMarketValue)
+                        : "",
                     style: const TextStyle(fontSize: 16)),
               ),
               ListTile(
@@ -1070,6 +1386,7 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
+  /*
   Widget get optionTypeFilterWidget {
     return SizedBox(
         height: 56,
@@ -1085,13 +1402,15 @@ class _HomePageState extends State<HomePage> {
                     //avatar: const Icon(Icons.history_outlined),
                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
                     label: const Text('Long Positions'),
-                    selected: positionFilters[0],
+                    selected: positionFilters.contains("long"),
                     onSelected: (bool value) {
                       setState(() {
                         if (value) {
-                          positionFilters[0] = true;
+                          positionFilters.add("long");
                         } else {
-                          positionFilters[0] = false;
+                          positionFilters.removeWhere((String name) {
+                            return name == "long";
+                          });
                         }
                       });
                     },
@@ -1103,13 +1422,15 @@ class _HomePageState extends State<HomePage> {
                     //avatar: const Icon(Icons.history_outlined),
                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
                     label: const Text('Short Positions'),
-                    selected: positionFilters[1],
+                    selected: positionFilters.contains("short"),
                     onSelected: (bool value) {
                       setState(() {
                         if (value) {
-                          positionFilters[1] = true;
+                          positionFilters.add("short");
                         } else {
-                          positionFilters[1] = false;
+                          positionFilters.removeWhere((String name) {
+                            return name == "short";
+                          });
                         }
                       });
                     },
@@ -1121,13 +1442,15 @@ class _HomePageState extends State<HomePage> {
                     //avatar: const Icon(Icons.history_outlined),
                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
                     label: const Text('Call Options'),
-                    selected: optionFilters[0],
+                    selected: optionFilters.contains("call"),
                     onSelected: (bool value) {
                       setState(() {
                         if (value) {
-                          optionFilters[0] = true;
+                          optionFilters.add("call");
                         } else {
-                          optionFilters[0] = false;
+                          optionFilters.removeWhere((String name) {
+                            return name == "call";
+                          });
                         }
                       });
                     },
@@ -1139,13 +1462,15 @@ class _HomePageState extends State<HomePage> {
                     //avatar: const Icon(Icons.history_outlined),
                     //avatar: CircleAvatar(child: Text(optionCount.toString())),
                     label: const Text('Put Options'),
-                    selected: optionFilters[1],
+                    selected: optionFilters.contains("put"),
                     onSelected: (bool value) {
                       setState(() {
                         if (value) {
-                          optionFilters[1] = true;
+                          optionFilters.add("put");
                         } else {
-                          optionFilters[1] = false;
+                          optionFilters.removeWhere((String name) {
+                            return name == "put";
+                          });
                         }
                       });
                     },
@@ -1157,8 +1482,9 @@ class _HomePageState extends State<HomePage> {
           itemCount: 1,
         ));
   }
+  */
 
-  Widget get openClosedFilterWidget {
+  Widget get positionFilterWidget {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -1171,7 +1497,7 @@ class _HomePageState extends State<HomePage> {
                 child: FilterChip(
                   //avatar: const Icon(Icons.new_releases_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Open Options'),
+                  label: const Text('Open'),
                   selected: hasQuantityFilters[0],
                   onSelected: (bool value) {
                     setState(() {
@@ -1190,7 +1516,7 @@ class _HomePageState extends State<HomePage> {
                   //avatar: Container(),
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Closed Options'),
+                  label: const Text('Closed'),
                   selected: hasQuantityFilters[1],
                   onSelected: (bool value) {
                     setState(() {
@@ -1200,6 +1526,140 @@ class _HomePageState extends State<HomePage> {
                         hasQuantityFilters[1] = false;
                       }
                       optionAggregatePositionStream = null;
+                    });
+                  },
+                ),
+              ),
+            ]);
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get openClosedFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.new_releases_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Open'),
+                  selected: hasQuantityFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[0] = true;
+                      } else {
+                        hasQuantityFilters[0] = false;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: Container(),
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Closed'),
+                  selected: hasQuantityFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[1] = true;
+                      } else {
+                        hasQuantityFilters[1] = false;
+                      }
+                      optionAggregatePositionStream = null;
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Long'),
+                  selected: positionFilters.contains("long"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("long");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "long";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Short'),
+                  selected: positionFilters.contains("short"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("short");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "short";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Call'),
+                  selected: optionFilters.contains("call"),
+                  //selected: optionFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("call");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "call";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Put'),
+                  selected: optionFilters.contains("put"),
+                  //selected: optionFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("put");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "put";
+                        });
+                      }
                     });
                   },
                 ),
@@ -1214,23 +1674,18 @@ class _HomePageState extends State<HomePage> {
   Iterable<Widget> filterWidgets(
       List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
     for (final String chainSymbol in chainSymbols) {
+      /*
       var contractCount = options
           .where((element) => element.symbol == chainSymbol)
           .map((element) => element.quantity)
           .reduce((a, b) => (a! + b!))!
           .round();
-      /*
-          options
-              .where((element) => element.chainSymbol == chainSymbol)
-              .map((e) => e.quantity)
-              .reduce((a, b) => a! + b!)!
-              .round();
-              */
+          */
 
       yield Padding(
         padding: const EdgeInsets.all(4.0),
         child: FilterChip(
-          avatar: CircleAvatar(child: Text(contractCount.toString())),
+          // avatar: CircleAvatar(child: Text(contractCount.toString())),
           label: Text(chainSymbol),
           selected: chainSymbolFilters.contains(chainSymbol),
           onSelected: (bool value) {
@@ -1753,14 +2208,12 @@ class _HomePageState extends State<HomePage> {
     if (optionsPositions[index].optionInstrument == null ||
         (chainSymbolFilters.isNotEmpty &&
             !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
-        (optionsPositions[index].legs.first.positionType == 'long' &&
-            positionFilters[0] == false) ||
-        (optionsPositions[index].legs.first.positionType == 'short' &&
-            positionFilters[1] == false) ||
-        (optionsPositions[index].legs.first.optionType == 'call' &&
-            optionFilters[0] == false) ||
-        (optionsPositions[index].legs.first.optionType == 'put' &&
-            optionFilters[1] == false)) {
+        (positionFilters.isNotEmpty &&
+            !positionFilters
+                .contains(optionsPositions[index].strategy.split("_").first)) ||
+        (optionFilters.isNotEmpty &&
+            !optionFilters
+                .contains(optionsPositions[index].optionInstrument!.type))) {
       return Container();
     }
 
