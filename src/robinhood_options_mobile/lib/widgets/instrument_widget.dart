@@ -10,8 +10,10 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 final dateFormat = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
@@ -39,6 +41,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
+
+  final List<String> orderFilters = <String>["placed", "filled"];
+  final List<bool> headersExpanded = [false, false];
 
   List<DateTime>? expirationDates;
   DateTime? expirationDateFilter;
@@ -198,6 +203,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         pinned: true,
         delegate: PersistentChainHeader()
       ));*/
+    if (RobinhoodService.optionOrders != null) {
+      slivers.add(optionOrdersWidget);
+    }
+
     if (optionInstruments != null) {
       slivers.add(SliverStickyHeader(
         header: Container(
@@ -578,6 +587,201 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           })
           */
     ]));
+  }
+
+  Widget get optionOrdersWidget {
+    var optionOrders = RobinhoodService.optionOrders!
+        .where((element) => element.chainSymbol == instrument.symbol)
+        .toList();
+    return SliverStickyHeader(
+      header: Container(
+        //height: 208.0, //60.0,
+        //color: Colors.blue,
+        color: Colors.white,
+        //padding: EdgeInsets.symmetric(horizontal: 16.0),
+        alignment: Alignment.centerLeft,
+        child: ExpansionPanelList(
+            expansionCallback: (int index, bool isExpanded) {
+              setState(() {
+                headersExpanded[1] = !headersExpanded[1];
+              });
+            },
+            expandedHeaderPadding: EdgeInsets.all(0),
+            children: [
+              ExpansionPanel(
+                headerBuilder: (BuildContext context, bool isExpanded) {
+                  return ListTile(
+                    title: Text(
+                      "Options Orders",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                  );
+                },
+                body: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [orderFilterWidget],
+                ),
+                isExpanded: headersExpanded[1],
+              )
+            ]),
+      ),
+      sliver: SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          if ( //optionOrders[index] == null ||
+              (orderFilters.isNotEmpty &&
+                  !orderFilters.contains(optionOrders[index].state))) {
+            return Container();
+          }
+
+          return Card(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: CircleAvatar(
+                    //backgroundImage: AssetImage(user.profilePicture),
+                    child: Text('${optionOrders[index].quantity!.round()}',
+                        style: const TextStyle(fontSize: 18))),
+                title: Text(
+                    "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                subtitle: Text(
+                    "${optionOrders[index].state} ${dateFormat.format(optionOrders[index].updatedAt!)}"),
+                trailing: Wrap(spacing: 8, children: [
+                  Text(
+                    (optionOrders[index].direction == "credit" ? "+" : "-") +
+                        "${optionOrders[index].premium != null ? formatCurrency.format(optionOrders[index].premium) : ""}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  )
+                ]),
+
+                /*Wrap(
+            spacing: 12,
+            children: [
+              Column(children: [
+                Text(
+                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                  style: const TextStyle(fontSize: 15.0),
+                  textAlign: TextAlign.right,
+                ),
+                Icon(
+                    gainLossPerContract > 0
+                        ? Icons.trending_up
+                        : (gainLossPerContract < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (gainLossPerContract > 0
+                        ? Colors.green
+                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
+              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "${formatCurrency.format(marketValue)}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              )
+            ],
+          ),*/
+                //isThreeLine: true,
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              OptionOrderWidget(user, optionOrders[index])));
+                },
+              ),
+            ],
+          ));
+
+          //if (optionOrders.length > index) {
+          //}
+          return null;
+        }, childCount: optionOrders.length),
+      ),
+    );
+  }
+
+  Widget get orderFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Placed'),
+                  selected: orderFilters.contains("placed"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("placed");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "placed";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Filled'),
+                  selected: orderFilters.contains("filled"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("filled");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "filled";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Cancelled'),
+                  selected: orderFilters.contains("cancelled"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("cancelled");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "cancelled";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+            ]);
+          },
+          itemCount: 1,
+        ));
   }
 
   Widget optionInstrumentsWidget(List<OptionInstrument> optionInstruments) {

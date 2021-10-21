@@ -22,6 +22,7 @@ class RobinhoodService {
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
+  static List<OptionOrder>? optionOrders;
 
   /*
   USERS & ACCOUNTS
@@ -485,7 +486,7 @@ class RobinhoodService {
 
   static Stream<List<OptionOrder>> streamOptionOrders(
       RobinhoodUser user) async* {
-    List<OptionOrder> optionOrders = [];
+    List<OptionOrder> list = [];
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //print(results);
@@ -493,12 +494,15 @@ class RobinhoodService {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
         var op = OptionOrder.fromJson(result);
-        optionOrders.add(op);
-        yield optionOrders;
+        if (!list.any((element) => element.id == op.id)) {
+          list.add(op);
+          yield list;
+        }
       }
-      optionOrders.sort((a, b) => a.createdAt!.compareTo(b.createdAt!));
-      yield optionOrders;
+      list.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
+      yield list;
     }
+    optionOrders = list;
   }
 
   static Future<List<OptionOrder>> getOptionOrders(RobinhoodUser user) async {

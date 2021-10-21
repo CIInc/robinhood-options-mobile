@@ -452,6 +452,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             Text("${leg.positionType}", style: const TextStyle(fontSize: 18)),
       );
       yield ListTile(
+        title: const Text("Position Effect"),
+        trailing:
+            Text("${leg.positionEffect}", style: const TextStyle(fontSize: 18)),
+      );
+      yield ListTile(
         title: const Text("Option Type"),
         trailing: Text(leg.optionType, style: const TextStyle(fontSize: 18)),
       );

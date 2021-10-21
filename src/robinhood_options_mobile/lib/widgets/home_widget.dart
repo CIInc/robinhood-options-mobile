@@ -22,11 +22,13 @@ import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
 import 'option_position_widget.dart';
 
-final dateFormat = DateFormat("yMMMd");
+final formatDate = DateFormat("yMMMd");
+final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
@@ -75,10 +77,12 @@ class _HomePageState extends State<HomePage> {
   Future<List<Holding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
   //Future<dynamic>? futurePortfolioHistoricals;
-  //Future<List<Position>>? futurePositions;
   Stream<List<Position>>? positionStream;
-  // Future<List<OptionOrder>>? futureOptionOrders;
   Stream<List<OptionOrder>>? optionOrderStream;
+  final List<String> orderFilters = <String>["placed", "filled"];
+  int dateFilterSelected = 0;
+  List<String> orderSymbols = [];
+  final List<String> orderSymbolFilters = <String>[];
 
   Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
   List<OptionAggregatePosition> optionAggregatePositions = [];
@@ -86,7 +90,7 @@ class _HomePageState extends State<HomePage> {
   //List<OptionPosition> optionPositions = [];
   List<String> chainSymbols = [];
 
-  final List<bool> headersExpanded = [false, false, false];
+  final List<bool> headersExpanded = [false, false, false, false];
   final List<bool> hasQuantityFilters = [true, false];
   final List<String> optionFilters = <String>[];
   final List<String> positionFilters = <String>[];
@@ -220,10 +224,6 @@ class _HomePageState extends State<HomePage> {
                                     includeClosed: hasQuantityFilters[1],
                                     filters: chainSymbolFilters);
 
-                            optionOrderStream ??=
-                                RobinhoodService.streamOptionOrders(
-                                    robinhoodUser!);
-
                             return StreamBuilder<List<OptionAggregatePosition>>(
                                 stream: optionAggregatePositionStream,
                                 builder: (BuildContext context3,
@@ -262,33 +262,85 @@ class _HomePageState extends State<HomePage> {
                                                       .changePercentToday)));
                                             }
 
-                                            List<Widget> slivers = _buildSlivers(
-                                                portfolios: portfolios,
-                                                user: user,
-                                                ru: robinhoodUser,
-                                                accounts: accounts,
-                                                nummusHoldings: nummusHoldings,
-                                                optionAggregatePositions:
-                                                    optionAggregatePositions,
-                                                positions: positions,
-                                                watchLists: watchLists,
-                                                done: positionSnapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done &&
-                                                    optionAggregatePositionSnapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .done /* &&
+                                            optionOrderStream ??=
+                                                RobinhoodService
+                                                    .streamOptionOrders(
+                                                        robinhoodUser!);
+                                            return StreamBuilder(
+                                                stream: optionOrderStream,
+                                                builder: (context5,
+                                                    optionOrdersSnapshot) {
+                                                  if (optionOrdersSnapshot
+                                                      .hasData) {
+                                                    var optionOrders =
+                                                        optionOrdersSnapshot
+                                                                .data
+                                                            as List<
+                                                                OptionOrder>;
+
+                                                    List<Widget> slivers = _buildSlivers(
+                                                        portfolios: portfolios,
+                                                        user: user,
+                                                        ru: robinhoodUser,
+                                                        accounts: accounts,
+                                                        nummusHoldings:
+                                                            nummusHoldings,
+                                                        optionAggregatePositions:
+                                                            optionAggregatePositions,
+                                                        optionOrders:
+                                                            optionOrders,
+                                                        positions: positions,
+                                                        watchLists: watchLists,
+                                                        done: positionSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            optionAggregatePositionSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState
+                                                                    .done /* &&
                                                     watchlistSnapshot
                                                             .connectionState ==
                                                         ConnectionState.done*/
-                                                );
-                                            return RefreshIndicator(
-                                              child: CustomScrollView(
-                                                  slivers:
-                                                      slivers), //controller: _controller,
-                                              onRefresh: _pullRefresh,
-                                            );
+                                                        );
+                                                    return RefreshIndicator(
+                                                      child: CustomScrollView(
+                                                          slivers:
+                                                              slivers), //controller: _controller,
+                                                      onRefresh: _pullRefresh,
+                                                    );
+                                                  } else {
+                                                    List<Widget> slivers = _buildSlivers(
+                                                        portfolios: portfolios,
+                                                        user: user,
+                                                        ru: robinhoodUser,
+                                                        accounts: accounts,
+                                                        nummusHoldings:
+                                                            nummusHoldings,
+                                                        optionAggregatePositions:
+                                                            optionAggregatePositions,
+                                                        positions: positions,
+                                                        watchLists: watchLists,
+                                                        done: positionSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState
+                                                                    .done &&
+                                                            optionAggregatePositionSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState
+                                                                    .done /* &&
+                                                    watchlistSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done*/
+                                                        );
+                                                    return RefreshIndicator(
+                                                      child: CustomScrollView(
+                                                          slivers:
+                                                              slivers), //controller: _controller,
+                                                      onRefresh: _pullRefresh,
+                                                    );
+                                                  }
+                                                });
                                           } else {
                                             List<Widget> slivers =
                                                 _buildSlivers(
@@ -402,6 +454,7 @@ class _HomePageState extends State<HomePage> {
       List<Holding>? nummusHoldings,
       Widget? welcomeWidget,
       List<OptionAggregatePosition>? optionAggregatePositions,
+      List<OptionOrder>? optionOrders,
       List<Position>? positions,
       List<WatchlistItem>? watchLists,
       bool done = false}) {
@@ -464,6 +517,11 @@ class _HomePageState extends State<HomePage> {
                   )),
         )));
       }
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -600,6 +658,132 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
         */
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
+      }
+      if (optionOrders != null) {
+        int days = 0;
+        switch (dateFilterSelected) {
+          case 0:
+            days = 1;
+            break;
+          case 1:
+            days = 7;
+            break;
+          case 2:
+            days = 30;
+            break;
+          case 3:
+            days = 365;
+            break;
+        }
+        orderSymbols = optionOrders.map((e) => e.chainSymbol).toSet().toList();
+        orderSymbols.sort((a, b) => (a.compareTo(b)));
+
+        var filteredOptionOrders = optionOrders
+            .where((element) =>
+                (orderFilters.isEmpty ||
+                    orderFilters.contains(element.state)) &&
+                ( //days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                orderSymbolFilters.contains(element.chainSymbol))
+            .toList();
+        slivers.add(SliverStickyHeader(
+          header: Container(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: ExpansionPanelList(
+                expansionCallback: (int index, bool isExpanded) {
+                  setState(() {
+                    headersExpanded[3] = !headersExpanded[3];
+                    //_data[index].isExpanded = !isExpanded;
+                  });
+                },
+                expandedHeaderPadding: EdgeInsets.all(0),
+                children: [
+                  ExpansionPanel(
+                    headerBuilder: (BuildContext context, bool isExpanded) {
+                      return ListTile(
+                        title: Text(
+                          "Options Orders",
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        ),
+                      );
+                    },
+                    body: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        orderFilterWidget,
+                        dateFilterWidget,
+                        orderSymbolFilterWidget
+                      ],
+                    ),
+                    isExpanded: headersExpanded[3], //item.isExpanded,
+                  )
+                ]),
+          ),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundImage: AssetImage(user.profilePicture),
+                          child: Text(
+                              '${filteredOptionOrders[index].quantity!.round()}',
+                              style: const TextStyle(fontSize: 18))),
+                      title: Text(
+                          "${filteredOptionOrders[index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders[index].legs.first.strikePrice)} ${filteredOptionOrders[index].strategy} ${formatCompactDate.format(filteredOptionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                      subtitle: Text(
+                          "${filteredOptionOrders[index].state} ${dateFormat.format(filteredOptionOrders[index].updatedAt!)}"),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          (filteredOptionOrders[index].direction == "credit"
+                                  ? "+"
+                                  : "-") +
+                              "${filteredOptionOrders[index].premium != null ? formatCurrency.format(filteredOptionOrders[index].premium) : ""}",
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]),
+
+                      //isThreeLine: true,
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => OptionOrderWidget(
+                                    ru, filteredOptionOrders[index])));
+                      },
+                    ),
+                  ],
+                ));
+              },
+              childCount: filteredOptionOrders.length,
+            ),
+          ),
+        ));
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
       }
       if (positions != null) {
         slivers.add(SliverStickyHeader(
@@ -715,6 +899,11 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
         */
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
       }
       if (watchLists != null) {
         slivers.add(SliverStickyHeader(
@@ -848,6 +1037,11 @@ class _HomePageState extends State<HomePage> {
       );
       slivers.add(watchListWidget(watchLists));
       */
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
       }
       if (accounts != null) {
         slivers.add(SliverStickyHeader(
@@ -906,6 +1100,11 @@ class _HomePageState extends State<HomePage> {
                     mainAxisSize: MainAxisSize.min,
                     children: accountWidgets(accounts).toList()))));
                     */
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
       }
     }
     if (portfolios != null) {
@@ -958,6 +1157,11 @@ class _HomePageState extends State<HomePage> {
       );
       slivers.add(portfoliosWidget(portfolios));
       */
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
     }
     if (user != null) {
       slivers.add(SliverStickyHeader(
@@ -978,35 +1182,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               )),
-/*        
-          header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: Column(
-                children: [
-                  Container(
-                      //height: 40,
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        'User',
-                        style: const TextStyle(
-                            //color: Colors.white,
-                            fontSize: 19.0),
-                      )),
-                ],
-              )),
-              */
           sliver: userWidget(user)));
-      /*
-      slivers.add(SliverPersistentHeader(
-        pinned: false,
-        delegate: PersistentHeader("User"),
-      ));
-      slivers.add(userWidget(user));
-      */
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
     }
     slivers.add(SliverStickyHeader(
         header: Material(
@@ -1070,6 +1251,12 @@ class _HomePageState extends State<HomePage> {
                 child: Text(
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
                     */
+    slivers.add(SliverToBoxAdapter(
+        child: SizedBox(
+      // color: Colors.white,
+      height: 25.0,
+    )));
+
     return slivers;
   }
 
@@ -1670,18 +1857,181 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
-//Iterable<Widget> get filterWidgets sync* {
+  Widget get orderFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Placed'),
+                  selected: orderFilters.contains("placed"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("placed");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "placed";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Filled'),
+                  selected: orderFilters.contains("filled"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("filled");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "filled";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Cancelled'),
+                  selected: orderFilters.contains("cancelled"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("cancelled");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "cancelled";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+            ]);
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get orderSymbolFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+                children: orderSymbolFilterWidgets(
+                        orderSymbols, optionAggregatePositions)
+                    .toList());
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get dateFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Today'),
+                  selected: dateFilterSelected == 0,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        dateFilterSelected = 0;
+                      } else {
+                        //dateFilterSelected = null;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('This Week'),
+                  selected: dateFilterSelected == 1,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        dateFilterSelected = 1;
+                      } else {
+                        //dateFilterSelected = null;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('This Month'),
+                  selected: dateFilterSelected == 2,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        dateFilterSelected = 2;
+                      } else {}
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('This Year'),
+                  selected: dateFilterSelected == 3,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        dateFilterSelected = 3;
+                      } else {}
+                    });
+                  },
+                ),
+              ),
+            ]);
+          },
+          itemCount: 1,
+        ));
+  }
+
   Iterable<Widget> filterWidgets(
       List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
     for (final String chainSymbol in chainSymbols) {
-      /*
-      var contractCount = options
-          .where((element) => element.symbol == chainSymbol)
-          .map((element) => element.quantity)
-          .reduce((a, b) => (a! + b!))!
-          .round();
-          */
-
       yield Padding(
         padding: const EdgeInsets.all(4.0),
         child: FilterChip(
@@ -1694,6 +2044,31 @@ class _HomePageState extends State<HomePage> {
                 chainSymbolFilters.add(chainSymbol);
               } else {
                 chainSymbolFilters.removeWhere((String name) {
+                  return name == chainSymbol;
+                });
+              }
+            });
+          },
+        ),
+      );
+    }
+  }
+
+  Iterable<Widget> orderSymbolFilterWidgets(
+      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
+    for (final String chainSymbol in chainSymbols) {
+      yield Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: FilterChip(
+          // avatar: CircleAvatar(child: Text(contractCount.toString())),
+          label: Text(chainSymbol),
+          selected: orderSymbolFilters.contains(chainSymbol),
+          onSelected: (bool value) {
+            setState(() {
+              if (value) {
+                orderSymbolFilters.add(chainSymbol);
+              } else {
+                orderSymbolFilters.removeWhere((String name) {
                   return name == chainSymbol;
                 });
               }
@@ -2140,10 +2515,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
-      /*
-      futurePositions = Future.value(positions);
-      futureWatchlists = Future.value(watchlists);
-      */
       //futureUser = Future.value(user);
     });
   }
@@ -2157,8 +2528,8 @@ class _HomePageState extends State<HomePage> {
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 18))),
         title: Text(positions[index].instrumentObj!.symbol),
-        subtitle: Text(
-            'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+        subtitle: Text("${positions[index].quantity} shares"),
+        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
         /*
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),

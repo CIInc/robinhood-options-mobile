@@ -90,6 +90,42 @@ class OptionOrder {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
             DateTime.tryParse(json['updated_at']);
 
+  String get strategy {
+    String strat = "";
+    if (openingStrategy != null) {
+      switch (openingStrategy) {
+        case "long_call":
+          strat = "Call Buy";
+          break;
+        case "short_call":
+          strat = "Call Sell";
+          break;
+        case "long_put":
+          strat = "Put Buy";
+          break;
+        case "short_put":
+          strat = "Put Sell";
+          break;
+      }
+    } else if (closingStrategy != null) {
+      switch (closingStrategy) {
+        case "long_call":
+          strat = "Call Sell";
+          break;
+        case "short_call":
+          strat = "Call Buy";
+          break;
+        case "long_put":
+          strat = "Put Sell";
+          break;
+        case "short_put":
+          strat = "Put Buy";
+          break;
+      }
+    }
+    return strat;
+  }
+
   /* CSV Generation */
 
   List<dynamic> convertToDynamic() {
