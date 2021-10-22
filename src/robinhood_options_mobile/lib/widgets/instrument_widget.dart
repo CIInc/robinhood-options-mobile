@@ -593,41 +593,57 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var optionOrders = RobinhoodService.optionOrders!
         .where((element) => element.chainSymbol == instrument.symbol)
         .toList();
+    var optionOrdersPremiumBalance = optionOrders
+        .map((e) =>
+            (e.processedPremium != null ? e.processedPremium! : 0) *
+            (e.direction == "credit" ? 1 : -1))
+        .reduce((a, b) => a + b);
     return SliverStickyHeader(
       header: Container(
-        //height: 208.0, //60.0,
-        //color: Colors.blue,
-        color: Colors.white,
-        //padding: EdgeInsets.symmetric(horizontal: 16.0),
-        alignment: Alignment.centerLeft,
-        child: ExpansionPanelList(
-            expansionCallback: (int index, bool isExpanded) {
-              setState(() {
-                headersExpanded[1] = !headersExpanded[1];
-              });
-            },
-            expandedHeaderPadding: EdgeInsets.all(0),
-            children: [
-              ExpansionPanel(
-                headerBuilder: (BuildContext context, bool isExpanded) {
-                  return ListTile(
-                    title: Text(
-                      "Options Orders",
-                      style: const TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    ),
+          //height: 208.0, //60.0,
+          //color: Colors.blue,
+          color: Colors.white,
+          //padding: EdgeInsets.symmetric(horizontal: 16.0),
+          alignment: Alignment.centerLeft,
+          child: ListTile(
+            title: Text(
+              "Option Orders",
+              style: const TextStyle(
+                  //color: Colors.white,
+                  fontSize: 19.0),
+            ),
+            subtitle: Text(
+                "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${formatCurrency.format(optionOrdersPremiumBalance)}"),
+            trailing: IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    constraints: BoxConstraints(maxHeight: 260),
+                    builder: (BuildContext context) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            tileColor: Colors.blue,
+                            title: Text(
+                              "Filter Option Orders",
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 19.0),
+                            ),
+                            /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                          ),
+                          orderFilterWidget,
+                        ],
+                      );
+                    },
                   );
-                },
-                body: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [orderFilterWidget],
-                ),
-                isExpanded: headersExpanded[1],
-              )
-            ]),
-      ),
+                }),
+          )),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
@@ -653,7 +669,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (optionOrders[index].direction == "credit" ? "+" : "-") +
-                        "${optionOrders[index].premium != null ? formatCurrency.format(optionOrders[index].premium) : ""}",
+                        "${optionOrders[index].processedPremium != null ? formatCurrency.format(optionOrders[index].processedPremium) : ""}",
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
                   )

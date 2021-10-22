@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
+import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
 //@immutable
 class OptionAggregatePosition {
@@ -26,6 +27,7 @@ class OptionAggregatePosition {
   final String strategyCode;
 
   OptionInstrument? optionInstrument;
+  OptionMarketData? marketData;
 
   OptionAggregatePosition(
       this.id,
@@ -70,7 +72,8 @@ class OptionAggregatePosition {
 
   // Helpers
   double get marketValue {
-    if (optionInstrument == null) {
+    if (optionInstrument == null ||
+        optionInstrument!.optionMarketData == null) {
       return 0;
     }
     return (optionInstrument!.optionMarketData!.adjustedMarkPrice ??

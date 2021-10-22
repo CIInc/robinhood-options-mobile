@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
 class RobinhoodService {
@@ -145,7 +146,7 @@ class RobinhoodService {
       {bool withQuantity = true}) async* {
     List<Position> positions = [];
     var pageStream = RobinhoodService.streamedGet(
-        user, "${Constants.robinHoodEndpoint}/positions/");
+        user, "${Constants.robinHoodEndpoint}/positions/"); // ?nonzero=true
     //print(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -187,12 +188,18 @@ class RobinhoodService {
   static Future<Instrument> getInstrument(
       RobinhoodUser user, String instrumentUrl) async {
     print(instrumentUrl);
-    var result = await user.oauth2Client!.read(Uri.parse(instrumentUrl));
-    //print(result);
-
+    String? result;
+    try {
+      result = await user.oauth2Client!.read(Uri.parse(instrumentUrl));
+    } on Exception catch (e) {
+      // Format
+      print('No instrument found. ${instrumentUrl} Error: $e');
+    }
+    if (result == null) {
+      return Future.value(null);
+    }
     var resultJson = jsonDecode(result);
     var oi = Instrument.fromJson(resultJson);
-
     return oi;
   }
 
@@ -204,7 +211,7 @@ class RobinhoodService {
           "${Constants.robinHoodEndpoint}/quotes/$symbol/")); // https://api.robinhood.com/options/instruments/8b6ba744-7ef7-4b0e-845b-1a12f50c25fa/
     } on Exception catch (e) {
       // Format
-      print('No quote found. Error: $e');
+      print('No quote found. $symbol Error: $e');
     }
     if (result == null) {
       return Future.value(null);
@@ -283,14 +290,80 @@ class RobinhoodService {
 
   static Stream<List<OptionAggregatePosition>>
       streamOptionAggregatePositionList(RobinhoodUser user,
-          {bool includeOpen = true,
-          bool includeClosed = false,
-          List<String> filters = const []}) async* {
+          {bool nonzero = true}) async* {
     List<OptionAggregatePosition> optionPositions =
-        await getAggregateOptionPositions(
-            user, includeOpen, includeClosed, filters);
-    List<String> optionIds =
-        optionPositions.map((e) => e.legs.first.option).toSet().toList();
+        await getAggregateOptionPositions(user, nonzero: nonzero);
+    /*
+    for (var optionPosition in optionPositions) {
+      if (((includeOpen && optionPosition.quantity! > 0) ||
+              (includeClosed && optionPosition.quantity! <= 0)) &&
+          (filters.isEmpty || filters.contains(optionPosition.symbol))) {}
+      var optionInstrument = await getOptionInstrument(user, optionPosition.id);
+
+      var optionMarketData = await getOptionMarketData(user, optionInstrument);
+
+      optionInstrument.optionMarketData = optionMarketData;
+
+      optionPosition.optionInstrument = optionInstrument;
+
+      optionPositions.sort((a, b) => (a.optionInstrument?.expirationDate! ??
+              DateTime.now())
+          .compareTo((b.optionInstrument?.expirationDate! ?? DateTime.now())));
+      yield optionPositions;
+    }
+    */
+
+    var len = optionPositions.length;
+    var size = 10; //17;
+    List<List<OptionAggregatePosition>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(optionPositions.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var optionIds = chunk.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      })
+          //.toSet()
+          .toList();
+
+      var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
+
+      for (var optionInstrument in optionInstruments) {
+        var optionPosition = optionPositions.singleWhere((element) {
+          var splits = element.legs.first.option.split("/");
+          return splits[splits.length - 2] == optionInstrument.id;
+        });
+
+        optionPosition.optionInstrument = optionInstrument;
+      }
+
+      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+
+      for (var optionMarketDatum in optionMarketData) {
+        var optionPosition = optionPositions.singleWhere((element) {
+          var splits = element.legs.first.option.split("/");
+          return splits[splits.length - 2] == optionMarketDatum.instrumentId;
+        });
+
+        // TODO: remove in favor of flat below
+        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+        optionPosition.marketData = optionMarketDatum;
+
+        optionPositions.sort((a, b) =>
+            (a.legs.first.expirationDate ?? DateTime.now())
+                .compareTo((b.legs.first.expirationDate ?? DateTime.now())));
+        yield optionPositions;
+      }
+      /*
+      for (var i = 0; i < optionMarketData.length; i++) {
+        optionPositions.singleWhere(
+            (element) => element.id == optionMarketData[i].instrumentId);
+      }
+      */
+    }
+    /*
     for (var i = 0; i < optionIds.length; i++) {
       var optionInstrument = await getOptionInstrument(user, optionIds[i]);
 
@@ -298,11 +371,6 @@ class RobinhoodService {
 
       optionInstrument.optionMarketData = optionMarketData;
 
-/*
-      optionPositions
-          .where((element) => element.option == optionIds[i])
-          .map((e) => e.optionInstrument = optionInstrument);
-*/
       for (var j = 0; j < optionPositions.length; j++) {
         if (optionPositions[j].legs.first.option == optionIds[i]) {
           if (optionPositions[j].optionInstrument == null) {
@@ -321,6 +389,7 @@ class RobinhoodService {
       yield optionPositions;
     }
     yield optionPositions;
+    */
   }
 
   /*
@@ -363,22 +432,16 @@ class RobinhoodService {
 
   static Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
       RobinhoodUser user,
-      bool includeOpen,
-      bool includeClosed,
-      List<String> filters) async {
+      {bool nonzero = true}) async {
     List<OptionAggregatePosition> optionPositions = [];
 
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/options/aggregate_positions/");
+    var results = await RobinhoodService.pagedGet(user,
+        "${Constants.robinHoodEndpoint}/options/aggregate_positions/?nonzero=${nonzero}"); // ?nonzero=true
 
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = OptionAggregatePosition.fromJson(result);
-      if (((includeOpen && op.quantity! > 0) ||
-              (includeClosed && op.quantity! <= 0)) &&
-          (filters.isEmpty || filters.contains(op.symbol))) {
-        optionPositions.add(op);
-      }
+      optionPositions.add(op);
     }
     return optionPositions;
   }
@@ -413,6 +476,23 @@ class RobinhoodService {
     var resultJson = jsonDecode(result);
     var oi = OptionInstrument.fromJson(resultJson);
     return oi;
+  }
+
+  static Future<List<OptionInstrument>> getOptionInstrumentByIds(
+      RobinhoodUser user, List<String> ids) async {
+    var url =
+        "${Constants.robinHoodEndpoint}/options/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
+    print(url);
+    var result = await user.oauth2Client!.read(Uri.parse(url));
+    var resultJson = jsonDecode(result);
+
+    List<OptionInstrument> list = [];
+    for (var i = 0; i < resultJson['results'].length; i++) {
+      var result = resultJson['results'][i];
+      var op = OptionInstrument.fromJson(result);
+      list.add(op);
+    }
+    return list;
   }
 
   static Stream<List<OptionInstrument>> streamOptionInstruments(
@@ -484,6 +564,23 @@ class RobinhoodService {
     }
   }
 
+  static Future<List<OptionMarketData>> getOptionMarketDataByIds(
+      RobinhoodUser user, List<String> ids) async {
+    var url =
+        "${Constants.robinHoodEndpoint}/marketdata/options/?ids=${Uri.encodeComponent(ids.join(","))}";
+    print(url);
+    var result = await user.oauth2Client!.read(Uri.parse(url));
+    var resultJson = jsonDecode(result);
+
+    List<OptionMarketData> list = [];
+    for (var i = 0; i < resultJson['results'].length; i++) {
+      var result = resultJson['results'][i];
+      var op = OptionMarketData.fromJson(result);
+      list.add(op);
+    }
+    return list;
+  }
+
   static Stream<List<OptionOrder>> streamOptionOrders(
       RobinhoodUser user) async* {
     List<OptionOrder> list = [];
@@ -542,22 +639,45 @@ class RobinhoodService {
   }
 
   static Future<List<Holding>> getNummusHoldings(RobinhoodUser user) async {
-    //var results = await user.oauth2Client!
-    //    .read(Uri.parse('${Constants.robinHoodNummusEndpoint}/holdings/'));
-    //print(results);
-    //return results;
+    /*
+    var holdings = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+
+    List<Holding> list = [];
+    for (var i = 0; i < holdings.length; i++) {
+      var result = holdings[i];
+      var op = Holding.fromJson(result);
+      list.add(op);
+    }
+
+    var pairs = await RobinhoodService.getForexPairs(user);
+    List<dynamic> pairResults = pairs['results'];
+    var pairHoldings = pairResults.where((element) => list.any(
+        (listitem) => element['asset_currency']['id'] == listitem.currencyId));
+    var pairHoldingIds = pairHoldings.map((e) => e['id'].toString()).toList();
+    var quotes = await getForexQuoteByIds(user, pairHoldingIds);
+    for (var quote in quotes['results']) {
+      var holding =
+          list.firstWhere((element) => element.currencyId == quote['id']);
+      holding.quote = quote;
+      holding.value = double.tryParse(holding.quote['mark_price']);
+    }
+    */
+
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodNummusEndpoint}/holdings/");
-    var quotes = await RobinhoodService.getForexQuotes(user);
+    var quotes = await RobinhoodService.getForexPairs(user);
     List<Holding> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = Holding.fromJson(result);
       for (var j = 0; j < quotes['results'].length; j++) {
-        if (quotes['results'][j]['asset_currency']['id'] == op.currencyId) {
+        var quote = quotes['results'][j];
+        var assetCurrencyId = quote['asset_currency']['id'];
+        if (assetCurrencyId == op.currencyId) {
           //op.quote = quotes['results'][j];
 
-          op.quote = await getForexQuote(user, quotes['results'][j]['id']);
+          op.quote = await getForexQuote(user, quote['id']);
           op.value = double.tryParse(op.quote['mark_price']);
           break;
         }
@@ -566,6 +686,7 @@ class RobinhoodService {
       //op.quote = await getForexQuote(user, op.currencyId);
       list.add(op);
     }
+
     return list;
   }
 
@@ -573,18 +694,36 @@ class RobinhoodService {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
-    print('${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/');
-    var results = await user.oauth2Client!.read(Uri.parse(
-        '${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/'));
-    //'${Constants.robinHoodEndpoint}/marketdata/forex/historicals/$id/'));
+    String url = "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/";
+    print(url);
+    var results = await user.oauth2Client!.read(Uri.parse(url));
 
-    //var results = await RobinhoodService.pagedGet(user, "${Constants.robinHoodNummusEndpoint}/accounts/");
-    //print(results);
-    // {"ask_price":"41999.533618","bid_price":"41876.376816","mark_price":"41937.955217","high_price":"42854.535000","low_price":"41963.270000","open_price":"42655.620000","symbol":"BTCUSD","id":"3d961844-d360-45fc-989b-f6fca761d511","volume":"0.000000"}
     return jsonDecode(results);
   }
 
-  static Future<dynamic> getForexQuotes(RobinhoodUser user) async {
+  static Future<dynamic> getForexQuoteByIds(
+      RobinhoodUser user, List<String> ids) async {
+    //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
+    //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
+    //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
+    String url =
+        "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/?ids=${Uri.encodeComponent(ids.join(","))}";
+    print(url);
+    var results = await user.oauth2Client!.read(Uri.parse(url));
+
+    return jsonDecode(results);
+  }
+
+  static Future<dynamic> getForexHistoricals(
+      RobinhoodUser user, List<String> ids) async {
+    String url =
+        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?ids=${Uri.encodeComponent(ids.join(","))}";
+    print(url);
+    var results = await user.oauth2Client!.read(Uri.parse(url));
+    return jsonDecode(results);
+  }
+
+  static Future<dynamic> getForexPairs(RobinhoodUser user) async {
     print('${Constants.robinHoodNummusEndpoint}/currency_pairs/');
     var results = await user.oauth2Client!.read(
         Uri.parse('${Constants.robinHoodNummusEndpoint}/currency_pairs/'));
@@ -646,19 +785,48 @@ class RobinhoodService {
 /*
 WATCHLIST
 */
+  static Stream<List<Watchlist>> streamLists(RobinhoodUser user) async* {
+    List<Watchlist> list = [];
+    var watchlistsUrl =
+        "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
+    var userItemString =
+        await user.oauth2Client!.read(Uri.parse(watchlistsUrl));
+    var userItemsJson = jsonDecode(userItemString); // Map<String, List>
+    for (var entry in userItemsJson.entries) {
+      var watchlistUrl =
+          "${Constants.robinHoodEndpoint}/midlands/lists/${entry.key}/?owner_type=custom";
+      print(watchlistUrl);
+      var entryString = await user.oauth2Client!.read(Uri.parse(watchlistUrl));
+      //https://api.robinhood.com/midlands/lists/c9649938-4a7f-429e-b579-24a45e939a82/?owner_type=custom
+      var entryJson = jsonDecode(entryString);
+      var wl = Watchlist.fromJson(entryJson);
+      for (var val in entry.value) {
+        if (val['object_type'] != "instrument") {
+          continue;
+        }
+        var watchlistItem =
+            new WatchlistItem(val['object_id'], DateTime.now(), entry.key, "");
+
+        var instrumentObj = await getInstrument(user,
+            "${Constants.robinHoodEndpoint}/instruments/${watchlistItem.instrument}");
+        watchlistItem.instrumentObj = instrumentObj;
+
+        if (watchlistItem.instrumentObj != null) {
+          var quoteObj =
+              await getQuote(user, watchlistItem.instrumentObj!.symbol);
+          watchlistItem.instrumentObj!.quoteObj = quoteObj;
+        }
+
+        wl.items!.add(watchlistItem);
+      }
+      list.add(wl);
+      yield list;
+    }
+  }
+
   static Stream<List<WatchlistItem>> streamWatchlists(
       RobinhoodUser user) async* {
     List<WatchlistItem> watchlistItems = [];
-
-    /*
-    try {
-      var watchLists = await user.oauth2Client!
-          .read(Uri.parse("${Constants.robinHoodEndpoint}/lists/Default"));
-      var watchListsJson = jsonDecode(watchLists);
-    } on Exception catch (e) {
-      print('Error: $e');
-    }
-    */
 
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/watchlists/Default/"); // ?chain_id=${instrument.tradeableChainId}

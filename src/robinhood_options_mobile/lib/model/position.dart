@@ -109,6 +109,9 @@ class Position {
             DateTime.tryParse(json['created_at']);
 
   double get marketValue {
+    if (quantity == 0) {
+      return 0;
+    }
     return instrumentObj!.quoteObj!.lastTradePrice! * quantity!;
   }
 

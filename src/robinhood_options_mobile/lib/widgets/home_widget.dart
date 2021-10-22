@@ -18,10 +18,12 @@ import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_order_filter_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 
@@ -79,24 +81,26 @@ class _HomePageState extends State<HomePage> {
   //Future<dynamic>? futurePortfolioHistoricals;
   Stream<List<Position>>? positionStream;
   Stream<List<OptionOrder>>? optionOrderStream;
-  final List<String> orderFilters = <String>["placed", "filled"];
-  int dateFilterSelected = 0;
-  List<String> orderSymbols = [];
-  final List<String> orderSymbolFilters = <String>[];
-
   Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
+
   List<OptionAggregatePosition> optionAggregatePositions = [];
-  //Stream<List<OptionPosition>>? optionPositionStream;
-  //List<OptionPosition> optionPositions = [];
+
+  List<String> orderSymbols = [];
   List<String> chainSymbols = [];
 
-  final List<bool> headersExpanded = [false, false, false, false];
-  final List<bool> hasQuantityFilters = [true, false];
   final List<String> optionFilters = <String>[];
   final List<String> positionFilters = <String>[];
   final List<String> chainSymbolFilters = <String>[];
 
-  Stream<List<WatchlistItem>>? watchlistStream;
+  final List<bool> hasQuantityFilters = [true, false];
+
+  final List<String> orderFilters = <String>["placed", "filled"];
+  final List<String> orderSymbolFilters = <String>[];
+  int orderDateFilterSelected = 0;
+
+  Stream<List<Watchlist>>? watchlistStream;
+
+  Stream<List<WatchlistItem>>? watchlistItemStream;
   SortType? _sortType = SortType.alphabetical;
 
   Future<User>? futureUser;
@@ -220,9 +224,7 @@ class _HomePageState extends State<HomePage> {
                             optionAggregatePositionStream ??= RobinhoodService
                                 .streamOptionAggregatePositionList(
                                     robinhoodUser!,
-                                    includeOpen: hasQuantityFilters[0],
-                                    includeClosed: hasQuantityFilters[1],
-                                    filters: chainSymbolFilters);
+                                    nonzero: hasQuantityFilters[1]);
 
                             return StreamBuilder<List<OptionAggregatePosition>>(
                                 stream: optionAggregatePositionStream,
@@ -234,105 +236,165 @@ class _HomePageState extends State<HomePage> {
                                         optionAggregatePositionSnapshot.data!;
 
                                     watchlistStream ??=
-                                        RobinhoodService.streamWatchlists(
+                                        RobinhoodService.streamLists(
                                             robinhoodUser!);
 
                                     return StreamBuilder(
                                         stream: watchlistStream,
-                                        builder: (context4, watchlistSnapshot) {
-                                          if (watchlistSnapshot.hasData) {
-                                            List<WatchlistItem> watchLists =
-                                                watchlistSnapshot.data!
-                                                    as List<WatchlistItem>;
-                                            if (_sortType ==
-                                                SortType.alphabetical) {
-                                              watchLists.sort((a, b) => (a
-                                                  .instrumentObj!.symbol
-                                                  .compareTo(b
-                                                      .instrumentObj!.symbol)));
-                                            } else if (_sortType ==
-                                                SortType.change) {
-                                              watchLists.sort((a, b) => (a
-                                                  .instrumentObj!
-                                                  .quoteObj!
-                                                  .changePercentToday
-                                                  .compareTo(b
-                                                      .instrumentObj!
-                                                      .quoteObj!
-                                                      .changePercentToday)));
-                                            }
+                                        builder:
+                                            (context4, watchlistsSnapshot) {
+                                          if (watchlistsSnapshot.hasData) {
+                                            List<Watchlist> watchLists =
+                                                watchlistsSnapshot.data!
+                                                    as List<Watchlist>;
 
-                                            optionOrderStream ??=
+                                            watchlistItemStream ??=
                                                 RobinhoodService
-                                                    .streamOptionOrders(
+                                                    .streamWatchlists(
                                                         robinhoodUser!);
-                                            return StreamBuilder(
-                                                stream: optionOrderStream,
-                                                builder: (context5,
-                                                    optionOrdersSnapshot) {
-                                                  if (optionOrdersSnapshot
-                                                      .hasData) {
-                                                    var optionOrders =
-                                                        optionOrdersSnapshot
-                                                                .data
-                                                            as List<
-                                                                OptionOrder>;
 
-                                                    List<Widget> slivers = _buildSlivers(
-                                                        portfolios: portfolios,
-                                                        user: user,
-                                                        ru: robinhoodUser,
-                                                        accounts: accounts,
-                                                        nummusHoldings:
-                                                            nummusHoldings,
-                                                        optionAggregatePositions:
-                                                            optionAggregatePositions,
-                                                        optionOrders:
-                                                            optionOrders,
-                                                        positions: positions,
-                                                        watchLists: watchLists,
-                                                        done: positionSnapshot
+                                            return StreamBuilder(
+                                                stream: watchlistItemStream,
+                                                builder: (context5,
+                                                    watchlistItemSnapshot) {
+                                                  if (watchlistItemSnapshot
+                                                      .hasData) {
+                                                    List<WatchlistItem>
+                                                        watchListItems =
+                                                        watchlistItemSnapshot
+                                                                .data!
+                                                            as List<
+                                                                WatchlistItem>;
+                                                    if (_sortType ==
+                                                        SortType.alphabetical) {
+                                                      watchListItems.sort(
+                                                          (a, b) => (a
+                                                              .instrumentObj!
+                                                              .symbol
+                                                              .compareTo(b
+                                                                  .instrumentObj!
+                                                                  .symbol)));
+                                                    } else if (_sortType ==
+                                                        SortType.change) {
+                                                      watchListItems.sort((a, b) => (a
+                                                          .instrumentObj!
+                                                          .quoteObj!
+                                                          .changePercentToday
+                                                          .compareTo(b
+                                                              .instrumentObj!
+                                                              .quoteObj!
+                                                              .changePercentToday)));
+                                                    }
+
+                                                    optionOrderStream ??=
+                                                        RobinhoodService
+                                                            .streamOptionOrders(
+                                                                robinhoodUser!);
+                                                    return StreamBuilder(
+                                                        stream:
+                                                            optionOrderStream,
+                                                        builder: (context5,
+                                                            optionOrdersSnapshot) {
+                                                          if (optionOrdersSnapshot
+                                                              .hasData) {
+                                                            var optionOrders =
+                                                                optionOrdersSnapshot
+                                                                        .data
+                                                                    as List<
+                                                                        OptionOrder>;
+
+                                                            List<Widget> slivers = _buildSlivers(
+                                                                portfolios:
+                                                                    portfolios,
+                                                                user: user,
+                                                                ru:
+                                                                    robinhoodUser,
+                                                                accounts:
+                                                                    accounts,
+                                                                nummusHoldings:
+                                                                    nummusHoldings,
+                                                                optionAggregatePositions:
+                                                                    optionAggregatePositions,
+                                                                optionOrders:
+                                                                    optionOrders,
+                                                                positions:
+                                                                    positions,
+                                                                watchlists:
+                                                                    watchLists,
+                                                                watchListItems:
+                                                                    watchListItems,
+                                                                done: positionSnapshot
+                                                                            .connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    optionAggregatePositionSnapshot
+                                                                            .connectionState ==
+                                                                        ConnectionState
+                                                                            .done /* &&
+                                                            watchlistSnapshot
                                                                     .connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            optionAggregatePositionSnapshot
+                                                                ConnectionState.done*/
+                                                                );
+                                                            return RefreshIndicator(
+                                                              child: CustomScrollView(
+                                                                  slivers:
+                                                                      slivers), //controller: _controller,
+                                                              onRefresh:
+                                                                  _pullRefresh,
+                                                            );
+                                                          } else {
+                                                            List<Widget> slivers = _buildSlivers(
+                                                                portfolios:
+                                                                    portfolios,
+                                                                user: user,
+                                                                ru:
+                                                                    robinhoodUser,
+                                                                accounts:
+                                                                    accounts,
+                                                                nummusHoldings:
+                                                                    nummusHoldings,
+                                                                optionAggregatePositions:
+                                                                    optionAggregatePositions,
+                                                                positions:
+                                                                    positions,
+                                                                watchlists:
+                                                                    watchLists,
+                                                                watchListItems:
+                                                                    watchListItems,
+                                                                done: positionSnapshot
+                                                                            .connectionState ==
+                                                                        ConnectionState
+                                                                            .done &&
+                                                                    optionAggregatePositionSnapshot
+                                                                            .connectionState ==
+                                                                        ConnectionState
+                                                                            .done /* &&
+                                                            watchlistSnapshot
                                                                     .connectionState ==
-                                                                ConnectionState
-                                                                    .done /* &&
-                                                    watchlistSnapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done*/
-                                                        );
-                                                    return RefreshIndicator(
-                                                      child: CustomScrollView(
-                                                          slivers:
-                                                              slivers), //controller: _controller,
-                                                      onRefresh: _pullRefresh,
-                                                    );
+                                                                ConnectionState.done*/
+                                                                );
+                                                            return RefreshIndicator(
+                                                              child: CustomScrollView(
+                                                                  slivers:
+                                                                      slivers), //controller: _controller,
+                                                              onRefresh:
+                                                                  _pullRefresh,
+                                                            );
+                                                          }
+                                                        });
                                                   } else {
-                                                    List<Widget> slivers = _buildSlivers(
-                                                        portfolios: portfolios,
-                                                        user: user,
-                                                        ru: robinhoodUser,
-                                                        accounts: accounts,
-                                                        nummusHoldings:
-                                                            nummusHoldings,
-                                                        optionAggregatePositions:
-                                                            optionAggregatePositions,
-                                                        positions: positions,
-                                                        watchLists: watchLists,
-                                                        done: positionSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState
-                                                                    .done &&
-                                                            optionAggregatePositionSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState
-                                                                    .done /* &&
-                                                    watchlistSnapshot
-                                                            .connectionState ==
-                                                        ConnectionState.done*/
-                                                        );
+                                                    List<Widget> slivers =
+                                                        _buildSlivers(
+                                                      portfolios: portfolios,
+                                                      user: user,
+                                                      ru: robinhoodUser,
+                                                      accounts: accounts,
+                                                      nummusHoldings:
+                                                          nummusHoldings,
+                                                      optionAggregatePositions:
+                                                          optionAggregatePositions,
+                                                      positions: positions,
+                                                    );
                                                     return RefreshIndicator(
                                                       child: CustomScrollView(
                                                           slivers:
@@ -341,6 +403,21 @@ class _HomePageState extends State<HomePage> {
                                                     );
                                                   }
                                                 });
+                                          } else if (watchlistsSnapshot
+                                              .hasError) {
+                                            print(
+                                                "${watchlistsSnapshot.error}");
+                                            List<Widget> slivers =
+                                                _buildSlivers(
+                                                    //ru: snapshotUser,
+                                                    welcomeWidget: Text(
+                                                        "${watchlistsSnapshot.error}"));
+                                            return RefreshIndicator(
+                                              child: CustomScrollView(
+                                                  slivers:
+                                                      slivers), // controller: _controller,
+                                              onRefresh: _pullRefresh,
+                                            );
                                           } else {
                                             List<Widget> slivers =
                                                 _buildSlivers(
@@ -456,7 +533,8 @@ class _HomePageState extends State<HomePage> {
       List<OptionAggregatePosition>? optionAggregatePositions,
       List<OptionOrder>? optionOrders,
       List<Position>? positions,
-      List<WatchlistItem>? watchLists,
+      List<Watchlist>? watchlists,
+      List<WatchlistItem>? watchListItems,
       bool done = false}) {
     var slivers = <Widget>[];
     double changeToday = 0;
@@ -531,103 +609,91 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (optionAggregatePositions != null) {
+        var filteredOptionAggregatePositions = optionAggregatePositions
+            .where((element) =>
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                (positionFilters.isEmpty ||
+                    positionFilters
+                        .contains(element.legs.first.positionType)) &&
+                (optionFilters.isEmpty ||
+                    optionFilters.contains(element.legs.first.positionType)) &&
+                (chainSymbolFilters.isEmpty ||
+                    chainSymbolFilters.contains(element.symbol)))
+            .toList();
+        /*
+                    (chainSymbolFilters.isNotEmpty &&
+            !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
+        (positionFilters.isNotEmpty &&
+            !positionFilters
+                .contains(optionsPositions[index].strategy.split("_").first)) ||
+        (optionFilters.isNotEmpty &&
+            !optionFilters
+                .contains(optionsPositions[index].optionInstrument!.type))) {
+
+            */
+
         slivers.add(SliverStickyHeader(
           header: Container(
-            //height: 208.0, //60.0,
-            //color: Colors.blue,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: ExpansionPanelList(
-                expansionCallback: (int index, bool isExpanded) {
-                  setState(() {
-                    headersExpanded[0] = !headersExpanded[0];
-                    //_data[index].isExpanded = !isExpanded;
-                  });
-                },
-                expandedHeaderPadding: EdgeInsets.all(0),
-                children: [
-                  ExpansionPanel(
-                    headerBuilder: (BuildContext context, bool isExpanded) {
-                      return ListTile(
-                        title: Text(
-                          "Options ${formatCurrency.format(optionEquity)}",
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        ),
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: Text(
+                  "Option Positions",
+                  style: const TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionAggregatePositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        //constraints: BoxConstraints(maxHeight: 260),
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                tileColor: Colors.blue,
+                                title: Text(
+                                  "Filter Option Positions",
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 19.0),
+                                ),
+                                /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                              ),
+                              ListTile(
+                                title: Text("Position & Option Type"),
+                              ),
+                              openClosedFilterWidget,
+                              optionTypeFilterWidget,
+                              ListTile(
+                                title: Text("Symbols"),
+                              ),
+                              optionSymbolFilterWidget
+                            ],
+                          );
+                        },
                       );
-                    },
-                    body: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        /*
-                        Container(
-                            //height: 40,
-                            padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
-                            //const EdgeInsets.all(4.0),
-                            //EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Text(
-                              'Options ${formatCurrency.format(optionEquity)}',
-                              style: const TextStyle(
-                                  //color: Colors.white,
-                                  fontSize: 19.0),
-                            )),
-                            */
-                        openClosedFilterWidget,
-                        //optionTypeFilterWidget,
-                        symbolFilterWidget
-                      ],
-                    ),
-                    /*
-                    ListTile(
-                        title: Text("item.expandedValue"),
-                        subtitle: const Text(
-                            'To delete this panel, tap the trash can icon'),
-                        trailing: const Icon(Icons.delete),
-                        onTap: () {
-                          setState(() {
-                            expanded = false;
-                            //_data.removeWhere((Item currentItem) => item == currentItem);
-                          });
-                        }),*/
-                    isExpanded: headersExpanded[0], //item.isExpanded,
-                  )
-                ]),
-/*
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                      //height: 40,
-                      padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
-                      //const EdgeInsets.all(4.0),
-                      //EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Text(
-                        'Options ${formatCurrency.format(optionEquity)}',
-                        style: const TextStyle(
-                            //color: Colors.white,
-                            fontSize: 19.0),
-                      )),
-                  openClosedFilterWidget,
-                  //optionTypeFilterWidget,
-                  symbolFilterWidget
-                ],
-              )*/
-          ),
+                    }),
+              )),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                if (optionAggregatePositions.length > index) {
-                  return _buildOptionPositionRow(
-                      optionAggregatePositions, index, ru);
-                }
-                return null;
-              },
-            ),
+            delegate:
+                SliverChildBuilderDelegate((BuildContext context, int index) {
+              return _buildOptionPositionRow(
+                  filteredOptionAggregatePositions[index], ru);
+            }, childCount: filteredOptionAggregatePositions.length),
           ),
         ));
         /*
@@ -666,7 +732,7 @@ class _HomePageState extends State<HomePage> {
       }
       if (optionOrders != null) {
         int days = 0;
-        switch (dateFilterSelected) {
+        switch (orderDateFilterSelected) {
           case 0:
             days = 1;
             break;
@@ -679,6 +745,8 @@ class _HomePageState extends State<HomePage> {
           case 3:
             days = 365;
             break;
+          case 4:
+            break;
         }
         orderSymbols = optionOrders.map((e) => e.chainSymbol).toSet().toList();
         orderSymbols.sort((a, b) => (a.compareTo(b)));
@@ -687,53 +755,70 @@ class _HomePageState extends State<HomePage> {
             .where((element) =>
                 (orderFilters.isEmpty ||
                     orderFilters.contains(element.state)) &&
-                ( //days == 0 ||
+                (days == 0 ||
                     element.createdAt!
                             .add(Duration(days: days))
                             .compareTo(DateTime.now()) >=
                         0) &&
-                orderSymbolFilters.contains(element.chainSymbol))
+                (orderSymbolFilters.isEmpty ||
+                    orderSymbolFilters.contains(element.chainSymbol)))
             .toList();
         slivers.add(SliverStickyHeader(
           header: Container(
-            //height: 208.0, //60.0,
-            //color: Colors.blue,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: ExpansionPanelList(
-                expansionCallback: (int index, bool isExpanded) {
-                  setState(() {
-                    headersExpanded[3] = !headersExpanded[3];
-                    //_data[index].isExpanded = !isExpanded;
-                  });
-                },
-                expandedHeaderPadding: EdgeInsets.all(0),
-                children: [
-                  ExpansionPanel(
-                    headerBuilder: (BuildContext context, bool isExpanded) {
-                      return ListTile(
-                        title: Text(
-                          "Options Orders",
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        ),
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: Text(
+                  "Option Orders",
+                  style: const TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(filteredOptionOrders.length)} of ${formatCompactNumber.format(optionOrders.length)} orders"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      var future = showModalBottomSheet<void>(
+                        context: context,
+                        // constraints: BoxConstraints(maxHeight: 260),
+                        builder:
+                            /*
+                          (_) => OptionOrderFilterBottomSheet(
+                              orderSymbols: orderSymbols,
+                              optionAggregatePositions:
+                                  optionAggregatePositions)
+                                  */
+                            (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                tileColor: Colors.blue,
+                                title: Text(
+                                  "Filter Option Orders",
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 19.0),
+                                ),
+                                /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                              ),
+                              orderFilterWidget,
+                              orderDateFilterWidget,
+                              orderSymbolFilterWidget,
+                            ],
+                          );
+                        },
                       );
-                    },
-                    body: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        orderFilterWidget,
-                        dateFilterWidget,
-                        orderSymbolFilterWidget
-                      ],
-                    ),
-                    isExpanded: headersExpanded[3], //item.isExpanded,
-                  )
-                ]),
-          ),
+                      //future.then((void value) => {});
+                    }),
+              )),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
@@ -757,7 +842,7 @@ class _HomePageState extends State<HomePage> {
                           (filteredOptionOrders[index].direction == "credit"
                                   ? "+"
                                   : "-") +
-                              "${filteredOptionOrders[index].premium != null ? formatCurrency.format(filteredOptionOrders[index].premium) : ""}",
+                              "${filteredOptionOrders[index].processedPremium != null ? formatCurrency.format(filteredOptionOrders[index].processedPremium) : ""}",
                           style: const TextStyle(fontSize: 18.0),
                           textAlign: TextAlign.right,
                         )
@@ -786,56 +871,58 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (positions != null) {
+        var filteredPositions = positions
+            .where((element) =>
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                (!hasQuantityFilters[1] || element.quantity! <= 0))
+            .toList();
+
         slivers.add(SliverStickyHeader(
             header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ExpansionPanelList(
-                  expansionCallback: (int index, bool isExpanded) {
-                    setState(() {
-                      headersExpanded[1] = !headersExpanded[1];
-                      //_data[index].isExpanded = !isExpanded;
-                    });
-                  },
-                  expandedHeaderPadding: EdgeInsets.all(0),
-                  children: [
-                    ExpansionPanel(
-                      headerBuilder: (BuildContext context, bool isExpanded) {
-                        return ListTile(
-                          title: Text(
-                            "Positions ${formatCurrency.format(positionEquity)}",
-                            style: const TextStyle(
-                                //color: Colors.white,
-                                fontSize: 19.0),
-                          ),
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Stock Positions",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                  subtitle: Text(
+                      "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions - value: ${formatCurrency.format(positionEquity)}"),
+                  trailing: IconButton(
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          constraints: BoxConstraints(maxHeight: 260),
+                          builder: (BuildContext context) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ListTile(
+                                  tileColor: Colors.blue,
+                                  title: Text(
+                                    "Filter Stock Positions",
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 19.0),
+                                  ),
+                                  /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                ),
+                                optionPositionTypeFilterWidget,
+                              ],
+                            );
+                          },
                         );
-                      },
-                      body: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          positionFilterWidget,
-                        ],
-                      ),
-                      /*
-                    ListTile(
-                        title: Text("item.expandedValue"),
-                        subtitle: const Text(
-                            'To delete this panel, tap the trash can icon'),
-                        trailing: const Icon(Icons.delete),
-                        onTap: () {
-                          setState(() {
-                            expanded = false;
-                            //_data.removeWhere((Item currentItem) => item == currentItem);
-                          });
-                        }),*/
-                      isExpanded: headersExpanded[1], //item.isExpanded,
-                    )
-                  ]),
-            ),
+                      }),
+                )),
 /*
             header: Container(
                 //height: 208.0, //60.0,
@@ -862,16 +949,10 @@ class _HomePageState extends State<HomePage> {
               // delegate: SliverChildListDelegate(widgets),
               delegate: SliverChildBuilderDelegate(
                 (BuildContext context, int index) {
-                  if (positions.length > index) {
-                    return _buildPositionRow(positions, index, ru);
-                  }
-                  return null;
-                  // To convert this infinite list to a list with three items,
-                  // uncomment the following line:
-                  // if (index > 3) return null;
+                  return _buildPositionRow(positions, index, ru);
                 },
                 // Or, uncomment the following line:
-                // childCount: widgets.length + 10,
+                childCount: filteredPositions.length,
               ),
             )));
         /*
@@ -905,7 +986,177 @@ class _HomePageState extends State<HomePage> {
           height: 25.0,
         )));
       }
-      if (watchLists != null) {
+      if (watchlists != null) {
+        /*
+        slivers.add(SliverStickyHeader(
+            header: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Lists",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                  subtitle: Text(
+                      "${formatCompactNumber.format(watchlists.length)} items"),
+                  trailing: IconButton(
+                      icon: const Icon(Icons.sort),
+                      onPressed: () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          constraints: BoxConstraints(maxHeight: 260),
+                          builder: (BuildContext context) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ListTile(
+                                  tileColor: Colors.blue,
+                                  title: Text(
+                                    "Sort Watch List",
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 19.0),
+                                  ),
+                                  /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    RadioListTile<SortType>(
+                                      title: const Text('Alphabetical'),
+                                      value: SortType.alphabetical,
+                                      groupValue: _sortType,
+                                      onChanged: (SortType? value) {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _sortType = value;
+                                        });
+                                      },
+                                    ),
+                                    RadioListTile<SortType>(
+                                      title: const Text('Change'),
+                                      value: SortType.change,
+                                      groupValue: _sortType,
+                                      onChanged: (SortType? value) {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _sortType = value;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                )
+                              ],
+                            );
+                          },
+                        );
+                      }),
+                )),
+            sliver: //watchListWidget(watchLists)));
+                SliverList(
+              // delegate: SliverChildListDelegate(widgets),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  return _buildWatchlistRow(watchlists[index], robinhoodUser!);
+                },
+                // Or, uncomment the following line:
+                childCount: watchlists.length,
+              ),
+            )));
+            */
+        for (var watchlist in watchlists) {
+          slivers.add(SliverStickyHeader(
+              header: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: Text(
+                      "${watchlist.displayName}",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(watchlist.items!.length)} items"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.sort),
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            constraints: BoxConstraints(maxHeight: 260),
+                            builder: (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    tileColor: Colors.blue,
+                                    title: Text(
+                                      "Sort Watch List",
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                  ),
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      RadioListTile<SortType>(
+                                        title: const Text('Alphabetical'),
+                                        value: SortType.alphabetical,
+                                        groupValue: _sortType,
+                                        onChanged: (SortType? value) {
+                                          Navigator.pop(context);
+                                          setState(() {
+                                            _sortType = value;
+                                          });
+                                        },
+                                      ),
+                                      RadioListTile<SortType>(
+                                        title: const Text('Change'),
+                                        value: SortType.change,
+                                        groupValue: _sortType,
+                                        onChanged: (SortType? value) {
+                                          Navigator.pop(context);
+                                          setState(() {
+                                            _sortType = value;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              );
+                            },
+                          );
+                        }),
+                  )),
+              sliver: watchListWidget(watchlist.items!)));
+        }
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
+      }
+      if (watchListItems != null) {
         slivers.add(SliverStickyHeader(
             /*
             header: Material(
@@ -927,85 +1178,77 @@ class _HomePageState extends State<HomePage> {
                 )),
                 */
             header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ExpansionPanelList(
-                  expansionCallback: (int index, bool isExpanded) {
-                    setState(() {
-                      headersExpanded[2] = !headersExpanded[2];
-                      //_data[index].isExpanded = !isExpanded;
-                    });
-                  },
-                  expandedHeaderPadding: EdgeInsets.all(0),
-                  children: [
-                    ExpansionPanel(
-                      headerBuilder: (BuildContext context, bool isExpanded) {
-                        return ListTile(
-                          title: Text(
-                            "Watch List",
-                            style: const TextStyle(
-                                //color: Colors.white,
-                                fontSize: 19.0),
-                          ),
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Watch List",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                  subtitle: Text(
+                      "${formatCompactNumber.format(watchListItems.length)} items"),
+                  trailing: IconButton(
+                      icon: const Icon(Icons.sort),
+                      onPressed: () {
+                        showModalBottomSheet<void>(
+                          context: context,
+                          constraints: BoxConstraints(maxHeight: 260),
+                          builder: (BuildContext context) {
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ListTile(
+                                  tileColor: Colors.blue,
+                                  title: Text(
+                                    "Sort Watch List",
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 19.0),
+                                  ),
+                                  /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    RadioListTile<SortType>(
+                                      title: const Text('Alphabetical'),
+                                      value: SortType.alphabetical,
+                                      groupValue: _sortType,
+                                      onChanged: (SortType? value) {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _sortType = value;
+                                        });
+                                      },
+                                    ),
+                                    RadioListTile<SortType>(
+                                      title: const Text('Change'),
+                                      value: SortType.change,
+                                      groupValue: _sortType,
+                                      onChanged: (SortType? value) {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _sortType = value;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                )
+                              ],
+                            );
+                          },
                         );
-                      },
-                      body: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          RadioListTile<SortType>(
-                            title: const Text('Alphabetical'),
-                            value: SortType.alphabetical,
-                            groupValue: _sortType,
-                            onChanged: (SortType? value) {
-                              /*
-                                watchLists.sort((a, b) => (a
-                                    .instrumentObj!.symbol
-                                    .compareTo(b.instrumentObj!.symbol)));
-                              */
-                              setState(() {
-                                _sortType = value;
-                              });
-                            },
-                          ),
-                          RadioListTile<SortType>(
-                            title: const Text('Change'),
-                            value: SortType.change,
-                            groupValue: _sortType,
-                            onChanged: (SortType? value) {
-                              /*
-                                watchLists.sort((a, b) => (a
-                                    .instrumentObj!.quoteObj!.changePercentToday
-                                    .compareTo(b.instrumentObj!.quoteObj!
-                                        .changePercentToday)));
-                              */
-                              setState(() {
-                                _sortType = value;
-                              });
-                            },
-                          ),
-                          //positionFilterWidget,
-                        ],
-                      ),
-                      /*
-                    ListTile(
-                        title: Text("item.expandedValue"),
-                        subtitle: const Text(
-                            'To delete this panel, tap the trash can icon'),
-                        trailing: const Icon(Icons.delete),
-                        onTap: () {
-                          setState(() {
-                            expanded = false;
-                            //_data.removeWhere((Item currentItem) => item == currentItem);
-                          });
-                        }),*/
-                      isExpanded: headersExpanded[2], //item.isExpanded,
-                    )
-                  ]),
-            ),
+                      }),
+                )),
 /*
             header: Container(
                 //height: 208.0, //60.0,
@@ -1027,7 +1270,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 )),
                 */
-            sliver: watchListWidget(watchLists)));
+            sliver: watchListWidget(watchListItems)));
         /*
       slivers.add(
         SliverPersistentHeader(
@@ -1275,6 +1518,23 @@ class _HomePageState extends State<HomePage> {
         title: const Text("Portfolio Cash", style: TextStyle(fontSize: 14)),
         trailing: Text(formatCurrency.format(account.portfolioCash),
             style: const TextStyle(fontSize: 16)),
+      );
+      yield ListTile(
+        title: const Text("Buying Power", style: TextStyle(fontSize: 14)),
+        trailing: Text(formatCurrency.format(account.buyingPower),
+            style: const TextStyle(fontSize: 16)),
+      );
+      yield ListTile(
+        title: const Text("Cash Held For Options Collateral",
+            style: TextStyle(fontSize: 14)),
+        trailing: Text(
+            formatCurrency.format(account.cashHeldForOptionsCollateral),
+            style: const TextStyle(fontSize: 16)),
+      );
+      yield ListTile(
+        title: const Text("Option Level", style: TextStyle(fontSize: 14)),
+        trailing:
+            Text(account.optionLevel, style: const TextStyle(fontSize: 16)),
       );
     }
   }
@@ -1558,169 +1818,85 @@ class _HomePageState extends State<HomePage> {
     */
   }
 
-  Widget get symbolFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-                children: filterWidgets(chainSymbols, optionAggregatePositions)
-                    .toList());
-          },
-          itemCount: 1,
-        ));
+  Widget symbolWidgets(List<Widget> widgets) {
+    var n = 3; // 4;
+    if (widgets.length < 8) {
+      n = 1;
+    } else if (widgets.length < 12) {
+      n = 2;
+    } /* else if (widgets.length < 24) {
+      n = 3;
+    }*/
+
+    var m = (widgets.length / n).round();
+    var lists = List.generate(
+        n,
+        (i) => widgets.sublist(
+            m * i, (i + 1) * m <= widgets.length ? (i + 1) * m : null));
+    List<Widget> rows = []; //<Widget>[]
+    for (int i = 0; i < lists.length; i++) {
+      var list = lists[i];
+      rows.add(
+        SizedBox(
+            height: 56,
+            child: ListView.builder(
+              //physics: NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(4.0),
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, index) {
+                return Row(children: list);
+              },
+              itemCount: 1,
+            )),
+      );
+    }
+
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: rows));
   }
 
-  /*
-  Widget get optionTypeFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
+  Widget get optionSymbolFilterWidget {
+    var widgets =
+        optionSymbolFilterWidgets(chainSymbols, optionAggregatePositions)
+            .toList();
+    /*
+    if (widgets.length < 20) {
+      return Padding(
           padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Long Positions'),
-                    selected: positionFilters.contains("long"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          positionFilters.add("long");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "long";
-                          });
-                        }
-                      });
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Short Positions'),
-                    selected: positionFilters.contains("short"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          positionFilters.add("short");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "short";
-                          });
-                        }
-                      });
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Call Options'),
-                    selected: optionFilters.contains("call"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          optionFilters.add("call");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "call";
-                          });
-                        }
-                      });
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Put Options'),
-                    selected: optionFilters.contains("put"),
-                    onSelected: (bool value) {
-                      setState(() {
-                        if (value) {
-                          optionFilters.add("put");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "put";
-                          });
-                        }
-                      });
-                    },
-                  ),
-                )
-              ],
-            );
-          },
-          itemCount: 1,
-        ));
+          child: Wrap(
+            children: widgets,
+          ));
+    }
+    */
+    return symbolWidgets(widgets);
   }
-  */
 
-  Widget get positionFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.new_releases_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Open'),
-                  selected: hasQuantityFilters[0],
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        hasQuantityFilters[0] = true;
-                      } else {
-                        hasQuantityFilters[0] = false;
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: Container(),
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Closed'),
-                  selected: hasQuantityFilters[1],
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        hasQuantityFilters[1] = true;
-                      } else {
-                        hasQuantityFilters[1] = false;
-                      }
-                      optionAggregatePositionStream = null;
-                    });
-                  },
-                ),
-              ),
-            ]);
+  Iterable<Widget> optionSymbolFilterWidgets(
+      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
+    for (final String chainSymbol in chainSymbols) {
+      yield Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: FilterChip(
+          // avatar: CircleAvatar(child: Text(contractCount.toString())),
+          label: Text(chainSymbol),
+          selected: chainSymbolFilters.contains(chainSymbol),
+          onSelected: (bool value) {
+            setState(() {
+              if (value) {
+                chainSymbolFilters.add(chainSymbol);
+              } else {
+                chainSymbolFilters.removeWhere((String name) {
+                  return name == chainSymbol;
+                });
+              }
+            });
           },
-          itemCount: 1,
-        ));
+        ),
+      );
+    }
   }
 
   Widget get openClosedFilterWidget {
@@ -1769,6 +1945,7 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               ),
+              /*
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(
@@ -1851,6 +2028,155 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
               )
+              */
+            ]);
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get optionTypeFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Long'), // Positions
+                    selected: positionFilters.contains("long"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters.add("long");
+                        } else {
+                          positionFilters.removeWhere((String name) {
+                            return name == "long";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Short'), // Positions
+                    selected: positionFilters.contains("short"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters.add("short");
+                        } else {
+                          positionFilters.removeWhere((String name) {
+                            return name == "short";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Call'), // Options
+                    selected: optionFilters.contains("call"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters.add("call");
+                        } else {
+                          optionFilters.removeWhere((String name) {
+                            return name == "call";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Put'), // Options
+                    selected: optionFilters.contains("put"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters.add("put");
+                        } else {
+                          optionFilters.removeWhere((String name) {
+                            return name == "put";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                )
+              ],
+            );
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get optionPositionTypeFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.new_releases_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Open'),
+                  selected: hasQuantityFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[0] = true;
+                      } else {
+                        hasQuantityFilters[0] = false;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: Container(),
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Closed'),
+                  selected: hasQuantityFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[1] = true;
+                      } else {
+                        hasQuantityFilters[1] = false;
+                      }
+                      optionAggregatePositionStream = null;
+                    });
+                  },
+                ),
+              ),
             ]);
           },
           itemCount: 1,
@@ -1932,22 +2258,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget get orderSymbolFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-                children: orderSymbolFilterWidgets(
-                        orderSymbols, optionAggregatePositions)
-                    .toList());
-          },
-          itemCount: 1,
-        ));
+    var widgets =
+        orderSymbolFilterWidgets(orderSymbols, optionAggregatePositions)
+            .toList();
+    return symbolWidgets(widgets);
   }
 
-  Widget get dateFilterWidget {
+  Widget get orderDateFilterWidget {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -1961,11 +2278,11 @@ class _HomePageState extends State<HomePage> {
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('Today'),
-                  selected: dateFilterSelected == 0,
+                  selected: orderDateFilterSelected == 0,
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        dateFilterSelected = 0;
+                        orderDateFilterSelected = 0;
                       } else {
                         //dateFilterSelected = null;
                       }
@@ -1978,12 +2295,12 @@ class _HomePageState extends State<HomePage> {
                 child: ChoiceChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('This Week'),
-                  selected: dateFilterSelected == 1,
+                  label: const Text('Past Week'),
+                  selected: orderDateFilterSelected == 1,
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        dateFilterSelected = 1;
+                        orderDateFilterSelected = 1;
                       } else {
                         //dateFilterSelected = null;
                       }
@@ -1996,12 +2313,12 @@ class _HomePageState extends State<HomePage> {
                 child: ChoiceChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('This Month'),
-                  selected: dateFilterSelected == 2,
+                  label: const Text('Past Month'),
+                  selected: orderDateFilterSelected == 2,
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        dateFilterSelected = 2;
+                        orderDateFilterSelected = 2;
                       } else {}
                     });
                   },
@@ -2012,12 +2329,28 @@ class _HomePageState extends State<HomePage> {
                 child: ChoiceChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('This Year'),
-                  selected: dateFilterSelected == 3,
+                  label: const Text('Past Year'),
+                  selected: orderDateFilterSelected == 3,
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        dateFilterSelected = 3;
+                        orderDateFilterSelected = 3;
+                      } else {}
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('All Time'),
+                  selected: orderDateFilterSelected == 4,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderDateFilterSelected = 4;
                       } else {}
                     });
                   },
@@ -2027,31 +2360,6 @@ class _HomePageState extends State<HomePage> {
           },
           itemCount: 1,
         ));
-  }
-
-  Iterable<Widget> filterWidgets(
-      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
-    for (final String chainSymbol in chainSymbols) {
-      yield Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
-          label: Text(chainSymbol),
-          selected: chainSymbolFilters.contains(chainSymbol),
-          onSelected: (bool value) {
-            setState(() {
-              if (value) {
-                chainSymbolFilters.add(chainSymbol);
-              } else {
-                chainSymbolFilters.removeWhere((String name) {
-                  return name == chainSymbol;
-                });
-              }
-            });
-          },
-        ),
-      );
-    }
   }
 
   Iterable<Widget> orderSymbolFilterWidgets(
@@ -2574,8 +2882,8 @@ class _HomePageState extends State<HomePage> {
     ]));
   }
 
-  Widget _buildOptionPositionRow(List<OptionAggregatePosition> optionsPositions,
-      int index, RobinhoodUser ru) {
+  Widget _buildOptionPositionRow(OptionAggregatePosition op, RobinhoodUser ru) {
+    /*
     if (optionsPositions[index].optionInstrument == null ||
         (chainSymbolFilters.isNotEmpty &&
             !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
@@ -2587,6 +2895,7 @@ class _HomePageState extends State<HomePage> {
                 .contains(optionsPositions[index].optionInstrument!.type))) {
       return Container();
     }
+    */
 
     return Card(
         child: Column(
@@ -2604,26 +2913,24 @@ class _HomePageState extends State<HomePage> {
                   ? const Text('Call')
                   : const Text('Put')),
                       */
-              child: Text('${optionsPositions[index].quantity!.round()}',
+              child: Text('${op.quantity!.round()}',
                   style: const TextStyle(fontSize: 18))),
           title: Text(
-              '${optionsPositions[index].symbol} \$${formatCompactNumber.format(optionsPositions[index].optionInstrument!.strikePrice)} ${optionsPositions[index].strategy.split('_').first} ${optionsPositions[index].optionInstrument!.type}'), // , style: TextStyle(fontSize: 18.0)),
+              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(
-              'Expires ${dateFormat.format(optionsPositions[index].optionInstrument!.expirationDate!)}'),
+              'Expires ${dateFormat.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
             Icon(
-                optionsPositions[index].gainLossPerContract > 0
+                op.gainLossPerContract > 0
                     ? Icons.trending_up
-                    : (optionsPositions[index].gainLossPerContract < 0
+                    : (op.gainLossPerContract < 0
                         ? Icons.trending_down
                         : Icons.trending_flat),
-                color: (optionsPositions[index].gainLossPerContract > 0
+                color: (op.gainLossPerContract > 0
                     ? Colors.green
-                    : (optionsPositions[index].gainLossPerContract < 0
-                        ? Colors.red
-                        : Colors.grey))),
+                    : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
             Text(
-              "${formatCurrency.format(optionsPositions[index].marketValue)}",
+              "${formatCurrency.format(op.marketValue)}",
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             )
@@ -2665,16 +2972,29 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) =>
-                        OptionPositionWidget(ru, optionsPositions[index])));
+                    builder: (context) => OptionPositionWidget(ru, op)));
           },
         ),
       ],
     ));
   }
 
+  Widget _buildWatchlistRow(Watchlist watchlist, RobinhoodUser ru) {
+    return Card(
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        title: Text(watchlist.displayName),
+        //subtitle: Text("${positions[index].quantity} shares"),
+        // isThreeLine: true,
+      )
+    ]));
+  }
+
   Widget _buildWatchlistGridItem(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+    if (watchLists[index].instrumentObj == null) {
+      return Card(child: Text("${watchLists[index].instrument}"));
+    }
     var instrumentObj = watchLists[index].instrumentObj!;
     var quoteObj = instrumentObj.quoteObj!;
     return Card(
@@ -2725,41 +3045,6 @@ class _HomePageState extends State<HomePage> {
               },
             )));
   }
-
-  /*
-  Widget _buildWatchlistRow(
-      List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
-    return Card(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-//      leading: CircleAvatar(
-//          //backgroundImage: AssetImage(user.profilePicture),
-//          child: watchLists[index].type == 'call'
-//              ? new Icon(Icons.trending_up)
-//              : new Icon(Icons.trending_down)
-//          // child: new Text(optionsPositions[i].symbol)
-//          ),
-        // trailing: user.icon,
-        title: Text(watchLists[index]
-            .instrumentObj!
-            .symbol), // , style: TextStyle(fontSize: 18.0)
-        subtitle: Text(
-            '${watchLists[index].instrumentObj!.name} ${watchLists[index].instrumentObj!.country}'),
-        trailing: Text(
-          dateFormat.format(watchLists[index].instrumentObj!.listDate!),
-          //style: TextStyle(fontSize: 18.0),
-        ),
-        onTap: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(ru,
-                      watchLists[index].instrumentObj as Instrument, null)));
-        },
-      )
-    ]));
-  }
-  */
 
   _buildLogin() {
     return Column(
