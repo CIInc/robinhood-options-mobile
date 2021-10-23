@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -16,6 +17,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
+import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
@@ -23,9 +25,9 @@ import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_order_filter_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
+import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 
 import 'option_position_widget.dart';
 
@@ -36,6 +38,7 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
 enum SortType { alphabetical, change }
+enum SortDirection { asc, desc }
 
 /*
 class DrawerItem {
@@ -80,12 +83,15 @@ class _HomePageState extends State<HomePage> {
   Future<List<Portfolio>>? futurePortfolios;
   //Future<dynamic>? futurePortfolioHistoricals;
   Stream<List<Position>>? positionStream;
-  Stream<List<OptionOrder>>? optionOrderStream;
+  Stream<List<PositionOrder>>? positionOrderStream;
+
   Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
+  Stream<List<OptionOrder>>? optionOrderStream;
 
   List<OptionAggregatePosition> optionAggregatePositions = [];
 
-  List<String> orderSymbols = [];
+  List<String> optionOrderSymbols = [];
+  List<String> positionOrderSymbols = [];
   List<String> chainSymbols = [];
 
   final List<String> optionFilters = <String>[];
@@ -96,12 +102,12 @@ class _HomePageState extends State<HomePage> {
 
   final List<String> orderFilters = <String>["placed", "filled"];
   final List<String> orderSymbolFilters = <String>[];
-  int orderDateFilterSelected = 0;
+  int orderDateFilterSelected = 1;
 
   Stream<List<Watchlist>>? watchlistStream;
 
-  Stream<List<WatchlistItem>>? watchlistItemStream;
   SortType? _sortType = SortType.alphabetical;
+  SortDirection? _sortDirection = SortDirection.desc;
 
   Future<User>? futureUser;
 
@@ -247,94 +253,93 @@ class _HomePageState extends State<HomePage> {
                                             List<Watchlist> watchLists =
                                                 watchlistsSnapshot.data!
                                                     as List<Watchlist>;
+                                            for (var watchList in watchLists) {
+                                              if (_sortType ==
+                                                  SortType.alphabetical) {
+                                                watchList.items.sort((a, b) =>
+                                                    (a.instrumentObj!.symbol
+                                                        .compareTo(b
+                                                            .instrumentObj!
+                                                            .symbol)));
+                                              } else if (_sortType ==
+                                                  SortType.change) {
+                                                watchList.items.sort((a, b) => (b
+                                                    .instrumentObj!
+                                                    .quoteObj!
+                                                    .changePercentToday
+                                                    .compareTo(a
+                                                        .instrumentObj!
+                                                        .quoteObj!
+                                                        .changePercentToday)));
+                                              }
+                                            }
 
-                                            watchlistItemStream ??=
+                                            optionOrderStream ??=
                                                 RobinhoodService
-                                                    .streamWatchlists(
+                                                    .streamOptionOrders(
                                                         robinhoodUser!);
-
                                             return StreamBuilder(
-                                                stream: watchlistItemStream,
+                                                stream: optionOrderStream,
                                                 builder: (context5,
-                                                    watchlistItemSnapshot) {
-                                                  if (watchlistItemSnapshot
+                                                    optionOrdersSnapshot) {
+                                                  if (optionOrdersSnapshot
                                                       .hasData) {
-                                                    List<WatchlistItem>
-                                                        watchListItems =
-                                                        watchlistItemSnapshot
-                                                                .data!
+                                                    var optionOrders =
+                                                        optionOrdersSnapshot
+                                                                .data
                                                             as List<
-                                                                WatchlistItem>;
-                                                    if (_sortType ==
-                                                        SortType.alphabetical) {
-                                                      watchListItems.sort(
-                                                          (a, b) => (a
-                                                              .instrumentObj!
-                                                              .symbol
-                                                              .compareTo(b
-                                                                  .instrumentObj!
-                                                                  .symbol)));
-                                                    } else if (_sortType ==
-                                                        SortType.change) {
-                                                      watchListItems.sort((a, b) => (a
-                                                          .instrumentObj!
-                                                          .quoteObj!
-                                                          .changePercentToday
-                                                          .compareTo(b
-                                                              .instrumentObj!
-                                                              .quoteObj!
-                                                              .changePercentToday)));
-                                                    }
+                                                                OptionOrder>;
 
-                                                    optionOrderStream ??=
+                                                    positionOrderStream ??=
                                                         RobinhoodService
-                                                            .streamOptionOrders(
+                                                            .streamPositionOrders(
                                                                 robinhoodUser!);
+
                                                     return StreamBuilder(
                                                         stream:
-                                                            optionOrderStream,
-                                                        builder: (context5,
-                                                            optionOrdersSnapshot) {
-                                                          if (optionOrdersSnapshot
+                                                            positionOrderStream,
+                                                        builder: (context6,
+                                                            positionOrdersSnapshot) {
+                                                          if (positionOrdersSnapshot
                                                               .hasData) {
-                                                            var optionOrders =
-                                                                optionOrdersSnapshot
+                                                            var positionOrders =
+                                                                positionOrdersSnapshot
                                                                         .data
                                                                     as List<
-                                                                        OptionOrder>;
-
-                                                            List<Widget> slivers = _buildSlivers(
-                                                                portfolios:
-                                                                    portfolios,
-                                                                user: user,
-                                                                ru:
-                                                                    robinhoodUser,
-                                                                accounts:
-                                                                    accounts,
-                                                                nummusHoldings:
-                                                                    nummusHoldings,
-                                                                optionAggregatePositions:
-                                                                    optionAggregatePositions,
-                                                                optionOrders:
-                                                                    optionOrders,
-                                                                positions:
-                                                                    positions,
-                                                                watchlists:
-                                                                    watchLists,
-                                                                watchListItems:
-                                                                    watchListItems,
-                                                                done: positionSnapshot
-                                                                            .connectionState ==
-                                                                        ConnectionState
-                                                                            .done &&
-                                                                    optionAggregatePositionSnapshot
-                                                                            .connectionState ==
-                                                                        ConnectionState
-                                                                            .done /* &&
+                                                                        PositionOrder>;
+                                                            List<Widget>
+                                                                slivers =
+                                                                _buildSlivers(
+                                                                    portfolios:
+                                                                        portfolios,
+                                                                    user: user,
+                                                                    ru:
+                                                                        robinhoodUser,
+                                                                    accounts:
+                                                                        accounts,
+                                                                    nummusHoldings:
+                                                                        nummusHoldings,
+                                                                    optionAggregatePositions:
+                                                                        optionAggregatePositions,
+                                                                    optionOrders:
+                                                                        optionOrders,
+                                                                    positions:
+                                                                        positions,
+                                                                    positionOrders:
+                                                                        positionOrders,
+                                                                    watchlists:
+                                                                        watchLists,
+                                                                    //watchListItems:
+                                                                    //    watchListItems,
+                                                                    done: positionSnapshot.connectionState ==
+                                                                            ConnectionState
+                                                                                .done &&
+                                                                        optionAggregatePositionSnapshot.connectionState ==
+                                                                            ConnectionState.done /* &&
                                                             watchlistSnapshot
                                                                     .connectionState ==
                                                                 ConnectionState.done*/
-                                                                );
+                                                                    );
                                                             return RefreshIndicator(
                                                               child: CustomScrollView(
                                                                   slivers:
@@ -342,37 +347,57 @@ class _HomePageState extends State<HomePage> {
                                                               onRefresh:
                                                                   _pullRefresh,
                                                             );
+                                                          } else if (positionOrdersSnapshot
+                                                              .hasError) {
+                                                            print(
+                                                                "${positionOrdersSnapshot.error}");
+                                                            List<Widget>
+                                                                slivers =
+                                                                _buildSlivers(
+                                                                    //ru: snapshotUser,
+                                                                    welcomeWidget:
+                                                                        Text(
+                                                                            "${positionOrdersSnapshot.error}"));
+                                                            return RefreshIndicator(
+                                                              child: CustomScrollView(
+                                                                  slivers:
+                                                                      slivers), // controller: _controller,
+                                                              onRefresh:
+                                                                  _pullRefresh,
+                                                            );
                                                           } else {
-                                                            List<Widget> slivers = _buildSlivers(
-                                                                portfolios:
-                                                                    portfolios,
-                                                                user: user,
-                                                                ru:
-                                                                    robinhoodUser,
-                                                                accounts:
-                                                                    accounts,
-                                                                nummusHoldings:
-                                                                    nummusHoldings,
-                                                                optionAggregatePositions:
-                                                                    optionAggregatePositions,
-                                                                positions:
-                                                                    positions,
-                                                                watchlists:
-                                                                    watchLists,
-                                                                watchListItems:
-                                                                    watchListItems,
-                                                                done: positionSnapshot
-                                                                            .connectionState ==
-                                                                        ConnectionState
-                                                                            .done &&
-                                                                    optionAggregatePositionSnapshot
-                                                                            .connectionState ==
-                                                                        ConnectionState
-                                                                            .done /* &&
+                                                            // No Position Orders Found.
+                                                            List<Widget>
+                                                                slivers =
+                                                                _buildSlivers(
+                                                                    portfolios:
+                                                                        portfolios,
+                                                                    user: user,
+                                                                    ru:
+                                                                        robinhoodUser,
+                                                                    accounts:
+                                                                        accounts,
+                                                                    nummusHoldings:
+                                                                        nummusHoldings,
+                                                                    optionAggregatePositions:
+                                                                        optionAggregatePositions,
+                                                                    optionOrders:
+                                                                        optionOrders,
+                                                                    positions:
+                                                                        positions,
+                                                                    watchlists:
+                                                                        watchLists,
+                                                                    //watchListItems:
+                                                                    //    watchListItems,
+                                                                    done: positionSnapshot.connectionState ==
+                                                                            ConnectionState
+                                                                                .done &&
+                                                                        optionAggregatePositionSnapshot.connectionState ==
+                                                                            ConnectionState.done /* &&
                                                             watchlistSnapshot
                                                                     .connectionState ==
                                                                 ConnectionState.done*/
-                                                                );
+                                                                    );
                                                             return RefreshIndicator(
                                                               child: CustomScrollView(
                                                                   slivers:
@@ -383,18 +408,36 @@ class _HomePageState extends State<HomePage> {
                                                           }
                                                         });
                                                   } else {
+                                                    // No Options Orders found.
                                                     List<Widget> slivers =
                                                         _buildSlivers(
-                                                      portfolios: portfolios,
-                                                      user: user,
-                                                      ru: robinhoodUser,
-                                                      accounts: accounts,
-                                                      nummusHoldings:
-                                                          nummusHoldings,
-                                                      optionAggregatePositions:
-                                                          optionAggregatePositions,
-                                                      positions: positions,
-                                                    );
+                                                            portfolios:
+                                                                portfolios,
+                                                            user: user,
+                                                            ru: robinhoodUser,
+                                                            accounts: accounts,
+                                                            nummusHoldings:
+                                                                nummusHoldings,
+                                                            optionAggregatePositions:
+                                                                optionAggregatePositions,
+                                                            positions:
+                                                                positions,
+                                                            watchlists:
+                                                                watchLists,
+                                                            //watchListItems:
+                                                            //    watchListItems,
+                                                            done: positionSnapshot
+                                                                        .connectionState ==
+                                                                    ConnectionState
+                                                                        .done &&
+                                                                optionAggregatePositionSnapshot
+                                                                        .connectionState ==
+                                                                    ConnectionState
+                                                                        .done /* &&
+                                                            watchlistSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState.done*/
+                                                            );
                                                     return RefreshIndicator(
                                                       child: CustomScrollView(
                                                           slivers:
@@ -409,9 +452,18 @@ class _HomePageState extends State<HomePage> {
                                                 "${watchlistsSnapshot.error}");
                                             List<Widget> slivers =
                                                 _buildSlivers(
-                                                    //ru: snapshotUser,
-                                                    welcomeWidget: Text(
-                                                        "${watchlistsSnapshot.error}"));
+                                              welcomeWidget: Text(
+                                                  "${watchlistsSnapshot.error}"),
+                                              portfolios: portfolios,
+                                              user: user,
+                                              ru: robinhoodUser,
+                                              accounts: accounts,
+                                              nummusHoldings: nummusHoldings,
+                                              optionAggregatePositions:
+                                                  optionAggregatePositions,
+                                              positions: positions,
+                                            );
+
                                             return RefreshIndicator(
                                               child: CustomScrollView(
                                                   slivers:
@@ -419,6 +471,7 @@ class _HomePageState extends State<HomePage> {
                                               onRefresh: _pullRefresh,
                                             );
                                           } else {
+                                            // No Watchlists found.
                                             List<Widget> slivers =
                                                 _buildSlivers(
                                               portfolios: portfolios,
@@ -439,6 +492,7 @@ class _HomePageState extends State<HomePage> {
                                           }
                                         });
                                   } else {
+                                    // No Options found.
                                     List<Widget> slivers = _buildSlivers(
                                       portfolios: portfolios,
                                       user: user,
@@ -456,6 +510,7 @@ class _HomePageState extends State<HomePage> {
                                   }
                                 });
                           } else {
+                            // No Positions found.
                             List<Widget> slivers = _buildSlivers(
                                 portfolios: portfolios,
                                 user: user,
@@ -497,6 +552,7 @@ class _HomePageState extends State<HomePage> {
                 },
               );
             } else {
+              // No
               List<Widget> slivers = _buildSlivers(
                   ru: robinhoodUser, welcomeWidget: _buildLogin());
               return RefreshIndicator(
@@ -533,8 +589,9 @@ class _HomePageState extends State<HomePage> {
       List<OptionAggregatePosition>? optionAggregatePositions,
       List<OptionOrder>? optionOrders,
       List<Position>? positions,
+      List<PositionOrder>? positionOrders,
       List<Watchlist>? watchlists,
-      List<WatchlistItem>? watchListItems,
+      //List<WatchlistItem>? watchListItems,
       bool done = false}) {
     var slivers = <Widget>[];
     double changeToday = 0;
@@ -634,59 +691,61 @@ class _HomePageState extends State<HomePage> {
             */
 
         slivers.add(SliverStickyHeader(
-          header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ListTile(
-                title: Text(
-                  "Option Positions",
-                  style: const TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
-                ),
-                subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionAggregatePositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
-                trailing: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        //constraints: BoxConstraints(maxHeight: 260),
-                        builder: (BuildContext context) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                tileColor: Colors.blue,
-                                title: Text(
-                                  "Filter Option Positions",
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 19.0),
-                                ),
-                                /*
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: Text(
+                      "Options",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionAggregatePositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          showModalBottomSheet<void>(
+                            context: context,
+                            //constraints: BoxConstraints(maxHeight: 260),
+                            builder: (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    tileColor: Colors.blue,
+                                    title: Text(
+                                      "Filter Option Positions",
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                              ),
-                              ListTile(
-                                title: Text("Position & Option Type"),
-                              ),
-                              openClosedFilterWidget,
-                              optionTypeFilterWidget,
-                              ListTile(
-                                title: Text("Symbols"),
-                              ),
-                              optionSymbolFilterWidget
-                            ],
+                                  ),
+                                  ListTile(
+                                    title: Text("Position & Option Type"),
+                                  ),
+                                  openClosedFilterWidget,
+                                  optionTypeFilterWidget,
+                                  ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  optionSymbolFilterWidget
+                                ],
+                              );
+                            },
                           );
-                        },
-                      );
-                    }),
-              )),
+                        }),
+                  ))),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
             delegate:
@@ -748,8 +807,9 @@ class _HomePageState extends State<HomePage> {
           case 4:
             break;
         }
-        orderSymbols = optionOrders.map((e) => e.chainSymbol).toSet().toList();
-        orderSymbols.sort((a, b) => (a.compareTo(b)));
+        optionOrderSymbols =
+            optionOrders.map((e) => e.chainSymbol).toSet().toList();
+        optionOrderSymbols.sort((a, b) => (a.compareTo(b)));
 
         var filteredOptionOrders = optionOrders
             .where((element) =>
@@ -764,61 +824,69 @@ class _HomePageState extends State<HomePage> {
                     orderSymbolFilters.contains(element.chainSymbol)))
             .toList();
         slivers.add(SliverStickyHeader(
-          header: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ListTile(
-                title: Text(
-                  "Option Orders",
-                  style: const TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
-                ),
-                subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionOrders.length)} of ${formatCompactNumber.format(optionOrders.length)} orders"),
-                trailing: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      var future = showModalBottomSheet<void>(
-                        context: context,
-                        // constraints: BoxConstraints(maxHeight: 260),
-                        builder:
-                            /*
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: Text(
+                      "Option Orders",
+                      style: const TextStyle(
+                          //color: Colors.white,
+                          fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(filteredOptionOrders.length)} of ${formatCompactNumber.format(optionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          var future = showModalBottomSheet<void>(
+                            context: context,
+                            // constraints: BoxConstraints(maxHeight: 260),
+                            builder:
+                                /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
                               optionAggregatePositions:
                                   optionAggregatePositions)
                                   */
-                            (BuildContext context) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                tileColor: Colors.blue,
-                                title: Text(
-                                  "Filter Option Orders",
-                                  style: const TextStyle(
-                                      color: Colors.white, fontSize: 19.0),
-                                ),
-                                /*
+                                (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ListTile(
+                                    tileColor: Colors.blue,
+                                    title: Text(
+                                      "Filter Option Orders",
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                              ),
-                              orderFilterWidget,
-                              orderDateFilterWidget,
-                              orderSymbolFilterWidget,
-                            ],
+                                  ),
+                                  ListTile(
+                                    title: Text("Order State & Date"),
+                                  ),
+                                  orderFilterWidget,
+                                  orderDateFilterWidget,
+                                  ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  optionOrderSymbolFilterWidget,
+                                ],
+                              );
+                            },
                           );
-                        },
-                      );
-                      //future.then((void value) => {});
-                    }),
-              )),
+                          //future.then((void value) => {});
+                        }),
+                  ))),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
@@ -878,51 +946,57 @@ class _HomePageState extends State<HomePage> {
             .toList();
 
         slivers.add(SliverStickyHeader(
-            header: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: Text(
-                    "Stock Positions",
-                    style: const TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                  subtitle: Text(
-                      "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions - value: ${formatCurrency.format(positionEquity)}"),
-                  trailing: IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          constraints: BoxConstraints(maxHeight: 260),
-                          builder: (BuildContext context) {
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ListTile(
-                                  tileColor: Colors.blue,
-                                  title: Text(
-                                    "Filter Stock Positions",
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 19.0),
-                                  ),
-                                  /*
+            header: Material(
+                elevation: 2,
+                child: Container(
+                    //height: 208.0, //60.0,
+                    //color: Colors.blue,
+                    color: Colors.white,
+                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      title: Text(
+                        "Stocks",
+                        style: const TextStyle(
+                            //color: Colors.white,
+                            fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions - value: ${formatCurrency.format(positionEquity)}"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              //constraints: BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      tileColor: Colors.blue,
+                                      title: Text(
+                                        "Filter Stock Positions",
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 19.0),
+                                      ),
+                                      /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                ),
-                                optionPositionTypeFilterWidget,
-                              ],
+                                    ),
+                                    ListTile(
+                                      title: Text("Position Type"),
+                                    ),
+                                    positionTypeFilterWidget,
+                                  ],
+                                );
+                              },
                             );
-                          },
-                        );
-                      }),
-                )),
+                          }),
+                    ))),
 /*
             header: Container(
                 //height: 208.0, //60.0,
@@ -986,96 +1060,45 @@ class _HomePageState extends State<HomePage> {
           height: 25.0,
         )));
       }
-      if (watchlists != null) {
-        /*
+      if (positionOrders != null) {
+        int days = 0;
+        switch (orderDateFilterSelected) {
+          case 0:
+            days = 1;
+            break;
+          case 1:
+            days = 7;
+            break;
+          case 2:
+            days = 30;
+            break;
+          case 3:
+            days = 365;
+            break;
+          case 4:
+            break;
+        }
+        positionOrderSymbols =
+            []; // TODO, map symbol, only instrumentId is available on PositionOrder
+        //positionOrders.map((e) => e.instrumentId).toSet().toList();
+        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
+
+        var filteredPositionOrders = positionOrders
+            .where((element) =>
+                (orderFilters.isEmpty ||
+                    orderFilters.contains(element.state)) &&
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                (orderSymbolFilters.isEmpty ||
+                    orderSymbolFilters.contains(element.instrumentId)))
+            .toList();
         slivers.add(SliverStickyHeader(
-            header: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: Text(
-                    "Lists",
-                    style: const TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                  subtitle: Text(
-                      "${formatCompactNumber.format(watchlists.length)} items"),
-                  trailing: IconButton(
-                      icon: const Icon(Icons.sort),
-                      onPressed: () {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          constraints: BoxConstraints(maxHeight: 260),
-                          builder: (BuildContext context) {
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ListTile(
-                                  tileColor: Colors.blue,
-                                  title: Text(
-                                    "Sort Watch List",
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 19.0),
-                                  ),
-                                  /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                ),
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    RadioListTile<SortType>(
-                                      title: const Text('Alphabetical'),
-                                      value: SortType.alphabetical,
-                                      groupValue: _sortType,
-                                      onChanged: (SortType? value) {
-                                        Navigator.pop(context);
-                                        setState(() {
-                                          _sortType = value;
-                                        });
-                                      },
-                                    ),
-                                    RadioListTile<SortType>(
-                                      title: const Text('Change'),
-                                      value: SortType.change,
-                                      groupValue: _sortType,
-                                      onChanged: (SortType? value) {
-                                        Navigator.pop(context);
-                                        setState(() {
-                                          _sortType = value;
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                )
-                              ],
-                            );
-                          },
-                        );
-                      }),
-                )),
-            sliver: //watchListWidget(watchLists)));
-                SliverList(
-              // delegate: SliverChildListDelegate(widgets),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  return _buildWatchlistRow(watchlists[index], robinhoodUser!);
-                },
-                // Or, uncomment the following line:
-                childCount: watchlists.length,
-              ),
-            )));
-            */
-        for (var watchlist in watchlists) {
-          slivers.add(SliverStickyHeader(
-              header: Container(
+          header: Material(
+              elevation: 2,
+              child: Container(
                   //height: 208.0, //60.0,
                   //color: Colors.blue,
                   color: Colors.white,
@@ -1083,20 +1106,27 @@ class _HomePageState extends State<HomePage> {
                   alignment: Alignment.centerLeft,
                   child: ListTile(
                     title: Text(
-                      "${watchlist.displayName}",
+                      "Stock Orders",
                       style: const TextStyle(
                           //color: Colors.white,
                           fontSize: 19.0),
                     ),
                     subtitle: Text(
-                        "${formatCompactNumber.format(watchlist.items!.length)} items"),
+                        "${formatCompactNumber.format(filteredPositionOrders.length)} of ${formatCompactNumber.format(positionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
                     trailing: IconButton(
-                        icon: const Icon(Icons.sort),
+                        icon: const Icon(Icons.filter_list),
                         onPressed: () {
-                          showModalBottomSheet<void>(
+                          var future = showModalBottomSheet<void>(
                             context: context,
-                            constraints: BoxConstraints(maxHeight: 260),
-                            builder: (BuildContext context) {
+                            // constraints: BoxConstraints(maxHeight: 260),
+                            builder:
+                                /*
+                          (_) => OptionOrderFilterBottomSheet(
+                              orderSymbols: orderSymbols,
+                              optionAggregatePositions:
+                                  optionAggregatePositions)
+                                  */
+                                (BuildContext context) {
                               return Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1104,7 +1134,7 @@ class _HomePageState extends State<HomePage> {
                                   ListTile(
                                     tileColor: Colors.blue,
                                     title: Text(
-                                      "Sort Watch List",
+                                      "Filter Position Orders",
                                       style: const TextStyle(
                                           color: Colors.white, fontSize: 19.0),
                                     ),
@@ -1113,42 +1143,265 @@ class _HomePageState extends State<HomePage> {
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
                                   ),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      RadioListTile<SortType>(
-                                        title: const Text('Alphabetical'),
-                                        value: SortType.alphabetical,
-                                        groupValue: _sortType,
-                                        onChanged: (SortType? value) {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            _sortType = value;
-                                          });
-                                        },
-                                      ),
-                                      RadioListTile<SortType>(
-                                        title: const Text('Change'),
-                                        value: SortType.change,
-                                        groupValue: _sortType,
-                                        onChanged: (SortType? value) {
-                                          Navigator.pop(context);
-                                          setState(() {
-                                            _sortType = value;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  )
+                                  ListTile(
+                                    title: Text("Order State & Date"),
+                                  ),
+                                  orderFilterWidget,
+                                  orderDateFilterWidget,
+                                  ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  positionOrderSymbolFilterWidget,
                                 ],
                               );
                             },
                           );
+                          //future.then((void value) => {});
                         }),
-                  )),
-              sliver: watchListWidget(watchlist.items!)));
+                  ))),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundImage: AssetImage(user.profilePicture),
+                          child: Text(
+                              '${filteredPositionOrders[index].quantity!.round()}',
+                              style: const TextStyle(fontSize: 18))),
+                      title: Text(
+                          "${filteredPositionOrders[index].instrumentId} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
+                      subtitle: Text(
+                          "${filteredPositionOrders[index].state} ${dateFormat.format(filteredPositionOrders[index].updatedAt!)}"),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          "${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice! * filteredPositionOrders[index].quantity!) : ""}",
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]),
+
+                      //isThreeLine: true,
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => PositionOrderWidget(
+                                    ru, filteredPositionOrders[index])));
+                      },
+                    ),
+                  ],
+                ));
+              },
+              childCount: filteredPositionOrders.length,
+            ),
+          ),
+        ));
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+          // color: Colors.white,
+          height: 25.0,
+        )));
+      }
+      if (watchlists != null) {
+        slivers.add(SliverStickyHeader(
+            header: Material(
+                elevation: 2,
+                child: Container(
+                    //height: 208.0, //60.0,
+                    //color: Colors.blue,
+                    color: Colors.white,
+                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      title: Text(
+                        "Lists",
+                        style: const TextStyle(
+                            //color: Colors.white,
+                            fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(watchlists.length)} items"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.sort),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              //constraints: BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      tileColor: Colors.blue,
+                                      title: Text(
+                                        "Sort Watch List",
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 19.0),
+                                      ),
+                                      /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        RadioListTile<SortType>(
+                                          title: const Text(
+                                              'Alphabetical (Ascending)'),
+                                          value: SortType.alphabetical,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                              _sortDirection =
+                                                  SortDirection.asc;
+                                            });
+                                          },
+                                        ),
+                                        RadioListTile<SortType>(
+                                          title: const Text(
+                                              'Alphabetical (Descending)'),
+                                          value: SortType.alphabetical,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                              _sortDirection =
+                                                  SortDirection.desc;
+                                            });
+                                          },
+                                        ),
+                                        RadioListTile<SortType>(
+                                          title:
+                                              const Text('Change (Ascending)'),
+                                          value: SortType.change,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                              _sortDirection =
+                                                  SortDirection.asc;
+                                            });
+                                          },
+                                        ),
+                                        RadioListTile<SortType>(
+                                          title:
+                                              const Text('Change (Descending)'),
+                                          value: SortType.change,
+                                          groupValue: _sortType,
+                                          onChanged: (SortType? value) {
+                                            Navigator.pop(context);
+                                            setState(() {
+                                              _sortType = value;
+                                              _sortDirection =
+                                                  SortDirection.desc;
+                                            });
+                                          },
+                                        ),
+                                      ],
+                                    )
+                                  ],
+                                );
+                              },
+                            );
+                          }),
+                    ))),
+            sliver: SliverToBoxAdapter(child: Container())));
+
+        for (var watchlist in watchlists) {
+          slivers.add(SliverStickyHeader(
+              header: Material(
+                  elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //color: Colors.blue,
+                      color: Colors.white,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: Text(
+                          "${watchlist.displayName}",
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(watchlist.items.length)} items"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.sort),
+                            onPressed: () {
+                              showModalBottomSheet<void>(
+                                context: context,
+                                constraints: BoxConstraints(maxHeight: 260),
+                                builder: (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Colors.blue,
+                                        title: Text(
+                                          "Sort Watch List",
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 19.0),
+                                        ),
+                                        //trailing: TextButton(
+                                        //    child: const Text("APPLY"),
+                                        //    onPressed: () => Navigator.pop(context))
+                                      ),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          RadioListTile<SortType>(
+                                            title: const Text('Alphabetical'),
+                                            value: SortType.alphabetical,
+                                            groupValue: _sortType,
+                                            onChanged: (SortType? value) {
+                                              Navigator.pop(context);
+                                              setState(() {
+                                                _sortType = value;
+                                              });
+                                            },
+                                          ),
+                                          RadioListTile<SortType>(
+                                            title: const Text('Change'),
+                                            value: SortType.change,
+                                            groupValue: _sortType,
+                                            onChanged: (SortType? value) {
+                                              Navigator.pop(context);
+                                              setState(() {
+                                                _sortType = value;
+                                              });
+                                            },
+                                          ),
+                                        ],
+                                      )
+                                    ],
+                                  );
+                                },
+                              );
+                            }),
+                      ))),
+              sliver: watchListWidget(watchlist.items)));
         }
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -1156,27 +1409,9 @@ class _HomePageState extends State<HomePage> {
           height: 25.0,
         )));
       }
+      /*
       if (watchListItems != null) {
         slivers.add(SliverStickyHeader(
-            /*
-            header: Material(
-                elevation: 2.0,
-                child: Container(
-                  //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  color: Colors.white,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: Text(
-                      "Watch Lists",
-                      style: const TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    ),
-                  ),
-                )),
-                */
             header: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
@@ -1249,43 +1484,14 @@ class _HomePageState extends State<HomePage> {
                         );
                       }),
                 )),
-/*
-            header: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  children: [
-                    Container(
-                        //height: 40,
-                        padding: const EdgeInsets.all(12.0),
-                        child: Text(
-                          'Watch List',
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        )),
-                  ],
-                )),
-                */
             sliver: watchListWidget(watchListItems)));
-        /*
-      slivers.add(
-        SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Watch Lists"),
-        ),
-      );
-      slivers.add(watchListWidget(watchLists));
-      */
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
           // color: Colors.white,
           height: 25.0,
         )));
       }
+      */
       if (accounts != null) {
         slivers.add(SliverStickyHeader(
             header: Material(
@@ -1436,20 +1642,21 @@ class _HomePageState extends State<HomePage> {
         header: Material(
             elevation: 2.0,
             child: Container(
-              //height: 208.0, //60.0,
-              //color: Colors.blue,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ListTile(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child:
+                    null /*ListTile(
                 title: Text(
                   "Disclaimer",
                   style: const TextStyle(
                       //color: Colors.white,
                       fontSize: 19.0),
                 ),
-              ),
-            )),
+              ),*/
+                )),
         /*
         header: Container(
             //height: 208.0, //60.0,
@@ -2131,7 +2338,7 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
-  Widget get optionPositionTypeFilterWidget {
+  Widget get positionTypeFilterWidget {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -2257,10 +2464,13 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
-  Widget get orderSymbolFilterWidget {
-    var widgets =
-        orderSymbolFilterWidgets(orderSymbols, optionAggregatePositions)
-            .toList();
+  Widget get optionOrderSymbolFilterWidget {
+    var widgets = orderSymbolFilterWidgets(optionOrderSymbols).toList();
+    return symbolWidgets(widgets);
+  }
+
+  Widget get positionOrderSymbolFilterWidget {
+    var widgets = orderSymbolFilterWidgets(positionOrderSymbols).toList();
     return symbolWidgets(widgets);
   }
 
@@ -2362,8 +2572,7 @@ class _HomePageState extends State<HomePage> {
         ));
   }
 
-  Iterable<Widget> orderSymbolFilterWidgets(
-      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
+  Iterable<Widget> orderSymbolFilterWidgets(List<String> chainSymbols) sync* {
     for (final String chainSymbol in chainSymbols) {
       yield Padding(
         padding: const EdgeInsets.all(4.0),
@@ -2835,7 +3044,9 @@ class _HomePageState extends State<HomePage> {
         leading: CircleAvatar(
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 18))),
-        title: Text(positions[index].instrumentObj!.symbol),
+        title: Text(positions[index].instrumentObj != null
+            ? positions[index].instrumentObj!.symbol
+            : ""),
         subtitle: Text("${positions[index].quantity} shares"),
         //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
         /*
@@ -2992,11 +3203,10 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildWatchlistGridItem(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+    var instrumentObj = watchLists[index].instrumentObj!;
     if (watchLists[index].instrumentObj == null) {
       return Card(child: Text("${watchLists[index].instrument}"));
     }
-    var instrumentObj = watchLists[index].instrumentObj!;
-    var quoteObj = instrumentObj.quoteObj!;
     return Card(
         child: Padding(
             padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
@@ -3005,23 +3215,25 @@ class _HomePageState extends State<HomePage> {
                 Text(instrumentObj.symbol, style: TextStyle(fontSize: 16.0)),
                 Wrap(
                   children: [
-                    Icon(
-                        quoteObj.changeToday > 0
-                            ? Icons.trending_up
-                            : (quoteObj.changeToday < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (quoteObj.changeToday > 0
-                            ? Colors.green
-                            : (quoteObj.changeToday < 0
-                                ? Colors.red
-                                : Colors.grey)),
-                        size: 20),
+                    instrumentObj.quoteObj != null
+                        ? Icon(
+                            instrumentObj.quoteObj!.changeToday > 0
+                                ? Icons.trending_up
+                                : (instrumentObj.quoteObj!.changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (instrumentObj.quoteObj!.changeToday > 0
+                                ? Colors.green
+                                : (instrumentObj.quoteObj!.changeToday < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 20)
+                        : Container(),
                     Container(
                       width: 2,
                     ),
                     Text(
-                        '${formatPercentage.format(quoteObj.changePercentToday.abs())}',
+                        '${instrumentObj.quoteObj != null ? formatPercentage.format(instrumentObj.quoteObj!.changePercentToday.abs()) : ""}',
                         style: const TextStyle(fontSize: 16.0)),
                   ],
                 ),

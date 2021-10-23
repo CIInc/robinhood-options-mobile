@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
+import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -35,9 +38,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final RobinhoodUser user;
   final Instrument instrument;
   final Position? position;
+  Future<Fundamentals?>? futureFundamentals;
   final OptionAggregatePosition? optionPosition;
-  Future<Quote>? futureQuote;
-  late Quote quote;
+  Future<Quote?>? futureQuote;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
@@ -51,6 +54,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   String? typeFilter = "Call";
 
   final List<bool> isSelected = [true, false];
+
+  List<OptionOrder> optionOrders = [];
+  double optionOrdersPremiumBalance = 0;
+  List<PositionOrder> positionOrders = [];
+  double positionOrdersBalance = 0;
 
   //final dataKey = GlobalKey();
 
@@ -66,8 +74,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     } else {
       futureQuote = Future.value(instrument.quoteObj);
     }
+    if (instrument.fundamentalsObj == null) {
+      futureFundamentals = RobinhoodService.getFundamentals(user, instrument);
+    } else {
+      futureFundamentals = Future.value(instrument.fundamentalsObj);
+    }
+
     optionInstrumentStream = RobinhoodService.streamOptionInstruments(
         user, instrument, null, null); // 'call'
+
+    if (RobinhoodService.optionOrders != null) {
+      optionOrders = RobinhoodService.optionOrders!
+          .where((element) => element.chainSymbol == instrument.symbol)
+          .toList();
+      optionOrdersPremiumBalance = optionOrders.isNotEmpty
+          ? optionOrders
+              .map((e) =>
+                  (e.processedPremium != null ? e.processedPremium! : 0) *
+                  (e.direction == "credit" ? 1 : -1))
+              .reduce((a, b) => a + b) as double
+          : 0;
+    }
+
+    if (RobinhoodService.positionOrders != null) {
+      positionOrders = RobinhoodService.positionOrders!
+          .where((element) => element.instrumentId == instrument.id)
+          .toList();
+      positionOrdersBalance = positionOrders.isNotEmpty
+          ? positionOrders
+              .map((e) =>
+                  (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
+                  (e.side == "buy" ? 1 : -1))
+              .reduce((a, b) => a + b) as double
+          : 0;
+    }
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
   }
@@ -81,11 +121,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: FutureBuilder(
-      future: futureQuote,
-      builder: (context, AsyncSnapshot<Quote> snapshot) {
+      future:
+          Future.wait([futureQuote as Future, futureFundamentals as Future]),
+      builder: (context, snapshot) {
         if (snapshot.hasData) {
-          quote = snapshot.data!;
-          instrument.quoteObj = quote;
+          List<dynamic> data = snapshot.data as List<dynamic>;
+          instrument.quoteObj = data.isNotEmpty ? data[0] : null;
+          instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
               builder: (BuildContext context,
@@ -175,10 +217,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Return"),
+            title: Text("Return"),
+            trailing: Wrap(children: [
+              position!.trendingIcon,
+              Container(
+                width: 2,
+              ),
+              Text('${formatPercentage.format(position!.gainLoss.abs())}',
+                  style: const TextStyle(fontSize: 18)),
+            ])
+
+            /*
           trailing: Text(formatCurrency.format(position!.gainLoss),
               style: const TextStyle(fontSize: 18)),
-        ),
+              */
+            ),
         ListTile(
           title: Text("Return %"),
           trailing: Text(formatPercentage.format(position!.gainLossPercent),
@@ -196,18 +249,39 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ]))));
     }
-    // ListTile(title: const Text("Market Data", style: TextStyle(fontSize: 20))),
-    /*
-    slivers.add(
-      SliverPersistentHeader(
-        pinned: true,
-        delegate: PersistentChainHeader()
-      ));*/
-    if (RobinhoodService.optionOrders != null) {
+
+    if (instrument.fundamentalsObj != null) {
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
+      slivers.add(fundamentalsWidget);
+    }
+
+    if (positionOrders.isNotEmpty) {
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
+      slivers.add(positionOrdersWidget);
+    }
+    if (optionOrders.isNotEmpty) {
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
       slivers.add(optionOrdersWidget);
     }
 
     if (optionInstruments != null) {
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
       slivers.add(SliverStickyHeader(
         header: Container(
             //height: 208.0, //60.0,
@@ -237,132 +311,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ));
     }
 
-    /*
-    slivers.add(SliverPersistentHeader(
-      pinned: true,
-      delegate: PersistentHeader("Option Chain",
-          size: 195, widget: optionChainFilterWidget),
-    ));
-    */
-    /*
-    slivers.add(SliverToBoxAdapter(
-        child: Card(
-            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      const ListTile(
-          title: Text("Option Chain", style: TextStyle(fontSize: 20))),
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Buy'),
-                      selected: actionFilter == "Buy",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Buy" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Sell'),
-                      selected: actionFilter == "Sell",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Sell" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Call'),
-                      selected: typeFilter == "Call",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Call" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      //avatar: const Icon(Icons.history_outlined),
-                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      label: const Text('Put'),
-                      selected: typeFilter == "Put",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Put" : null;
-                        });
-                      },
-                    ),
-                  )
-                ],
-              );
-            },
-            itemCount: 1,
-          )),
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(children: expirationDateWidgets.toList());
-            },
-            itemCount: 1,
-          )),
-    ]))));
-    */
-    /*
-    slivers.add(
-      SliverToBoxAdapter(
-          child: SizedBox(
-              height: 56,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemBuilder: (context, index) {
-                  return Row(children: expirationDateWidgets.toList());
-                },
-                itemCount: 1,
-              ))
-          //Align(
-          //    alignment: Alignment.center, child: buildExpirationDates())
-          ),
-    );
-    */
-    /*
-    if (optionInstruments != null) {
-      /*
-      var optionsInstrumentsSorted = optionInstruments;
-      optionsInstrumentsSorted.sort((a, b) =>
-          a.strikePrice!.compareTo(instrument.quoteObj!.lastTradePrice!));
-      var firstOptionsInstrumentsSorted = optionsInstrumentsSorted.first;
-      print(firstOptionsInstrumentsSorted.id);
-      */
-      slivers.add(optionInstrumentsWidget(optionInstruments));
-    } else {
-      slivers.add(const SliverToBoxAdapter(
-          child: Center(
-        child: CircularProgressIndicator(),
-      )));
-    }
-    */
     return CustomScrollView(slivers: slivers);
-    /*
-    return Container(
-        color: Colors.grey[200],
-        child: CustomScrollView(controller: _controller, slivers: slivers));
-        */
   }
 
   Card buildOverview() {
@@ -373,13 +322,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        /*
-        ListTile(
-          leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
-          subtitle: Text(instrument.name),
-        ),
-        */
         /*
         ListTile(
             title: Text("Last Trade Price"),
@@ -442,7 +384,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
-              child: const Text('VIEW FUNDAMENTALS'),
+              child: const Text('BUY'),
               onPressed: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
@@ -465,7 +407,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
             const SizedBox(width: 8),
             TextButton(
-              child: const Text('VIEW SPLITS'),
+              child: const Text('SELL'),
               onPressed: () => showDialog<String>(
                 context: context,
                 builder: (BuildContext context) => AlertDialog(
@@ -491,6 +433,166 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ],
     ));
+  }
+
+  Widget get fundamentalsWidget {
+    return SliverStickyHeader(
+        header: Container(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: ListTile(
+              title: Text(
+                "Fundamentals",
+                style: const TextStyle(
+                    //color: Colors.white,
+                    fontSize: 19.0),
+              ),
+              /*
+              subtitle: Text(
+                  "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
+              trailing: IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      constraints: BoxConstraints(maxHeight: 260),
+                      builder: (BuildContext context) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ListTile(
+                              tileColor: Colors.blue,
+                              title: Text(
+                                "Filter Position Orders",
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 19.0),
+                              ),
+                              /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                            ),
+                            orderFilterWidget,
+                          ],
+                        );
+                      },
+                    );
+                  }),
+                  */
+            )),
+        sliver: SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          /*
+          ListTile(
+              title:
+                  const Text("Fundamentals", style: TextStyle(fontSize: 20))),
+                  */
+          ListTile(
+            title: Text("Volume"),
+            trailing: Text(
+                formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Average Volume"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.averageVolume!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Average Volume (2 weeks)"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("52 Week High"),
+            trailing: Text(
+                formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("52 Week Low"),
+            trailing: Text(
+                formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Dividend Yield"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.dividendYield!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Market Cap"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.marketCap!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Shares Outstanding"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.sharesOutstanding!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("P/E Ratio"),
+            trailing: Text(
+                instrument.fundamentalsObj!.peRatio != null
+                    ? formatCompactNumber
+                        .format(instrument.fundamentalsObj!.peRatio!)
+                    : "-",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Sector"),
+            trailing: Text(instrument.fundamentalsObj!.sector,
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Industry"),
+            trailing: Text(instrument.fundamentalsObj!.industry,
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Headquarters"),
+            trailing: Text(
+                "${instrument.fundamentalsObj!.headquartersCity}, ${instrument.fundamentalsObj!.headquartersState}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("CEO"),
+            trailing: Text("${instrument.fundamentalsObj!.ceo}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Number of Employees"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.numEmployees!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: Text("Year Founded"),
+            trailing: Text("${instrument.fundamentalsObj!.yearFounded}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            subtitle: Text("${instrument.fundamentalsObj!.description}",
+                style: const TextStyle(fontSize: 16)),
+          ),
+        ]))));
   }
 
   Widget get optionChainFilterWidget {
@@ -589,15 +691,144 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ]));
   }
 
+  Widget get positionOrdersWidget {
+    return SliverStickyHeader(
+      header: Container(
+          //height: 208.0, //60.0,
+          //color: Colors.blue,
+          color: Colors.white,
+          //padding: EdgeInsets.symmetric(horizontal: 16.0),
+          alignment: Alignment.centerLeft,
+          child: ListTile(
+            title: Text(
+              "Position Orders",
+              style: const TextStyle(
+                  //color: Colors.white,
+                  fontSize: 19.0),
+            ),
+            subtitle: Text(
+                "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
+            trailing: IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    constraints: BoxConstraints(maxHeight: 260),
+                    builder: (BuildContext context) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            tileColor: Colors.blue,
+                            title: Text(
+                              "Filter Position Orders",
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 19.0),
+                            ),
+                            /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                          ),
+                          orderFilterWidget,
+                        ],
+                      );
+                    },
+                  );
+                }),
+          )),
+      sliver: SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          if ( //positionOrders[index] == null ||
+              (orderFilters.isNotEmpty &&
+                  !orderFilters.contains(positionOrders[index].state))) {
+            return Container();
+          }
+
+          positionOrdersBalance = positionOrders
+              .map((e) =>
+                  (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
+                  (e.side == "sell" ? 1 : -1))
+              .reduce((a, b) => a + b) as double;
+
+          return Card(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: CircleAvatar(
+                    //backgroundImage: AssetImage(user.profilePicture),
+                    child: Text('${positionOrders[index].quantity!.round()}',
+                        style: const TextStyle(fontSize: 18))),
+                title: Text(
+                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${formatCompactNumber.format(positionOrders[index].averagePrice)}"), // , style: TextStyle(fontSize: 18.0)),
+                subtitle: Text(
+                    "${positionOrders[index].state} ${dateFormat.format(positionOrders[index].updatedAt!)}"),
+                trailing: Wrap(spacing: 8, children: [
+                  Text(
+                    (positionOrders[index].side == "sell" ? "+" : "-") +
+                        "${positionOrders[index].averagePrice != null ? formatCurrency.format(positionOrders[index].averagePrice! * positionOrders[index].quantity!) : ""}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  )
+                ]),
+
+                /*Wrap(
+            spacing: 12,
+            children: [
+              Column(children: [
+                Text(
+                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                  style: const TextStyle(fontSize: 15.0),
+                  textAlign: TextAlign.right,
+                ),
+                Icon(
+                    gainLossPerContract > 0
+                        ? Icons.trending_up
+                        : (gainLossPerContract < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (gainLossPerContract > 0
+                        ? Colors.green
+                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
+              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "${formatCurrency.format(marketValue)}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              )
+            ],
+          ),*/
+                //isThreeLine: true,
+                /*
+                onTap: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              PositionOrderWidget(user, positionOrders[index])));
+                },
+                */
+              ),
+            ],
+          ));
+
+          //if (positionOrders.length > index) {
+          //}
+          return null;
+        }, childCount: positionOrders.length),
+      ),
+    );
+  }
+
   Widget get optionOrdersWidget {
-    var optionOrders = RobinhoodService.optionOrders!
-        .where((element) => element.chainSymbol == instrument.symbol)
-        .toList();
-    var optionOrdersPremiumBalance = optionOrders
-        .map((e) =>
-            (e.processedPremium != null ? e.processedPremium! : 0) *
-            (e.direction == "credit" ? 1 : -1))
-        .reduce((a, b) => a + b);
     return SliverStickyHeader(
       header: Container(
           //height: 208.0, //60.0,
@@ -613,7 +844,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   fontSize: 19.0),
             ),
             subtitle: Text(
-                "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${formatCurrency.format(optionOrdersPremiumBalance)}"),
+                "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance)}"),
             trailing: IconButton(
                 icon: const Icon(Icons.filter_list),
                 onPressed: () {
@@ -884,8 +1115,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => OptionInstrumentWidget(
-                              user, optionInstruments[index], quote)));
+                          builder: (context) => OptionInstrumentWidget(user,
+                              optionInstruments[index], instrument.quoteObj!)));
                 },
               )
             ]));

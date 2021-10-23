@@ -33,7 +33,7 @@ class Watchlist {
   final String displayName;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  List<WatchlistItem>? items = [];
+  List<WatchlistItem> items = [];
 
   Watchlist(this.displayName, this.createdAt, this.updatedAt);
 

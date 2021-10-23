@@ -29,7 +29,7 @@ class OptionPositionWidget extends StatefulWidget {
 class _OptionPositionWidgetState extends State<OptionPositionWidget> {
   final RobinhoodUser user;
   final OptionAggregatePosition optionPosition;
-  late Future<Quote> futureQuote;
+  late Future<Quote?> futureQuote;
   late Future<Instrument> futureInstrument;
 
   // Loaded with option_positions parent widget
@@ -49,7 +49,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     return Scaffold(
       body: FutureBuilder(
           future: futureQuote,
-          builder: (context, AsyncSnapshot<Quote> snapshot) {
+          builder: (context, AsyncSnapshot<Quote?> snapshot) {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
               futureInstrument = RobinhoodService.getInstrument(
@@ -207,7 +207,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: const [
                               SizedBox(
-                                width: 60,
+                                width: 55,
                                 child: Text(
                                   "Today",
                                   style: TextStyle(fontSize: 10.0),
@@ -218,23 +218,24 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           width: 5,
                         ),
                         Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                                width: 60,
-                                child: Wrap(
-                                  children: [
-                                    optionPosition.trendingIconToday,
-                                    Container(
-                                      width: 2,
-                                    ),
-                                    Text(
-                                        '${formatPercentage.format(optionPosition.changePercentToday.abs())}',
-                                        style: const TextStyle(fontSize: 12.0)),
-                                  ],
-                                ))
-                          ],
-                        ),
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                  width: 65,
+                                  child: Wrap(
+                                      alignment: WrapAlignment.end,
+                                      children: [
+                                        optionPosition.trendingIconToday,
+                                        Container(
+                                          width: 2,
+                                        ),
+                                        Text(
+                                            '${formatPercentage.format(optionPosition.changePercentToday.abs())}',
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right),
+                                      ]))
+                            ]),
                         Container(
                           width: 5,
                         ),
@@ -260,7 +261,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: const [
                               SizedBox(
-                                width: 60,
+                                width: 55,
                                 child: Text(
                                   "Return",
                                   style: TextStyle(fontSize: 10.0),
@@ -274,16 +275,20 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               SizedBox(
-                                  width: 60,
-                                  child: Wrap(children: [
-                                    optionPosition.trendingIcon,
-                                    Container(
-                                      width: 2,
-                                    ),
-                                    Text(
-                                        '${formatPercentage.format(optionPosition.gainLossPercent.abs())}',
-                                        style: const TextStyle(fontSize: 12.0)),
-                                  ]))
+                                  width: 65,
+                                  child: Wrap(
+                                      alignment: WrapAlignment.end,
+                                      children: [
+                                        optionPosition.trendingIcon,
+                                        Container(
+                                          width: 2,
+                                        ),
+                                        Text(
+                                            '${formatPercentage.format(optionPosition.gainLossPercent.abs())}',
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right),
+                                      ]))
                             ]),
                         Container(
                           width: 5,
@@ -405,7 +410,14 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         ],*/
       ),
       SliverToBoxAdapter(
-          child: Align(alignment: Alignment.center, child: buildOverview())),
+          child: Align(
+              alignment: Alignment.center, child: buildOverview(instrument))),
+      /*
+      SliverToBoxAdapter(
+        child: _buildStockView(instrument),
+      ),
+      */
+
       SliverToBoxAdapter(
         child: ListTile(
           title: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
@@ -894,9 +906,6 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         mainAxisSize: MainAxisSize.min,
         children: _buildLegs(optionPosition).toList(),
       ))),
-      SliverToBoxAdapter(
-        child: _buildStockView(instrument),
-      ),
     ]);
   }
 
@@ -933,17 +942,54 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
     }
   }
 
-  Card buildOverview() {
+  Card buildOverview(Instrument instrument) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        ListTile(
+          // leading: const Icon(Icons.album),
+          title: Text('${instrument.simpleName}'),
+          subtitle: Text(instrument.name),
+          trailing: Wrap(
+            spacing: 8,
+            children: [
+              Icon(
+                  instrument.quoteObj!.changeToday > 0
+                      ? Icons.trending_up
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (instrument.quoteObj!.changeToday > 0
+                      ? Colors.green
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+            ],
+          ),
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
+              child: const Text('VIEW STOCK'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(user, instrument,
+                            optionPosition: optionPosition)));
+              },
+            ),
+            Divider(),
+            TextButton(
                 child: Text(optionPosition.direction == "debit"
-                    ? "BUY"
+                    ? "BUY TO OPEN"
                     : "BUY TO CLOSE"),
                 onPressed: () => Navigator.push(
                     context,
@@ -953,7 +999,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             positionType: "Buy")))),
             TextButton(
                 child: Text(optionPosition.direction == "debit"
-                    ? "SELL"
+                    ? "SELL TO CLOSE"
                     : "SELL TO OPEN"),
                 onPressed: () => Navigator.push(
                     context,
@@ -1039,6 +1085,26 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
+            TextButton(
+              child: const Text('BUY'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(user, instrument,
+                            optionPosition: optionPosition)));
+              },
+            ),
+            TextButton(
+              child: const Text('SELL'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(user, instrument,
+                            optionPosition: optionPosition)));
+              },
+            ),
             TextButton(
               child: const Text('VIEW STOCK'),
               onPressed: () {

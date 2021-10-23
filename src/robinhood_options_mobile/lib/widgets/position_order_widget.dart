@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 
 import 'package:robinhood_options_mobile/model/option_position.dart';
+import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
@@ -18,40 +19,41 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
-class OptionOrderWidget extends StatefulWidget {
+class PositionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final OptionOrder optionOrder;
-  OptionOrderWidget(this.user, this.optionOrder);
+  final PositionOrder positionOrder;
+  PositionOrderWidget(this.user, this.positionOrder);
 
   @override
-  _OptionOrderWidgetState createState() =>
-      _OptionOrderWidgetState(user, optionOrder);
+  _PositionOrderWidgetState createState() =>
+      _PositionOrderWidgetState(user, positionOrder);
 }
 
-class _OptionOrderWidgetState extends State<OptionOrderWidget> {
+class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   final RobinhoodUser user;
-  final OptionOrder optionOrder;
-  late Future<Quote?> futureQuote;
+  final PositionOrder positionOrder;
+  late Future<Quote> futureQuote;
   late Future<Instrument> futureInstrument;
 
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
-  _OptionOrderWidgetState(this.user, this.optionOrder);
+  _PositionOrderWidgetState(this.user, this.positionOrder);
 
   @override
   void initState() {
     super.initState();
-    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionOrder);
-    futureQuote = RobinhoodService.getQuote(user, optionOrder.chainSymbol);
+    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, positionOrder);
+    // futureQuote = RobinhoodService.getQuote(user, positionOrder.chainSymbol);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: FutureBuilder(
+    return Scaffold(body: _buildPage(positionOrder)
+        /*
+      FutureBuilder(
           future: futureQuote,
-          builder: (context, AsyncSnapshot<Quote?> snapshot) {
+          builder: (context, AsyncSnapshot<Quote> snapshot) {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
               futureInstrument = RobinhoodService.getInstrument(
@@ -73,33 +75,26 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
             }
             return Container();
           }),
-      /*
+          */
+        /*
         floatingActionButton: (user != null && user.userName != null)
             ? FloatingActionButton(
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => TradeOptionWidget(user,
-                            optionOrder: optionOrder))),
+                            positionOrder: positionOrder))),
                 tooltip: 'Trade',
                 child: const Icon(Icons.shopping_cart),
               )
             : null*/
-    );
+        );
   }
 
-  Widget _buildPage(Instrument instrument) {
-    final DateTime today =
-        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
-    final int dte =
-        optionOrder.legs.first.expirationDate!.difference(today).inDays;
-    final DateTime createdAt = DateTime(optionOrder.createdAt!.year,
-        optionOrder.createdAt!.month, optionOrder.createdAt!.day);
-    final int originalDte =
-        optionOrder.legs.first.expirationDate!.difference(createdAt).inDays;
+  Widget _buildPage(PositionOrder positionOrder) {
     return CustomScrollView(slivers: [
       SliverAppBar(
-        //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
+        //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 160.0,
         flexibleSpace: FlexibleSpaceBar(
             background: const FlutterLogo(),
@@ -116,130 +111,186 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       //runSpacing: 5,
                       children: [
                         Text(
-                            "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy}",
+                            "${positionOrder.instrumentId} ${positionOrder.averagePrice != null ? formatCurrency.format(positionOrder.averagePrice) : ""} ${positionOrder.type} ${positionOrder.side}",
                             style: const TextStyle(fontSize: 20.0)),
-                        Text(
-                            '${formatDate.format(optionOrder.legs.first.expirationDate!)}',
+                        Text('${formatDate.format(positionOrder.updatedAt!)}',
                             style: const TextStyle(fontSize: 15.0))
                       ]),
-                  /*
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "Strategy",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text(
-                              "${optionOrder.openingStrategy} ${optionOrder.type}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "Contracts",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text(
-                              "${optionOrder.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionOrder.quantity)}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: const [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "State",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text("${optionOrder.state}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  */
                 ]))),
         pinned: true,
-        /*
-        actions: <Widget>[
-          IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              tooltip: 'Trade',
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => TradeOptionWidget(user,
-                          optionOrder: optionOrder))))
-        ],*/
       ),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ListTile(
+              title:
+                  const Text("Order Detail", style: TextStyle(fontSize: 20))),
+          ListTile(
+            title: const Text("Created"),
+            trailing: Text(
+              formatDate.format(positionOrder.createdAt!),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Updated"),
+            trailing: Text(
+              formatDate.format(positionOrder.updatedAt!),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Quantity"),
+            trailing: Text(
+              formatCompactNumber.format(positionOrder.quantity),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Cumulative Quantity"),
+            trailing: Text(
+              formatCompactNumber.format(positionOrder.cumulativeQuantity),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Price"),
+            trailing: Text(
+              formatCurrency.format(positionOrder.price),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Average Price"),
+            trailing: Text(
+              formatCurrency.format(positionOrder.averagePrice),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Stop Price"),
+            trailing: Text(
+              positionOrder.stopPrice != null
+                  ? formatCurrency.format(positionOrder.stopPrice)
+                  : "",
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Fees"),
+            trailing: Text(
+              formatCurrency.format(positionOrder.fees),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("State"),
+            trailing: Text(
+              positionOrder.state,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Side"),
+            trailing: Text(
+              positionOrder.side,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Time in Force"),
+            trailing: Text(
+              positionOrder.timeInForce,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Trigger"),
+            trailing: Text(
+              positionOrder.trigger,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Type"),
+            trailing: Text(
+              positionOrder.type,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Reject Reason"),
+            trailing: Text(
+              positionOrder.rejectReason ?? "",
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+          ListTile(
+            title: const Text("Cancel"),
+            trailing: Text(
+              positionOrder.cancel ?? "",
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+        ],
+      ))),
       /*
       SliverToBoxAdapter(
-          child: Align(alignment: Alignment.center, child: buildOverview())),
-          */
+          child: Card(
+              child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _buildLegs(positionOrder).toList(),
+      ))),
+      SliverToBoxAdapter(
+        child: _buildPositionView(position),
+      ),
+      SliverToBoxAdapter(
+        child: _buildStockView(instrument),
+      ),
+      */
+    ]);
+  }
+
+  /*
+  Widget _buildPage(Instrument instrument) {
+    final DateTime today =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final int dte =
+        positionOrder.legs.first.expirationDate!.difference(today).inDays;
+    final DateTime createdAt = DateTime(positionOrder.createdAt!.year,
+        positionOrder.createdAt!.month, positionOrder.createdAt!.day);
+    final int originalDte =
+        positionOrder.legs.first.expirationDate!.difference(createdAt).inDays;
+    return CustomScrollView(slivers: [
+      SliverAppBar(
+        //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
+        expandedHeight: 160.0,
+        flexibleSpace: FlexibleSpaceBar(
+            background: const FlutterLogo(),
+            title: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Row(children: const [SizedBox(height: 70)]),
+                  Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.end,
+                      //runAlignment: WrapAlignment.end,
+                      //alignment: WrapAlignment.end,
+                      spacing: 5,
+                      //runSpacing: 5,
+                      children: [
+                        Text(
+                            "${positionOrder.chainSymbol} \$${formatCompactNumber.format(positionOrder.legs.first.strikePrice)} ${positionOrder.strategy}",
+                            style: const TextStyle(fontSize: 20.0)),
+                        Text(
+                            '${formatDate.format(positionOrder.legs.first.expirationDate!)}',
+                            style: const TextStyle(fontSize: 15.0))
+                      ]),
+                ]))),
+        pinned: true,
+      ),
 
       SliverToBoxAdapter(
           child: Card(
@@ -252,92 +303,92 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           ListTile(
             title: const Text("Opening Strategy"),
             trailing: Text(
-              optionOrder.openingStrategy ?? "",
+              positionOrder.openingStrategy ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Closing Strategy"),
             trailing: Text(
-              optionOrder.closingStrategy ?? "",
+              positionOrder.closingStrategy ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Created"),
             trailing: Text(
-              formatDate.format(optionOrder.createdAt!),
+              formatDate.format(positionOrder.createdAt!),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Updated"),
             trailing: Text(
-              formatDate.format(optionOrder.updatedAt!),
+              formatDate.format(positionOrder.updatedAt!),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Direction"),
             trailing: Text(
-              optionOrder.direction,
+              positionOrder.direction,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.quantity),
+              formatCompactNumber.format(positionOrder.quantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Processed Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.processedQuantity),
+              formatCompactNumber.format(positionOrder.processedQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Cancelled Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.canceledQuantity),
+              formatCompactNumber.format(positionOrder.canceledQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Pending Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.pendingQuantity),
+              formatCompactNumber.format(positionOrder.pendingQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Premium"),
             trailing: Text(
-              formatCurrency.format(optionOrder.premium),
+              formatCurrency.format(positionOrder.premium),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Processed Premium"),
             trailing: Text(
-              formatCurrency.format(optionOrder.processedPremium),
+              formatCurrency.format(positionOrder.processedPremium),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Price"),
             trailing: Text(
-              formatCurrency.format(optionOrder.price),
+              formatCurrency.format(positionOrder.price),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Stop Price"),
             trailing: Text(
-              optionOrder.stopPrice != null
-                  ? formatCurrency.format(optionOrder.stopPrice)
+              positionOrder.stopPrice != null
+                  ? formatCurrency.format(positionOrder.stopPrice)
                   : "-",
               style: const TextStyle(fontSize: 18),
             ),
@@ -345,42 +396,42 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           ListTile(
             title: const Text("State"),
             trailing: Text(
-              optionOrder.state,
+              positionOrder.state,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Time in Force"),
             trailing: Text(
-              optionOrder.timeInForce,
+              positionOrder.timeInForce,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Trigger"),
             trailing: Text(
-              optionOrder.trigger,
+              positionOrder.trigger,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Type"),
             trailing: Text(
-              optionOrder.type,
+              positionOrder.type,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Response Category"),
             trailing: Text(
-              optionOrder.responseCategory ?? "",
+              positionOrder.responseCategory ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Cancel Url"),
             trailing: Text(
-              optionOrder.cancelUrl ?? "",
+              positionOrder.cancelUrl ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -390,7 +441,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           child: Card(
               child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: _buildLegs(optionOrder).toList(),
+        children: _buildLegs(positionOrder).toList(),
       ))),
       SliverToBoxAdapter(
         child: _buildStockView(instrument),
@@ -398,9 +449,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     ]);
   }
 
-  Iterable<Widget> _buildLegs(OptionOrder optionOrder) sync* {
-    for (int i = 0; i < optionOrder.legs.length; i++) {
-      var leg = optionOrder.legs[i];
+  Iterable<Widget> _buildLegs(PositionOrder positionOrder) sync* {
+    for (int i = 0; i < positionOrder.legs.length; i++) {
+      var leg = positionOrder.legs[i];
       yield ListTile(
           title: Text("Leg ${i + 1}", style: TextStyle(fontSize: 20)));
       // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
@@ -435,6 +486,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
       );
     }
   }
+  */
 
   /*
   Card buildOverview() {
@@ -446,24 +498,24 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
-                child: Text(optionOrder.direction == "debit"
+                child: Text(positionOrder.direction == "debit"
                     ? "BUY"
                     : "BUY TO CLOSE"),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => TradeOptionWidget(user,
-                            optionOrder: optionOrder,
+                            positionOrder: positionOrder,
                             positionType: "Buy")))),
             TextButton(
-                child: Text(optionOrder.direction == "debit"
+                child: Text(positionOrder.direction == "debit"
                     ? "SELL"
                     : "SELL TO OPEN"),
                 onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => TradeOptionWidget(user,
-                            optionOrder: optionOrder,
+                            positionOrder: positionOrder,
                             positionType: "Sell")))),
             const SizedBox(width: 8),
           ],

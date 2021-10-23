@@ -28,6 +28,7 @@
   created_at: 2020-10-27T02:17:16.575685Z
 }
 */
+import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
 class Position {
@@ -109,13 +110,19 @@ class Position {
             DateTime.tryParse(json['created_at']);
 
   double get marketValue {
-    if (quantity == 0) {
+    if (instrumentObj == null ||
+        instrumentObj!.quoteObj == null ||
+        quantity == 0) {
       return 0;
     }
     return instrumentObj!.quoteObj!.lastTradePrice! * quantity!;
   }
 
   double get extendedHoursMarketValue {
+    if (instrumentObj == null || instrumentObj!.quoteObj == null) {
+      return 0;
+    }
+
     return instrumentObj!.quoteObj!.lastExtendedHoursTradePrice! * quantity!;
   }
 
@@ -133,5 +140,65 @@ class Position {
 
   double get gainLossPercent {
     return gainLoss / totalCost;
+  }
+
+  double get gainLossToday {
+    return instrumentObj!.quoteObj!.lastTradePrice! -
+        instrumentObj!.quoteObj!.adjustedPreviousClose!;
+  }
+
+  double get gainLossPercentToday {
+    return gainLossToday / instrumentObj!.quoteObj!.adjustedPreviousClose!;
+  }
+/*
+  double get changeToday {    
+    return optionInstrument!.optionMarketData!.gainLossToday * quantity! * 100;
+  }
+
+  double get changePercentToday {
+    return optionInstrument!.optionMarketData!.gainLossPercentToday;
+  }
+  */
+
+  Icon get trendingIcon {
+    return Icon(
+            gainLoss > 0
+                ? Icons.trending_up
+                : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (gainLoss > 0
+                ? Colors.green
+                : (gainLoss < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
+            gainLoss < 0
+                ? Icons.trending_up
+                : (gainLoss > 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLoss < 0
+                ? Colors.lightGreenAccent
+                : (gainLoss > 0 ? Colors.red : Colors.grey)),
+            size: 14.0)*/
+        ;
+  }
+
+  Icon get trendingIconToday {
+    return Icon(
+            gainLossToday > 0
+                ? Icons.trending_up
+                : (gainLossToday < 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLossToday > 0
+                ? Colors.green
+                : (gainLossToday < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
+            gainLossToday < 0
+                ? Icons.trending_up
+                : (gainLossToday > 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (gainLossToday < 0
+                ? Colors.lightGreenAccent
+                : (gainLossToday > 0 ? Colors.red : Colors.grey)),
+            size: 14.0)*/
+        ;
   }
 }

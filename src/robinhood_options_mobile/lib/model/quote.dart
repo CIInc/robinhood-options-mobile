@@ -80,6 +80,25 @@ class Quote {
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
 
+  Map<String, dynamic> toJson() => {
+        'ask_price': askPrice,
+        'ask_size': askSize,
+        'bid_price': bidPrice,
+        'bid_size': bidSize,
+        'last_trade_price': lastTradePrice,
+        'last_extended_hours_trade_price': lastExtendedHoursTradePrice,
+        'previous_close': previousClose,
+        'adjusted_previous_close': adjustedPreviousClose,
+        'previous_close_date': previousCloseDate!.toIso8601String(),
+        'symbol': symbol,
+        'trading_halted': tradingHalted,
+        'has_traded': hasTraded,
+        'last_trade_price_source': lastTradePriceSource,
+        'updated_at': updatedAt!.toIso8601String(),
+        'instrument': instrument,
+        'instrument_id': instrumentId,
+      };
+
   double get changeToday {
     return lastTradePrice! - adjustedPreviousClose!;
   }
