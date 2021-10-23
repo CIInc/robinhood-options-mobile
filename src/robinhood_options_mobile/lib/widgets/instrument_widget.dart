@@ -528,8 +528,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ListTile(
             title: Text("Dividend Yield"),
             trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.dividendYield!),
+                instrument.fundamentalsObj!.dividendYield != null
+                    ? formatCompactNumber
+                        .format(instrument.fundamentalsObj!.dividendYield!)
+                    : "-",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
@@ -579,8 +581,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ListTile(
             title: Text("Number of Employees"),
             trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.numEmployees!),
+                instrument.fundamentalsObj!.numEmployees != null
+                    ? formatCompactNumber
+                        .format(instrument.fundamentalsObj!.numEmployees!)
+                    : "-",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
