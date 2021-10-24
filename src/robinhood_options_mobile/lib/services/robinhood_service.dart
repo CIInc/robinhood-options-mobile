@@ -28,6 +28,7 @@ class RobinhoodService {
   static List<OptionOrder>? optionOrders;
   static List<PositionOrder>? positionOrders;
   static List<Quote> quotes = [];
+  static List<Instrument> instruments = [];
 
   /*
   USERS & ACCOUNTS
@@ -140,42 +141,42 @@ class RobinhoodService {
   */
 
   static Stream<List<Position>> streamPositions(RobinhoodUser user,
-      {bool withQuantity = true}) async* {
+      {bool nonzero = true}) async* {
     List<Position> positions = [];
     var pageStream = RobinhoodService.streamedGet(
-        user, "${Constants.robinHoodEndpoint}/positions/"); // ?nonzero=true
+        user, "${Constants.robinHoodEndpoint}/positions/?nonzero=${nonzero}");
     //print(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
         var op = Position.fromJson(result);
 
-        if ((withQuantity && op.quantity! > 0) ||
-            (!withQuantity && op.quantity == 0)) {
-          positions.add(op);
-          yield positions;
+        //if ((withQuantity && op.quantity! > 0) ||
+        //    (!withQuantity && op.quantity == 0)) {
+        positions.add(op);
+        yield positions;
 
-          var instrumentObj = await getInstrument(user, op.instrument);
-          //var quoteObj = await downloadQuote(user, instrumentObj);
-          op.instrumentObj = instrumentObj;
+        var instrumentObj = await getInstrument(user, op.instrument);
+        //var quoteObj = await downloadQuote(user, instrumentObj);
+        op.instrumentObj = instrumentObj;
 
-          yield positions;
-          /*
-          var quoteObj = await getQuote(user, instrumentObj.symbol);
-          op.instrumentObj!.quoteObj = quoteObj;
-          yield positions;
-          */
+        yield positions;
 
-          /* TODO: Change to lazy loading. */
-          var fundamentalsObj = await getFundamentals(user, instrumentObj);
-          instrumentObj.fundamentalsObj = fundamentalsObj;
+        var quoteObj = await getQuote(user, instrumentObj.symbol);
+        op.instrumentObj!.quoteObj = quoteObj;
+        yield positions;
 
-          /* TODO: Change to lazy loading. 
+        /* Loaded by InstrumentWidget
+        var fundamentalsObj = await getFundamentals(user, instrumentObj);
+        op.instrumentObj!.fundamentalsObj = fundamentalsObj;
+        */
+
+        /* TODO: Move to InstrumentWidget 
         var splitsObj = await downloadSplits(user, instrumentObj);
         instrumentObj.splitsObj = splitsObj;
         */
 
-        }
+        //}
       }
       positions.sort((a, b) => a.createdAt!.compareTo(b.createdAt!));
       yield positions;
@@ -195,6 +196,10 @@ class RobinhoodService {
         if (!list.any((element) => element.id == op.id)) {
           list.add(op);
           yield list;
+
+          var instrumentObj = await getInstrument(user, op.instrument);
+          op.instrumentObj = instrumentObj;
+          yield list;
         }
       }
       list.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
@@ -209,6 +214,12 @@ class RobinhoodService {
 
   static Future<Instrument> getInstrument(
       RobinhoodUser user, String instrumentUrl) async {
+    var cached = instruments.where((element) => element.url == instrumentUrl);
+    if (cached.isNotEmpty) {
+      print('Returned instrument from cache $instrumentUrl');
+      return Future.value(cached.first);
+    }
+
     print(instrumentUrl);
     String? result;
     try {
@@ -226,14 +237,25 @@ class RobinhoodService {
   }
 
   static Future<List<Instrument>> getInstrumentByIds(
-      RobinhoodUser user, List<String> ids) async {
+      RobinhoodUser user, List<dynamic> ids) async {
+    var cached =
+        instruments.where((element) => ids.contains(element.id)).toList();
+
+    if (cached.isNotEmpty && ids.length == cached.length) {
+      print('Returned instruments from cache ${ids.join(",")}');
+      return Future.value(cached);
+    }
+
+    var nonCached = instruments
+        .where((element) => !cached.any((cached) => cached.id == element));
+
     var url =
-        "${Constants.robinHoodEndpoint}/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
+        "${Constants.robinHoodEndpoint}/instruments/?ids=${Uri.encodeComponent(nonCached.join(","))}";
     print(url);
     var result = await user.oauth2Client!.read(Uri.parse(url));
     var resultJson = jsonDecode(result);
 
-    List<Instrument> list = [];
+    List<Instrument> list = cached.toList();
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
       var op = Instrument.fromJson(result);
@@ -245,7 +267,7 @@ class RobinhoodService {
   static Future<Quote> getQuote(RobinhoodUser user, String symbol) async {
     var cachedQuotes = quotes.where((element) => element.symbol == symbol);
     if (cachedQuotes.isNotEmpty) {
-      print('Returned from cache $symbol');
+      print('Returned quote from cache $symbol');
       return Future.value(cachedQuotes.first);
     }
     print("${Constants.robinHoodEndpoint}/quotes/$symbol/");
@@ -258,7 +280,8 @@ class RobinhoodService {
       print('No quote found. $symbol Error: $e');
     }
     if (result == null) {
-      return Future.value(null);
+      return Future.value(Quote(null, 0, null, 0, null, null, null, null, null,
+          "", false, false, "", null, "", ""));
     }
     var resultJson = jsonDecode(result);
     var quote = Quote.fromJson(resultJson);
@@ -269,17 +292,16 @@ class RobinhoodService {
 
   static Future<List<Quote>> getQuoteById(
       RobinhoodUser user, List<String> symbols) async {
-    var cachedQuotes =
-        quotes.where((element) => symbols.contains(element.symbol));
+    var cached = quotes.where((element) => symbols.contains(element.symbol));
     var nonCachedSymbols = symbols.where((element) =>
-        !cachedQuotes.any((cachedQuote) => cachedQuote.symbol == element));
+        !cached.any((cachedQuote) => cachedQuote.symbol == element));
     var url =
         "${Constants.robinHoodEndpoint}/quotes/?symbols=${Uri.encodeComponent(nonCachedSymbols.join(","))}";
     print(url);
     var result = await user.oauth2Client!.read(Uri.parse(url));
     var resultJson = jsonDecode(result);
 
-    List<Quote> list = cachedQuotes.toList();
+    List<Quote> list = cached.toList();
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
       var op = Quote.fromJson(result);
@@ -382,7 +404,7 @@ class RobinhoodService {
     */
 
     var len = optionPositions.length;
-    var size = 5; //10 //17;
+    var size = 10; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
@@ -866,7 +888,7 @@ WATCHLIST
       var watchlistUrl =
           "${Constants.robinHoodEndpoint}/midlands/lists/${entry.key}/?owner_type=custom";
       print(watchlistUrl);
-      print(entry.key);
+      //print(entry.key);
       var entryString = await user.oauth2Client!.read(Uri.parse(watchlistUrl));
 
       var entryJson = jsonDecode(entryString);
@@ -874,6 +896,19 @@ WATCHLIST
 
       list.add(wl);
       yield list;
+
+      /*
+      var instrumentIds =
+          entry.value.where((e) => e['object_type'] == "instrument").map((e) => e['object_id'].toString()).toList();
+      var instrumentObjs = await getInstrumentByIds(user, instrumentIds);
+      for (var instrumentObj in instrumentObjs) {
+        var watchlistItem =
+            new WatchlistItem(instrumentObj.id, DateTime.now(), entry.key, "");
+        watchlistItem.instrumentObj = instrumentObj;
+        wl.items.add(watchlistItem);
+        yield list;
+      }
+      */
 
       for (var val in entry.value) {
         if (val['object_type'] != "instrument") {
@@ -907,7 +942,7 @@ WATCHLIST
       // type 'MappedIterable<dynamic, dynamic>' is not a subtype of type 'List<String>'
 
       var len = instruments.length;
-      var size = 5;
+      var size = 10;
       List<List<dynamic>> chunks = [];
       for (var i = 0; i < len; i += size) {
         var end = (i + size < len) ? i + size : len;

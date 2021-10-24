@@ -49,6 +49,7 @@ class Position {
   final double? sharesHeldForOptionsEvents;
   final double? sharesPendingFromOptionsEvents;
   final double? sharesAvailableForClosingShortPosition;
+  final bool averageCostAffected;
   final DateTime? updatedAt;
   final DateTime? createdAt;
 
@@ -72,6 +73,7 @@ class Position {
       this.sharesHeldForOptionsEvents,
       this.sharesPendingFromOptionsEvents,
       this.sharesAvailableForClosingShortPosition,
+      this.averageCostAffected,
       this.updatedAt,
       this.createdAt);
 
@@ -101,6 +103,7 @@ class Position {
             double.tryParse(json['shares_pending_from_options_events']),
         sharesAvailableForClosingShortPosition = double.tryParse(
             json['shares_available_for_closing_short_position']),
+        averageCostAffected = json['avg_cost_affected'],
         updatedAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
             DateTime.tryParse(json['updated_at']),

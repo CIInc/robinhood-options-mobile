@@ -565,12 +565,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ListTile(
             title: Text("Industry"),
             trailing: Text(instrument.fundamentalsObj!.industry,
-                style: const TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 17)),
           ),
           ListTile(
             title: Text("Headquarters"),
             trailing: Text(
-                "${instrument.fundamentalsObj!.headquartersCity}, ${instrument.fundamentalsObj!.headquartersState}",
+                "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
@@ -584,18 +584,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 instrument.fundamentalsObj!.numEmployees != null
                     ? formatCompactNumber
                         .format(instrument.fundamentalsObj!.numEmployees!)
-                    : "-",
+                    : "",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
             title: Text("Year Founded"),
-            trailing: Text("${instrument.fundamentalsObj!.yearFounded}",
+            trailing: Text(
+                "${instrument.fundamentalsObj!.yearFounded != null ? instrument.fundamentalsObj!.yearFounded : ""}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
             subtitle: Text("${instrument.fundamentalsObj!.description}",
                 style: const TextStyle(fontSize: 16)),
           ),
+          Container(
+            height: 25,
+          )
         ]))));
   }
 
@@ -1143,12 +1147,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     yield Row(children: [
       Text(instrument.symbol, style: const TextStyle(fontSize: 20.0)),
     ]);
-    yield Text(
-      '${instrument.simpleName}',
-      style: const TextStyle(fontSize: 16.0),
-      textAlign: TextAlign.left,
-      //overflow: TextOverflow.ellipsis
-    );
+    if (instrument.simpleName != null) {
+      yield Text(
+        '${instrument.simpleName}',
+        style: const TextStyle(fontSize: 16.0),
+        textAlign: TextAlign.left,
+        //overflow: TextOverflow.ellipsis
+      );
+    }
     yield Text(
       instrument.name,
       style: const TextStyle(fontSize: 10.0),

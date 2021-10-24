@@ -217,8 +217,9 @@ class _HomePageState extends State<HomePage> {
                     var portfolios = data.length > 2 ? data[2] : null;
                     var nummusHoldings = data.length > 3 ? data[3] : null;
 
-                    positionStream ??=
-                        RobinhoodService.streamPositions(robinhoodUser!);
+                    positionStream ??= RobinhoodService.streamPositions(
+                        robinhoodUser!,
+                        nonzero: !hasQuantityFilters[1]);
 
                     return StreamBuilder(
                         stream: positionStream,
@@ -230,7 +231,7 @@ class _HomePageState extends State<HomePage> {
                             optionAggregatePositionStream ??= RobinhoodService
                                 .streamOptionAggregatePositionList(
                                     robinhoodUser!,
-                                    nonzero: hasQuantityFilters[1]);
+                                    nonzero: !hasQuantityFilters[1]);
 
                             return StreamBuilder<List<OptionAggregatePosition>>(
                                 stream: optionAggregatePositionStream,
@@ -257,20 +258,30 @@ class _HomePageState extends State<HomePage> {
                                               if (_sortType ==
                                                   SortType.alphabetical) {
                                                 watchList.items.sort((a, b) =>
-                                                    (a.instrumentObj!.symbol
-                                                        .compareTo(b
-                                                            .instrumentObj!
-                                                            .symbol)));
+                                                    a.instrumentObj != null &&
+                                                            b.instrumentObj !=
+                                                                null
+                                                        ? (a.instrumentObj!
+                                                            .symbol
+                                                            .compareTo(b
+                                                                .instrumentObj!
+                                                                .symbol))
+                                                        : 0);
                                               } else if (_sortType ==
                                                   SortType.change) {
-                                                watchList.items.sort((a, b) => (b
-                                                    .instrumentObj!
-                                                    .quoteObj!
-                                                    .changePercentToday
-                                                    .compareTo(a
+                                                watchList.items.sort((a, b) => a
+                                                                .instrumentObj !=
+                                                            null &&
+                                                        b.instrumentObj != null
+                                                    ? (b
                                                         .instrumentObj!
                                                         .quoteObj!
-                                                        .changePercentToday)));
+                                                        .changePercentToday
+                                                        .compareTo(a
+                                                            .instrumentObj!
+                                                            .quoteObj!
+                                                            .changePercentToday))
+                                                    : 0);
                                               }
                                             }
 
@@ -941,6 +952,7 @@ class _HomePageState extends State<HomePage> {
       if (positions != null) {
         var filteredPositions = positions
             .where((element) =>
+                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
                 (!hasQuantityFilters[0] || element.quantity! > 0) &&
                 (!hasQuantityFilters[1] || element.quantity! <= 0))
             .toList();
@@ -997,28 +1009,6 @@ class _HomePageState extends State<HomePage> {
                             );
                           }),
                     ))),
-/*
-            header: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  children: [
-                    Container(
-                        //height: 40,
-                        padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0),
-                        //padding: const EdgeInsets.all(4.0), //EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          "Positions ${formatCurrency.format(positionEquity)}",
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        )),
-                  ],
-                )),
-                */
             sliver: SliverList(
               // delegate: SliverChildListDelegate(widgets),
               delegate: SliverChildBuilderDelegate(
@@ -1029,31 +1019,6 @@ class _HomePageState extends State<HomePage> {
                 childCount: filteredPositions.length,
               ),
             )));
-        /*
-        slivers.add(
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: PersistentHeader(
-                "Positions ${formatCurrency.format(positionEquity)}"),
-          ),
-        );
-        slivers.add(SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              if (positions.length > index) {
-                return _buildPositionRow(positions, index, ru);
-              }
-              return null;
-              // To convert this infinite list to a list with three items,
-              // uncomment the following line:
-              // if (index > 3) return null;
-            },
-            // Or, uncomment the following line:
-            // childCount: widgets.length + 10,
-          ),
-        ));
-        */
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
           // color: Colors.white,
@@ -1078,9 +1043,11 @@ class _HomePageState extends State<HomePage> {
           case 4:
             break;
         }
-        positionOrderSymbols =
-            []; // TODO, map symbol, only instrumentId is available on PositionOrder
-        //positionOrders.map((e) => e.instrumentId).toSet().toList();
+        positionOrderSymbols = positionOrders
+            .where((element) => element.instrumentObj != null)
+            .map((e) => e.instrumentObj!.symbol)
+            .toSet()
+            .toList();
         positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
 
         var filteredPositionOrders = positionOrders
@@ -1174,7 +1141,7 @@ class _HomePageState extends State<HomePage> {
                               '${filteredPositionOrders[index].quantity!.round()}',
                               style: const TextStyle(fontSize: 18))),
                       title: Text(
-                          "${filteredPositionOrders[index].instrumentId} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
+                          "${filteredPositionOrders[index].instrumentObj != null ? filteredPositionOrders[index].instrumentObj!.symbol : ""} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
                       subtitle: Text(
                           "${filteredPositionOrders[index].state} ${dateFormat.format(filteredPositionOrders[index].updatedAt!)}"),
                       trailing: Wrap(spacing: 8, children: [
@@ -2379,7 +2346,7 @@ class _HomePageState extends State<HomePage> {
                       } else {
                         hasQuantityFilters[1] = false;
                       }
-                      optionAggregatePositionStream = null;
+                      positionStream = null;
                     });
                   },
                 ),
@@ -3203,10 +3170,10 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildWatchlistGridItem(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
-    var instrumentObj = watchLists[index].instrumentObj!;
     if (watchLists[index].instrumentObj == null) {
       return Card(child: Text("${watchLists[index].instrument}"));
     }
+    var instrumentObj = watchLists[index].instrumentObj!;
     return Card(
         child: Padding(
             padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
