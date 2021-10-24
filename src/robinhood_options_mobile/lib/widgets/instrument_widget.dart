@@ -594,6 +594,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
+            title: Text(
+              "Name",
+              style: const TextStyle(fontSize: 18.0),
+              //overflow: TextOverflow.visible
+            ),
+            subtitle: Text("${instrument.name}",
+                style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: Text(
+              "Description",
+              style: const TextStyle(fontSize: 18.0),
+              //overflow: TextOverflow.visible
+            ),
             subtitle: Text("${instrument.fundamentalsObj!.description}",
                 style: const TextStyle(fontSize: 16)),
           ),
@@ -1144,9 +1158,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Iterable<Widget> get headerWidgets sync* {
     yield Row(children: const [SizedBox(height: 70)]);
-    yield Row(children: [
-      Text(instrument.symbol, style: const TextStyle(fontSize: 20.0)),
-    ]);
+    yield Wrap(
+        crossAxisAlignment: WrapCrossAlignment.start,
+        //runAlignment: WrapAlignment.end,
+        //alignment: WrapAlignment.end,
+        spacing: 10,
+        //runSpacing: 5,
+        children: [
+          Text(
+            '${instrument.symbol}', // ${optionPosition.strategy.split('_').first}
+            //style: const TextStyle(fontSize: 20.0)
+          ),
+          Text(
+            '${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}',
+            //style: const TextStyle(fontSize: 15.0)
+          ),
+          Wrap(children: [
+            Icon(
+              instrument.quoteObj!.changeToday > 0
+                  ? Icons.trending_up
+                  : (instrument.quoteObj!.changeToday < 0
+                      ? Icons.trending_down
+                      : Icons.trending_flat),
+              color: (instrument.quoteObj!.changeToday > 0
+                  ? Colors.lightGreenAccent
+                  : (instrument.quoteObj!.changeToday < 0
+                      ? Colors.red
+                      : Colors.grey)),
+              //size: 15.0
+            ),
+            Container(
+              width: 2,
+            ),
+            Text(
+              formatPercentage.format(instrument.quoteObj!.changePercentToday),
+              //style: const TextStyle(fontSize: 15.0)
+            ),
+          ]),
+          Text(
+              "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+              //style: const TextStyle(fontSize: 12.0),
+              textAlign: TextAlign.right)
+        ]);
     if (instrument.simpleName != null) {
       yield Text(
         '${instrument.simpleName}',
@@ -1155,75 +1208,69 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         //overflow: TextOverflow.ellipsis
       );
     }
-    yield Text(
-      instrument.name,
-      style: const TextStyle(fontSize: 10.0),
-      //overflow: TextOverflow.visible
-    );
+    /*
     yield Row(children: const [SizedBox(height: 10)]);
+    */
     if (instrument.quoteObj != null) {
-      if (instrument.quoteObj!.changeToday != null) {
-        yield Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Container(
-                width: 10,
-              ),
-              Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: const [
-                    SizedBox(
-                      width: 70,
-                      child: Text(
-                        "Today",
-                        style: TextStyle(fontSize: 10.0),
-                      ),
-                    )
-                  ]),
-              Container(
-                width: 5,
-              ),
-              Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                SizedBox(
-                    width: 60,
-                    child: Wrap(children: [
-                      Icon(
-                          instrument.quoteObj!.changeToday > 0
-                              ? Icons.trending_up
-                              : (instrument.quoteObj!.changeToday < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (instrument.quoteObj!.changeToday > 0
-                              ? Colors.lightGreenAccent
-                              : (instrument.quoteObj!.changeToday < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          size: 14.0),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              .format(instrument.quoteObj!.changePercentToday),
-                          style: const TextStyle(fontSize: 12.0)),
-                    ]))
-              ]),
-              Container(
-                width: 5,
-              ),
+      /*
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: const [
               SizedBox(
-                  width: 50,
-                  child: Text(
-                      formatCurrency.format(instrument.quoteObj!.changeToday),
-                      style: const TextStyle(fontSize: 12.0),
-                      textAlign: TextAlign.right)),
-              Container(
-                width: 10,
-              ),
-            ]);
-      }
+                width: 60,
+                child: Text(
+                  "Today",
+                  style: TextStyle(fontSize: 10.0),
+                ),
+              )
+            ]),
+            Container(
+              width: 5,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              SizedBox(
+                  width: 60,
+                  child: Wrap(children: [
+                    Icon(
+                        instrument.quoteObj!.changeToday > 0
+                            ? Icons.trending_up
+                            : (instrument.quoteObj!.changeToday < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (instrument.quoteObj!.changeToday > 0
+                            ? Colors.lightGreenAccent
+                            : (instrument.quoteObj!.changeToday < 0
+                                ? Colors.red
+                                : Colors.grey)),
+                        size: 14.0),
+                    Container(
+                      width: 2,
+                    ),
+                    Text(
+                        formatPercentage
+                            .format(instrument.quoteObj!.changePercentToday),
+                        style: const TextStyle(fontSize: 12.0)),
+                  ]))
+            ]),
+            Container(
+              width: 5,
+            ),
+            SizedBox(
+                width: 60,
+                child: Text(
+                    "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+                    style: const TextStyle(fontSize: 12.0),
+                    textAlign: TextAlign.right)),
+            Container(
+              width: 10,
+            ),
+          ]);
       yield Row(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -1254,6 +1301,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               width: 10,
             ),
           ]);
+          */
       if (instrument.quoteObj!.lastExtendedHoursTradePrice != null) {
         yield Row(
             mainAxisAlignment: MainAxisAlignment.end,

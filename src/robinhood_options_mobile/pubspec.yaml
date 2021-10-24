@@ -38,6 +38,10 @@ dependencies:
   open_file: ^3.2.1
   # rxdart: ^0.27.2
   flutter_sticky_header: ^0.6.0
+  charts_flutter: #^0.11.0
+    git:
+      url: git://github.com/google/charts.git
+      path: charts_flutter
 
   # shared_preferences: ^0.5.12
   # local_auth: ^1.1.4

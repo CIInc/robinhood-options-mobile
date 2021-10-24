@@ -196,6 +196,98 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                     ],
                   ),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                optionPosition.legs.first.positionType == "long"
+                                    ? "Cost"
+                                    : "Credit",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: const [
+                            SizedBox(
+                                width: 60,
+                                child: Text("", //${formatPercentage.format(1)}
+                                    style: TextStyle(fontSize: 10.0),
+                                    textAlign: TextAlign.right))
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 50,
+                          child: Text(
+                              "${formatCurrency.format(optionPosition.totalCost)}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Container(
+                        width: 10,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: const [
+                            SizedBox(
+                              width: 70,
+                              child: Text(
+                                "Market Value",
+                                style: TextStyle(fontSize: 10.0),
+                              ),
+                            )
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: const [
+                            SizedBox(
+                                width: 60,
+                                child: Text("", //${formatPercentage.format(1)}
+                                    style: TextStyle(fontSize: 10.0),
+                                    textAlign: TextAlign.right))
+                          ]),
+                      Container(
+                        width: 5,
+                      ),
+                      SizedBox(
+                          width: 50,
+                          child: Text(
+                              "${formatCurrency.format(optionPosition.marketValue)}",
+                              style: const TextStyle(fontSize: 12.0),
+                              textAlign: TextAlign.right)),
+                      Container(
+                        width: 10,
+                      ),
+                    ],
+                  ),
+                  Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
@@ -303,98 +395,6 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                           width: 10,
                         ),
                       ]),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: const [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "Market Value",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: const [
-                            SizedBox(
-                                width: 60,
-                                child: Text("", //${formatPercentage.format(1)}
-                                    style: TextStyle(fontSize: 10.0),
-                                    textAlign: TextAlign.right))
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 50,
-                          child: Text(
-                              "${formatCurrency.format(optionPosition.marketValue)}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                optionPosition.legs.first.positionType == "long"
-                                    ? "Cost"
-                                    : "Credit",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: const [
-                            SizedBox(
-                                width: 60,
-                                child: Text("", //${formatPercentage.format(1)}
-                                    style: TextStyle(fontSize: 10.0),
-                                    textAlign: TextAlign.right))
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 50,
-                          child: Text(
-                              "${formatCurrency.format(optionPosition.totalCost)}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
                 ]))),
         pinned: true,
         /*
@@ -986,7 +986,7 @@ class _OptionPositionWidgetState extends State<OptionPositionWidget> {
                             optionPosition: optionPosition)));
               },
             ),
-            Divider(),
+            Container(width: 50),
             TextButton(
                 child: Text(optionPosition.direction == "debit"
                     ? "BUY TO OPEN"
