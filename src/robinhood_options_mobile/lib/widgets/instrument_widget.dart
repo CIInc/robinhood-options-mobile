@@ -45,8 +45,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
 
+  final List<String> optionFilters = <String>[];
+  final List<String> positionFilters = <String>[];
+
+  final List<bool> hasQuantityFilters = [true, false];
+
   final List<String> orderFilters = <String>["placed", "filled"];
-  final List<bool> headersExpanded = [false, false];
 
   List<DateTime>? expirationDates;
   DateTime? expirationDateFilter;
@@ -55,6 +59,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   final List<bool> isSelected = [true, false];
 
+  List<OptionAggregatePosition> optionPositions = [];
   List<OptionOrder> optionOrders = [];
   double optionOrdersPremiumBalance = 0;
   List<PositionOrder> positionOrders = [];
@@ -94,6 +99,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   (e.direction == "credit" ? 1 : -1))
               .reduce((a, b) => a + b) as double
           : 0;
+    }
+
+    if (RobinhoodService.optionPositions != null) {
+      optionPositions = RobinhoodService.optionPositions!
+          .where((e) => e.symbol == instrument.symbol)
+          .toList();
     }
 
     if (RobinhoodService.positionOrders != null) {
@@ -267,6 +278,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       )));
       slivers.add(positionOrdersWidget);
     }
+    if (optionPositions.isNotEmpty) {
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+        // color: Colors.white,
+        height: 25.0,
+      )));
+      slivers.add(optionPositionsWidget);
+    }
     if (optionOrders.isNotEmpty) {
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -283,30 +302,32 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         height: 25.0,
       )));
       slivers.add(SliverStickyHeader(
-        header: Container(
-            //height: 208.0, //60.0,
-            //color: Colors.blue,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                    //height: 40,
-                    padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
-                    //const EdgeInsets.all(4.0),
-                    //EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Option Chain',
-                      style: const TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    )),
-                optionChainFilterWidget
-              ],
-            )),
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                        //height: 40,
+                        padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
+                        //const EdgeInsets.all(4.0),
+                        //EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "Option Chain",
+                          style: const TextStyle(
+                              //color: Colors.white,
+                              fontSize: 19.0),
+                        )),
+                    optionChainFilterWidget
+                  ],
+                ))),
         sliver: optionInstrumentsWidget(optionInstruments),
       ));
     }
@@ -437,20 +458,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget get fundamentalsWidget {
     return SliverStickyHeader(
-        header: Container(
-            //height: 208.0, //60.0,
-            //color: Colors.blue,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: ListTile(
-              title: Text(
-                "Fundamentals",
-                style: const TextStyle(
-                    //color: Colors.white,
-                    fontSize: 19.0),
-              ),
-              /*
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //color: Colors.blue,
+                color: Colors.white,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: ListTile(
+                  title: Text(
+                    "Fundamentals",
+                    style: const TextStyle(
+                        //color: Colors.white,
+                        fontSize: 19.0),
+                  ),
+                  /*
               subtitle: Text(
                   "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
               trailing: IconButton(
@@ -483,7 +506,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     );
                   }),
                   */
-            )),
+                ))),
         sliver: SliverToBoxAdapter(
             child: Card(
                 child:
@@ -618,8 +641,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget get optionChainFilterWidget {
-    return Card(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+    return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       /*
       const ListTile(
           title: Text("Option Chain", style: TextStyle(fontSize: 20))),
@@ -627,6 +649,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       SizedBox(
           height: 56,
           child: ListView.builder(
+            padding: const EdgeInsets.all(5.0),
             scrollDirection: Axis.horizontal,
             itemBuilder: (context, index) {
               return Row(
@@ -689,6 +712,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       SizedBox(
           height: 56,
           child: ListView.builder(
+            padding: const EdgeInsets.all(5.0),
             scrollDirection: Axis.horizontal,
             itemBuilder: (context, index) {
               return Row(children: expirationDateWidgets.toList());
@@ -710,55 +734,57 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //print('If you stand for nothing, Burr, what’ll you fall for?');
           })
           */
-    ]));
+    ]);
   }
 
   Widget get positionOrdersWidget {
     return SliverStickyHeader(
-      header: Container(
-          //height: 208.0, //60.0,
-          //color: Colors.blue,
-          color: Colors.white,
-          //padding: EdgeInsets.symmetric(horizontal: 16.0),
-          alignment: Alignment.centerLeft,
-          child: ListTile(
-            title: Text(
-              "Position Orders",
-              style: const TextStyle(
-                  //color: Colors.white,
-                  fontSize: 19.0),
-            ),
-            subtitle: Text(
-                "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
-            trailing: IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            tileColor: Colors.blue,
-                            title: Text(
-                              "Filter Position Orders",
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 19.0),
-                            ),
-                            /*
+      header: Material(
+          elevation: 2,
+          child: Container(
+            //height: 208.0, //60.0,
+            //color: Colors.blue,
+            color: Colors.white,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: ListTile(
+                title: Text(
+                  "Position Orders",
+                  style: const TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        constraints: BoxConstraints(maxHeight: 260),
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                tileColor: Colors.blue,
+                                title: Text(
+                                  "Filter Position Orders",
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 19.0),
+                                ),
+                                /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                          ),
-                          orderFilterWidget,
-                        ],
+                              ),
+                              orderFilterWidget,
+                            ],
+                          );
+                        },
                       );
-                    },
-                  );
-                }),
+                    })),
           )),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
@@ -850,53 +876,463 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget get optionOrdersWidget {
+  Widget get optionPositionsWidget {
+    var filteredOptionPositions = optionPositions
+        .where((e) =>
+            (hasQuantityFilters[0] && hasQuantityFilters[0]) ||
+            (!hasQuantityFilters[0] || e.quantity! > 0) &&
+                (!hasQuantityFilters[1] || e.quantity! <= 0))
+        .toList();
+
+    double optionEquity = 0;
+    if (filteredOptionPositions.isNotEmpty) {
+      optionEquity = filteredOptionPositions
+          .map((e) => e.legs.first.positionType == "long"
+              ? e.marketValue
+              : e.marketValue) // TODO: Match portfolios[0].marketValue (e.totalCost - e.marketValue)
+          .reduce((a, b) => a + b);
+    }
+
     return SliverStickyHeader(
-      header: Container(
-          //height: 208.0, //60.0,
-          //color: Colors.blue,
-          color: Colors.white,
-          //padding: EdgeInsets.symmetric(horizontal: 16.0),
-          alignment: Alignment.centerLeft,
-          child: ListTile(
-            title: Text(
-              "Option Orders",
-              style: const TextStyle(
-                  //color: Colors.white,
-                  fontSize: 19.0),
-            ),
-            subtitle: Text(
-                "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance)}"),
-            trailing: IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            tileColor: Colors.blue,
-                            title: Text(
-                              "Filter Option Orders",
-                              style: const TextStyle(
-                                  color: Colors.white, fontSize: 19.0),
-                            ),
-                            /*
+      header: Material(
+          elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: const Text(
+                  "Options",
+                  style: TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        //constraints: BoxConstraints(maxHeight: 260),
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                tileColor: Colors.blue,
+                                title: const Text(
+                                  "Filter Options",
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 19.0),
+                                ),
+                                /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                          ),
-                          orderFilterWidget,
-                        ],
+                              ),
+                              const ListTile(
+                                title: const Text("Position & Option Type"),
+                              ),
+                              openClosedFilterWidget,
+                              optionTypeFilterWidget,
+                            ],
+                          );
+                        },
                       );
+                    }),
+              ))),
+      sliver: SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return _buildOptionPositionRow(filteredOptionPositions[index], user);
+        }, childCount: filteredOptionPositions.length),
+      ),
+    );
+  }
+
+  Widget get openClosedFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.new_releases_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Open'),
+                  selected: hasQuantityFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[0] = true;
+                      } else {
+                        hasQuantityFilters[0] = false;
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: Container(),
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Closed'),
+                  selected: hasQuantityFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        hasQuantityFilters[1] = true;
+                      } else {
+                        hasQuantityFilters[1] = false;
+                      }
+                    });
+                  },
+                ),
+              ),
+              /*
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Long'),
+                  selected: positionFilters.contains("long"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("long");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "long";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Short'),
+                  selected: positionFilters.contains("short"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        positionFilters.add("short");
+                      } else {
+                        positionFilters.removeWhere((String name) {
+                          return name == "short";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Call'),
+                  selected: optionFilters.contains("call"),
+                  //selected: optionFilters[0],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("call");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "call";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Put'),
+                  selected: optionFilters.contains("put"),
+                  //selected: optionFilters[1],
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        optionFilters.add("put");
+                      } else {
+                        optionFilters.removeWhere((String name) {
+                          return name == "put";
+                        });
+                      }
+                    });
+                  },
+                ),
+              )
+              */
+            ]);
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget get optionTypeFilterWidget {
+    return SizedBox(
+        height: 56,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(4.0),
+          scrollDirection: Axis.horizontal,
+          itemBuilder: (context, index) {
+            return Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Long'), // Positions
+                    selected: positionFilters.contains("long"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters.add("long");
+                        } else {
+                          positionFilters.removeWhere((String name) {
+                            return name == "long";
+                          });
+                        }
+                      });
                     },
-                  );
-                }),
-          )),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Short'), // Positions
+                    selected: positionFilters.contains("short"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          positionFilters.add("short");
+                        } else {
+                          positionFilters.removeWhere((String name) {
+                            return name == "short";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Call'), // Options
+                    selected: optionFilters.contains("call"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters.add("call");
+                        } else {
+                          optionFilters.removeWhere((String name) {
+                            return name == "call";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: FilterChip(
+                    //avatar: const Icon(Icons.history_outlined),
+                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                    label: const Text('Put'), // Options
+                    selected: optionFilters.contains("put"),
+                    onSelected: (bool value) {
+                      setState(() {
+                        if (value) {
+                          optionFilters.add("put");
+                        } else {
+                          optionFilters.removeWhere((String name) {
+                            return name == "put";
+                          });
+                        }
+                      });
+                    },
+                  ),
+                )
+              ],
+            );
+          },
+          itemCount: 1,
+        ));
+  }
+
+  Widget _buildOptionPositionRow(OptionAggregatePosition op, RobinhoodUser ru) {
+    /*
+    if (optionsPositions[index].optionInstrument == null ||
+        (chainSymbolFilters.isNotEmpty &&
+            !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
+        (positionFilters.isNotEmpty &&
+            !positionFilters
+                .contains(optionsPositions[index].strategy.split("_").first)) ||
+        (optionFilters.isNotEmpty &&
+            !optionFilters
+                .contains(optionsPositions[index].optionInstrument!.type))) {
+      return Container();
+    }
+    */
+
+    return Card(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        ListTile(
+          leading: CircleAvatar(
+              //backgroundImage: AssetImage(user.profilePicture),
+              /*
+              backgroundColor:
+                  optionsPositions[index].optionInstrument!.type == 'call'
+                      ? Colors.green
+                      : Colors.amber,
+              child: optionsPositions[index].optionInstrument!.type == 'call'
+                  ? const Text('Call')
+                  : const Text('Put')),
+                      */
+              child: Text('${op.quantity!.round()}',
+                  style: const TextStyle(fontSize: 18))),
+          title: Text(
+              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
+          subtitle: Text(
+              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${dateFormat.format(op.legs.first.expirationDate!)}'),
+          trailing: Wrap(spacing: 8, children: [
+            Icon(
+                op.gainLossPerContract > 0
+                    ? Icons.trending_up
+                    : (op.gainLossPerContract < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (op.gainLossPerContract > 0
+                    ? Colors.green
+                    : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
+            Text(
+              "${formatCurrency.format(op.marketValue)}",
+              style: const TextStyle(fontSize: 18.0),
+              textAlign: TextAlign.right,
+            )
+          ]),
+
+          /*Wrap(
+            spacing: 12,
+            children: [
+              Column(children: [
+                Text(
+                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+                  style: const TextStyle(fontSize: 15.0),
+                  textAlign: TextAlign.right,
+                ),
+                Icon(
+                    gainLossPerContract > 0
+                        ? Icons.trending_up
+                        : (gainLossPerContract < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (gainLossPerContract > 0
+                        ? Colors.green
+                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
+              ]),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "${formatCurrency.format(marketValue)}",
+                    style: const TextStyle(fontSize: 18.0),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              )
+            ],
+          ),*/
+          //isThreeLine: true,
+          onTap: () {
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => OptionInstrumentWidget(
+                        ru, op.optionInstrument!,
+                        optionPosition: op)));
+          },
+        ),
+      ],
+    ));
+  }
+
+  Widget get optionOrdersWidget {
+    return SliverStickyHeader(
+      header: Material(
+          elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: Text(
+                  "Option Orders",
+                  style: const TextStyle(
+                      //color: Colors.white,
+                      fontSize: 19.0),
+                ),
+                subtitle: Text(
+                    "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance)}"),
+                trailing: IconButton(
+                    icon: const Icon(Icons.filter_list),
+                    onPressed: () {
+                      showModalBottomSheet<void>(
+                        context: context,
+                        constraints: BoxConstraints(maxHeight: 260),
+                        builder: (BuildContext context) {
+                          return Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                tileColor: Colors.blue,
+                                title: Text(
+                                  "Filter Option Orders",
+                                  style: const TextStyle(
+                                      color: Colors.white, fontSize: 19.0),
+                                ),
+                                /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                              ),
+                              orderFilterWidget,
+                            ],
+                          );
+                        },
+                      );
+                    }),
+              ))),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
@@ -1072,6 +1508,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         optionInstruments[index].optionMarketData = value;
                       }));
             }
+            var optionPositionsMatchingInstrument = optionPositions.where(
+                (e) => e.optionInstrument!.id == optionInstruments[index].id);
+            var optionInstrumentQuantity =
+                optionPositionsMatchingInstrument.isNotEmpty
+                    ? optionPositionsMatchingInstrument
+                        .map((e) => e.quantity ?? 0)
+                        .reduce((a, b) => a + b)
+                    : 0;
             return Card(
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -1092,11 +1536,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ? const Text('Call')
                           : const Text('Put')),
                           */
-                // leading: Icon(Icons.ac_unit),
+                /*
+                leading: CircleAvatar(
+                    //backgroundImage: AssetImage(user.profilePicture),
+                    child: Text('${optionOrders[index].quantity!.round()}',
+                        style: const TextStyle(fontSize: 18))),
+                leading: Icon(Icons.ac_unit),
+                */
+                leading: optionInstrumentQuantity > 0
+                    ? CircleAvatar(
+                        //backgroundImage: AssetImage(user.profilePicture),
+                        child: Text(
+                            '${formatCompactNumber.format(optionInstrumentQuantity)}',
+                            style: const TextStyle(fontSize: 18)))
+                    : null, //Icon(Icons.ac_unit),
                 title: Text(//${optionInstruments[index].chainSymbol}
                     '\$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(optionInstruments[index].optionMarketData != null
-                    ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
+                    //? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
+                    ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}"
                     : ""),
                 //'Issued ${dateFormat.format(optionInstruments[index].issueDate as DateTime)}'),
                 trailing: Column(
@@ -1137,8 +1595,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => OptionInstrumentWidget(user,
-                              optionInstruments[index], instrument.quoteObj!)));
+                          builder: (context) => OptionInstrumentWidget(
+                                user,
+                                optionInstruments[index],
+                                optionPosition: optionPosition,
+                              )));
                 },
               )
             ]));

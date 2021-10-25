@@ -29,11 +29,10 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
-
-import 'option_position_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -87,17 +86,18 @@ class _HomePageState extends State<HomePage> {
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
-  Chart? chart;
-  int chartDateFilterSelected = 3;
+  //Chart? chart;
+  charts.TimeSeriesChart? chart;
+  int chartDateFilterSelected = 4;
   EquityHistorical? selection;
 
   Stream<List<Position>>? positionStream;
   Stream<List<PositionOrder>>? positionOrderStream;
 
-  Stream<List<OptionAggregatePosition>>? optionAggregatePositionStream;
+  Stream<List<OptionAggregatePosition>>? optionPositionStream;
   Stream<List<OptionOrder>>? optionOrderStream;
 
-  List<OptionAggregatePosition> optionAggregatePositions = [];
+  List<OptionAggregatePosition> optionPositions = [];
 
   List<String> optionOrderSymbols = [];
   List<String> positionOrderSymbols = [];
@@ -244,16 +244,14 @@ class _HomePageState extends State<HomePage> {
                                       var positions = positionSnapshot.data
                                           as List<Position>;
 
-                                      optionAggregatePositionStream ??=
-                                          RobinhoodService
-                                              .streamOptionAggregatePositionList(
-                                                  robinhoodUser!,
-                                                  nonzero:
-                                                      !hasQuantityFilters[1]);
+                                      optionPositionStream ??= RobinhoodService
+                                          .streamOptionAggregatePositionList(
+                                              robinhoodUser!,
+                                              nonzero: !hasQuantityFilters[1]);
 
                                       return StreamBuilder<
                                               List<OptionAggregatePosition>>(
-                                          stream: optionAggregatePositionStream,
+                                          stream: optionPositionStream,
                                           builder: (BuildContext context3,
                                               AsyncSnapshot<
                                                       List<
@@ -261,7 +259,7 @@ class _HomePageState extends State<HomePage> {
                                                   optionAggregatePositionSnapshot) {
                                             if (optionAggregatePositionSnapshot
                                                 .hasData) {
-                                              optionAggregatePositions =
+                                              optionPositions =
                                                   optionAggregatePositionSnapshot
                                                       .data!;
 
@@ -364,8 +362,8 @@ class _HomePageState extends State<HomePage> {
                                                                               nummusHoldings,
                                                                           portfolioHistoricals:
                                                                               portfolioHistoricals,
-                                                                          optionAggregatePositions:
-                                                                              optionAggregatePositions,
+                                                                          optionPositions:
+                                                                              optionPositions,
                                                                           optionOrders:
                                                                               optionOrders,
                                                                           positions:
@@ -403,8 +401,8 @@ class _HomePageState extends State<HomePage> {
                                                                               accounts,
                                                                           nummusHoldings:
                                                                               nummusHoldings,
-                                                                          optionAggregatePositions:
-                                                                              optionAggregatePositions,
+                                                                          optionPositions:
+                                                                              optionPositions,
                                                                           optionOrders:
                                                                               optionOrders,
                                                                           positions:
@@ -435,8 +433,8 @@ class _HomePageState extends State<HomePage> {
                                                                       nummusHoldings,
                                                                   portfolioHistoricals:
                                                                       portfolioHistoricals,
-                                                                  optionAggregatePositions:
-                                                                      optionAggregatePositions,
+                                                                  optionPositions:
+                                                                      optionPositions,
                                                                   positions:
                                                                       positions,
                                                                   watchlists:
@@ -472,8 +470,8 @@ class _HomePageState extends State<HomePage> {
                                                             nummusHoldings,
                                                         portfolioHistoricals:
                                                             portfolioHistoricals,
-                                                        optionAggregatePositions:
-                                                            optionAggregatePositions,
+                                                        optionPositions:
+                                                            optionPositions,
                                                         positions: positions,
                                                       );
                                                     } else {
@@ -487,8 +485,8 @@ class _HomePageState extends State<HomePage> {
                                                             nummusHoldings,
                                                         portfolioHistoricals:
                                                             portfolioHistoricals,
-                                                        optionAggregatePositions:
-                                                            optionAggregatePositions,
+                                                        optionPositions:
+                                                            optionPositions,
                                                         positions: positions,
                                                       );
                                                     }
@@ -581,7 +579,7 @@ class _HomePageState extends State<HomePage> {
       List<Holding>? nummusHoldings,
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
-      List<OptionAggregatePosition>? optionAggregatePositions,
+      List<OptionAggregatePosition>? optionPositions,
       List<OptionOrder>? optionOrders,
       List<Position>? positions,
       List<PositionOrder>? positionOrders,
@@ -603,20 +601,19 @@ class _HomePageState extends State<HomePage> {
       }
     }
     double nummusEquity = 0;
-    if (nummusHoldings != null) {
+    if (nummusHoldings != null && nummusHoldings.isNotEmpty) {
       nummusEquity = nummusHoldings
           .map((e) => e.value! * e.quantity!)
           .reduce((a, b) => a + b);
     }
     double optionEquity = 0;
-    if (optionAggregatePositions != null) {
-      optionEquity = optionAggregatePositions
+    if (optionPositions != null) {
+      optionEquity = optionPositions
           .map((e) => e.legs.first.positionType == "long"
               ? e.marketValue
               : e.marketValue) // TODO: Match portfolios[0].marketValue (e.totalCost - e.marketValue)
           .reduce((a, b) => a + b);
-      chainSymbols =
-          optionAggregatePositions.map((e) => e.symbol).toSet().toList();
+      chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
     }
     SliverAppBar sliverAppBar = buildSliverAppBar(
@@ -710,6 +707,7 @@ class _HomePageState extends State<HomePage> {
             data: filteredEquityHistoricals,
           ),
         ];
+/*
         chart ??= Chart(
           seriesList,
           animate: true,
@@ -718,6 +716,34 @@ class _HomePageState extends State<HomePage> {
               selection = value;
             });
           },
+        );
+        */
+        chart ??= charts.TimeSeriesChart(
+          seriesList,
+          defaultRenderer:
+              charts.LineRendererConfig(includeArea: true, stacked: false),
+          animate: true,
+          primaryMeasureAxis: new charts.NumericAxisSpec(
+              tickProviderSpec:
+                  new charts.BasicNumericTickProviderSpec(zeroBound: false)),
+          selectionModels: [
+            charts.SelectionModelConfig(
+              type: charts.SelectionModelType.info,
+              changedListener: (charts.SelectionModel model) {
+                if (model.hasDatumSelection) {
+                  var selected =
+                      model.selectedDatum[0].datum as EquityHistorical;
+                  setState(() {
+                    selection = selected;
+                  });
+                } else {}
+              },
+              //changedListener: (charts.SelectionModel model) {
+
+              //},
+            )
+          ],
+          behaviors: [new charts.SeriesLegend()],
         );
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -804,6 +830,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 2;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -820,6 +847,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 3;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -836,6 +864,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 4;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -852,6 +881,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 5;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -868,6 +898,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 6;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -884,6 +915,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateFilterSelected = 7;
+                                chart = null;
                               } else {}
                             });
                           },
@@ -907,8 +939,8 @@ class _HomePageState extends State<HomePage> {
           child: Align(alignment: Alignment.center, child: welcomeWidget),
         )));
       }
-      if (optionAggregatePositions != null) {
-        var filteredOptionAggregatePositions = optionAggregatePositions
+      if (optionPositions != null) {
+        var filteredOptionAggregatePositions = optionPositions
             .where((element) =>
                 (!hasQuantityFilters[0] || element.quantity! > 0) &&
                 (!hasQuantityFilters[1] || element.quantity! <= 0) &&
@@ -938,7 +970,7 @@ class _HomePageState extends State<HomePage> {
                           fontSize: 19.0),
                     ),
                     subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionAggregatePositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
                     trailing: IconButton(
                         icon: const Icon(Icons.filter_list),
                         onPressed: () {
@@ -953,7 +985,7 @@ class _HomePageState extends State<HomePage> {
                                   ListTile(
                                     tileColor: Colors.blue,
                                     title: const Text(
-                                      "Filter Option Positions",
+                                      "Filter Options",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
                                     ),
@@ -1005,9 +1037,9 @@ class _HomePageState extends State<HomePage> {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              if (optionAggregatePositions.length > index) {
+              if (optionPositions.length > index) {
                 return _buildOptionPositionRow(
-                    optionAggregatePositions, index, ru);
+                    optionPositions, index, ru);
               }
               return null;
             },
@@ -1082,8 +1114,8 @@ class _HomePageState extends State<HomePage> {
                                 /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
-                              optionAggregatePositions:
-                                  optionAggregatePositions)
+                              optionPositions:
+                                  optionPositions)
                                   */
                                 (BuildContext context) {
                               return Column(
@@ -1325,8 +1357,8 @@ class _HomePageState extends State<HomePage> {
                                 /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
-                              optionAggregatePositions:
-                                  optionAggregatePositions)
+                              optionPositions:
+                                  optionPositions)
                                   */
                                 (BuildContext context) {
                               return Column(
@@ -2273,8 +2305,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget get optionSymbolFilterWidget {
     var widgets =
-        optionSymbolFilterWidgets(chainSymbols, optionAggregatePositions)
-            .toList();
+        optionSymbolFilterWidgets(chainSymbols, optionPositions).toList();
     /*
     if (widgets.length < 20) {
       return Padding(
@@ -2353,7 +2384,7 @@ class _HomePageState extends State<HomePage> {
                       } else {
                         hasQuantityFilters[1] = false;
                       }
-                      optionAggregatePositionStream = null;
+                      optionPositionStream = null;
                     });
                   },
                 ),
@@ -3404,7 +3435,7 @@ class _HomePageState extends State<HomePage> {
       futurePortfolios = null;
       //futureOptionPositions = null;
 
-      optionAggregatePositionStream = null;
+      optionPositionStream = null;
       optionOrderStream = null;
       positionStream = null;
       positionOrderStream = null;
@@ -3575,7 +3606,9 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => OptionPositionWidget(ru, op)));
+                    builder: (context) => OptionInstrumentWidget(
+                        ru, op.optionInstrument!,
+                        optionPosition: op)));
           },
         ),
       ],
@@ -3635,7 +3668,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Wrap(children: [
                   Text(
-                      '${watchLists[index].instrumentObj!.name}', // ${watchLists[index].instrumentObj!.country}',
+                      '${watchLists[index].instrumentObj!.simpleName}', // ${watchLists[index].instrumentObj!.country}',
                       style: const TextStyle(fontSize: 12.0),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis)
@@ -3818,8 +3851,7 @@ class _HomePageState extends State<HomePage> {
   */
 
   void _generateCsvFile() async {
-    File file =
-        await OptionAggregatePosition.generateCsv(optionAggregatePositions);
+    File file = await OptionAggregatePosition.generateCsv(optionPositions);
 
     ScaffoldMessenger.of(context)
       ..removeCurrentSnackBar()

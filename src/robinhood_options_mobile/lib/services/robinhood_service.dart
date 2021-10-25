@@ -26,7 +26,9 @@ class RobinhoodService {
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
+  static List<OptionAggregatePosition>? optionPositions;
   static List<OptionOrder>? optionOrders;
+  static List<Position>? stockPositions;
   static List<PositionOrder>? positionOrders;
   static List<Quote> quotes = [];
   static List<Instrument> instruments = [];
@@ -164,6 +166,8 @@ class RobinhoodService {
       positions.sort((a, b) => a.createdAt!.compareTo(b.createdAt!));
       yield positions;
     }
+    // Persist in static value
+    stockPositions = positions;
   }
 
   static Stream<List<PositionOrder>> streamPositionOrders(
@@ -396,7 +400,7 @@ class RobinhoodService {
   static Stream<List<OptionAggregatePosition>>
       streamOptionAggregatePositionList(RobinhoodUser user,
           {bool nonzero = true}) async* {
-    List<OptionAggregatePosition> optionPositions =
+    List<OptionAggregatePosition> ops =
         await getAggregateOptionPositions(user, nonzero: nonzero);
     /*
     for (var optionPosition in optionPositions) {
@@ -418,12 +422,12 @@ class RobinhoodService {
     }
     */
 
-    var len = optionPositions.length;
+    var len = ops.length;
     var size = 15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
-      chunks.add(optionPositions.sublist(i, end));
+      chunks.add(ops.sublist(i, end));
     }
     for (var chunk in chunks) {
       var optionIds = chunk.map((e) {
@@ -436,7 +440,7 @@ class RobinhoodService {
       var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
 
       for (var optionInstrument in optionInstruments) {
-        var optionPosition = optionPositions.singleWhere((element) {
+        var optionPosition = ops.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionInstrument.id;
         });
@@ -447,7 +451,7 @@ class RobinhoodService {
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
       for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = optionPositions.singleWhere((element) {
+        var optionPosition = ops.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
@@ -456,10 +460,9 @@ class RobinhoodService {
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
         optionPosition.marketData = optionMarketDatum;
 
-        optionPositions.sort((a, b) =>
-            (a.legs.first.expirationDate ?? DateTime.now())
-                .compareTo((b.legs.first.expirationDate ?? DateTime.now())));
-        yield optionPositions;
+        ops.sort((a, b) => (a.legs.first.expirationDate ?? DateTime.now())
+            .compareTo((b.legs.first.expirationDate ?? DateTime.now())));
+        yield ops;
       }
       /*
       for (var i = 0; i < optionMarketData.length; i++) {
@@ -495,6 +498,8 @@ class RobinhoodService {
     }
     yield optionPositions;
     */
+    // Persist in static value
+    optionPositions = ops;
   }
 
   /*
