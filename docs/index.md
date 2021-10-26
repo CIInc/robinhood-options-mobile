@@ -10,13 +10,25 @@
   - [x] Portfolio historical charts view.
   - [x] Portfolio summary breakdown view.
 - Stocks UI
-  - [x] Instrument view with positions, options, orders, and fundamentals.
-  - [ ] Search stock view
+  - [x] Instrument (Stock) view
+    - [x] Positions, options, orders view
+    - [x] Fundamentals view.
+    - [ ] Related stock view.
+    - [ ] News view.
+    - [ ] Earnings view.
+    - [ ] Splits & Corporate Actions view.
+  - [ ] Search stock view.
+  - [ ] Stock research
+    - [ ] Movers (gainers and losers).
+    - [ ] Popular (based on average volume vs current volume).
+    - [ ] Undervalued/Overvalued (Fair value evaluation)
 - Options UI
   - [x] Options list with filters.
   - [x] Option detail view with market data.
   - [x] Option greeks view.
+    - [ ] Risk analysis with charts.
   - [x] Option chain view.
+    - [ ] Show current price list divider with scroll to function.
 - Crypto UI
   - [ ] Crypto list
 - Lists UI
