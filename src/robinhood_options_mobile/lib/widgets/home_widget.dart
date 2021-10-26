@@ -42,6 +42,8 @@ final formatCompactNumber = NumberFormat.compact();
 
 enum SortType { alphabetical, change }
 enum SortDirection { asc, desc }
+enum ChartDateSpan { hour, day, week, month, month_3, year, year_5, all }
+enum Bounds { regular, _24_7 }
 
 /*
 class DrawerItem {
@@ -88,7 +90,8 @@ class _HomePageState extends State<HomePage> {
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
   //Chart? chart;
   charts.TimeSeriesChart? chart;
-  int chartDateFilterSelected = 4;
+  ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
+  Bounds chartBoundsFilter = Bounds.regular;
   EquityHistorical? selection;
 
   Stream<List<Position>>? positionStream;
@@ -215,10 +218,58 @@ class _HomePageState extends State<HomePage> {
                           data.length > 2 ? data[2] as List<Portfolio> : null;
                       var nummusHoldings =
                           data.length > 3 ? data[3] as List<Holding> : null;
-
+                      String? bounds;
+                      String? interval;
+                      String? span;
+                      switch (chartBoundsFilter) {
+                        case Bounds.regular:
+                          bounds = "regular";
+                          break;
+                        case Bounds._24_7:
+                          bounds = "24_7";
+                          break;
+                      }
+                      switch (chartDateSpanFilter) {
+                        case ChartDateSpan.hour:
+                          interval = "15second";
+                          span = "hour";
+                          bounds = "24_7"; // Does not work with regular?!
+                          break;
+                        case ChartDateSpan.day:
+                          interval = "5minute";
+                          span = "day";
+                          break;
+                        case ChartDateSpan.week:
+                          interval = "hour";
+                          span = "week";
+                          // bounds = "24_7"; // Does not look good with regular?!
+                          break;
+                        case ChartDateSpan.month:
+                          interval = "hour";
+                          span = "month";
+                          // bounds = "24_7"; // Does not look good with regular?!
+                          break;
+                        case ChartDateSpan.month_3:
+                          interval = "day";
+                          span = "3month";
+                          break;
+                        case ChartDateSpan.year:
+                          interval = "day";
+                          span = "year";
+                          break;
+                        case ChartDateSpan.year_5:
+                          interval = "week";
+                          span = "5year";
+                          break;
+                        case ChartDateSpan.all:
+                          // interval = "week";
+                          span = "all";
+                          break;
+                      }
                       futurePortfolioHistoricals ??=
                           RobinhoodService.getPortfolioHistoricals(
-                              robinhoodUser!, accounts![0].accountNumber);
+                              robinhoodUser!, accounts![0].accountNumber,
+                              bounds: bounds, interval: interval, span: span);
 
                       return FutureBuilder(
                           future: Future.wait(
@@ -231,6 +282,8 @@ class _HomePageState extends State<HomePage> {
                               var portfolioHistoricals = data.isNotEmpty
                                   ? data[0] as PortfolioHistoricals
                                   : null;
+
+                              chart = null;
 
                               positionStream ??=
                                   RobinhoodService.streamPositions(
@@ -401,6 +454,8 @@ class _HomePageState extends State<HomePage> {
                                                                               accounts,
                                                                           nummusHoldings:
                                                                               nummusHoldings,
+                                                                          portfolioHistoricals:
+                                                                              portfolioHistoricals,
                                                                           optionPositions:
                                                                               optionPositions,
                                                                           optionOrders:
@@ -645,33 +700,7 @@ class _HomePageState extends State<HomePage> {
         )));
       }
       if (portfolioHistoricals != null) {
-        int days = 0;
-        switch (chartDateFilterSelected) {
-          case 0:
-            days = 1;
-            break;
-          case 1:
-            days = 7;
-            break;
-          case 2:
-            days = 30;
-            break;
-          case 3:
-            days = 90;
-            break;
-          case 4:
-            days = 365;
-            break;
-          case 5:
-            days = 365 * 2;
-            break;
-          case 6:
-            days = 365 * 3;
-            break;
-          case 7:
-            break;
-        }
-
+        /*
         var filteredEquityHistoricals = portfolioHistoricals.equityHistoricals
             .where((element) =>
                 days == 0 ||
@@ -679,72 +708,67 @@ class _HomePageState extends State<HomePage> {
                         .compareTo(DateTime.now().add(Duration(days: -days))) >
                     0)
             .toList();
-        List<charts.Series<dynamic, DateTime>> seriesList = [
-          charts.Series<EquityHistorical, DateTime>(
-            id: 'Adjusted Equity',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            domainFn: (EquityHistorical history, _) => history.beginsAt!,
-            //filteredEquityHistoricals.indexOf(history),
-            measureFn: (EquityHistorical history, _) =>
-                history.adjustedCloseEquity,
-            data: filteredEquityHistoricals,
-          ),
-          charts.Series<EquityHistorical, DateTime>(
-            id: 'Equity',
-            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-            domainFn: (EquityHistorical history, _) => history.beginsAt!,
-            //filteredEquityHistoricals.indexOf(history),
-            measureFn: (EquityHistorical history, _) => history.closeEquity,
-            data: filteredEquityHistoricals,
-          ),
-          charts.Series<EquityHistorical, DateTime>(
-            id: 'Market Value',
-            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-            domainFn: (EquityHistorical history, _) => history.beginsAt!,
-            //filteredEquityHistoricals.indexOf(history),
-            measureFn: (EquityHistorical history, _) =>
-                history.closeMarketValue,
-            data: filteredEquityHistoricals,
-          ),
-        ];
-/*
-        chart ??= Chart(
-          seriesList,
-          animate: true,
-          onSelected: (value) {
-            setState(() {
-              selection = value;
-            });
-          },
-        );
-        */
-        chart ??= charts.TimeSeriesChart(
-          seriesList,
-          defaultRenderer:
-              charts.LineRendererConfig(includeArea: true, stacked: false),
-          animate: true,
-          primaryMeasureAxis: new charts.NumericAxisSpec(
-              tickProviderSpec:
-                  new charts.BasicNumericTickProviderSpec(zeroBound: false)),
-          selectionModels: [
-            charts.SelectionModelConfig(
-              type: charts.SelectionModelType.info,
-              changedListener: (charts.SelectionModel model) {
-                if (model.hasDatumSelection) {
-                  var selected =
-                      model.selectedDatum[0].datum as EquityHistorical;
-                  setState(() {
-                    selection = selected;
-                  });
-                } else {}
-              },
-              //changedListener: (charts.SelectionModel model) {
-
-              //},
-            )
-          ],
-          behaviors: [new charts.SeriesLegend()],
-        );
+            */
+        if (chart == null) {
+          List<charts.Series<dynamic, DateTime>> seriesList = [
+            charts.Series<EquityHistorical, DateTime>(
+                id: 'Adjusted Equity',
+                colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                //filteredEquityHistoricals.indexOf(history),
+                measureFn: (EquityHistorical history, _) =>
+                    history.adjustedCloseEquity,
+                data: portfolioHistoricals
+                    .equityHistoricals //filteredEquityHistoricals,
+                ),
+            charts.Series<EquityHistorical, DateTime>(
+                id: 'Equity',
+                colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                //filteredEquityHistoricals.indexOf(history),
+                measureFn: (EquityHistorical history, _) => history.closeEquity,
+                data: portfolioHistoricals
+                    .equityHistoricals //filteredEquityHistoricals,
+                ),
+            charts.Series<EquityHistorical, DateTime>(
+                id: 'Market Value',
+                colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                //filteredEquityHistoricals.indexOf(history),
+                measureFn: (EquityHistorical history, _) =>
+                    history.closeMarketValue,
+                data: portfolioHistoricals
+                    .equityHistoricals //filteredEquityHistoricals,
+                ),
+          ];
+          chart = charts.TimeSeriesChart(
+            seriesList,
+            defaultRenderer:
+                charts.LineRendererConfig(includeArea: true, stacked: false),
+            animate: true,
+            primaryMeasureAxis: new charts.NumericAxisSpec(
+                tickProviderSpec:
+                    new charts.BasicNumericTickProviderSpec(zeroBound: false)),
+            selectionModels: [
+              charts.SelectionModelConfig(
+                type: charts.SelectionModelType.info,
+                changedListener: (charts.SelectionModel model) {
+                  if (model.hasDatumSelection) {
+                    var selected =
+                        model.selectedDatum[0].datum as EquityHistorical;
+                    setState(() {
+                      selection = selected;
+                    });
+                  }
+                },
+              )
+            ],
+            behaviors: [
+              charts.SeriesLegend(
+                  defaultHiddenSeries: ['Equity', 'Market Value'])
+            ],
+          );
+        }
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
                 height: 220,
@@ -781,20 +805,18 @@ class _HomePageState extends State<HomePage> {
                   scrollDirection: Axis.horizontal,
                   itemBuilder: (context, index) {
                     return Row(children: [
-                      /*
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Today'),
-                          selected: chartDateFilterSelected == 0,
+                          label: const Text('Hour'),
+                          selected: chartDateSpanFilter == ChartDateSpan.hour,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 0;
-                              } else {
-                                //dateFilterSelected = null;
+                                chartDateSpanFilter = ChartDateSpan.hour;
+                                futurePortfolioHistoricals = null;
                               }
                             });
                           },
@@ -805,33 +827,31 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past Week'),
-                          selected: chartDateFilterSelected == 1,
+                          label: const Text('Day'),
+                          selected: chartDateSpanFilter == ChartDateSpan.day,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 1;
-                              } else {
-                                //dateFilterSelected = null;
+                                chartDateSpanFilter = ChartDateSpan.day;
+                                futurePortfolioHistoricals = null;
                               }
                             });
                           },
                         ),
                       ),
-                      */
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past Month'),
-                          selected: chartDateFilterSelected == 2,
+                          label: const Text('Week'),
+                          selected: chartDateSpanFilter == ChartDateSpan.week,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 2;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.week;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),
@@ -841,14 +861,14 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past 3 Months'),
-                          selected: chartDateFilterSelected == 3,
+                          label: const Text('Month'),
+                          selected: chartDateSpanFilter == ChartDateSpan.month,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 3;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.month;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),
@@ -858,14 +878,15 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past Year'),
-                          selected: chartDateFilterSelected == 4,
+                          label: const Text('3 Months'),
+                          selected:
+                              chartDateSpanFilter == ChartDateSpan.month_3,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 4;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.month_3;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),
@@ -875,14 +896,14 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past 2 Years'),
-                          selected: chartDateFilterSelected == 5,
+                          label: const Text('Year'),
+                          selected: chartDateSpanFilter == ChartDateSpan.year,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 5;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.year;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),
@@ -892,14 +913,14 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Past 3 Years'),
-                          selected: chartDateFilterSelected == 6,
+                          label: const Text('5 Years'),
+                          selected: chartDateSpanFilter == ChartDateSpan.year_5,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 6;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.year_5;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),
@@ -909,14 +930,51 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('All Time'),
-                          selected: chartDateFilterSelected == 7,
+                          label: const Text('All'),
+                          selected: chartDateSpanFilter == ChartDateSpan.all,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartDateFilterSelected = 7;
-                                chart = null;
-                              } else {}
+                                chartDateSpanFilter = ChartDateSpan.all;
+                                futurePortfolioHistoricals = null;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Container(
+                        width: 10,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ChoiceChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('Regular Hours'),
+                          selected: chartBoundsFilter == Bounds.regular,
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                chartBoundsFilter = Bounds.regular;
+                                futurePortfolioHistoricals = null;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ChoiceChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('24/7 Hours'),
+                          selected: chartBoundsFilter == Bounds._24_7,
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                chartBoundsFilter = Bounds._24_7;
+                                futurePortfolioHistoricals = null;
+                              }
                             });
                           },
                         ),

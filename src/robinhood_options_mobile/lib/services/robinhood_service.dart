@@ -9,7 +9,6 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
@@ -20,7 +19,6 @@ import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
-import 'package:robinhood_options_mobile/services/store.dart';
 
 class RobinhoodService {
 /*
@@ -84,11 +82,26 @@ class RobinhoodService {
     return portfolios;
   }
 
-  // Not working
+  /*
+  // Bounds options     [24_7, regular]
+  // Interval options   [15second, 5minute, hour, day, week]
+  // Span options       [hour, day, week, month, 3month, year, all]
+
+  // Hour: bounds: 24_7,interval: 15second, span: hour
+  // Day: bounds: 24_7,interval: 5minute, span: day
+  // Week: bounds: 24_7,interval: hour, span: week
+  // Month: bounds: 24_7,interval: hour, span: month
+  // 3 Months: bounds: 24_7,interval: day, span: 3month
+  // Year: bounds: 24_7,interval: day, span: year
+  // All bounds: 24_7, span: all
+  */
   static Future<PortfolioHistoricals> getPortfolioHistoricals(
-      RobinhoodUser user, String account) async {
+      RobinhoodUser user, String account,
+      {String? bounds, String? interval, String? span}) async {
+    // https://api.robinhood.com/portfolios/historicals/5QR24141/?account=5QR24141&bounds=24_7&interval=5minute&span=day
+    // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=e4e27a2e-4621-4ccb-8922-860a99fe0cd2&interval=10minute&ratios=1&span=week&types=long
     var result = await RobinhoodService.getJson(user,
-        "${Constants.robinHoodEndpoint}/portfolios/historicals/${account}/"); //${account}/
+        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?${bounds != null ? "&bounds=$bounds" : ""}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}"); //${account}/
     return new PortfolioHistoricals.fromJson(result);
   }
 
@@ -887,8 +900,6 @@ WATCHLIST
     for (var entry in userItemsJson.entries) {
       var watchlistUrl =
           "${Constants.robinHoodEndpoint}/midlands/lists/${entry.key}/?owner_type=custom";
-      print(watchlistUrl);
-      //print(entry.key);
       var entryJson = await getJson(user, watchlistUrl);
 
       var wl = Watchlist.fromJson(entryJson);
@@ -1100,13 +1111,14 @@ WATCHLIST
   */
 
   /* COMMON */
-
+  // SocketException (SocketException: Failed host lookup: 'loadbalancer-brokeback.nginx.service.robinhood' (OS Error: No address associated with hostname, errno = 7))
   static Future<dynamic> getJson(RobinhoodUser user, String url) async {
-    print(url);
+    // print(url);
     Stopwatch stopwatch = new Stopwatch();
     stopwatch.start();
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
-    print("${url} ${(responseStr.length / 1000)}K in ${stopwatch.elapsed}");
+    print(
+        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds} ${url}");
     dynamic responseJson = jsonDecode(responseStr);
     return responseJson;
   }
@@ -1119,7 +1131,10 @@ WATCHLIST
     yield results;
     int page = 1;
     var nextUrl = responseJson['next'];
-    while (nextUrl != null && nextUrl != url && (pages == 0 || page < pages)) {
+    while (nextUrl != null &&
+        nextUrl != url &&
+        (pages == 0 || page < pages) &&
+        url.startsWith(Constants.robinHoodEndpoint.toString())) {
       responseJson = await getJson(user, nextUrl);
       results.addAll(responseJson['results']);
       yield results;
@@ -1142,11 +1157,7 @@ WATCHLIST
   }
 }
 
-
 /*
-
-def portfolis_historicals_url(account_number):
-    return('https://api.robinhood.com/portfolios/historicals/{0}/'.format(account_number))
 
 # Stocks
 
