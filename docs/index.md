@@ -17,9 +17,19 @@
   - [x] Option detail view with market data.
   - [x] Option greeks view.
   - [x] Option chain view.
+- Crypto UI
+  - [ ] Crypto list
+- Lists UI
+  - [x] List view.
+    - [ ] List sort order maintenance.
+    - [ ] List item sort order maintenance.
+  - [ ] Create new list.
+  - [ ] Edit list.
+  - [ ] Add symbol to list.
 - Trading UI
   - [ ] Place stock order.
   - [ ] Place option order with buy-to-close, sell-to-open, etc.
+  - [ ] Place crypto order.
   - [ ] Cancel pending order.
   - [ ] Replace order.
 - Account UI
