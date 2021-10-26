@@ -40,7 +40,13 @@
   - [ ] Add symbol to list.
 - Trading UI
   - [ ] Place stock order.
-  - [ ] Place option order with buy-to-close, sell-to-open, etc.
+  - [ ] Place option order.
+    - [ ] buy-to-close, sell-to-open, limit, time-in-force
+    - [ ] Multi-leg strategies.
+      - [ ] Call/Put debit/credit spreads.
+      - [ ] Synthetic long/short.
+      - [ ] Calendar/diagonal spreads.
+    - [ ] Price spread selector (bid/ask analysis for low volume options).
   - [ ] Place crypto order.
   - [ ] Cancel pending order.
   - [ ] Replace order.
