@@ -13,6 +13,7 @@
   - [x] Instrument (Stock) view
     - [x] Positions, options, orders view
     - [x] Fundamentals view.
+    - [x] Historical charts view.
     - [ ] Related stock view.
     - [ ] News view.
     - [ ] Earnings view.
