@@ -2,6 +2,7 @@
 
 //@immutable
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 
@@ -44,6 +45,7 @@ class Instrument {
 
   Quote? quoteObj;
   Fundamentals? fundamentalsObj;
+  InstrumentHistoricals? instrumentHistoricalsObj;
   List<Split> splitsObj = [];
 
   Instrument(

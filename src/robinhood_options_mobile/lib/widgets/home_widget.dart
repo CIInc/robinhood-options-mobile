@@ -1,7 +1,6 @@
 // ignore_for_file: prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -816,6 +815,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.hour;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -833,6 +833,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.day;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -850,6 +851,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.week;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -867,6 +869,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.month;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -885,6 +888,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.month_3;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -902,6 +906,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.year;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -919,6 +924,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.year_5;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -936,6 +942,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartDateSpanFilter = ChartDateSpan.all;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -956,6 +963,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartBoundsFilter = Bounds.regular;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -973,6 +981,7 @@ class _HomePageState extends State<HomePage> {
                             setState(() {
                               if (value) {
                                 chartBoundsFilter = Bounds._24_7;
+                                selection = null;
                                 futurePortfolioHistoricals = null;
                               }
                             });
@@ -1225,7 +1234,7 @@ class _HomePageState extends State<HomePage> {
                       title: Text(
                           "${filteredOptionOrders[index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders[index].legs.first.strikePrice)} ${filteredOptionOrders[index].strategy} ${formatCompactDate.format(filteredOptionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
                       subtitle: Text(
-                          "${filteredOptionOrders[index].state} ${dateFormat.format(filteredOptionOrders[index].updatedAt!)}"),
+                          "${filteredOptionOrders[index].state} ${formatDate.format(filteredOptionOrders[index].updatedAt!)}"),
                       trailing: Wrap(spacing: 8, children: [
                         Text(
                           (filteredOptionOrders[index].direction == "credit"
@@ -1468,7 +1477,7 @@ class _HomePageState extends State<HomePage> {
                       title: Text(
                           "${filteredPositionOrders[index].instrumentObj != null ? filteredPositionOrders[index].instrumentObj!.symbol : ""} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
                       subtitle: Text(
-                          "${filteredPositionOrders[index].state} ${dateFormat.format(filteredPositionOrders[index].updatedAt!)}"),
+                          "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
                       trailing: Wrap(spacing: 8, children: [
                         Text(
                           "${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice! * filteredPositionOrders[index].quantity!) : ""}",
@@ -2253,7 +2262,7 @@ class _HomePageState extends State<HomePage> {
       ),
       ListTile(
         title: const Text("Joined", style: TextStyle(fontSize: 14)),
-        trailing: Text(dateFormat.format(user.createdAt!),
+        trailing: Text(formatDate.format(user.createdAt!),
             style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
@@ -3610,7 +3619,7 @@ class _HomePageState extends State<HomePage> {
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(
-              'Expires ${dateFormat.format(op.legs.first.expirationDate!)}'),
+              'Expires ${formatDate.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
             Icon(
                 op.gainLossPerContract > 0
@@ -3726,7 +3735,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Wrap(children: [
                   Text(
-                      '${watchLists[index].instrumentObj!.simpleName}', // ${watchLists[index].instrumentObj!.country}',
+                      '${watchLists[index].instrumentObj!.simpleName != null ? watchLists[index].instrumentObj!.simpleName : watchLists[index].instrumentObj!.name}',
                       style: const TextStyle(fontSize: 12.0),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis)

@@ -771,7 +771,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           ),
           ListTile(
             title: const Text("Expiration"),
-            trailing: Text(dateFormat.format(optionInstrument.expirationDate!),
+            trailing: Text(formatDate.format(optionInstrument.expirationDate!),
                 style: const TextStyle(fontSize: 18)),
           ),
           if (optionPosition != null) ...[
@@ -848,12 +848,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             ),
             ListTile(
               title: const Text("Created"),
-              trailing: Text(dateFormat.format(optionPosition!.createdAt!),
+              trailing: Text(formatDate.format(optionPosition!.createdAt!),
                   style: const TextStyle(fontSize: 18)),
             ),
             ListTile(
               title: const Text("Updated"),
-              trailing: Text(dateFormat.format(optionPosition!.updatedAt!),
+              trailing: Text(formatDate.format(optionPosition!.updatedAt!),
                   style: const TextStyle(fontSize: 18)),
             ),
           ],

@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
@@ -358,6 +359,33 @@ class RobinhoodService {
       list.add(op);
     }
     return list;
+  }
+
+  /*
+  // Bounds options     [regular, trading]
+  // Interval options   [15second, 5minute, 10minute, hour, day, week]
+  // Span options       [day, week, month, 3month, year, 5year]
+
+  // Day: bounds: trading, interval: 5minute, span: day
+  // Week: bounds: regular, interval: 10minute, span: week
+  // Month: bounds: regular, interval: hour, span: month
+  // 3 Months: bounds: regular, interval: day, span: 3month
+  // Year: bounds: regular, interval: day, span: year
+  // Year: bounds: regular, interval: day, span: 5year
+  */
+  static Future<InstrumentHistoricals> getInstrumentHistoricals(
+      RobinhoodUser user, String symbolOrInstrumentId,
+      {bool includeInactive = true,
+      String? bounds = "regular",
+      String? interval,
+      String? span}) async {
+    var result = await RobinhoodService.getJson(
+        user,
+        //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
+        //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
+        //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
+        "${Constants.robinHoodEndpoint}/marketdata/historicals/$symbolOrInstrumentId/?${bounds != null ? "&bounds=$bounds" : ""}&include_inactive=$includeInactive${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}"); //${account}/
+    return new InstrumentHistoricals.fromJson(result);
   }
 
   static Future<Fundamentals> getFundamentals(
@@ -1118,7 +1146,7 @@ WATCHLIST
     stopwatch.start();
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
     print(
-        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds} ${url}");
+        "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms ${url}");
     dynamic responseJson = jsonDecode(responseStr);
     return responseJson;
   }

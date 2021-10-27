@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
-import 'package:robinhood_options_mobile/model/fundamentals.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 
+import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -15,11 +18,14 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
-final dateFormat = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
+
+enum ChartDateSpan { day, week, month, month_3, year, year_5 }
+enum Bounds { regular, trading }
 
 class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -38,12 +44,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final RobinhoodUser user;
   final Instrument instrument;
   final Position? position;
-  Future<Fundamentals?>? futureFundamentals;
   final OptionAggregatePosition? optionPosition;
+
+  Future<Fundamentals?>? futureFundamentals;
   Future<Quote?>? futureQuote;
+  Future<InstrumentHistoricals?>? futureHistoricals;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
+
+  charts.TimeSeriesChart? chart;
+  ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
+  Bounds chartBoundsFilter = Bounds.regular;
+  InstrumentHistorical? selection;
 
   final List<String> optionFilters = <String>[];
   final List<String> positionFilters = <String>[];
@@ -73,20 +86,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   @override
   void initState() {
     super.initState();
-
-    if (instrument.quoteObj == null) {
-      futureQuote = RobinhoodService.getQuote(user, instrument.symbol);
-    } else {
-      futureQuote = Future.value(instrument.quoteObj);
-    }
-    if (instrument.fundamentalsObj == null) {
-      futureFundamentals = RobinhoodService.getFundamentals(user, instrument);
-    } else {
-      futureFundamentals = Future.value(instrument.fundamentalsObj);
-    }
-
-    optionInstrumentStream = RobinhoodService.streamOptionInstruments(
-        user, instrument, null, null); // 'call'
 
     if (RobinhoodService.optionOrders != null) {
       optionOrders = RobinhoodService.optionOrders!
@@ -130,15 +129,81 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (instrument.quoteObj == null) {
+      futureQuote ??= RobinhoodService.getQuote(user, instrument.symbol);
+    } else {
+      futureQuote ??= Future.value(instrument.quoteObj);
+    }
+    if (instrument.fundamentalsObj == null) {
+      futureFundamentals ??= RobinhoodService.getFundamentals(user, instrument);
+    } else {
+      futureFundamentals ??= Future.value(instrument.fundamentalsObj);
+    }
+
+    String? bounds;
+    String? interval;
+    String? span;
+    switch (chartBoundsFilter) {
+      case Bounds.regular:
+        bounds = "regular";
+        break;
+      case Bounds.trading:
+        bounds = "trading";
+        break;
+    }
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.day:
+        interval = "5minute";
+        span = "day";
+        bounds = "trading";
+        break;
+      case ChartDateSpan.week:
+        interval = "10minute";
+        span = "week";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month:
+        interval = "hour";
+        span = "month";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month_3:
+        interval = "day";
+        span = "3month";
+        break;
+      case ChartDateSpan.year:
+        interval = "day";
+        span = "year";
+        break;
+      case ChartDateSpan.year_5:
+        interval = "day";
+        span = "5year";
+        break;
+    }
+    futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+        user, instrument.symbol,
+        interval: interval, span: span, bounds: bounds);
+
+    optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
+        user, instrument, null, null); // 'call'
+
     return Scaffold(
         body: FutureBuilder(
-      future:
-          Future.wait([futureQuote as Future, futureFundamentals as Future]),
+      future: Future.wait([
+        futureQuote as Future,
+        futureFundamentals as Future,
+        futureHistoricals as Future
+      ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           List<dynamic> data = snapshot.data as List<dynamic>;
           instrument.quoteObj = data.isNotEmpty ? data[0] : null;
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
+          instrument.instrumentHistoricalsObj =
+              data.length > 2 ? data[2] : null;
+
+          chart = null;
+
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
               builder: (BuildContext context,
@@ -198,6 +263,273 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ),
       pinned: true,
     ));
+    if (instrument.instrumentHistoricalsObj != null) {
+      /*
+        var filteredInstrumentHistoricals = portfolioHistoricals.equityHistoricals
+            .where((element) =>
+                days == 0 ||
+                element.beginsAt!
+                        .compareTo(DateTime.now().add(Duration(days: -days))) >
+                    0)
+            .toList();
+            */
+      if (chart == null) {
+        List<charts.Series<dynamic, DateTime>> seriesList = [
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Open',
+            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.openPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Close',
+            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.closePrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+              id: 'Volume',
+              colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
+              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+              measureFn: (InstrumentHistorical history, _) => history.volume,
+              data: instrument.instrumentHistoricalsObj!.historicals),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Low',
+            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.lowPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'High',
+            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.highPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+        ];
+        chart = charts.TimeSeriesChart(
+          seriesList,
+          defaultRenderer:
+              charts.LineRendererConfig(includeArea: true, stacked: false),
+          animate: true,
+          primaryMeasureAxis: new charts.NumericAxisSpec(
+              tickProviderSpec:
+                  new charts.BasicNumericTickProviderSpec(zeroBound: false)),
+          selectionModels: [
+            charts.SelectionModelConfig(
+              type: charts.SelectionModelType.info,
+              changedListener: (charts.SelectionModel model) {
+                if (model.hasDatumSelection) {
+                  var selected =
+                      model.selectedDatum[0].datum as InstrumentHistorical;
+                  setState(() {
+                    selection = selected;
+                  });
+                }
+              },
+            )
+          ],
+          behaviors: [
+            charts.SeriesLegend(
+                defaultHiddenSeries: const ["Volume", "Open", "Low", "High"])
+          ],
+        );
+      }
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+              height: 220,
+              child: Padding(
+                //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                padding: const EdgeInsets.all(10.0),
+                child: chart,
+              ))));
+      if (selection != null) {
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+                height: 24,
+                child: Center(
+                    child: Wrap(
+                  spacing: 8,
+                  children: [
+                    Text("${formatDate.format(selection!.beginsAt!)}",
+                        style: const TextStyle(fontSize: 11)),
+                    Text(
+                        "Open/Close Price ${formatCurrency.format(selection!.openPrice)}, ${formatCurrency.format(selection!.closePrice)}",
+                        style: const TextStyle(fontSize: 11)),
+                    Text(
+                        "Low/High Price ${formatCurrency.format(selection!.lowPrice)}, ${formatCurrency.format(selection!.highPrice)}",
+                        style: const TextStyle(fontSize: 11)),
+                    Text(
+                        "Volume ${formatCompactNumber.format(selection!.volume)}",
+                        style: const TextStyle(fontSize: 11))
+                  ],
+                )))));
+      }
+      //child: StackedAreaLineChart.withSampleData()))));
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+              height: 56,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(5.0),
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return Row(children: [
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Day'),
+                        selected: chartDateSpanFilter == ChartDateSpan.day,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.day;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Week'),
+                        selected: chartDateSpanFilter == ChartDateSpan.week,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.week;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Month'),
+                        selected: chartDateSpanFilter == ChartDateSpan.month,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.month;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('3 Months'),
+                        selected: chartDateSpanFilter == ChartDateSpan.month_3,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.month_3;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Year'),
+                        selected: chartDateSpanFilter == ChartDateSpan.year,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.year;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('5 Years'),
+                        selected: chartDateSpanFilter == ChartDateSpan.year_5,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartDateSpanFilter = ChartDateSpan.year_5;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Container(
+                      width: 10,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Regular Hours'),
+                        selected: chartBoundsFilter == Bounds.regular,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartBoundsFilter = Bounds.regular;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Trading Hours'),
+                        selected: chartBoundsFilter == Bounds.trading,
+                        onSelected: (bool value) {
+                          setState(() {
+                            if (value) {
+                              chartBoundsFilter = Bounds.trading;
+                              selection = null;
+                              futureHistoricals = null;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                  ]);
+                },
+                itemCount: 1,
+              ))));
+    }
+
     slivers.add(
       SliverToBoxAdapter(
           child: Align(alignment: Alignment.center, child: buildOverview())),
@@ -250,12 +582,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         ListTile(
           title: Text("Created"),
-          trailing: Text(dateFormat.format(position!.createdAt!),
+          trailing: Text(formatDate.format(position!.createdAt!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
           title: Text("Updated"),
-          trailing: Text(dateFormat.format(position!.updatedAt!),
+          trailing: Text(formatDate.format(position!.updatedAt!),
               style: const TextStyle(fontSize: 18)),
         ),
       ]))));
@@ -813,7 +1145,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 title: Text(
                     "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${formatCompactNumber.format(positionOrders[index].averagePrice)}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
-                    "${positionOrders[index].state} ${dateFormat.format(positionOrders[index].updatedAt!)}"),
+                    "${positionOrders[index].state} ${formatDate.format(positionOrders[index].updatedAt!)}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (positionOrders[index].side == "sell" ? "+" : "-") +
@@ -1221,7 +1553,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(
-              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${dateFormat.format(op.legs.first.expirationDate!)}'),
+              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${formatDate.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
             Icon(
                 op.gainLossPerContract > 0
@@ -1354,7 +1686,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 title: Text(
                     "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
-                    "${optionOrders[index].state} ${dateFormat.format(optionOrders[index].updatedAt!)}"),
+                    "${optionOrders[index].state} ${formatDate.format(optionOrders[index].updatedAt!)}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (optionOrders[index].direction == "credit" ? "+" : "-") +
@@ -1668,6 +2000,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         textAlign: TextAlign.left,
         //overflow: TextOverflow.ellipsis
       );
+    } else {
+      yield Text(
+        '$instrument.name',
+        style: const TextStyle(fontSize: 14.0),
+        textAlign: TextAlign.left,
+        //overflow: TextOverflow.ellipsis
+      );
     }
     /*
     yield Row(children: const [SizedBox(height: 10)]);
@@ -1941,7 +2280,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(4.0),
           child: ChoiceChip(
             //avatar: CircleAvatar(child: Text(contractCount.toString())),
-            label: Text(dateFormat.format(expirationDate)),
+            label: Text(formatDate.format(expirationDate)),
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {
