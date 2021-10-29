@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Dart
+name: CD
 
 on:
   push:
@@ -14,6 +14,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
 
     steps:
       - uses: actions/checkout@v2
@@ -31,7 +35,7 @@ jobs:
       # - name: Verify formatting
       #   run: dart format --output=none --set-exit-if-changed .
 
-      # Consider passing '--fatal-infos' for slightly stricter analysis.
+      # Consider p  assing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
         run: dart analyze
 
@@ -40,3 +44,15 @@ jobs:
       # want to change this to 'flutter test'.
       - name: Run tests
         run: flutter test
+
+      - name: Build APK
+        run: flutter build apk
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          # Artifact name
+          name: release-apk
+          # A file, directory or wildcard pattern that describes what to upload
+          path: build/app/outputs/apk/release/app-release.apk
+          # The desired behavior if no files are found using the provided path.
