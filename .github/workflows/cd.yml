@@ -40,6 +40,7 @@ jobs:
       # Consider p  assing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
         run: flutter analyze
+        continue-on-error: true
 
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will
