@@ -40,18 +40,18 @@ jobs:
       # Consider p  assing '--fatal-infos' for slightly stricter analysis.
       - name: Analyze project source
         run: flutter analyze
-        continue-on-error: true
+        continue-on-error: false
 
       # Your project will need to have tests in test/ and a dependency on
       # package:test for this step to succeed. Note that Flutter projects will
       # want to change this to 'flutter test'.
       - name: Run tests
         run: flutter test
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Build APK
         run: flutter build apk
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v2.2.4
@@ -61,19 +61,19 @@ jobs:
           # A file, directory or wildcard pattern that describes what to upload
           path: build/app/outputs/flutter-apk/app-release.apk
           # The desired behavior if no files are found using the provided path.
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Build AppBundle
         id: build
         run: flutter build appbundle --build-number=`git rev-list --count HEAD`
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Upload App Bundle (.aab) Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: release-aab
           path: build/app/outputs/bundle/release/app-release.aab
-        continue-on-error: true
+        continue-on-error: false
 
 #      - name: Upload to Play Store
 #        uses: r0adkll/upload-google-play@v1.0.15
