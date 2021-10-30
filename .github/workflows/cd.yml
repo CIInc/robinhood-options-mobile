@@ -55,11 +55,12 @@ jobs:
 
       - name: Upload APK Build Artifact
         uses: actions/upload-artifact@v2.2.4
+        working-directory: build/app/outputs/flutter-apk
         with:
           # Artifact name
           name: release-apk
           # A file, directory or wildcard pattern that describes what to upload
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: app-release.apk
           # The desired behavior if no files are found using the provided path.
         continue-on-error: false
 
@@ -70,9 +71,10 @@ jobs:
 
       - name: Upload App Bundle (.aab) Build Artifact
         uses: actions/upload-artifact@v2.2.4
+        working-directory: build/app/outputs/bundle/release
         with:
           name: release-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: app-release.aab
         continue-on-error: false
 
 #      - name: Upload to Play Store
