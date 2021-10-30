@@ -7,7 +7,9 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import 'package:oauth2/oauth2.dart';
+// ignore: implementation_imports
 import 'package:oauth2/src/handle_access_token_response.dart';
+// ignore: implementation_imports
 import 'package:oauth2/src/utils.dart';
 
 /// Obtains credentials using a [resource owner password grant](https://tools.ietf.org/html/rfc6749#section-1.3.3).

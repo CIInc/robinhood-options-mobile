@@ -20,31 +20,27 @@ class OptionInstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
-  OptionInstrumentWidget(this.user, this.optionInstrument,
-      {this.optionPosition});
+  const OptionInstrumentWidget(this.user, this.optionInstrument,
+      {Key? key, this.optionPosition})
+      : super(key: key);
 
   @override
-  _OptionInstrumentWidgetState createState() =>
-      _OptionInstrumentWidgetState(user, optionInstrument, optionPosition);
+  _OptionInstrumentWidgetState createState() => _OptionInstrumentWidgetState();
 }
 
 class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
-  final RobinhoodUser user;
-  final OptionInstrument optionInstrument;
-  final OptionAggregatePosition? optionPosition;
-
   late Future<Quote> futureQuote;
   late Future<Instrument> futureInstrument;
 
-  _OptionInstrumentWidgetState(
-      this.user, this.optionInstrument, this.optionPosition);
+  _OptionInstrumentWidgetState();
 
   @override
   void initState() {
     super.initState();
 
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
-    futureQuote = RobinhoodService.getQuote(user, optionInstrument.chainSymbol);
+    futureQuote = RobinhoodService.getQuote(
+        widget.user, widget.optionInstrument.chainSymbol);
   }
 
   @override
@@ -56,23 +52,25 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             if (quoteSnapshot.hasData) {
               var quote = quoteSnapshot.data!;
               futureInstrument =
-                  RobinhoodService.getInstrument(user, quote.instrument);
+                  RobinhoodService.getInstrument(widget.user, quote.instrument);
               return FutureBuilder(
                   future: futureInstrument,
                   builder: (context1, instrumentSnapshot) {
                     if (instrumentSnapshot.hasData) {
                       var instrument = instrumentSnapshot.data! as Instrument;
                       instrument.quoteObj = quote;
-                      return _buildPage(instrument: instrument);
+                      return _buildPage(widget.optionInstrument,
+                          instrument: instrument,
+                          optionPosition: widget.optionPosition);
                     } else {
-                      return _buildPage();
+                      return _buildPage(widget.optionInstrument);
                     }
                   });
             } else if (quoteSnapshot.hasError) {
-              print("${quoteSnapshot.error}");
+              debugPrint("${quoteSnapshot.error}");
               // return Text("${quoteSnapshot.error}");
             }
-            return _buildPage();
+            return _buildPage(widget.optionInstrument);
           }),
       /*
         floatingActionButton: (user != null && user.userName != null)
@@ -89,7 +87,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     );
   }
 
-  Widget _buildPage({Instrument? instrument}) {
+  Widget _buildPage(OptionInstrument optionInstrument,
+      {Instrument? instrument, OptionAggregatePosition? optionPosition}) {
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
@@ -133,7 +132,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
+                            children: const [
                               SizedBox(
                                 width: 70,
                                 child: Text(
@@ -148,7 +147,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         SizedBox(
                             width: 115,
                             child: Text(
-                                "${optionPosition!.strategy.split('_').first} ${optionPosition!.optionInstrument!.type}",
+                                "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -166,7 +165,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
+                            children: const [
                               SizedBox(
                                 width: 70,
                                 child: Text(
@@ -181,7 +180,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         SizedBox(
                             width: 115,
                             child: Text(
-                                "${optionPosition!.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition!.quantity)}",
+                                "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -203,11 +202,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               SizedBox(
                                 width: 70,
                                 child: Text(
-                                  optionPosition!.legs.first.positionType ==
+                                  optionPosition.legs.first.positionType ==
                                           "long"
                                       ? "Cost"
                                       : "Credit",
-                                  style: TextStyle(fontSize: 10.0),
+                                  style: const TextStyle(fontSize: 10.0),
                                 ),
                               )
                             ]),
@@ -230,7 +229,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         SizedBox(
                             width: 50,
                             child: Text(
-                                "${formatCurrency.format(optionPosition!.totalCost)}",
+                                formatCurrency.format(optionPosition.totalCost),
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -276,7 +275,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         SizedBox(
                             width: 50,
                             child: Text(
-                                "${formatCurrency.format(optionPosition!.marketValue)}",
+                                formatCurrency
+                                    .format(optionPosition.marketValue),
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -314,12 +314,15 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                     child: Wrap(
                                         alignment: WrapAlignment.end,
                                         children: [
-                                          optionPosition!.trendingIconToday,
+                                          optionPosition.trendingIconToday,
                                           Container(
                                             width: 2,
                                           ),
                                           Text(
-                                              '${formatPercentage.format(optionPosition!.changePercentToday.abs())}',
+                                              formatPercentage.format(
+                                                  optionPosition
+                                                      .changePercentToday
+                                                      .abs()),
                                               style: const TextStyle(
                                                   fontSize: 12.0),
                                               textAlign: TextAlign.right),
@@ -331,7 +334,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                           SizedBox(
                               width: 60,
                               child: Text(
-                                  "${optionPosition!.changeToday > 0 ? "+" : optionPosition!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition!.changeToday.abs())}",
+                                  "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
                                   style: const TextStyle(fontSize: 12.0),
                                   textAlign: TextAlign.right)),
                           Container(
@@ -368,12 +371,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                     child: Wrap(
                                         alignment: WrapAlignment.end,
                                         children: [
-                                          optionPosition!.trendingIcon,
+                                          optionPosition.trendingIcon,
                                           Container(
                                             width: 2,
                                           ),
                                           Text(
-                                              '${formatPercentage.format(optionPosition!.gainLossPercent.abs())}',
+                                              formatPercentage.format(
+                                                  optionPosition.gainLossPercent
+                                                      .abs()),
                                               style: const TextStyle(
                                                   fontSize: 12.0),
                                               textAlign: TextAlign.right),
@@ -385,7 +390,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                           SizedBox(
                               width: 60,
                               child: Text(
-                                  "${optionPosition!.gainLoss > 0 ? "+" : optionPosition!.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition!.gainLoss.abs())}",
+                                  "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
                                   style: const TextStyle(fontSize: 12.0),
                                   textAlign: TextAlign.right)),
                           Container(
@@ -410,7 +415,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       if (instrument != null) ...[
         SliverToBoxAdapter(
             child: Align(
-                alignment: Alignment.center, child: buildOverview(instrument))),
+                alignment: Alignment.center,
+                child: buildOverview(widget.user, optionInstrument, instrument,
+                    optionPosition: optionPosition))),
       ],
       /*
       SliverToBoxAdapter(
@@ -422,7 +429,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         child: ListTile(
           title: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
             const Text("Greeks",
-                style: const TextStyle(
+                style: TextStyle(
                     //color: Colors.white,
                     fontSize: 20.0)),
             Container(
@@ -436,16 +443,16 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       builder: (BuildContext context) => AlertDialog(
                         title: const Text('Greeks'),
                         content: SingleChildScrollView(
-                            child: Column(children: [
-                          const Text(
+                            child: Column(children: const [
+                          Text(
                               "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
-                          const Text(
+                          Text(
                               "Gamma, Γ, measures the rate of change in the delta with respect to changes in the underlying price.\n"),
-                          const Text(
+                          Text(
                               "Theta, Θ, measures the sensitivity of the value of the derivative to the passage of time.\n"),
-                          const Text(
+                          Text(
                               "Vega, v, measures sensitivity to volatility.\n"),
-                          const Text(
+                          Text(
                               "Rho, p, measures sensitivity to the interest rate."),
                         ])),
                         actions: <Widget>[
@@ -500,93 +507,102 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   case 0:
                     return Card(
                         child: Padding(
-                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      padding:
+                          const EdgeInsets.all(6), //.symmetric(horizontal: 6),
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Text(
-                                "${formatNumber.format(optionInstrument.optionMarketData!.delta)}",
-                                style: TextStyle(fontSize: 17.0)),
+                                formatNumber.format(
+                                    optionInstrument.optionMarketData!.delta),
+                                style: const TextStyle(fontSize: 17.0)),
                             Container(
                               height: 5,
                             ),
-                            Text("Δ", style: TextStyle(fontSize: 17.0)),
-                            Text("Delta", style: TextStyle(fontSize: 10.0)),
+                            const Text("Δ", style: TextStyle(fontSize: 17.0)),
+                            const Text("Delta",
+                                style: TextStyle(fontSize: 10.0)),
                           ]),
                     ));
-                    break;
                   case 1:
                     return Card(
                         child: Padding(
-                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      padding:
+                          const EdgeInsets.all(6), //.symmetric(horizontal: 6),
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Text(
-                                "${formatNumber.format(optionInstrument.optionMarketData!.gamma!)}",
-                                style: TextStyle(fontSize: 17.0)),
+                                formatNumber.format(
+                                    optionInstrument.optionMarketData!.gamma!),
+                                style: const TextStyle(fontSize: 17.0)),
                             Container(
                               height: 5,
                             ),
-                            Text("Γ", style: TextStyle(fontSize: 17.0)),
-                            Text("Gamma", style: TextStyle(fontSize: 10.0)),
+                            const Text("Γ", style: TextStyle(fontSize: 17.0)),
+                            const Text("Gamma",
+                                style: TextStyle(fontSize: 10.0)),
                           ]),
                     ));
-                    break;
                   case 2:
                     return Card(
                         child: Padding(
-                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      padding:
+                          const EdgeInsets.all(6), //.symmetric(horizontal: 6),
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Text(
-                                "${formatNumber.format(optionInstrument.optionMarketData!.theta!)}",
-                                style: TextStyle(fontSize: 17.0)),
+                                formatNumber.format(
+                                    optionInstrument.optionMarketData!.theta!),
+                                style: const TextStyle(fontSize: 17.0)),
                             Container(
                               height: 5,
                             ),
-                            Text("Θ", style: TextStyle(fontSize: 17.0)),
-                            Text("Theta", style: TextStyle(fontSize: 10.0)),
+                            const Text("Θ", style: TextStyle(fontSize: 17.0)),
+                            const Text("Theta",
+                                style: TextStyle(fontSize: 10.0)),
                           ]),
                     ));
-                    break;
                   case 3:
                     return Card(
                         child: Padding(
-                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      padding:
+                          const EdgeInsets.all(6), //.symmetric(horizontal: 6),
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Text(
-                                "${formatNumber.format(optionInstrument.optionMarketData!.vega!)}",
-                                style: TextStyle(fontSize: 17.0)),
+                                formatNumber.format(
+                                    optionInstrument.optionMarketData!.vega!),
+                                style: const TextStyle(fontSize: 17.0)),
                             Container(
                               height: 5,
                             ),
-                            Text("v", style: TextStyle(fontSize: 17.0)),
-                            Text("Vega", style: TextStyle(fontSize: 10.0)),
+                            const Text("v", style: TextStyle(fontSize: 17.0)),
+                            const Text("Vega",
+                                style: TextStyle(fontSize: 10.0)),
                           ]),
                     ));
-                    break;
                   case 4:
                     return Card(
                         child: Padding(
-                      padding: EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                      padding:
+                          const EdgeInsets.all(6), //.symmetric(horizontal: 6),
                       child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: <Widget>[
                             Text(
-                                "${formatNumber.format(optionInstrument.optionMarketData!.rho!)}",
-                                style: TextStyle(fontSize: 17.0)),
+                                formatNumber.format(
+                                    optionInstrument.optionMarketData!.rho!),
+                                style: const TextStyle(fontSize: 17.0)),
                             Container(
                               height: 5,
                             ),
-                            Text("p", style: TextStyle(fontSize: 17.0)),
-                            Text("Rho", style: TextStyle(fontSize: 10.0)),
+                            const Text("p", style: TextStyle(fontSize: 17.0)),
+                            const Text("Rho", style: TextStyle(fontSize: 10.0)),
                           ]),
                     ));
-                    break;
                   default:
                 }
                 /*
@@ -605,8 +621,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ListTile(
-              title: const Text("Market Data", style: TextStyle(fontSize: 20))),
+          const ListTile(
+              title: Text("Market Data", style: TextStyle(fontSize: 20))),
           ListTile(
             title: const Text("Break Even Price"),
             trailing: Text(
@@ -730,8 +746,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ListTile(
-            title: const Text("Option", style: TextStyle(fontSize: 20)),
+          const ListTile(
+            title: Text("Option", style: TextStyle(fontSize: 20)),
             /*
               trailing: Wrap(children: [
                 IconButton(
@@ -760,7 +776,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             ListTile(
               title: const Text("Contracts"),
               trailing: Text(
-                  "${optionPosition!.quantity!.round()} ${optionPosition!.legs.first.positionType} ${optionPosition!.legs.first.optionType}",
+                  "${optionPosition.quantity!.round()} ${optionPosition.legs.first.positionType} ${optionPosition.legs.first.optionType}",
                   style: const TextStyle(fontSize: 18)),
             ),
           ],
@@ -775,40 +791,40 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
           if (optionPosition != null) ...[
-            if (optionPosition!.legs.first.positionType == "long") ...[
+            if (optionPosition.legs.first.positionType == "long") ...[
               ListTile(
                   title: const Text("Average Open Price"),
                   trailing: Text(
-                      formatCurrency.format(optionPosition!.averageOpenPrice),
+                      formatCurrency.format(optionPosition.averageOpenPrice),
                       style: const TextStyle(fontSize: 18))),
               ListTile(
                 title: const Text("Total Cost"),
-                trailing: Text(formatCurrency.format(optionPosition!.totalCost),
+                trailing: Text(formatCurrency.format(optionPosition.totalCost),
                     style: const TextStyle(fontSize: 18)),
               )
             ] else ...[
               ListTile(
                 title: const Text("Credit"),
                 trailing: Text(
-                    formatCurrency.format(optionPosition!.averageOpenPrice),
+                    formatCurrency.format(optionPosition.averageOpenPrice),
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
                 title: const Text("Short Collateral"),
                 trailing: Text(
-                    formatCurrency.format(optionPosition!.shortCollateral),
+                    formatCurrency.format(optionPosition.shortCollateral),
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
                 title: const Text("Credit to Collateral"),
                 trailing: Text(
-                    formatPercentage.format(optionPosition!.collateralReturn),
+                    formatPercentage.format(optionPosition.collateralReturn),
                     style: const TextStyle(fontSize: 18)),
               ),
             ],
             ListTile(
               title: const Text("Market Value"), //Equity
-              trailing: Text(formatCurrency.format(optionPosition!.equity),
+              trailing: Text(formatCurrency.format(optionPosition.equity),
                   style: const TextStyle(fontSize: 18)),
             ),
             ListTile(
@@ -817,19 +833,19 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   spacing: 8,
                   children: [
                     Icon(
-                      optionPosition!.gainLossPerContract > 0
+                      optionPosition.gainLossPerContract > 0
                           ? Icons.trending_up
-                          : (optionPosition!.gainLossPerContract < 0
+                          : (optionPosition.gainLossPerContract < 0
                               ? Icons.trending_down
                               : Icons.trending_flat),
-                      color: (optionPosition!.gainLossPerContract > 0
+                      color: (optionPosition.gainLossPerContract > 0
                           ? Colors.green
-                          : (optionPosition!.gainLossPerContract < 0
+                          : (optionPosition.gainLossPerContract < 0
                               ? Colors.red
                               : Colors.grey)),
                     ), //size: 18.0
                     Text(
-                      formatCurrency.format(optionPosition!.gainLoss),
+                      formatCurrency.format(optionPosition.gainLoss),
                       style: const TextStyle(fontSize: 18.0),
                       textAlign: TextAlign.right,
                     ),
@@ -843,23 +859,23 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             ListTile(
               title: const Text("Return %"),
               trailing: Text(
-                  formatPercentage.format(optionPosition!.gainLossPercent),
+                  formatPercentage.format(optionPosition.gainLossPercent),
                   style: const TextStyle(fontSize: 18)),
             ),
             ListTile(
               title: const Text("Created"),
-              trailing: Text(formatDate.format(optionPosition!.createdAt!),
+              trailing: Text(formatDate.format(optionPosition.createdAt!),
                   style: const TextStyle(fontSize: 18)),
             ),
             ListTile(
               title: const Text("Updated"),
-              trailing: Text(formatDate.format(optionPosition!.updatedAt!),
+              trailing: Text(formatDate.format(optionPosition.updatedAt!),
                   style: const TextStyle(fontSize: 18)),
             ),
           ],
           ListTile(
             title: const Text("Days to Expiration"),
-            trailing: Text("${dte.isNegative ? 0 : dte} of ${originalDte}",
+            trailing: Text("${dte.isNegative ? 0 : dte} of $originalDte",
                 style: const TextStyle(fontSize: 18)),
           ),
         ],
@@ -869,7 +885,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             child: Card(
                 child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: _buildLegs(optionPosition!).toList(),
+          children: _buildLegs(optionPosition).toList(),
         ))),
       ]
     ]);
@@ -879,7 +895,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     for (int i = 0; i < optionPosition.legs.length; i++) {
       var leg = optionPosition.legs[i];
       yield ListTile(
-          title: Text("Leg ${i + 1}", style: TextStyle(fontSize: 20)));
+          title: Text("Leg ${i + 1}", style: const TextStyle(fontSize: 20)));
       // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
       yield ListTile(
         title: const Text("Expiration Date"),
@@ -902,7 +918,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       );
       yield ListTile(
         title: const Text("Strike Price"),
-        trailing: Text("${formatCurrency.format(leg.strikePrice)}",
+        trailing: Text(formatCurrency.format(leg.strikePrice),
             style: const TextStyle(fontSize: 18)),
       );
       yield ListTile(
@@ -913,7 +929,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     }
   }
 
-  Card buildOverview(Instrument instrument) {
+  Card buildOverview(RobinhoodUser user, OptionInstrument optionInstrument,
+      Instrument instrument,
+      {OptionAggregatePosition? optionPosition}) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -960,7 +978,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             if (optionPosition != null) ...[
               Container(width: 50),
               TextButton(
-                  child: Text(optionPosition!.direction == "debit"
+                  child: Text(optionPosition.direction == "debit"
                       ? "BUY TO OPEN"
                       : "BUY TO CLOSE"),
                   onPressed: () => Navigator.push(
@@ -970,7 +988,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               optionPosition: optionPosition,
                               positionType: "Buy")))),
               TextButton(
-                  child: Text(optionPosition!.direction == "debit"
+                  child: Text(optionPosition.direction == "debit"
                       ? "SELL TO CLOSE"
                       : "SELL TO OPEN"),
                   onPressed: () => Navigator.push(
@@ -993,153 +1011,5 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         ),
       ],
     ));
-    /*
-    return Card(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ListTile(
-              title: const Text("Option", style: TextStyle(fontSize: 20)),
-              trailing: Wrap(children: [
-                TextButton(
-                    child: const Text('BUY OPTION'),
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeOptionWidget(user,
-                                optionPosition: optionPosition,
-                                positionType: "Buy")))),
-                TextButton(
-                    child: const Text('SELL OPTION'),
-                    onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeOptionWidget(user,
-                                optionPosition: optionPosition,
-                                positionType: "Sell")))),
-                const SizedBox(width: 8),
-              ]))
-        ],
-      ),
-    );
-    */
   }
-
-  Widget _buildStockView(Instrument instrument) {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          // leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
-          subtitle: Text(instrument.name),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            ],
-          ),
-        ),
-        /*
-        ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-        ),
-        */
-        /*
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('VIEW STOCK'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(user, instrument,
-                            optionPosition: optionPosition)));
-              },
-            ),
-          ],
-        ),
-        */
-      ],
-    ));
-  }
-/*
-  Widget _buildStockView(Instrument instrument) {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
-          subtitle: Text(instrument.name),
-          trailing: Wrap(
-            spacing: 8,
-            children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            ],
-          ),
-        ),
-        /*
-        ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-        ),
-        */
-        /*
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-              child: const Text('VIEW STOCK'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(user, instrument)));
-              },
-            ),
-          ],
-        ),
-        */
-      ],
-    ));
-  }
-  */
 }

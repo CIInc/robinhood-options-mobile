@@ -11,10 +11,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Home Menu opens ModalBottomSheet smoke test',
+      (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+    await tester.pumpWidget(const MyApp());
 
+    /*
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);
     expect(find.text('1'), findsNothing);
@@ -26,5 +28,15 @@ void main() {
     // Verify that our counter has incremented.
     expect(find.text('0'), findsNothing);
     expect(find.text('1'), findsOneWidget);
+    */
+    expect(find.text('Home'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pump();
+    expect(find.text('Menu'), findsOneWidget);
+
+    await tester.tap(find.text('Robinhood Options'),
+        warnIfMissed: false); // any widget that isn't in the bottom sheet
+    await tester.pump();
   });
 }

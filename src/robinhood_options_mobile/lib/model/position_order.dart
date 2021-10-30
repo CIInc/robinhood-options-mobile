@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/model/option_leg.dart';
 
 //@immutable
 class PositionOrder {

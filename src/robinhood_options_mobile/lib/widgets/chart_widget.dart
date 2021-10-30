@@ -8,7 +8,9 @@ class Chart extends StatelessWidget {
   final bool animate;
   final void Function(EquityHistorical?) onSelected;
 
-  Chart(this.seriesList, {this.animate = true, required this.onSelected});
+  const Chart(this.seriesList,
+      {Key? key, this.animate = true, required this.onSelected})
+      : super(key: key);
 
   /*
   /// Creates a [LineChart] with sample data and no transition.
@@ -44,7 +46,7 @@ class Chart extends StatelessWidget {
           //},
         )
       ],
-      behaviors: [new charts.SeriesLegend()],
+      behaviors: [charts.SeriesLegend()],
     );
     /*
     return charts.TimeSeriesChart(

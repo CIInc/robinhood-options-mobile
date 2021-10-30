@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
@@ -23,12 +24,12 @@ class RobinhoodUser {
 
   static Future<RobinhoodUser> loadUserFromStore() async {
     // await Store.deleteFile(Constants.cacheFilename);
-    print('Loading cache.');
+    debugPrint('Loading cache.');
 
     // SharedPreferences prefs = await SharedPreferences.getInstance();
     String? contents = await Store.readFile(Constants.cacheFilename);
     if (contents == null) {
-      print('No cache file found.');
+      debugPrint('No cache file found.');
       return RobinhoodUser(null, null, null);
     }
     try {
@@ -37,10 +38,10 @@ class RobinhoodUser {
       var credentials = oauth2.Credentials.fromJson(user.credentials as String);
       var client = oauth2.Client(credentials, identifier: Constants.identifier);
       user.oauth2Client = client;
-      print('Loaded cache.');
+      debugPrint('Loaded cache.');
       return user;
     } on FormatException catch (e) {
-      print(
+      debugPrint(
           'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
       return RobinhoodUser(null, null, null);
     }
@@ -52,7 +53,7 @@ class RobinhoodUser {
   }
 
   static Future clearUserFromStore() async {
-    print("Cleared user from store.");
+    debugPrint("Cleared user from store.");
     await Store.deleteFile(Constants.cacheFilename);
   }
 }

@@ -22,15 +22,13 @@ import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
-import 'package:robinhood_options_mobile/model/watchlist.dart';
-import 'package:robinhood_options_mobile/model/watchlist_item.dart';
+//import 'package:robinhood_options_mobile/model/watchlist.dart';
+//import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
-import 'package:robinhood_options_mobile/widgets/persistent_header.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -41,8 +39,8 @@ final formatCompactNumber = NumberFormat.compact();
 
 enum SortType { alphabetical, change }
 enum SortDirection { asc, desc }
-enum ChartDateSpan { hour, day, week, month, month_3, year, year_5, all }
-enum Bounds { regular, _24_7 }
+enum ChartDateSpan { hour, day, week, month, month_3, year, all }
+enum Bounds { regular, t24_7 }
 
 /*
 class DrawerItem {
@@ -78,7 +76,8 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage>
+    with AutomaticKeepAliveClientMixin<HomePage> {
   Future<RobinhoodUser>? futureRobinhoodUser;
   RobinhoodUser? robinhoodUser;
 
@@ -115,10 +114,12 @@ class _HomePageState extends State<HomePage> {
   final List<String> stockSymbolFilters = <String>[];
   int orderDateFilterSelected = 1;
 
+  /*
   Stream<List<Watchlist>>? watchlistStream;
 
   SortType? _sortType = SortType.alphabetical;
   SortDirection? _sortDirection = SortDirection.desc;
+  */
 
   Future<User>? futureUser;
 
@@ -129,6 +130,9 @@ class _HomePageState extends State<HomePage> {
 
   // int _selectedDrawerIndex = 0;
   // bool _showDrawerContents = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -171,7 +175,7 @@ class _HomePageState extends State<HomePage> {
             if (snapshot.hasData) {
               return _buildDrawer(snapshot.data);
             } else if (snapshot.hasError) {
-              print("${snapshot.error}");
+              debugPrint("${snapshot.error}");
               return Text("${snapshot.error}");
             }
             // By default, show a loading spinner
@@ -186,7 +190,7 @@ class _HomePageState extends State<HomePage> {
           builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
             // Can chain new FutureBuilder()'s here
 
-            print("${userSnapshot.connectionState}");
+            debugPrint("${userSnapshot.connectionState}");
             if (userSnapshot.hasData) {
               robinhoodUser = userSnapshot.data!;
               //print("snapshotUser: ${jsonEncode(snapshotUser)}");
@@ -224,7 +228,7 @@ class _HomePageState extends State<HomePage> {
                         case Bounds.regular:
                           bounds = "regular";
                           break;
-                        case Bounds._24_7:
+                        case Bounds.t24_7:
                           bounds = "24_7";
                           break;
                       }
@@ -255,10 +259,6 @@ class _HomePageState extends State<HomePage> {
                         case ChartDateSpan.year:
                           interval = "day";
                           span = "year";
-                          break;
-                        case ChartDateSpan.year_5:
-                          interval = "week";
-                          span = "5year";
                           break;
                         case ChartDateSpan.all:
                           // interval = "week";
@@ -315,6 +315,7 @@ class _HomePageState extends State<HomePage> {
                                                   optionAggregatePositionSnapshot
                                                       .data!;
 
+/*
                                               watchlistStream ??=
                                                   RobinhoodService.streamLists(
                                                       robinhoodUser!);
@@ -336,145 +337,82 @@ class _HomePageState extends State<HomePage> {
                                                         if (_sortType ==
                                                             SortType
                                                                 .alphabetical) {
-                                                          watchList.items.sort((a,
-                                                                  b) =>
-                                                              a.instrumentObj !=
-                                                                          null &&
-                                                                      b.instrumentObj !=
-                                                                          null
-                                                                  ? (a.instrumentObj!
-                                                                      .symbol
-                                                                      .compareTo(b
-                                                                          .instrumentObj!
-                                                                          .symbol))
-                                                                  : 0);
-                                                        } else if (_sortType ==
-                                                            SortType.change) {
                                                           watchList.items.sort((a, b) => a
                                                                           .instrumentObj !=
                                                                       null &&
                                                                   b.instrumentObj !=
                                                                       null
-                                                              ? (b
-                                                                  .instrumentObj!
-                                                                  .quoteObj!
-                                                                  .changePercentToday
-                                                                  .compareTo(a
+                                                              ? (_sortDirection ==
+                                                                      SortDirection
+                                                                          .asc
+                                                                  ? (a.instrumentObj!
+                                                                      .symbol
+                                                                      .compareTo(b
+                                                                          .instrumentObj!
+                                                                          .symbol))
+                                                                  : (b.instrumentObj!
+                                                                      .symbol
+                                                                      .compareTo(a.instrumentObj!.symbol)))
+                                                              : 0);
+                                                        } else if (_sortType ==
+                                                            SortType.change) {
+                                                          watchList.items.sort((a, b) => a.instrumentObj !=
+                                                                      null &&
+                                                                  b.instrumentObj !=
+                                                                      null
+                                                              ? (_sortDirection ==
+                                                                      SortDirection
+                                                                          .asc
+                                                                  ? (b
                                                                       .instrumentObj!
                                                                       .quoteObj!
-                                                                      .changePercentToday))
+                                                                      .changePercentToday
+                                                                      .compareTo(a
+                                                                          .instrumentObj!
+                                                                          .quoteObj!
+                                                                          .changePercentToday))
+                                                                  : (a
+                                                                      .instrumentObj!
+                                                                      .quoteObj!
+                                                                      .changePercentToday
+                                                                      .compareTo(b.instrumentObj!.quoteObj!.changePercentToday)))
                                                               : 0);
                                                         }
                                                       }
+*/
+                                              optionOrderStream ??=
+                                                  RobinhoodService
+                                                      .streamOptionOrders(
+                                                          robinhoodUser!);
+                                              return StreamBuilder(
+                                                  stream: optionOrderStream,
+                                                  builder: (context5,
+                                                      optionOrdersSnapshot) {
+                                                    if (optionOrdersSnapshot
+                                                        .hasData) {
+                                                      var optionOrders =
+                                                          optionOrdersSnapshot
+                                                                  .data
+                                                              as List<
+                                                                  OptionOrder>;
 
-                                                      optionOrderStream ??=
+                                                      positionOrderStream ??=
                                                           RobinhoodService
-                                                              .streamOptionOrders(
+                                                              .streamPositionOrders(
                                                                   robinhoodUser!);
+
                                                       return StreamBuilder(
                                                           stream:
-                                                              optionOrderStream,
-                                                          builder: (context5,
-                                                              optionOrdersSnapshot) {
-                                                            if (optionOrdersSnapshot
+                                                              positionOrderStream,
+                                                          builder: (context6,
+                                                              positionOrdersSnapshot) {
+                                                            if (positionOrdersSnapshot
                                                                 .hasData) {
-                                                              var optionOrders =
-                                                                  optionOrdersSnapshot
+                                                              var positionOrders =
+                                                                  positionOrdersSnapshot
                                                                           .data
                                                                       as List<
-                                                                          OptionOrder>;
-
-                                                              positionOrderStream ??=
-                                                                  RobinhoodService
-                                                                      .streamPositionOrders(
-                                                                          robinhoodUser!);
-
-                                                              return StreamBuilder(
-                                                                  stream:
-                                                                      positionOrderStream,
-                                                                  builder:
-                                                                      (context6,
-                                                                          positionOrdersSnapshot) {
-                                                                    if (positionOrdersSnapshot
-                                                                        .hasData) {
-                                                                      var positionOrders = positionOrdersSnapshot
-                                                                              .data
-                                                                          as List<
-                                                                              PositionOrder>;
-                                                                      return _buildPage(
-                                                                          portfolios:
-                                                                              portfolios,
-                                                                          user:
-                                                                              user,
-                                                                          ru:
-                                                                              robinhoodUser,
-                                                                          accounts:
-                                                                              accounts,
-                                                                          nummusHoldings:
-                                                                              nummusHoldings,
-                                                                          portfolioHistoricals:
-                                                                              portfolioHistoricals,
-                                                                          optionPositions:
-                                                                              optionPositions,
-                                                                          optionOrders:
-                                                                              optionOrders,
-                                                                          positions:
-                                                                              positions,
-                                                                          positionOrders:
-                                                                              positionOrders,
-                                                                          watchlists:
-                                                                              watchLists,
-                                                                          //watchListItems:
-                                                                          //    watchListItems,
-                                                                          done: positionSnapshot.connectionState == ConnectionState.done &&
-                                                                              optionAggregatePositionSnapshot.connectionState == ConnectionState.done /* &&
-                                                            watchlistSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState.done*/
-                                                                          );
-                                                                    } else if (positionOrdersSnapshot
-                                                                        .hasError) {
-                                                                      print(
-                                                                          "${positionOrdersSnapshot.error}");
-                                                                      return _buildPage(
-                                                                          //ru: snapshotUser,
-                                                                          welcomeWidget:
-                                                                              Text("${positionOrdersSnapshot.error}"));
-                                                                    } else {
-                                                                      // No Position Orders Found.
-                                                                      return _buildPage(
-                                                                          portfolios:
-                                                                              portfolios,
-                                                                          user:
-                                                                              user,
-                                                                          ru:
-                                                                              robinhoodUser,
-                                                                          accounts:
-                                                                              accounts,
-                                                                          nummusHoldings:
-                                                                              nummusHoldings,
-                                                                          portfolioHistoricals:
-                                                                              portfolioHistoricals,
-                                                                          optionPositions:
-                                                                              optionPositions,
-                                                                          optionOrders:
-                                                                              optionOrders,
-                                                                          positions:
-                                                                              positions,
-                                                                          watchlists:
-                                                                              watchLists,
-                                                                          //watchListItems:
-                                                                          //    watchListItems,
-                                                                          done: positionSnapshot.connectionState == ConnectionState.done &&
-                                                                              optionAggregatePositionSnapshot.connectionState == ConnectionState.done /* &&
-                                                            watchlistSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState.done*/
-                                                                          );
-                                                                    }
-                                                                  });
-                                                            } else {
-                                                              // No Options Orders found.
+                                                                          PositionOrder>;
                                                               return _buildPage(
                                                                   portfolios:
                                                                       portfolios,
@@ -489,10 +427,59 @@ class _HomePageState extends State<HomePage> {
                                                                       portfolioHistoricals,
                                                                   optionPositions:
                                                                       optionPositions,
+                                                                  optionOrders:
+                                                                      optionOrders,
                                                                   positions:
                                                                       positions,
-                                                                  watchlists:
-                                                                      watchLists,
+                                                                  positionOrders:
+                                                                      positionOrders,
+                                                                  //watchlists:
+                                                                  //    watchLists,
+                                                                  //watchListItems:
+                                                                  //    watchListItems,
+                                                                  done: positionSnapshot
+                                                                              .connectionState ==
+                                                                          ConnectionState
+                                                                              .done &&
+                                                                      optionAggregatePositionSnapshot
+                                                                              .connectionState ==
+                                                                          ConnectionState
+                                                                              .done /* &&
+                                                            watchlistSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState.done*/
+                                                                  );
+                                                            } else if (positionOrdersSnapshot
+                                                                .hasError) {
+                                                              debugPrint(
+                                                                  "${positionOrdersSnapshot.error}");
+                                                              return _buildPage(
+                                                                  //ru: snapshotUser,
+                                                                  welcomeWidget:
+                                                                      Text(
+                                                                          "${positionOrdersSnapshot.error}"));
+                                                            } else {
+                                                              // No Position Orders Found.
+                                                              return _buildPage(
+                                                                  portfolios:
+                                                                      portfolios,
+                                                                  user: user,
+                                                                  ru:
+                                                                      robinhoodUser,
+                                                                  accounts:
+                                                                      accounts,
+                                                                  nummusHoldings:
+                                                                      nummusHoldings,
+                                                                  portfolioHistoricals:
+                                                                      portfolioHistoricals,
+                                                                  optionPositions:
+                                                                      optionPositions,
+                                                                  optionOrders:
+                                                                      optionOrders,
+                                                                  positions:
+                                                                      positions,
+                                                                  //watchlists:
+                                                                  //    watchLists,
                                                                   //watchListItems:
                                                                   //    watchListItems,
                                                                   done: positionSnapshot
@@ -509,9 +496,43 @@ class _HomePageState extends State<HomePage> {
                                                                   );
                                                             }
                                                           });
+                                                    } else {
+                                                      // No Options Orders found.
+                                                      return _buildPage(
+                                                          portfolios:
+                                                              portfolios,
+                                                          user: user,
+                                                          ru: robinhoodUser,
+                                                          accounts: accounts,
+                                                          nummusHoldings:
+                                                              nummusHoldings,
+                                                          portfolioHistoricals:
+                                                              portfolioHistoricals,
+                                                          optionPositions:
+                                                              optionPositions,
+                                                          positions: positions,
+                                                          //watchlists:
+                                                          //    watchLists,
+                                                          //watchListItems:
+                                                          //    watchListItems,
+                                                          done: positionSnapshot
+                                                                      .connectionState ==
+                                                                  ConnectionState
+                                                                      .done &&
+                                                              optionAggregatePositionSnapshot
+                                                                      .connectionState ==
+                                                                  ConnectionState
+                                                                      .done /* &&
+                                                            watchlistSnapshot
+                                                                    .connectionState ==
+                                                                ConnectionState.done*/
+                                                          );
+                                                    }
+                                                  });
+                                              /*
                                                     } else if (watchlistsSnapshot
                                                         .hasError) {
-                                                      print(
+                                                      debugPrint(
                                                           "${watchlistsSnapshot.error}");
                                                       return _buildPage(
                                                         welcomeWidget: Text(
@@ -545,6 +566,7 @@ class _HomePageState extends State<HomePage> {
                                                       );
                                                     }
                                                   });
+                                                  */
                                             } else {
                                               // No Options found.
                                               return _buildPage(
@@ -583,7 +605,7 @@ class _HomePageState extends State<HomePage> {
                             }
                           });
                     } else if (dataSnapshot.hasError) {
-                      print("${dataSnapshot.error}");
+                      debugPrint("${dataSnapshot.error}");
                       if (dataSnapshot.error.toString() ==
                           "OAuth authorization error (invalid_grant).") {
                         RobinhoodUser.clearUserFromStore();
@@ -606,7 +628,7 @@ class _HomePageState extends State<HomePage> {
                     ru: robinhoodUser, welcomeWidget: _buildLogin());
               }
             } else if (userSnapshot.hasError) {
-              print("userSnapshot.hasError: ${userSnapshot.error}");
+              debugPrint("userSnapshot.hasError: ${userSnapshot.error}");
               return _buildPage(welcomeWidget: Text("${userSnapshot.error}"));
             } else {
               // Not logged in
@@ -637,7 +659,7 @@ class _HomePageState extends State<HomePage> {
       List<OptionOrder>? optionOrders,
       List<Position>? positions,
       List<PositionOrder>? positionOrders,
-      List<Watchlist>? watchlists,
+      //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
     var slivers = <Widget>[];
@@ -665,7 +687,7 @@ class _HomePageState extends State<HomePage> {
       optionEquity = optionPositions
           .map((e) => e.legs.first.positionType == "long"
               ? e.marketValue
-              : e.marketValue) // TODO: Match portfolios[0].marketValue (e.totalCost - e.marketValue)
+              : e.marketValue)
           .reduce((a, b) => a + b);
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
@@ -745,9 +767,9 @@ class _HomePageState extends State<HomePage> {
             defaultRenderer:
                 charts.LineRendererConfig(includeArea: true, stacked: false),
             animate: true,
-            primaryMeasureAxis: new charts.NumericAxisSpec(
+            primaryMeasureAxis: const charts.NumericAxisSpec(
                 tickProviderSpec:
-                    new charts.BasicNumericTickProviderSpec(zeroBound: false)),
+                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
             selectionModels: [
               charts.SelectionModelConfig(
                 type: charts.SelectionModelType.info,
@@ -784,7 +806,7 @@ class _HomePageState extends State<HomePage> {
                       child: Wrap(
                     spacing: 8,
                     children: [
-                      Text("${formatDate.format(selection!.beginsAt!)}",
+                      Text(formatDate.format(selection!.beginsAt!),
                           style: const TextStyle(fontSize: 11)),
                       Text(
                           "Equity ${formatCurrency.format(selection!.openEquity)}, ${formatCurrency.format(selection!.closeEquity)}",
@@ -918,24 +940,6 @@ class _HomePageState extends State<HomePage> {
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('5 Years'),
-                          selected: chartDateSpanFilter == ChartDateSpan.year_5,
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.year_5;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ChoiceChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
                           label: const Text('All'),
                           selected: chartDateSpanFilter == ChartDateSpan.all,
                           onSelected: (bool value) {
@@ -976,11 +980,11 @@ class _HomePageState extends State<HomePage> {
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
                           label: const Text('24/7 Hours'),
-                          selected: chartBoundsFilter == Bounds._24_7,
+                          selected: chartBoundsFilter == Bounds.t24_7,
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                chartBoundsFilter = Bounds._24_7;
+                                chartBoundsFilter = Bounds.t24_7;
                                 selection = null;
                                 futurePortfolioHistoricals = null;
                               }
@@ -1049,9 +1053,9 @@ class _HomePageState extends State<HomePage> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ListTile(
+                                  const ListTile(
                                     tileColor: Colors.blue,
-                                    title: const Text(
+                                    title: Text(
                                       "Filter Options",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -1062,12 +1066,12 @@ class _HomePageState extends State<HomePage> {
                                       onPressed: () => Navigator.pop(context))*/
                                   ),
                                   const ListTile(
-                                    title: const Text("Position & Option Type"),
+                                    title: Text("Position & Option Type"),
                                   ),
                                   openClosedFilterWidget,
                                   optionTypeFilterWidget,
                                   const ListTile(
-                                    title: const Text("Symbols"),
+                                    title: Text("Symbols"),
                                   ),
                                   optionSymbolFilterWidget
                                 ],
@@ -1114,7 +1118,7 @@ class _HomePageState extends State<HomePage> {
         ));
         */
         slivers.add(const SliverToBoxAdapter(
-            child: const SizedBox(
+            child: SizedBox(
           // color: Colors.white,
           height: 25.0,
         )));
@@ -1189,9 +1193,9 @@ class _HomePageState extends State<HomePage> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ListTile(
+                                  const ListTile(
                                     tileColor: Colors.blue,
-                                    title: const Text(
+                                    title: Text(
                                       "Filter Option Orders",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -1214,7 +1218,7 @@ class _HomePageState extends State<HomePage> {
                               );
                             },
                           );
-                          //future.then((void value) => {});
+                          future.then((void value) => {});
                         }),
                   ))),
           sliver: SliverList(
@@ -1240,7 +1244,12 @@ class _HomePageState extends State<HomePage> {
                           (filteredOptionOrders[index].direction == "credit"
                                   ? "+"
                                   : "-") +
-                              "${filteredOptionOrders[index].processedPremium != null ? formatCurrency.format(filteredOptionOrders[index].processedPremium) : ""}",
+                              (filteredOptionOrders[index].processedPremium !=
+                                      null
+                                  ? formatCurrency.format(
+                                      filteredOptionOrders[index]
+                                          .processedPremium)
+                                  : ""),
                           style: const TextStyle(fontSize: 18.0),
                           textAlign: TextAlign.right,
                         )
@@ -1432,9 +1441,9 @@ class _HomePageState extends State<HomePage> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  ListTile(
+                                  const ListTile(
                                     tileColor: Colors.blue,
-                                    title: const Text(
+                                    title: Text(
                                       "Filter Stock Orders",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -1457,7 +1466,7 @@ class _HomePageState extends State<HomePage> {
                               );
                             },
                           );
-                          //future.then((void value) => {});
+                          future.then((void value) => {});
                         }),
                   ))),
           sliver: SliverList(
@@ -1480,7 +1489,11 @@ class _HomePageState extends State<HomePage> {
                           "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
                       trailing: Wrap(spacing: 8, children: [
                         Text(
-                          "${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice! * filteredPositionOrders[index].quantity!) : ""}",
+                          filteredPositionOrders[index].averagePrice != null
+                              ? formatCurrency.format(
+                                  filteredPositionOrders[index].averagePrice! *
+                                      filteredPositionOrders[index].quantity!)
+                              : "",
                           style: const TextStyle(fontSize: 18.0),
                           textAlign: TextAlign.right,
                         )
@@ -1503,11 +1516,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
         slivers.add(const SliverToBoxAdapter(
-            child: const SizedBox(
+            child: SizedBox(
           // color: Colors.white,
           height: 25.0,
         )));
       }
+      /*
       if (watchlists != null) {
         slivers.add(SliverStickyHeader(
             header: Material(
@@ -1538,9 +1552,9 @@ class _HomePageState extends State<HomePage> {
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    ListTile(
+                                    const ListTile(
                                       tileColor: Colors.blue,
-                                      title: const Text(
+                                      title: Text(
                                         "Sort Watch List",
                                         style: TextStyle(
                                             color: Colors.white,
@@ -1635,7 +1649,7 @@ class _HomePageState extends State<HomePage> {
                       alignment: Alignment.centerLeft,
                       child: ListTile(
                         title: Text(
-                          "${watchlist.displayName}",
+                          watchlist.displayName,
                           style: const TextStyle(
                               //color: Colors.white,
                               fontSize: 19.0),
@@ -1711,6 +1725,8 @@ class _HomePageState extends State<HomePage> {
           height: 25.0,
         )));
       }
+      */
+
       /*
       if (watchListItems != null) {
         slivers.add(SliverStickyHeader(
@@ -1868,8 +1884,8 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: const Text(
+                child: const ListTile(
+                  title: Text(
                     "Portfolios",
                     style: TextStyle(
                         //color: Colors.white,
@@ -1924,8 +1940,8 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: const Text(
+                child: const ListTile(
+                  title: Text(
                     "User",
                     style: TextStyle(
                         //color: Colors.white,
@@ -1935,7 +1951,7 @@ class _HomePageState extends State<HomePage> {
               )),
           sliver: userWidget(user)));
       slivers.add(const SliverToBoxAdapter(
-          child: const SizedBox(
+          child: SizedBox(
         // color: Colors.white,
         height: 25.0,
       )));
@@ -2004,7 +2020,7 @@ class _HomePageState extends State<HomePage> {
                     "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
                     */
     slivers.add(const SliverToBoxAdapter(
-        child: const SizedBox(
+        child: SizedBox(
       // color: Colors.white,
       height: 25.0,
     )));
@@ -2286,6 +2302,7 @@ class _HomePageState extends State<HomePage> {
     ])));
   }
 
+  /*
   Widget watchListWidget(List<WatchlistItem> watchLists) {
     return SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -2299,36 +2316,12 @@ class _HomePageState extends State<HomePage> {
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
               return _buildWatchlistGridItem(watchLists, index, robinhoodUser!);
-              /*
-          return Container(
-            alignment: Alignment.center,
-            color: Colors.teal[100 * (index % 9)],
-            child: Text('grid item $index'),
-          );
-          */
             },
             childCount: watchLists.length,
           ),
         ));
-    /*
-    return SliverList(
-      // delegate: SliverChildListDelegate(widgets),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          if (watchLists.length > index) {
-            return _buildWatchlistRow(watchLists, index, robinhoodUser!);
-          }
-          return null;
-          // To convert this infinite list to a list with three items,
-          // uncomment the following line:
-          // if (index > 3) return null;
-        },
-        // Or, uncomment the following line:
-        // childCount: widgets.length + 10,
-      ),
-    );
-    */
   }
+  */
 
   Widget symbolWidgets(List<Widget> widgets) {
     var n = 3; // 4;
@@ -2975,7 +2968,7 @@ class _HomePageState extends State<HomePage> {
                             //style: const TextStyle(fontSize: 20.0)
                           ),
                           Text(
-                            "${formatCurrency.format(portfolioValue)}",
+                            formatCurrency.format(portfolioValue),
                             //style: const TextStyle(fontSize: 20.0),
                             //textAlign: TextAlign.right
                           ),
@@ -2998,7 +2991,8 @@ class _HomePageState extends State<HomePage> {
                                 width: 2,
                               ),
                               Text(
-                                '${formatPercentage.format(changePercentToday.abs())}',
+                                formatPercentage
+                                    .format(changePercentToday.abs()),
                                 //style: const TextStyle(fontSize: 20.0)
                               ),
                             ],
@@ -3133,7 +3127,8 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(
                                   width: 39,
                                   child: Text(
-                                      "${formatPercentage.format(stockAndOptionsEquityPercent)}",
+                                      formatPercentage
+                                          .format(stockAndOptionsEquityPercent),
                                       style: const TextStyle(fontSize: 10.0),
                                       textAlign: TextAlign.right))
                             ]),
@@ -3143,7 +3138,8 @@ class _HomePageState extends State<HomePage> {
                         SizedBox(
                             width: 65,
                             child: Text(
-                                "${formatCurrency.format(portfolios[0].marketValue)}",
+                                formatCurrency
+                                    .format(portfolios[0].marketValue),
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -3179,7 +3175,8 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(
                                   width: 39,
                                   child: Text(
-                                      "${formatPercentage.format(optionEquityPercent)}",
+                                      formatPercentage
+                                          .format(optionEquityPercent),
                                       style: const TextStyle(fontSize: 10.0),
                                       textAlign: TextAlign.right))
                             ]),
@@ -3188,8 +3185,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         SizedBox(
                             width: 65,
-                            child: Text(
-                                "${formatCurrency.format(optionEquity)}",
+                            child: Text(formatCurrency.format(optionEquity),
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -3225,7 +3221,8 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(
                                   width: 39,
                                   child: Text(
-                                      "${formatPercentage.format(positionEquityPercent)}",
+                                      formatPercentage
+                                          .format(positionEquityPercent),
                                       style: const TextStyle(fontSize: 10.0),
                                       textAlign: TextAlign.right))
                             ]),
@@ -3234,8 +3231,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         SizedBox(
                             width: 65,
-                            child: Text(
-                                "${formatCurrency.format(positionEquity)}",
+                            child: Text(formatCurrency.format(positionEquity),
                                 style: const TextStyle(fontSize: 12.0),
                                 textAlign: TextAlign.right)),
                         Container(
@@ -3270,7 +3266,7 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(
                                   width: 39,
                                   child: Text(
-                                      "${formatPercentage.format(cryptoPercent)}",
+                                      formatPercentage.format(cryptoPercent),
                                       style: const TextStyle(fontSize: 10.0),
                                       textAlign: TextAlign.right))
                             ]),
@@ -3314,7 +3310,7 @@ class _HomePageState extends State<HomePage> {
                               SizedBox(
                                   width: 39,
                                   child: Text(
-                                      "${formatPercentage.format(cashPercent)}",
+                                      formatPercentage.format(cashPercent),
                                       style: const TextStyle(fontSize: 10.0),
                                       textAlign: TextAlign.right))
                             ]),
@@ -3352,7 +3348,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const Text(
                       "Menu",
-                      style: const TextStyle(fontSize: 20),
+                      style: TextStyle(fontSize: 20),
                     ),
                     Container(
                       height: 10,
@@ -3429,6 +3425,7 @@ class _HomePageState extends State<HomePage> {
                         title: const Text("Login"),
                         onTap: () {
                           _openLogin();
+                          Navigator.pop(context, 'login');
                         },
                       ),
                       const Divider(
@@ -3506,7 +3503,7 @@ class _HomePageState extends State<HomePage> {
       optionOrderStream = null;
       positionStream = null;
       positionOrderStream = null;
-      watchlistStream = null;
+      //watchlistStream = null;
     });
 
     var accounts = await RobinhoodService.getAccounts(robinhoodUser!);
@@ -3558,7 +3555,7 @@ class _HomePageState extends State<HomePage> {
                         ? Colors.red
                         : Colors.grey))),
             Text(
-              "${formatCurrency.format(positions[index].marketValue)}",
+              formatCurrency.format(positions[index].marketValue),
               style: const TextStyle(fontSize: 16.0),
               textAlign: TextAlign.right,
             ),
@@ -3631,7 +3628,7 @@ class _HomePageState extends State<HomePage> {
                     ? Colors.green
                     : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
             Text(
-              "${formatCurrency.format(op.marketValue)}",
+              formatCurrency.format(op.marketValue),
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             )
@@ -3681,7 +3678,7 @@ class _HomePageState extends State<HomePage> {
       ],
     ));
   }
-
+  /*
   Widget _buildWatchlistRow(Watchlist watchlist, RobinhoodUser ru) {
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -3692,11 +3689,13 @@ class _HomePageState extends State<HomePage> {
       )
     ]));
   }
+  */
 
+  /*
   Widget _buildWatchlistGridItem(
       List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
     if (watchLists[index].instrumentObj == null) {
-      return Card(child: Text("${watchLists[index].instrument}"));
+      return Card(child: Text(watchLists[index].instrument));
     }
     var instrumentObj = watchLists[index].instrumentObj!;
     return Card(
@@ -3726,7 +3725,11 @@ class _HomePageState extends State<HomePage> {
                       width: 2,
                     ),
                     Text(
-                        '${instrumentObj.quoteObj != null ? formatPercentage.format(instrumentObj.quoteObj!.changePercentToday.abs()) : ""}',
+                        instrumentObj.quoteObj != null
+                            ? formatPercentage.format(instrumentObj
+                                .quoteObj!.changePercentToday
+                                .abs())
+                            : "",
                         style: const TextStyle(fontSize: 16.0)),
                   ],
                 ),
@@ -3735,7 +3738,8 @@ class _HomePageState extends State<HomePage> {
                 ),
                 Wrap(children: [
                   Text(
-                      '${watchLists[index].instrumentObj!.simpleName != null ? watchLists[index].instrumentObj!.simpleName : watchLists[index].instrumentObj!.name}',
+                      watchLists[index].instrumentObj!.simpleName ??
+                          watchLists[index].instrumentObj!.name,
                       style: const TextStyle(fontSize: 12.0),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis)
@@ -3750,6 +3754,7 @@ class _HomePageState extends State<HomePage> {
               },
             )));
   }
+*/
 
   _buildLogin() {
     return Column(
@@ -3765,8 +3770,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   _openLogin() async {
-    final RobinhoodUser? result = await Navigator.push(context,
-        MaterialPageRoute(builder: (BuildContext context) => LoginWidget()));
+    final RobinhoodUser? result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
       RobinhoodUser.writeUserToStore(result);
@@ -3858,7 +3865,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _getDrawerItemWidget(int pos, RobinhoodUser ru) {
-    print(pos);
+    debugPrint(pos);
     switch (pos) {
       case 0:
         return SizedBox(height: 1000, child: _buildWelcomeWidget(ru));

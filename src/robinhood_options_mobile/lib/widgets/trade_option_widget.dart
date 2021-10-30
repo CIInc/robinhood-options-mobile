@@ -15,18 +15,18 @@ class TradeOptionWidget extends StatefulWidget {
   final OptionInstrument? optionInstrument;
   final String? positionType;
 
-  TradeOptionWidget(this.user,
-      {this.optionPosition, this.optionInstrument, this.positionType = "Buy"});
+  const TradeOptionWidget(this.user,
+      {Key? key,
+      this.optionPosition,
+      this.optionInstrument,
+      this.positionType = "Buy"})
+      : super(key: key);
 
   @override
-  _TradeOptionWidgetState createState() => _TradeOptionWidgetState(
-      user, optionPosition, optionInstrument, positionType);
+  _TradeOptionWidgetState createState() => _TradeOptionWidgetState();
 }
 
 class _TradeOptionWidgetState extends State<TradeOptionWidget> {
-  final RobinhoodUser user;
-  final OptionAggregatePosition? optionPosition;
-  OptionInstrument? optionInstrument;
   String? positionType;
 
   //String? optionType = "Call";
@@ -40,15 +40,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
-  _TradeOptionWidgetState(
-      this.user, this.optionPosition, this.optionInstrument, this.positionType);
+  _TradeOptionWidgetState();
 
   @override
   void initState() {
     super.initState();
-    if (this.optionPosition != null && this.optionInstrument == null) {
-      optionInstrument = this.optionPosition!.optionInstrument;
-    }
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
   }
 
@@ -64,8 +60,8 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             return;
           },
         ));
-    priceCtl.text =
-        formatCurrency.format(optionInstrument!.optionMarketData!.markPrice);
+    priceCtl.text = formatCurrency
+        .format(widget.optionInstrument!.optionMarketData!.markPrice);
     return Scaffold(
         appBar: AppBar(
           title: Wrap(
@@ -76,9 +72,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               //runSpacing: 5,
               children: [
                 Text(
-                    '${optionInstrument!.chainSymbol} \$${optionInstrument!.strikePrice} ${optionInstrument!.type}',
+                    '${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type}',
                     style: const TextStyle(fontSize: 20.0)),
-                Text('${formatDate.format(optionInstrument!.expirationDate!)}',
+                Text(
+                    formatDate.format(widget.optionInstrument!.expirationDate!),
                     style: const TextStyle(fontSize: 15.0))
               ]),
         ),
@@ -87,7 +84,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             padding: const EdgeInsets.all(15.0),
             children: [
               ListTile(
-                title: Text("Position Type"),
+                title: const Text("Position Type"),
                 trailing: ToggleButtons(
                     children: <Widget>[
                       Padding(

@@ -1,4 +1,3 @@
-import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 
 class InstrumentHistoricals {

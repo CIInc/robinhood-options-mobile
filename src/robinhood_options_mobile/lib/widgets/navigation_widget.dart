@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
-import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+//import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 /// This is the stateful widget that the main application instantiates.
 class NavigationStatefulWidget extends StatefulWidget {
@@ -19,14 +20,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   int _pageIndex = 0;
   PageController? _pageController;
-  List<Widget> tabPages = [
-    const HomePage(title: 'Robinhood Options'),
-    LoginWidget(),
-    //HomePage(key: Key('history')),
-    //LoginWidget(),
-    //Screen2(),
-    //Screen3(),
-  ];
+  List<Widget> tabPages = [const HomePage(title: 'Robinhood Options')];
 
   @override
   void initState() {
@@ -47,79 +41,91 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void _onPageChanged(int index) {
     setState(() {
       _pageIndex = index;
+      _pageController!.jumpToPage(index);
+      /*
+      _pageController!.animateToPage(index,
+          duration: const Duration(milliseconds: 200), curve: Curves.easeInOut);
+          */
     });
-  }
-
-  void _onItemTapped(int index) {
-    _pageController!.animateToPage(index,
-        duration: const Duration(milliseconds: 200), curve: Curves.easeInOut);
   }
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: futureRobinhoodUser,
+        builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
+          if (userSnapshot.hasData) {
+            robinhoodUser = userSnapshot.data!;
+            tabPages = [
+              const HomePage(title: 'Robinhood Options'),
+              //const HomePage(title: 'Orders'),
+              ListsWidget(robinhoodUser!),
+              //const LoginWidget(),
+              //HomePage(key: Key('history')),
+              //Screen2(),
+              //Screen3(),
+            ];
+          } else if (userSnapshot.hasError) {
+            debugPrint("${userSnapshot.error}");
+          }
+          debugPrint("$userSnapshot");
+          return buildScaffold();
+        });
+  }
+
+  buildScaffold() {
     return Scaffold(
       /*
       appBar: AppBar(
         title: const Text('BottomNavigationBar Sample'),
       ),
       */
-      body: buildBody(),
-      /*PageView(
+      body: PageView(
         children: tabPages,
-        onPageChanged: _onPageChanged,
+        //onPageChanged: _onPageChanged,
         controller: _pageController,
-      ),*/
-      /*Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),*/
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-          /*
-          BottomNavigationBarItem(
-            icon: Icon(Icons.business),
-            label: 'Business',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.school),
-            label: 'School',
-          ),
-          */
-        ],
-        currentIndex: _pageIndex,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onItemTapped,
+        physics: NeverScrollableScrollPhysics(),
       ),
-    );
-  }
 
-  buildBody() {
-    return FutureBuilder(
-        future: futureRobinhoodUser,
-        builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
-          if (userSnapshot.hasData) {
-            robinhoodUser = userSnapshot.data!;
-            if (robinhoodUser!.userName != null) {}
-          } else if (userSnapshot.hasError) {
-            print("${userSnapshot.error}");
-          }
-          print("$userSnapshot");
-          return PageView(
-            children: tabPages,
-            onPageChanged: _onPageChanged,
-            controller: _pageController,
-          );
-        });
+      /*
+      IndexedStack(
+        children: tabPages,
+        index: _pageIndex,
+      ),
+      */
+      bottomNavigationBar: robinhoodUser != null &&
+              robinhoodUser!.userName != null
+          ? BottomNavigationBar(
+              items: const <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.account_balance), //home
+                  label: 'Portfolio',
+                ),
+                /*
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.payments), //inventory //history
+                  label: 'Orders',
+                ),
+                */
+                BottomNavigationBarItem(
+                  icon:
+                      Icon(Icons.collections_bookmark), //bookmarks //visibility
+                  label: 'Lists',
+                ),
+                /*
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.account_circle), // manage_accounts //person
+                  label: 'Accounts',
+                ),
+                */
+              ],
+              currentIndex: _pageIndex,
+              //fixedColor: Colors.grey,
+              selectedItemColor: Colors.blue, //.amber[800],
+              unselectedItemColor: Colors.grey, //.amber[800],
+              onTap: _onPageChanged,
+            )
+          : null,
+    );
   }
 }

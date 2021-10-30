@@ -17,7 +17,7 @@ import 'package:robinhood_options_mobile/services/resource_owner_password_grant.
     as oauth2_robinhood;
 
 class LoginWidget extends StatefulWidget {
-  LoginWidget({Key? key}) : super(key: key);
+  const LoginWidget({Key? key}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -96,7 +96,6 @@ class _LoginWidgetState extends State<LoginWidget> {
     //await new Future.delayed(const Duration(milliseconds: 100));
 
     //ScaffoldMessenger.of(context)..hideCurrentSnackBar();
-    setState(() {});
 
     authenticationResponse = oauth2_robinhood.login(
         Constants.tokenEndpoint, userCtl.text, passCtl.text,
@@ -105,6 +104,8 @@ class _LoginWidgetState extends State<LoginWidget> {
         deviceToken: deviceToken,
         challengeType: 'sms',
         challengeId: challengeResponseId);
+
+    setState(() {});
 
     /*
     client = oauth2_robinhood
@@ -180,11 +181,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                 }
               }
                         */
-              print(authenticationSnapshot.connectionState);
+              debugPrint(authenticationSnapshot.connectionState.toString());
               if (authenticationSnapshot.data != null) {
                 var authenticationResponse =
                     jsonDecode(authenticationSnapshot.data!.body);
-                print(authenticationResponse);
+                debugPrint(jsonEncode(authenticationResponse));
                 if (authenticationResponse['challenge'] != null) {
                   challengeRequestId =
                       authenticationResponse['challenge']['id'];
@@ -352,7 +353,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       (timer) {
         Clipboard.getData('text/plain').then((clipboarContent) {
           //print('Clipboard content ${clipboarContent.text}');
-          if (clipboarContent != null) {
+          if (clipboarContent != null && !clipboardContentStream.isClosed) {
             clipboardContentStream.add(clipboarContent.text as String);
           }
         });
@@ -361,9 +362,10 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _stopMonitoringClipboard() {
+    if (clipboardTriggerTime != null) {
+      clipboardTriggerTime!.cancel();
+    }
     clipboardContentStream.close();
-
-    clipboardTriggerTime!.cancel();
   }
 
   String generateDeviceToken() {

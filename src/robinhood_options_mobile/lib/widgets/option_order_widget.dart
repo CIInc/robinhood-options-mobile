@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 
-import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -21,29 +18,28 @@ final formatCompactNumber = NumberFormat.compact();
 class OptionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
   final OptionOrder optionOrder;
-  OptionOrderWidget(this.user, this.optionOrder);
+  const OptionOrderWidget(this.user, this.optionOrder, {Key? key})
+      : super(key: key);
 
   @override
-  _OptionOrderWidgetState createState() =>
-      _OptionOrderWidgetState(user, optionOrder);
+  _OptionOrderWidgetState createState() => _OptionOrderWidgetState();
 }
 
 class _OptionOrderWidgetState extends State<OptionOrderWidget> {
-  final RobinhoodUser user;
-  final OptionOrder optionOrder;
   late Future<Quote?> futureQuote;
   late Future<Instrument> futureInstrument;
 
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
-  _OptionOrderWidgetState(this.user, this.optionOrder);
+  _OptionOrderWidgetState();
 
   @override
   void initState() {
     super.initState();
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionOrder);
-    futureQuote = RobinhoodService.getQuote(user, optionOrder.chainSymbol);
+    futureQuote =
+        RobinhoodService.getQuote(widget.user, widget.optionOrder.chainSymbol);
   }
 
   @override
@@ -55,7 +51,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
               futureInstrument = RobinhoodService.getInstrument(
-                  user, snapshot.data!.instrument);
+                  widget.user, snapshot.data!.instrument);
               return FutureBuilder(
                   future: futureInstrument,
                   builder:
@@ -65,7 +61,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       instrument.quoteObj = quote;
                       return _buildPage(instrument);
                     } else if (instrumentSnapshot.hasError) {
-                      print("${instrumentSnapshot.error}");
+                      debugPrint("${instrumentSnapshot.error}");
                       return Text("${instrumentSnapshot.error}");
                     }
                     return Container();
@@ -89,14 +85,16 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   }
 
   Widget _buildPage(Instrument instrument) {
+    /*
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte =
         optionOrder.legs.first.expirationDate!.difference(today).inDays;
-    final DateTime createdAt = DateTime(optionOrder.createdAt!.year,
-        optionOrder.createdAt!.month, optionOrder.createdAt!.day);
+    final DateTime createdAt = DateTime(widget.optionOrder.createdAt!.year,
+        widget.optionOrder.createdAt!.month, widget.optionOrder.createdAt!.day);
     final int originalDte =
         optionOrder.legs.first.expirationDate!.difference(createdAt).inDays;
+        */
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
@@ -116,10 +114,11 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                       //runSpacing: 5,
                       children: [
                         Text(
-                            "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy}",
+                            "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
                             style: const TextStyle(fontSize: 20.0)),
                         Text(
-                            '${formatDate.format(optionOrder.legs.first.expirationDate!)}',
+                            formatDate.format(
+                                widget.optionOrder.legs.first.expirationDate!),
                             style: const TextStyle(fontSize: 15.0))
                       ]),
                   /*
@@ -246,98 +245,97 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ListTile(
-              title:
-                  const Text("Order Detail", style: TextStyle(fontSize: 20))),
+          const ListTile(
+              title: Text("Order Detail", style: TextStyle(fontSize: 20))),
           ListTile(
             title: const Text("Opening Strategy"),
             trailing: Text(
-              optionOrder.openingStrategy ?? "",
+              widget.optionOrder.openingStrategy ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Closing Strategy"),
             trailing: Text(
-              optionOrder.closingStrategy ?? "",
+              widget.optionOrder.closingStrategy ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Created"),
             trailing: Text(
-              formatDate.format(optionOrder.createdAt!),
+              formatDate.format(widget.optionOrder.createdAt!),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Updated"),
             trailing: Text(
-              formatDate.format(optionOrder.updatedAt!),
+              formatDate.format(widget.optionOrder.updatedAt!),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Direction"),
             trailing: Text(
-              optionOrder.direction,
+              widget.optionOrder.direction,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.quantity),
+              formatCompactNumber.format(widget.optionOrder.quantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Processed Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.processedQuantity),
+              formatCompactNumber.format(widget.optionOrder.processedQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Cancelled Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.canceledQuantity),
+              formatCompactNumber.format(widget.optionOrder.canceledQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Pending Quantity"),
             trailing: Text(
-              formatCompactNumber.format(optionOrder.pendingQuantity),
+              formatCompactNumber.format(widget.optionOrder.pendingQuantity),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Premium"),
             trailing: Text(
-              formatCurrency.format(optionOrder.premium),
+              formatCurrency.format(widget.optionOrder.premium),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Processed Premium"),
             trailing: Text(
-              formatCurrency.format(optionOrder.processedPremium),
+              formatCurrency.format(widget.optionOrder.processedPremium),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Price"),
             trailing: Text(
-              formatCurrency.format(optionOrder.price),
+              formatCurrency.format(widget.optionOrder.price),
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Stop Price"),
             trailing: Text(
-              optionOrder.stopPrice != null
-                  ? formatCurrency.format(optionOrder.stopPrice)
+              widget.optionOrder.stopPrice != null
+                  ? formatCurrency.format(widget.optionOrder.stopPrice)
                   : "-",
               style: const TextStyle(fontSize: 18),
             ),
@@ -345,42 +343,42 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           ListTile(
             title: const Text("State"),
             trailing: Text(
-              optionOrder.state,
+              widget.optionOrder.state,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Time in Force"),
             trailing: Text(
-              optionOrder.timeInForce,
+              widget.optionOrder.timeInForce,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Trigger"),
             trailing: Text(
-              optionOrder.trigger,
+              widget.optionOrder.trigger,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Type"),
             trailing: Text(
-              optionOrder.type,
+              widget.optionOrder.type,
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Response Category"),
             trailing: Text(
-              optionOrder.responseCategory ?? "",
+              widget.optionOrder.responseCategory ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
           ListTile(
             title: const Text("Cancel Url"),
             trailing: Text(
-              optionOrder.cancelUrl ?? "",
+              widget.optionOrder.cancelUrl ?? "",
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -390,7 +388,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           child: Card(
               child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: _buildLegs(optionOrder).toList(),
+        children: _buildLegs(widget.optionOrder).toList(),
       ))),
       SliverToBoxAdapter(
         child: _buildStockView(instrument),
@@ -402,7 +400,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     for (int i = 0; i < optionOrder.legs.length; i++) {
       var leg = optionOrder.legs[i];
       yield ListTile(
-          title: Text("Leg ${i + 1}", style: TextStyle(fontSize: 20)));
+          title: Text("Leg ${i + 1}", style: const TextStyle(fontSize: 20)));
       // yield Text("Leg ${i + 1}", style: TextStyle(fontSize: 20));
       yield ListTile(
         title: const Text("Expiration Date"),
@@ -425,7 +423,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
       );
       yield ListTile(
         title: const Text("Strike Price"),
-        trailing: Text("${formatCurrency.format(leg.strikePrice)}",
+        trailing: Text(formatCurrency.format(leg.strikePrice),
             style: const TextStyle(fontSize: 18)),
       );
       yield ListTile(
@@ -521,7 +519,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) =>
-                            InstrumentWidget(user, instrument)));
+                            InstrumentWidget(widget.user, instrument)));
               },
             ),
           ],

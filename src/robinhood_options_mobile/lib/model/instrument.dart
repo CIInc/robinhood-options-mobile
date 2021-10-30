@@ -136,7 +136,6 @@ class Instrument {
         'url': url,
         'quote': quote,
         'fundamentals': fundamentals,
-        // TODO: Finish
 //    'endDate': _endDate.toIso8601String(),
       };
 }

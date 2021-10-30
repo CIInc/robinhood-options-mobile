@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:robinhood_options_mobile/model/option_order.dart';
 
-import 'package:robinhood_options_mobile/model/option_position.dart';
 import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -22,23 +16,21 @@ final formatCompactNumber = NumberFormat.compact();
 class PositionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
   final PositionOrder positionOrder;
-  PositionOrderWidget(this.user, this.positionOrder);
+  const PositionOrderWidget(this.user, this.positionOrder, {Key? key})
+      : super(key: key);
 
   @override
-  _PositionOrderWidgetState createState() =>
-      _PositionOrderWidgetState(user, positionOrder);
+  _PositionOrderWidgetState createState() => _PositionOrderWidgetState();
 }
 
 class _PositionOrderWidgetState extends State<PositionOrderWidget> {
-  final RobinhoodUser user;
-  final PositionOrder positionOrder;
   late Future<Quote> futureQuote;
   late Future<Instrument> futureInstrument;
 
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
-  _PositionOrderWidgetState(this.user, this.positionOrder);
+  _PositionOrderWidgetState();
 
   @override
   void initState() {
@@ -49,7 +41,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _buildPage(positionOrder)
+    return Scaffold(body: _buildPage(widget.positionOrder)
         /*
       FutureBuilder(
           future: futureQuote,
@@ -113,7 +105,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                         Text(
                             "${positionOrder.instrumentId} ${positionOrder.averagePrice != null ? formatCurrency.format(positionOrder.averagePrice) : ""} ${positionOrder.type} ${positionOrder.side}",
                             style: const TextStyle(fontSize: 20.0)),
-                        Text('${formatDate.format(positionOrder.updatedAt!)}',
+                        Text(formatDate.format(positionOrder.updatedAt!),
                             style: const TextStyle(fontSize: 15.0))
                       ]),
                 ]))),
@@ -124,9 +116,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
               child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          ListTile(
-              title:
-                  const Text("Order Detail", style: TextStyle(fontSize: 20))),
+          const ListTile(
+              title: Text("Order Detail", style: TextStyle(fontSize: 20))),
           ListTile(
             title: const Text("Created"),
             trailing: Text(
@@ -525,6 +516,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   }
   */
 
+  /*
   Widget _buildStockView(Instrument instrument) {
     return Card(
         child: Column(
@@ -556,13 +548,6 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
             ],
           ),
         ),
-        /*
-        ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-        ),
-        */
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -581,4 +566,5 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
       ],
     ));
   }
+  */
 }

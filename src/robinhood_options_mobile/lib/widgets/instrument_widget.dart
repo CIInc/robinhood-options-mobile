@@ -32,20 +32,15 @@ class InstrumentWidget extends StatefulWidget {
   final Instrument instrument;
   final Position? position;
   final OptionAggregatePosition? optionPosition;
-  InstrumentWidget(this.user, this.instrument,
-      {this.position, this.optionPosition});
+  const InstrumentWidget(this.user, this.instrument,
+      {Key? key, this.position, this.optionPosition})
+      : super(key: key);
 
   @override
-  _InstrumentWidgetState createState() =>
-      _InstrumentWidgetState(user, instrument, position, optionPosition);
+  _InstrumentWidgetState createState() => _InstrumentWidgetState();
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
-  final RobinhoodUser user;
-  final Instrument instrument;
-  final Position? position;
-  final OptionAggregatePosition? optionPosition;
-
   Future<Fundamentals?>? futureFundamentals;
   Future<Quote?>? futureQuote;
   Future<InstrumentHistoricals?>? futureHistoricals;
@@ -80,8 +75,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   //final dataKey = GlobalKey();
 
-  _InstrumentWidgetState(
-      this.user, this.instrument, this.position, this.optionPosition);
+  _InstrumentWidgetState();
 
   @override
   void initState() {
@@ -89,7 +83,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     if (RobinhoodService.optionOrders != null) {
       optionOrders = RobinhoodService.optionOrders!
-          .where((element) => element.chainSymbol == instrument.symbol)
+          .where((element) => element.chainSymbol == widget.instrument.symbol)
           .toList();
       optionOrdersPremiumBalance = optionOrders.isNotEmpty
           ? optionOrders
@@ -102,13 +96,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     if (RobinhoodService.optionPositions != null) {
       optionPositions = RobinhoodService.optionPositions!
-          .where((e) => e.symbol == instrument.symbol)
+          .where((e) => e.symbol == widget.instrument.symbol)
           .toList();
     }
 
     if (RobinhoodService.positionOrders != null) {
       positionOrders = RobinhoodService.positionOrders!
-          .where((element) => element.instrumentId == instrument.id)
+          .where((element) => element.instrumentId == widget.instrument.id)
           .toList();
       positionOrdersBalance = positionOrders.isNotEmpty
           ? positionOrders
@@ -129,6 +123,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    var instrument = widget.instrument;
+    var user = widget.user;
     if (instrument.quoteObj == null) {
       futureQuote ??= RobinhoodService.getQuote(user, instrument.symbol);
     } else {
@@ -216,7 +212,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       .toSet()
                       .toList();
                   expirationDates!.sort((a, b) => a.compareTo(b));
-                  if (expirationDates!.length > 0) {
+                  if (expirationDates!.isNotEmpty) {
                     expirationDateFilter ??= expirationDates!.first;
                   }
                   /*
@@ -227,23 +223,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   }
                   */
 
-                  return buildScrollView(optionInstruments: optionInstruments);
+                  return buildScrollView(instrument,
+                      optionInstruments: optionInstruments,
+                      position: widget.position);
                 } else if (snapshot.hasError) {
-                  print("${snapshot.error}");
+                  debugPrint("${snapshot.error}");
                   return Text("${snapshot.error}");
                 }
-                return buildScrollView();
+                return buildScrollView(instrument, position: widget.position);
               });
         } else if (snapshot.hasError) {
-          print("${snapshot.error}");
+          debugPrint("${snapshot.error}");
           return Text("${snapshot.error}");
         }
-        return buildScrollView();
+        return buildScrollView(instrument, position: widget.position);
       },
     ));
   }
 
-  buildScrollView({List<OptionInstrument>? optionInstruments}) {
+  buildScrollView(Instrument instrument,
+      {List<OptionInstrument>? optionInstruments, Position? position}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
       //title: Text(instrument.symbol),
@@ -315,9 +314,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           defaultRenderer:
               charts.LineRendererConfig(includeArea: true, stacked: false),
           animate: true,
-          primaryMeasureAxis: new charts.NumericAxisSpec(
+          primaryMeasureAxis: const charts.NumericAxisSpec(
               tickProviderSpec:
-                  new charts.BasicNumericTickProviderSpec(zeroBound: false)),
+                  charts.BasicNumericTickProviderSpec(zeroBound: false)),
           selectionModels: [
             charts.SelectionModelConfig(
               type: charts.SelectionModelType.info,
@@ -354,7 +353,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Wrap(
                   spacing: 8,
                   children: [
-                    Text("${formatDate.format(selection!.beginsAt!)}",
+                    Text(formatDate.format(selection!.beginsAt!),
                         style: const TextStyle(fontSize: 11)),
                     Text(
                         "Open/Close Price ${formatCurrency.format(selection!.openPrice)}, ${formatCurrency.format(selection!.closePrice)}",
@@ -532,41 +531,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     slivers.add(
       SliverToBoxAdapter(
-          child: Align(alignment: Alignment.center, child: buildOverview())),
+          child: Align(
+              alignment: Alignment.center, child: buildOverview(instrument))),
     );
     if (position != null) {
       slivers.add(SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        ListTile(title: const Text("Position", style: TextStyle(fontSize: 20))),
+        const ListTile(title: Text("Position", style: TextStyle(fontSize: 20))),
         ListTile(
-          title: Text("Quantity"),
-          trailing: Text(formatCompactNumber.format(position!.quantity!),
+          title: const Text("Quantity"),
+          trailing: Text(formatCompactNumber.format(position.quantity!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Average Cost"),
-          trailing: Text(formatCurrency.format(position!.averageBuyPrice),
+          title: const Text("Average Cost"),
+          trailing: Text(formatCurrency.format(position.averageBuyPrice),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Total Cost"),
-          trailing: Text(formatCurrency.format(position!.totalCost),
+          title: const Text("Total Cost"),
+          trailing: Text(formatCurrency.format(position.totalCost),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Market Value"),
-          trailing: Text(formatCurrency.format(position!.marketValue),
+          title: const Text("Market Value"),
+          trailing: Text(formatCurrency.format(position.marketValue),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-            title: Text("Return"),
+            title: const Text("Return"),
             trailing: Wrap(children: [
-              position!.trendingIcon,
+              position.trendingIcon,
               Container(
                 width: 2,
               ),
-              Text('${formatPercentage.format(position!.gainLoss.abs())}',
+              Text(formatPercentage.format(position.gainLoss.abs()),
                   style: const TextStyle(fontSize: 18)),
             ])
 
@@ -576,34 +576,34 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               */
             ),
         ListTile(
-          title: Text("Return %"),
-          trailing: Text(formatPercentage.format(position!.gainLossPercent),
+          title: const Text("Return %"),
+          trailing: Text(formatPercentage.format(position.gainLossPercent),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Created"),
-          trailing: Text(formatDate.format(position!.createdAt!),
+          title: const Text("Created"),
+          trailing: Text(formatDate.format(position.createdAt!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
-          title: Text("Updated"),
-          trailing: Text(formatDate.format(position!.updatedAt!),
+          title: const Text("Updated"),
+          trailing: Text(formatDate.format(position.updatedAt!),
               style: const TextStyle(fontSize: 18)),
         ),
       ]))));
     }
 
     if (instrument.fundamentalsObj != null) {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         // color: Colors.white,
         height: 25.0,
       )));
-      slivers.add(fundamentalsWidget);
+      slivers.add(fundamentalsWidget(instrument));
     }
 
     if (positionOrders.isNotEmpty) {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         // color: Colors.white,
         height: 25.0,
@@ -611,7 +611,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(positionOrdersWidget);
     }
     if (optionPositions.isNotEmpty) {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         // color: Colors.white,
         height: 25.0,
@@ -619,7 +619,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(optionPositionsWidget);
     }
     if (optionOrders.isNotEmpty) {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         // color: Colors.white,
         height: 25.0,
@@ -628,48 +628,49 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     if (optionInstruments != null) {
-      slivers.add(SliverToBoxAdapter(
+      slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(SliverStickyHeader(
-        header: Material(
-            elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                        //height: 40,
-                        padding: EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
-                        //const EdgeInsets.all(4.0),
-                        //EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          "Option Chain",
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        )),
-                    optionChainFilterWidget
-                  ],
-                ))),
-        sliver: optionInstrumentsWidget(optionInstruments),
-      ));
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                          //height: 40,
+                          padding:
+                              const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
+                          //const EdgeInsets.all(4.0),
+                          //EdgeInsets.symmetric(horizontal: 16.0),
+                          child: const Text(
+                            "Option Chain",
+                            style: TextStyle(
+                                //color: Colors.white,
+                                fontSize: 19.0),
+                          )),
+                      optionChainFilterWidget
+                    ],
+                  ))),
+          sliver: optionInstrumentsWidget(optionInstruments, instrument,
+              optionPosition: widget.optionPosition)));
     }
 
     return CustomScrollView(slivers: slivers);
   }
 
-  Card buildOverview() {
+  Card buildOverview(Instrument instrument) {
     if (instrument.quoteObj == null) {
-      return Card();
+      return const Card();
     }
     return Card(
         child: Column(
@@ -788,7 +789,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
-  Widget get fundamentalsWidget {
+  Widget fundamentalsWidget(Instrument instrument) {
     return SliverStickyHeader(
         header: Material(
             elevation: 2,
@@ -798,10 +799,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
-                child: ListTile(
+                child: const ListTile(
                   title: Text(
                     "Fundamentals",
-                    style: const TextStyle(
+                    style: TextStyle(
                         //color: Colors.white,
                         fontSize: 19.0),
                   ),
@@ -849,39 +850,39 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   const Text("Fundamentals", style: TextStyle(fontSize: 20))),
                   */
           ListTile(
-            title: Text("Volume"),
+            title: const Text("Volume"),
             trailing: Text(
                 formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Average Volume"),
+            title: const Text("Average Volume"),
             trailing: Text(
                 formatCompactNumber
                     .format(instrument.fundamentalsObj!.averageVolume!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Average Volume (2 weeks)"),
+            title: const Text("Average Volume (2 weeks)"),
             trailing: Text(
                 formatCompactNumber
                     .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("52 Week High"),
+            title: const Text("52 Week High"),
             trailing: Text(
                 formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("52 Week Low"),
+            title: const Text("52 Week Low"),
             trailing: Text(
                 formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Dividend Yield"),
+            title: const Text("Dividend Yield"),
             trailing: Text(
                 instrument.fundamentalsObj!.dividendYield != null
                     ? formatCompactNumber
@@ -890,21 +891,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Market Cap"),
+            title: const Text("Market Cap"),
             trailing: Text(
                 formatCompactNumber
                     .format(instrument.fundamentalsObj!.marketCap!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Shares Outstanding"),
+            title: const Text("Shares Outstanding"),
             trailing: Text(
                 formatCompactNumber
                     .format(instrument.fundamentalsObj!.sharesOutstanding!),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("P/E Ratio"),
+            title: const Text("P/E Ratio"),
             trailing: Text(
                 instrument.fundamentalsObj!.peRatio != null
                     ? formatCompactNumber
@@ -913,28 +914,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Sector"),
+            title: const Text("Sector"),
             trailing: Text(instrument.fundamentalsObj!.sector,
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Industry"),
+            title: const Text("Industry"),
             trailing: Text(instrument.fundamentalsObj!.industry,
                 style: const TextStyle(fontSize: 17)),
           ),
           ListTile(
-            title: Text("Headquarters"),
+            title: const Text("Headquarters"),
             trailing: Text(
                 "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("CEO"),
-            trailing: Text("${instrument.fundamentalsObj!.ceo}",
+            title: const Text("CEO"),
+            trailing: Text(instrument.fundamentalsObj!.ceo,
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Number of Employees"),
+            title: const Text("Number of Employees"),
             trailing: Text(
                 instrument.fundamentalsObj!.numEmployees != null
                     ? formatCompactNumber
@@ -943,27 +944,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text("Year Founded"),
-            trailing: Text(
-                "${instrument.fundamentalsObj!.yearFounded != null ? instrument.fundamentalsObj!.yearFounded : ""}",
+            title: const Text("Year Founded"),
+            trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
-            title: Text(
+            title: const Text(
               "Name",
-              style: const TextStyle(fontSize: 18.0),
+              style: TextStyle(fontSize: 18.0),
               //overflow: TextOverflow.visible
             ),
-            subtitle: Text("${instrument.name}",
-                style: const TextStyle(fontSize: 16)),
+            subtitle:
+                Text(instrument.name, style: const TextStyle(fontSize: 16)),
           ),
           ListTile(
-            title: Text(
+            title: const Text(
               "Description",
-              style: const TextStyle(fontSize: 18.0),
+              style: TextStyle(fontSize: 18.0),
               //overflow: TextOverflow.visible
             ),
-            subtitle: Text("${instrument.fundamentalsObj!.description}",
+            subtitle: Text(instrument.fundamentalsObj!.description,
                 style: const TextStyle(fontSize: 16)),
           ),
           Container(
@@ -1080,9 +1080,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //padding: EdgeInsets.symmetric(horizontal: 16.0),
             alignment: Alignment.centerLeft,
             child: ListTile(
-                title: Text(
+                title: const Text(
                   "Position Orders",
-                  style: const TextStyle(
+                  style: TextStyle(
                       //color: Colors.white,
                       fontSize: 19.0),
                 ),
@@ -1093,17 +1093,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     onPressed: () {
                       showModalBottomSheet<void>(
                         context: context,
-                        constraints: BoxConstraints(maxHeight: 260),
+                        constraints: const BoxConstraints(maxHeight: 260),
                         builder: (BuildContext context) {
                           return Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ListTile(
+                              const ListTile(
                                 tileColor: Colors.blue,
                                 title: Text(
                                   "Filter Position Orders",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
                                 ),
                                 /*
@@ -1149,7 +1149,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (positionOrders[index].side == "sell" ? "+" : "-") +
-                        "${positionOrders[index].averagePrice != null ? formatCurrency.format(positionOrders[index].averagePrice! * positionOrders[index].quantity!) : ""}",
+                        (positionOrders[index].averagePrice != null
+                            ? formatCurrency.format(
+                                positionOrders[index].averagePrice! *
+                                    positionOrders[index].quantity!)
+                            : ""),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
                   )
@@ -1202,7 +1206,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           //if (positionOrders.length > index) {
           //}
-          return null;
         }, childCount: positionOrders.length),
       ),
     );
@@ -1221,7 +1224,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       optionEquity = filteredOptionPositions
           .map((e) => e.legs.first.positionType == "long"
               ? e.marketValue
-              : e.marketValue) // TODO: Match portfolios[0].marketValue (e.totalCost - e.marketValue)
+              : e.marketValue)
           .reduce((a, b) => a + b);
     }
 
@@ -1254,9 +1257,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ListTile(
+                              const ListTile(
                                 tileColor: Colors.blue,
-                                title: const Text(
+                                title: Text(
                                   "Filter Options",
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
@@ -1267,7 +1270,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       onPressed: () => Navigator.pop(context))*/
                               ),
                               const ListTile(
-                                title: const Text("Position & Option Type"),
+                                title: Text("Position & Option Type"),
                               ),
                               openClosedFilterWidget,
                               optionTypeFilterWidget,
@@ -1280,7 +1283,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return _buildOptionPositionRow(filteredOptionPositions[index], user);
+          return _buildOptionPositionRow(
+              filteredOptionPositions[index], widget.user);
         }, childCount: filteredOptionPositions.length),
       ),
     );
@@ -1565,7 +1569,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ? Colors.green
                     : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
             Text(
-              "${formatCurrency.format(op.marketValue)}",
+              formatCurrency.format(op.marketValue),
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             )
@@ -1627,9 +1631,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: ListTile(
-                title: Text(
+                title: const Text(
                   "Option Orders",
-                  style: const TextStyle(
+                  style: TextStyle(
                       //color: Colors.white,
                       fontSize: 19.0),
                 ),
@@ -1640,17 +1644,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     onPressed: () {
                       showModalBottomSheet<void>(
                         context: context,
-                        constraints: BoxConstraints(maxHeight: 260),
+                        constraints: const BoxConstraints(maxHeight: 260),
                         builder: (BuildContext context) {
                           return Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              ListTile(
+                              const ListTile(
                                 tileColor: Colors.blue,
                                 title: Text(
                                   "Filter Option Orders",
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
                                 ),
                                 /*
@@ -1690,7 +1694,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (optionOrders[index].direction == "credit" ? "+" : "-") +
-                        "${optionOrders[index].processedPremium != null ? formatCurrency.format(optionOrders[index].processedPremium) : ""}",
+                        (optionOrders[index].processedPremium != null
+                            ? formatCurrency
+                                .format(optionOrders[index].processedPremium)
+                            : ""),
                     style: const TextStyle(fontSize: 18.0),
                     textAlign: TextAlign.right,
                   )
@@ -1732,16 +1739,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) =>
-                              OptionOrderWidget(user, optionOrders[index])));
+                          builder: (context) => OptionOrderWidget(
+                              widget.user, optionOrders[index])));
                 },
               ),
             ],
           ));
-
-          //if (optionOrders.length > index) {
-          //}
-          return null;
         }, childCount: optionOrders.length),
       ),
     );
@@ -1821,7 +1824,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ));
   }
 
-  Widget optionInstrumentsWidget(List<OptionInstrument> optionInstruments) {
+  Widget optionInstrumentsWidget(
+      List<OptionInstrument> optionInstruments, Instrument instrument,
+      {OptionAggregatePosition? optionPosition}) {
     return SliverList(
       // delegate: SliverChildListDelegate(widgets),
       delegate: SliverChildBuilderDelegate(
@@ -1835,7 +1840,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
             if (optionInstruments[index].optionMarketData == null) {
               RobinhoodService.getOptionMarketData(
-                      user, optionInstruments[index])
+                      widget.user, optionInstruments[index])
                   .then((value) => setState(() {
                         optionInstruments[index].optionMarketData = value;
                       }));
@@ -1879,7 +1884,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ? CircleAvatar(
                         //backgroundImage: AssetImage(user.profilePicture),
                         child: Text(
-                            '${formatCompactNumber.format(optionInstrumentQuantity)}',
+                            formatCompactNumber
+                                .format(optionInstrumentQuantity),
                             style: const TextStyle(fontSize: 18)))
                     : null, //Icon(Icons.ac_unit),
                 title: Text(//${optionInstruments[index].chainSymbol}
@@ -1928,7 +1934,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => OptionInstrumentWidget(
-                                user,
+                                widget.user,
                                 optionInstruments[index],
                                 optionPosition: optionPosition,
                               )));
@@ -1950,6 +1956,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Iterable<Widget> get headerWidgets sync* {
+    var instrument = widget.instrument;
     yield Row(children: const [SizedBox(height: 70)]);
     yield Wrap(
         crossAxisAlignment: WrapCrossAlignment.start,
@@ -1959,11 +1966,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         //runSpacing: 5,
         children: [
           Text(
-            '${instrument.symbol}', // ${optionPosition.strategy.split('_').first}
+            instrument.symbol, // ${optionPosition.strategy.split('_').first}
             //style: const TextStyle(fontSize: 20.0)
           ),
           Text(
-            '${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}',
+            formatCurrency.format(instrument.quoteObj!.lastTradePrice),
             //style: const TextStyle(fontSize: 15.0)
           ),
           Wrap(children: [
@@ -2284,10 +2291,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {
-                print("${selected} ${expirationDateFilter}=${expirationDate}");
+                //debugPrint("$selected $expirationDateFilter=$expirationDate");
                 expirationDateFilter = selected ? expirationDate : null;
-                print("${selected} ${expirationDateFilter}=${expirationDate}");
-                print("${expirationDateFilter == expirationDate}");
+                //debugPrint("$selected $expirationDateFilter=$expirationDate");
+                //debugPrint("${expirationDateFilter == expirationDate}");
               });
             },
           ),
@@ -2331,8 +2338,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             padding: const EdgeInsets.all(14.0),
             child: Row(
               children: const [
-                CircleAvatar(
-                    child: Text("C", style: const TextStyle(fontSize: 18))),
+                CircleAvatar(child: Text("C", style: TextStyle(fontSize: 18))),
                 //Icon(Icons.trending_up),
                 SizedBox(width: 10),
                 Text(
@@ -2345,8 +2351,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           padding: const EdgeInsets.all(14.0),
           child: Row(
             children: const [
-              CircleAvatar(
-                  child: Text("P", style: const TextStyle(fontSize: 18))),
+              CircleAvatar(child: Text("P", style: TextStyle(fontSize: 18))),
               // Icon(Icons.trending_down),
               SizedBox(width: 10),
               Text(
