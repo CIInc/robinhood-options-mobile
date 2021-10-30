@@ -59,16 +59,16 @@ jobs:
           # Artifact name
           name: release-apk
           # A file, directory or wildcard pattern that describes what to upload
-          path: build/app/outputs/apk/release/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           # The desired behavior if no files are found using the provided path.
         continue-on-error: true
 
-      - name: flutter build
+      - name: Build AppBundle
         id: build
         run: flutter build appbundle --build-number=`git rev-list --count HEAD`
         continue-on-error: true
 
-      - name: Upload AAB Build Artifact
+      - name: Upload App Bundle (.aab) Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           name: release-aab
