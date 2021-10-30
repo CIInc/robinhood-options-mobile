@@ -164,6 +164,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       /* Using SliverAppBar below
         appBar: new AppBar(

@@ -84,7 +84,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         children: tabPages,
         //onPageChanged: _onPageChanged,
         controller: _pageController,
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
       ),
 
       /*
