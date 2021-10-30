@@ -59,7 +59,7 @@ jobs:
           # Artifact name
           name: release-apk
           # A file, directory or wildcard pattern that describes what to upload
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
           # The desired behavior if no files are found using the provided path.
         continue-on-error: false
 
@@ -72,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.4
         with:
           name: release-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
         continue-on-error: false
 
 #      - name: Upload to Play Store
