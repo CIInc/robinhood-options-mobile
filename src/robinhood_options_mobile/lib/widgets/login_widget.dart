@@ -72,7 +72,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       } else if (clipboardInitialValue != value) {
         if (smsCtl.text == '') {
           smsCtl.text = value;
-          _handleChallenge();
+          _stopMonitoringClipboard();
         }
       }
     });

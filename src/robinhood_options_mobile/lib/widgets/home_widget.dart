@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+//import 'package:flutter_echarts/flutter_echarts.dart';
 
 //import 'dart:async';
 import 'dart:io';
@@ -3403,8 +3404,8 @@ class _HomePageState extends State<HomePage>
                               TextButton(
                                 child: const Text('OK'),
                                 onPressed: () {
-                                  _logout();
                                   Navigator.pop(context, 'dialog');
+                                  _logout();
                                 },
                               ),
                             ],
@@ -3776,15 +3777,13 @@ class _HomePageState extends State<HomePage>
             builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
-      RobinhoodUser.writeUserToStore(result);
+      await RobinhoodUser.writeUserToStore(result);
       setState(() {
         futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;
       });
 
       Navigator.pop(context); //, 'login'
-
-      // this.user = _hydrateUser(contents);
 
       // After the Selection Screen returns a result, hide any previous snackbars
       // and show the new result.
@@ -3794,15 +3793,14 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  _logout() {
-    Future.delayed(const Duration(milliseconds: 1), () async {
-      RobinhoodUser.clearUserFromStore();
-      setState(() {
-        futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
-        // _selectedDrawerIndex = 0;
-      });
+  _logout() async {
+    await RobinhoodUser.clearUserFromStore();
+    // Future.delayed(const Duration(milliseconds: 1), () async {
+    setState(() {
+      futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+      // _selectedDrawerIndex = 0;
     });
-    return const Text("Logged out.");
+    //});
   }
 
 /*

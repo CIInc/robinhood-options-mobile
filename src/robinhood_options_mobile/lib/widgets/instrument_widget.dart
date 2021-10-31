@@ -1962,43 +1962,46 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         crossAxisAlignment: WrapCrossAlignment.start,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
-        spacing: 10,
+        spacing: 15,
         //runSpacing: 5,
         children: [
           Text(
             instrument.symbol, // ${optionPosition.strategy.split('_').first}
             //style: const TextStyle(fontSize: 20.0)
           ),
-          Text(
-            formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-            //style: const TextStyle(fontSize: 15.0)
-          ),
-          Wrap(children: [
-            Icon(
-              instrument.quoteObj!.changeToday > 0
-                  ? Icons.trending_up
-                  : (instrument.quoteObj!.changeToday < 0
-                      ? Icons.trending_down
-                      : Icons.trending_flat),
-              color: (instrument.quoteObj!.changeToday > 0
-                  ? Colors.lightGreenAccent
-                  : (instrument.quoteObj!.changeToday < 0
-                      ? Colors.red
-                      : Colors.grey)),
-              //size: 15.0
-            ),
-            Container(
-              width: 2,
-            ),
+          if (instrument.quoteObj != null) ...[
             Text(
-              formatPercentage.format(instrument.quoteObj!.changePercentToday),
+              formatCurrency.format(instrument.quoteObj!.lastTradePrice),
               //style: const TextStyle(fontSize: 15.0)
             ),
-          ]),
-          Text(
-              "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
-              //style: const TextStyle(fontSize: 12.0),
-              textAlign: TextAlign.right)
+            Wrap(children: [
+              Icon(
+                instrument.quoteObj!.changeToday > 0
+                    ? Icons.trending_up
+                    : (instrument.quoteObj!.changeToday < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (instrument.quoteObj!.changeToday > 0
+                    ? Colors.lightGreenAccent
+                    : (instrument.quoteObj!.changeToday < 0
+                        ? Colors.red
+                        : Colors.grey)),
+                //size: 15.0
+              ),
+              Container(
+                width: 2,
+              ),
+              Text(
+                formatPercentage
+                    .format(instrument.quoteObj!.changePercentToday),
+                //style: const TextStyle(fontSize: 15.0)
+              ),
+            ]),
+            Text(
+                "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+                //style: const TextStyle(fontSize: 12.0),
+                textAlign: TextAlign.right)
+          ],
         ]);
     if (instrument.simpleName != null) {
       yield Text(

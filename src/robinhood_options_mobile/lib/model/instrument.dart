@@ -128,7 +128,7 @@ class Instrument {
         ipoS1Url = json['ipo_s1_url'],
         ipoRoadshowUrl = json['ipo_roadshow_url'],
         isSpac = json['is_spac'],
-        isTest = json['is_test'],
+        isTest = json['is_test'] ?? false,
         ipoAccessSupportsDsp = json['ipo_access_supports_dsp'];
 
   Map<String, dynamic> toJson() => {

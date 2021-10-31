@@ -214,6 +214,13 @@ class RobinhoodService {
   INSTRUMENTS
   */
 
+  static Future<dynamic> search(RobinhoodUser user, String query) async {
+    var resultJson = await getJson(
+        user, "${Constants.robinHoodSearchEndpoint}/search/?query=$query");
+    //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
+    return resultJson;
+  }
+
   static Future<Instrument> getInstrument(
       RobinhoodUser user, String instrumentUrl) async {
     var cached = instruments.where((element) => element.url == instrumentUrl);
@@ -1005,22 +1012,6 @@ WATCHLIST
       list.add(wl);
       yield list;
 
-      /*
-      var instrumentIds = entry.value
-          .where((e) => e['object_type'] == "instrument")
-          .map((e) =>
-              "https://api.robinhood.com/instruments/" +
-              e['object_id'].toString())
-          .toList();
-      var quoteObjs = await getQuoteByInstrumentUrls(user, instrumentIds);
-      for (var quoteObj in quoteObjs) {
-        //var watchlistItem =
-        //    new WatchlistItem(instrumentObj.id, DateTime.now(), entry.key, "");
-        watchlistItem.instrumentObj!.quoteObj = quoteObj;
-        yield list;
-      }
-      */
-
       var instrumentIds = entry.value
           .where((e) => e['object_type'] == "instrument")
           .map((e) => e['object_id'].toString())
@@ -1047,79 +1038,7 @@ WATCHLIST
         watchlistItem.instrumentObj!.quoteObj = quoteObj;
         yield list;
       }
-      /*
-      for (var val in entry.value) {
-        if (val['object_type'] != "instrument") {
-          continue;
-        }
-        var watchlistItem =
-            new WatchlistItem(val['object_id'], DateTime.now(), entry.key, "");
-
-        var instrumentObj = await getInstrument(user,
-            "${Constants.robinHoodEndpoint}/instruments/${watchlistItem.instrument}");
-        watchlistItem.instrumentObj = instrumentObj;
-
-        if (watchlistItem.instrumentObj != null) {
-          var quoteObj =
-              await getQuote(user, watchlistItem.instrumentObj!.symbol);
-          watchlistItem.instrumentObj!.quoteObj = quoteObj;
-        }
-
-        wl.items.add(watchlistItem);
-        yield list;
-      }
-      */
     }
-
-    /*
-    for (var entry in userItemsJson.entries) {
-      var wl =
-          list.singleWhere((element) => element.displayName == entry.key);
-      List<dynamic> instruments = entry.value
-          .where((e) => e['object_type'] == "instrument")
-          .toList();
-      // type 'MappedIterable<dynamic, dynamic>' is not a subtype of type 'List<String>'
-
-      var len = instruments.length;
-      var size = 15;
-      List<List<dynamic>> chunks = [];
-      for (var i = 0; i < len; i += size) {
-        var end = (i + size < len) ? i + size : len;
-        chunks.add(instruments.sublist(i, end));
-      }
-      for (var chunk in chunks) {
-        var instrumentIds =
-            chunk.map((e) => e['object_id'].toString()).toList();
-
-        //var instrumentIds =
-        //    instruments.map((e) => e['object_id'].toString()).toList();
-        var instrumentObjs = await getInstrumentByIds(user, instrumentIds);
-
-        for (var instrumentObj in instrumentObjs) {
-          var watchlistItem = new WatchlistItem(
-              instrumentObj.id, DateTime.now(), entry.key, "");
-          watchlistItem.instrumentObj = instrumentObj;
-
-          wl.items!.add(watchlistItem);
-          yield list;
-        //if (watchlistItem.instrumentObj != null) {
-        //  var quoteObj =
-        //      await getQuote(user, watchlistItem.instrumentObj!.symbol);
-        //  watchlistItem.instrumentObj!.quoteObj = quoteObj;
-        //  yield list;
-        //}
-        }
-        var symbols = wl.items!.map((e) => e.instrumentObj!.symbol).toList();
-        var quotes = await getQuoteById(user, symbols);
-        for (var quote in quotes) {
-          var watchlistItem = wl.items!.where(
-              (element) => element.instrumentObj!.symbol == quote.symbol);
-          watchlistItem.first.instrumentObj!.quoteObj = quote;
-        }
-      }
-      yield list;
-    }
-      */
   }
 
   /*

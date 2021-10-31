@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
+import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 /// This is the stateful widget that the main application instantiates.
@@ -57,6 +58,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             tabPages = [
               const HomePage(title: 'Robinhood Options'),
               //const HomePage(title: 'Orders'),
+              SearchWidget(robinhoodUser!),
               ListsWidget(robinhoodUser!),
               //const LoginWidget(),
               //HomePage(key: Key('history')),
@@ -97,6 +99,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.account_balance), //home
                   label: 'Portfolio',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'Search',
                 ),
                 /*
                 BottomNavigationBarItem(
