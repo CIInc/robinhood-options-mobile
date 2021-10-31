@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
@@ -80,7 +79,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       ListTile(
                         title: Text(
                           result["display_title"],
-                          style: TextStyle(
+                          style: const TextStyle(
                               //color: Colors.white,
                               fontSize: 19.0),
                         ),

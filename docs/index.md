@@ -18,7 +18,7 @@
     - [ ] News view.
     - [ ] Earnings view.
     - [ ] Splits & Corporate Actions view.
-  - [ ] Search stock view.
+  - [x] Search stock view.
   - [ ] Stock research
     - [ ] Movers (gainers and losers).
     - [ ] Popular (based on average volume vs current volume).

@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
@@ -19,6 +20,7 @@ import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatExpirationDate = DateFormat('yyyy-MM-dd');
 final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -44,6 +46,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<Fundamentals?>? futureFundamentals;
   Future<Quote?>? futureQuote;
   Future<InstrumentHistoricals?>? futureHistoricals;
+  Future<OptionChain>? futureOptionChain;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
@@ -125,16 +128,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
     var user = widget.user;
+
     if (instrument.quoteObj == null) {
       futureQuote ??= RobinhoodService.getQuote(user, instrument.symbol);
     } else {
       futureQuote ??= Future.value(instrument.quoteObj);
     }
+
     if (instrument.fundamentalsObj == null) {
       futureFundamentals ??= RobinhoodService.getFundamentals(user, instrument);
     } else {
       futureFundamentals ??= Future.value(instrument.fundamentalsObj);
     }
+
+    futureOptionChain = RobinhoodService.getOptionChains(user, instrument.id);
 
     String? bounds;
     String? interval;
@@ -180,15 +187,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         user, instrument.symbol,
         interval: interval, span: span, bounds: bounds);
 
-    optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
-        user, instrument, null, null); // 'call'
-
     return Scaffold(
         body: FutureBuilder(
       future: Future.wait([
         futureQuote as Future,
         futureFundamentals as Future,
-        futureHistoricals as Future
+        futureHistoricals as Future,
+        futureOptionChain as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -197,8 +202,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
           instrument.instrumentHistoricalsObj =
               data.length > 2 ? data[2] : null;
+          instrument.optionChainObj = data.length > 3 ? data[3] : null;
 
           chart = null;
+
+          expirationDates = instrument.optionChainObj!.expirationDates;
+          expirationDates!.sort((a, b) => a.compareTo(b));
+          if (expirationDates!.isNotEmpty) {
+            expirationDateFilter ??= expirationDates!.first;
+          }
+
+          optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
+              user,
+              instrument,
+              expirationDateFilter != null
+                  ? formatExpirationDate.format(expirationDateFilter!)
+                  : null,
+              null); // 'call'
 
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
@@ -207,6 +227,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 if (snapshot.hasData) {
                   optionInstruments = snapshot.data!;
 
+                  /*
                   expirationDates = optionInstruments!
                       .map((e) => e.expirationDate!)
                       .toSet()
@@ -214,12 +235,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   expirationDates!.sort((a, b) => a.compareTo(b));
                   if (expirationDates!.isNotEmpty) {
                     expirationDateFilter ??= expirationDates!.first;
-                  }
-                  /*
-                  var optionInstrumentsForDate = optionInstruments!.where((element) => element.expirationDate! == expirationDateFilter!);
-                  for (var op in optionInstrumentsForDate) {
-                    var optionMarketData = await RobinhoodService.getOptionMarketData(user, op);
-                    op.optionMarketData = optionMarketData;
                   }
                   */
 
@@ -1838,6 +1853,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     optionInstruments[index].expirationDate!)) {
               return Container();
             }
+            // TODO: Optimize to batch calls for market data.
             if (optionInstruments[index].optionMarketData == null) {
               RobinhoodService.getOptionMarketData(
                       widget.user, optionInstruments[index])
@@ -2294,11 +2310,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             selected: expirationDateFilter! == expirationDate,
             onSelected: (bool selected) {
               setState(() {
-                //debugPrint("$selected $expirationDateFilter=$expirationDate");
                 expirationDateFilter = selected ? expirationDate : null;
-                //debugPrint("$selected $expirationDateFilter=$expirationDate");
-                //debugPrint("${expirationDateFilter == expirationDate}");
               });
+              optionInstrumentStream = null;
             },
           ),
         );
@@ -2320,19 +2334,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
   }
 
-  /*
-  Card buildExpirationDates() {
-    return Card(
-        child: ToggleButtons(
-            children: expirationDateWidgets.toList(),
-            onPressed: (int index) {
-              setState(() {
-                expirationDateFilter = expirationDates![index];
-              });
-            },
-            isSelected: expirationDates?.map((e) => false).toList() ?? []));
-  }
-  */
   Card buildOptions() {
     return Card(
         child: ToggleButtons(
