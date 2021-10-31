@@ -63,17 +63,17 @@ jobs:
           # The desired behavior if no files are found using the provided path.
         continue-on-error: false
 
-      - name: Build AppBundle
-        id: build
-        run: flutter build appbundle --build-number=`git rev-list --count HEAD`
-        continue-on-error: false
+#      - name: Build AppBundle
+#        id: build
+#        run: flutter build appbundle --build-number=`git rev-list --count HEAD`
+#        continue-on-error: false
 
-      - name: Upload App Bundle (.aab) Build Artifact
-        uses: actions/upload-artifact@v2.2.4
-        with:
-          name: release-aab
-          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
-        continue-on-error: false
+#      - name: Upload App Bundle (.aab) Build Artifact
+#        uses: actions/upload-artifact@v2.2.4
+#        with:
+#          name: release-aab
+#          path: src/robinhood_options_mobile/build/app/outputs/bundle/release/app-release.aab
+#        continue-on-error: false
 
 #      - name: Upload to Play Store
 #        uses: r0adkll/upload-google-play@v1.0.15
