@@ -35,6 +35,9 @@ class _ListsWidgetState extends State<ListsWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (widget.user.userName == null) {
+      return Container();
+    }
     watchlistStream ??= RobinhoodService.streamLists(widget.user);
 
     return Scaffold(

@@ -41,11 +41,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void _onPageChanged(int index) {
     setState(() {
       _pageIndex = index;
-      _pageController!.jumpToPage(index);
-      /*
+      // _pageController!.jumpToPage(index);
       _pageController!.animateToPage(index,
           duration: const Duration(milliseconds: 200), curve: Curves.easeInOut);
-          */
     });
   }
 
@@ -84,9 +82,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         children: tabPages,
         //onPageChanged: _onPageChanged,
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
+        // physics: const NeverScrollableScrollPhysics(),
       ),
-
       /*
       IndexedStack(
         children: tabPages,

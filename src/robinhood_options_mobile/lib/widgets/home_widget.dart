@@ -3426,7 +3426,6 @@ class _HomePageState extends State<HomePage>
                         title: const Text("Login"),
                         onTap: () {
                           _openLogin();
-                          Navigator.pop(context, 'login');
                         },
                       ),
                       const Divider(
@@ -3782,6 +3781,8 @@ class _HomePageState extends State<HomePage>
         futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;
       });
+
+      Navigator.pop(context); //, 'login'
 
       // this.user = _hydrateUser(contents);
 
