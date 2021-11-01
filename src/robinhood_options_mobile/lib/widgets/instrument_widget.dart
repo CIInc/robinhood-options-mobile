@@ -581,7 +581,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Container(
                 width: 2,
               ),
-              Text(formatPercentage.format(position.gainLoss.abs()),
+              Text(formatCurrency.format(position.gainLoss.abs()),
                   style: const TextStyle(fontSize: 18)),
             ])
 
@@ -611,7 +611,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (instrument.fundamentalsObj != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(fundamentalsWidget(instrument));
@@ -620,7 +619,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (positionOrders.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(positionOrdersWidget);
@@ -628,7 +626,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (optionPositions.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(optionPositionsWidget);
@@ -636,7 +633,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (optionOrders.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(optionOrdersWidget);
@@ -645,7 +641,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (optionInstruments != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       slivers.add(SliverStickyHeader(
@@ -654,7 +649,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Container(
                   //height: 208.0, //60.0,
                   //color: Colors.blue,
-                  color: Colors.white,
+                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: Column(
@@ -669,9 +664,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           //EdgeInsets.symmetric(horizontal: 16.0),
                           child: const Text(
                             "Option Chain",
-                            style: TextStyle(
-                                //color: Colors.white,
-                                fontSize: 19.0),
+                            style: TextStyle(fontSize: 19.0),
                           )),
                       optionChainFilterWidget
                     ],
@@ -811,15 +804,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
-                color: Colors.white,
+                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
                   title: Text(
                     "Fundamentals",
-                    style: TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
+                    style: TextStyle(fontSize: 19.0),
                   ),
                   /*
               subtitle: Text(
@@ -1091,15 +1082,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Container(
             //height: 208.0, //60.0,
             //color: Colors.blue,
-            color: Colors.white,
+            //color: Colors.white,
             //padding: EdgeInsets.symmetric(horizontal: 16.0),
             alignment: Alignment.centerLeft,
             child: ListTile(
                 title: const Text(
                   "Position Orders",
-                  style: TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
+                  style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
@@ -1249,15 +1238,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Container(
               //height: 208.0, //60.0,
               //color: Colors.blue,
-              color: Colors.white,
+              //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: ListTile(
                 title: const Text(
                   "Options",
-                  style: TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
+                  style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
@@ -1642,15 +1629,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Container(
               //height: 208.0, //60.0,
               //color: Colors.blue,
-              color: Colors.white,
+              //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: ListTile(
                 title: const Text(
                   "Option Orders",
-                  style: TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
+                  style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
                     "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance)}"),

@@ -17,7 +17,19 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitDown,
     ]);
     return MaterialApp(
-        title: 'Robinhood Options',
+      title: 'Robinhood Options',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      /*
+        theme: ThemeData.dark().copyWith(
+          elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all(Colors.blueGrey[800]),
+          )),
+        ),
+        */
+      /*
         theme: ThemeData(
           // This is the theme of your application.
           //
@@ -29,10 +41,10 @@ class MyApp extends StatelessWidget {
           // Notice that the counter didn't reset back to zero; the application
           // is not restarted.
           primarySwatch: Colors.blue,
-        ),
-        // home: OptionPositionsWidget()
-        home: const NavigationStatefulWidget()
-        //HomePage(title: 'Robinhood Options'),
-        );
+        ), */
+      // home: OptionPositionsWidget()
+      home: const NavigationStatefulWidget(),
+      //HomePage(title: 'Robinhood Options'),
+    );
   }
 }

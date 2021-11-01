@@ -887,7 +887,8 @@ class RobinhoodService {
     */
   }
 
-  static Future<List<Holding>> getNummusHoldings(RobinhoodUser user) async {
+  static Future<List<Holding>> getNummusHoldings(RobinhoodUser user,
+      {bool nonzero = true}) async {
     /*
     var holdings = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodNummusEndpoint}/holdings/");
@@ -913,8 +914,8 @@ class RobinhoodService {
     }
     */
 
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodNummusEndpoint}/holdings/");
+    var results = await RobinhoodService.pagedGet(user,
+        "${Constants.robinHoodNummusEndpoint}/holdings/?nonzero=$nonzero");
     var quotes = await RobinhoodService.getForexPairs(user);
     List<Holding> list = [];
     for (var i = 0; i < results.length; i++) {

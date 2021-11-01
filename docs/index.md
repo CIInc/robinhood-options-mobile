@@ -6,10 +6,32 @@
 - Price target recommendations. 
 
 ## Requirements
-- Portfolio UI
-  - [x] Portfolio historical charts view.
-  - [x] Portfolio summary breakdown view.
-- Stocks UI
+- Portfolio tab
+  - Summary view
+    - [x] Portfolio historical charts view.
+    - [x] Portfolio summary breakdown view.
+  - Options view
+    - [x] Options list with filters.
+    - [x] Option detail view with market data.
+    - [x] Option greeks view.
+      - [ ] Risk analysis with charts.
+    - [x] Option chain view.
+      - [ ] Show current price list divider with scroll to function.
+  - Stocks view
+    - [x] Stock list with filters.
+    - [x] Stock detail view with market data (see Stock view).
+  - Crypto view
+    - [x] Crypto holdings
+- Search tab
+  - [x] Search companies by name or symbol.
+- Lists tab
+  - [x] View your lists and its stocks. Drill into the stocks listed.
+    - [ ] List sort order maintenance.
+    - [ ] List item sort order maintenance.
+  - [ ] Create new list.
+  - [ ] Edit list.
+  - [ ] Add symbol to list.
+- Stock view
   - [x] Instrument (Stock) view
     - [x] Positions, options, orders view
     - [x] Fundamentals view.
@@ -18,27 +40,10 @@
     - [ ] News view.
     - [ ] Earnings view.
     - [ ] Splits & Corporate Actions view.
-  - [x] Search stock view.
   - [ ] Stock research
     - [ ] Movers (gainers and losers).
     - [ ] Popular (based on average volume vs current volume).
     - [ ] Undervalued/Overvalued (Fair value evaluation)
-- Options UI
-  - [x] Options list with filters.
-  - [x] Option detail view with market data.
-  - [x] Option greeks view.
-    - [ ] Risk analysis with charts.
-  - [x] Option chain view.
-    - [ ] Show current price list divider with scroll to function.
-- Crypto UI
-  - [ ] Crypto list
-- Lists UI
-  - [x] List view.
-    - [ ] List sort order maintenance.
-    - [ ] List item sort order maintenance.
-  - [ ] Create new list.
-  - [ ] Edit list.
-  - [ ] Add symbol to list.
 - Trading UI
   - [ ] Place stock order.
   - [ ] Place option order.

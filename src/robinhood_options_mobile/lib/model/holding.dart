@@ -30,6 +30,8 @@
     "updated_at": "2021-07-19T23:17:25.367967-04:00"
 }
 */
+import 'package:flutter/material.dart';
+
 class Holding {
   final String id;
   final String currencyId;
@@ -51,6 +53,72 @@ class Holding {
         quantity = double.tryParse(json['quantity']),
         directCostBasis =
             double.tryParse(json['cost_bases'][0]['direct_cost_basis']);
+
+  double get marketValue {
+    return value! * quantity!;
+  }
+
+  double get totalCost {
+    return directCostBasis! * quantity!;
+  }
+
+  double get gainLoss {
+    return marketValue - totalCost;
+  }
+
+  double get gainLossPerShare {
+    return gainLoss / quantity!;
+  }
+
+  double get gainLossPercent {
+    return gainLoss / totalCost;
+  }
+  /*
+  double get gainLossToday {
+    return instrumentObj!.quoteObj!.lastTradePrice! -
+        instrumentObj!.quoteObj!.adjustedPreviousClose!;
+  }
+
+  double get gainLossPercentToday {
+    return gainLossToday / instrumentObj!.quoteObj!.adjustedPreviousClose!;
+  }
+  */
+
+  Icon get trendingIcon {
+    return Icon(
+            gainLoss > 0
+                ? Icons.trending_up
+                : (gainLoss < 0 ? Icons.trending_down : Icons.trending_flat),
+            color: (gainLoss > 0
+                ? Colors.green
+                : (gainLoss < 0 ? Colors.red : Colors.grey)))
+        /*: Icon(
+            gainLoss < 0
+                ? Icons.trending_up
+                : (gainLoss > 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLoss < 0
+                ? Colors.lightGreenAccent
+                : (gainLoss > 0 ? Colors.red : Colors.grey)),
+            size: 14.0)*/
+        ;
+  }
+
+  /*
+  Icon get trendingIconToday {
+    return Icon(
+            gainLossToday > 0
+                ? Icons.trending_up
+                : (gainLossToday < 0
+                    ? Icons.trending_down
+                    : Icons.trending_flat),
+            color: (gainLossToday > 0
+                ? Colors.green
+                : (gainLossToday < 0 ? Colors.red : Colors.grey)))
+        ;
+  }
+  */
 }
 
 /*

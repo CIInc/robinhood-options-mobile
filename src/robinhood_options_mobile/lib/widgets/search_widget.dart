@@ -13,7 +13,10 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
 
-  const SearchWidget(this.user, {Key? key}) : super(key: key);
+  const SearchWidget(this.user, {Key? key, this.navigatorKey})
+      : super(key: key);
+
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   @override
   _SearchWidgetState createState() => _SearchWidgetState();
@@ -22,7 +25,7 @@ class SearchWidget extends StatefulWidget {
 class _SearchWidgetState extends State<SearchWidget>
     with AutomaticKeepAliveClientMixin<SearchWidget> {
   String? query;
-  TextEditingController searchCtl = TextEditingController(text: '');
+  TextEditingController? searchCtl;
   Future<dynamic>? futureSearch;
 
   _SearchWidgetState();
@@ -33,39 +36,61 @@ class _SearchWidgetState extends State<SearchWidget>
   @override
   void initState() {
     super.initState();
+
+    searchCtl = TextEditingController();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
 
+    return Navigator(
+        key: widget.navigatorKey,
+        onGenerateRoute: (_) =>
+            MaterialPageRoute(builder: (_) => _buildScaffold()));
+    /*
+    return WillPopScope(
+      onWillPop: () => Future.value(true),
+      child: Scaffold(
+          //appBar: _buildFlowAppBar(),
+          body: Navigator(
+              key: widget.navigatorKey,
+              onGenerateRoute: (_) =>
+                  MaterialPageRoute(builder: (_) => _buildScaffold()))),
+    );
+    */
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
         appBar: AppBar(
-            title: TextField(
+            title: //const Text('Search'),
+                /*
+          automaticallyImplyLeading: false,
+          actions: [
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.search),
+            )
+          ],
+          centerTitle: true,
+          */
+                TextField(
           controller: searchCtl,
-          decoration: const InputDecoration(hintText: 'Search...'),
+          decoration: const InputDecoration(
+            hintText: 'Search...',
+            hintStyle: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
           onChanged: (text) {
             setState(() {
               futureSearch = RobinhoodService.search(widget.user, text);
             });
           },
-        )
-            /*
-          Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 20,
-              //runSpacing: 5,
-              children: [
-                TextField(
-                  controller: searchCtl,
-                  decoration: const InputDecoration(hintText: 'Search...'),
-                ),
-                //Text('Search', style: const TextStyle(fontSize: 20.0)),
-              ]),
-              */
-            ),
+        )),
         body: FutureBuilder(
             future: futureSearch,
             builder: (context, AsyncSnapshot<dynamic> searchSnapshot) {
@@ -99,11 +124,17 @@ class _SearchWidgetState extends State<SearchWidget>
                                     */
                             var instrument = Instrument.fromJson(data["item"]);
 
+                            widget.navigatorKey!.currentState!.push(
+                                MaterialPageRoute(
+                                    builder: (context) => InstrumentWidget(
+                                        widget.user, instrument)));
+                            /*
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) => InstrumentWidget(
                                         widget.user, instrument)));
+                                        */
                           },
                         ),
                       ]

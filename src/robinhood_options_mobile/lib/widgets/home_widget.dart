@@ -7,9 +7,8 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 //import 'package:flutter_echarts/flutter_echarts.dart';
 
-//import 'dart:async';
-import 'dart:io';
-import 'package:open_file/open_file.dart';
+//import 'dart:io';
+//import 'package:open_file/open_file.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
@@ -60,7 +59,9 @@ class HomePage extends StatefulWidget {
   ];
   */
 
-  const HomePage({Key? key, this.title}) : super(key: key);
+  const HomePage({Key? key, this.title, this.navigatorKey}) : super(key: key);
+
+  final GlobalKey<NavigatorState>? navigatorKey;
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -104,6 +105,7 @@ class _HomePageState extends State<HomePage>
   List<String> optionOrderSymbols = [];
   List<String> positionOrderSymbols = [];
   List<String> chainSymbols = [];
+  List<String> cryptoSymbols = [];
 
   final List<String> optionFilters = <String>[];
   final List<String> positionFilters = <String>[];
@@ -113,6 +115,8 @@ class _HomePageState extends State<HomePage>
 
   final List<String> orderFilters = <String>["placed", "filled"];
   final List<String> stockSymbolFilters = <String>[];
+  final List<String> cryptoFilters = <String>[];
+
   int orderDateFilterSelected = 1;
 
   /*
@@ -166,6 +170,25 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    return Navigator(
+        key: widget.navigatorKey,
+        onGenerateRoute: (_) =>
+            MaterialPageRoute(builder: (_) => _buildScaffold()));
+    /*
+    return WillPopScope(
+      onWillPop: () => Future.value(true),
+      child: Scaffold(
+          //appBar: _buildFlowAppBar(),
+          body: Navigator(
+              key: widget.navigatorKey,
+              onGenerateRoute: (_) =>
+                  MaterialPageRoute(builder: (_) => _buildScaffold()))),
+    );
+    */
+  }
+
+  Widget _buildScaffold() {
     return Scaffold(
       /* Using SliverAppBar below
         appBar: new AppBar(
@@ -203,8 +226,9 @@ class _HomePageState extends State<HomePage>
                 futurePortfolios ??=
                     RobinhoodService.getPortfolios(robinhoodUser!);
                 //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(snapshotUser);
-                futureNummusHoldings ??=
-                    RobinhoodService.getNummusHoldings(robinhoodUser!);
+                futureNummusHoldings ??= RobinhoodService.getNummusHoldings(
+                    robinhoodUser!,
+                    nonzero: !hasQuantityFilters[1]);
 
                 return FutureBuilder(
                   future: Future.wait([
@@ -638,6 +662,7 @@ class _HomePageState extends State<HomePage>
                   done: userSnapshot.connectionState == ConnectionState.done);
             }
           }),
+      /*
       floatingActionButton:
           (robinhoodUser != null && robinhoodUser!.userName != null)
               ? FloatingActionButton(
@@ -646,6 +671,7 @@ class _HomePageState extends State<HomePage>
                   child: const Icon(Icons.download),
                 )
               : null,
+              */
     );
   }
 
@@ -694,6 +720,25 @@ class _HomePageState extends State<HomePage>
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
     }
+
+    int days = 0;
+    switch (orderDateFilterSelected) {
+      case 0:
+        days = 1;
+        break;
+      case 1:
+        days = 7;
+        break;
+      case 2:
+        days = 30;
+        break;
+      case 3:
+        days = 365;
+        break;
+      case 4:
+        break;
+    }
+
     SliverAppBar sliverAppBar = buildSliverAppBar(
         ru,
         portfolios,
@@ -710,7 +755,6 @@ class _HomePageState extends State<HomePage>
       if (done == false) {
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
-          // color: Colors.white,
           height: 3, //150.0,
           child: Align(
               alignment: Alignment.center,
@@ -1001,17 +1045,16 @@ class _HomePageState extends State<HomePage>
       }
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
-          // color: Colors.white,
           height: 150.0,
           child: Align(alignment: Alignment.center, child: welcomeWidget),
         )));
       }
+
       if (optionPositions != null) {
         var filteredOptionAggregatePositions = optionPositions
             .where((element) =>
@@ -1032,15 +1075,13 @@ class _HomePageState extends State<HomePage>
               child: Container(
                   //height: 208.0, //60.0,
                   //color: Colors.blue,
-                  color: Colors.white,
+                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
                     title: const Text(
                       "Options",
-                      style: TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
+                      style: TextStyle(fontSize: 19.0),
                     ),
                     subtitle: Text(
                         "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
@@ -1121,28 +1162,330 @@ class _HomePageState extends State<HomePage>
         */
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
-          // color: Colors.white,
+          height: 25.0,
+        )));
+      }
+
+      if (positions != null) {
+        var filteredPositions = positions
+            .where((element) =>
+                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                /*
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                        */
+                (stockSymbolFilters.isEmpty ||
+                    stockSymbolFilters.contains(element.instrumentObj!.symbol)))
+            .toList();
+
+        slivers.add(SliverStickyHeader(
+            header: Material(
+                elevation: 2,
+                child: Container(
+                    //height: 208.0, //60.0,
+                    //color: Colors.blue,
+                    //color: Colors.white,
+                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      title: const Text(
+                        "Stocks",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions - value: ${formatCurrency.format(positionEquity)}"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              //constraints: BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const ListTile(
+                                      tileColor: Colors.blue,
+                                      title: Text(
+                                        "Filter Stocks",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 19.0),
+                                      ),
+                                      /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                    ),
+                                    const ListTile(
+                                      title: Text("Position Type"), // & Date
+                                    ),
+                                    positionTypeFilterWidget,
+                                    //orderDateFilterWidget,
+                                    const ListTile(
+                                      title: Text("Symbols"),
+                                    ),
+                                    stockOrderSymbolFilterWidget,
+                                  ],
+                                );
+                              },
+                            );
+                          }),
+                    ))),
+            sliver: SliverList(
+              // delegate: SliverChildListDelegate(widgets),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  return _buildPositionRow(filteredPositions, index, ru);
+                },
+                // Or, uncomment the following line:
+                childCount: filteredPositions.length,
+              ),
+            )));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )));
+      }
+
+      if (nummusHoldings != null) {
+        cryptoSymbols =
+            nummusHoldings.map((e) => e.currencyCode).toSet().toList();
+        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
+
+        var filteredHoldings = nummusHoldings
+            .where((element) =>
+                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                /*
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                        */
+                (cryptoFilters.isEmpty ||
+                    cryptoFilters.contains(element.currencyCode)))
+            .toList();
+
+        slivers.add(SliverStickyHeader(
+            header: Material(
+                elevation: 2,
+                child: Container(
+                    //height: 208.0, //60.0,
+                    //color: Colors.blue,
+                    //color: Colors.white,
+                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    alignment: Alignment.centerLeft,
+                    child: ListTile(
+                      title: const Text(
+                        "Cryptos",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "${formatCompactNumber.format(filteredHoldings.length)} of ${formatCompactNumber.format(nummusHoldings.length)} cryptos - value: ${formatCurrency.format(nummusEquity)}"),
+                      trailing: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              //constraints: BoxConstraints(maxHeight: 260),
+                              builder: (BuildContext context) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const ListTile(
+                                      tileColor: Colors.blue,
+                                      title: Text(
+                                        "Filter Cryptos",
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 19.0),
+                                      ),
+                                      /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                    ),
+                                    const ListTile(
+                                      title: Text("Position Type"), // & Date
+                                    ),
+                                    positionTypeFilterWidget,
+                                    //orderDateFilterWidget,
+                                    const ListTile(
+                                      title: Text("Symbols"),
+                                    ),
+                                    cryptoFilterWidget,
+                                  ],
+                                );
+                              },
+                            );
+                          }),
+                    ))),
+            sliver: SliverList(
+              // delegate: SliverChildListDelegate(widgets),
+              delegate: SliverChildBuilderDelegate(
+                (BuildContext context, int index) {
+                  return _buildCryptoRow(filteredHoldings, index, ru);
+                },
+                // Or, uncomment the following line:
+                childCount: filteredHoldings.length,
+              ),
+            )));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )));
+      }
+
+      if (positionOrders != null) {
+        positionOrderSymbols = positionOrders
+            .where((element) => element.instrumentObj != null)
+            .map((e) => e.instrumentObj!.symbol)
+            .toSet()
+            .toList();
+        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
+
+        var filteredPositionOrders = positionOrders
+            .where((element) =>
+                (orderFilters.isEmpty ||
+                    orderFilters.contains(element.state)) &&
+                (days == 0 ||
+                    element.createdAt!
+                            .add(Duration(days: days))
+                            .compareTo(DateTime.now()) >=
+                        0) &&
+                (stockSymbolFilters.isEmpty ||
+                    stockSymbolFilters.contains(element.instrumentObj!.symbol)))
+            .toList();
+        slivers.add(SliverStickyHeader(
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  //color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: const Text(
+                      "Stock Orders",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(filteredPositionOrders.length)} of ${formatCompactNumber.format(positionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          var future = showModalBottomSheet<void>(
+                            context: context,
+                            // constraints: BoxConstraints(maxHeight: 260),
+                            builder:
+                                /*
+                          (_) => OptionOrderFilterBottomSheet(
+                              orderSymbols: orderSymbols,
+                              optionPositions:
+                                  optionPositions)
+                                  */
+                                (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const ListTile(
+                                    tileColor: Colors.blue,
+                                    title: Text(
+                                      "Filter Stock Orders",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                  ),
+                                  const ListTile(
+                                    title: Text("Order State & Date"),
+                                  ),
+                                  orderFilterWidget,
+                                  orderDateFilterWidget,
+                                  const ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  stockOrderSymbolFilterWidget,
+                                ],
+                              );
+                            },
+                          );
+                          future.then((void value) => {});
+                        }),
+                  ))),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundImage: AssetImage(user.profilePicture),
+                          child: Text(
+                              '${filteredPositionOrders[index].quantity!.round()}',
+                              style: const TextStyle(fontSize: 18))),
+                      title: Text(
+                          "${filteredPositionOrders[index].instrumentObj != null ? filteredPositionOrders[index].instrumentObj!.symbol : ""} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
+                      subtitle: Text(
+                          "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          filteredPositionOrders[index].averagePrice != null
+                              ? formatCurrency.format(
+                                  filteredPositionOrders[index].averagePrice! *
+                                      filteredPositionOrders[index].quantity!)
+                              : "",
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]),
+
+                      //isThreeLine: true,
+                      onTap: () {
+                        widget.navigatorKey!.currentState!.push(
+                            MaterialPageRoute(
+                                builder: (context) => PositionOrderWidget(
+                                    ru, filteredPositionOrders[index])));
+                        /*
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => PositionOrderWidget(
+                                    ru, filteredPositionOrders[index])));
+                                    */
+                      },
+                    ),
+                  ],
+                ));
+              },
+              childCount: filteredPositionOrders.length,
+            ),
+          ),
+        ));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
           height: 25.0,
         )));
       }
       if (optionOrders != null) {
-        int days = 0;
-        switch (orderDateFilterSelected) {
-          case 0:
-            days = 1;
-            break;
-          case 1:
-            days = 7;
-            break;
-          case 2:
-            days = 30;
-            break;
-          case 3:
-            days = 365;
-            break;
-          case 4:
-            break;
-        }
         optionOrderSymbols =
             optionOrders.map((e) => e.chainSymbol).toSet().toList();
         optionOrderSymbols.sort((a, b) => (a.compareTo(b)));
@@ -1165,15 +1508,13 @@ class _HomePageState extends State<HomePage>
               child: Container(
                   //height: 208.0, //60.0,
                   //color: Colors.blue,
-                  color: Colors.white,
+                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
                     title: const Text(
                       "Option Orders",
-                      style: TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
+                      style: TextStyle(fontSize: 19.0),
                     ),
                     subtitle: Text(
                         "${formatCompactNumber.format(filteredOptionOrders.length)} of ${formatCompactNumber.format(optionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
@@ -1259,11 +1600,17 @@ class _HomePageState extends State<HomePage>
 
                       //isThreeLine: true,
                       onTap: () {
+                        widget.navigatorKey!.currentState!.push(
+                            MaterialPageRoute(
+                                builder: (context) => OptionOrderWidget(
+                                    ru, filteredOptionOrders[index])));
+                        /*
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => OptionOrderWidget(
                                     ru, filteredOptionOrders[index])));
+                                    */
                       },
                     ),
                   ],
@@ -1275,254 +1622,10 @@ class _HomePageState extends State<HomePage>
         ));
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
-          // color: Colors.white,
           height: 25.0,
         )));
       }
-      int days = 0;
-      switch (orderDateFilterSelected) {
-        case 0:
-          days = 1;
-          break;
-        case 1:
-          days = 7;
-          break;
-        case 2:
-          days = 30;
-          break;
-        case 3:
-          days = 365;
-          break;
-        case 4:
-          break;
-      }
 
-      if (positions != null) {
-        var filteredPositions = positions
-            .where((element) =>
-                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
-                /*
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                        */
-                (stockSymbolFilters.isEmpty ||
-                    stockSymbolFilters.contains(element.instrumentObj!.symbol)))
-            .toList();
-
-        slivers.add(SliverStickyHeader(
-            header: Material(
-                elevation: 2,
-                child: Container(
-                    //height: 208.0, //60.0,
-                    //color: Colors.blue,
-                    color: Colors.white,
-                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    alignment: Alignment.centerLeft,
-                    child: ListTile(
-                      title: const Text(
-                        "Stocks",
-                        style: TextStyle(
-                            //color: Colors.white,
-                            fontSize: 19.0),
-                      ),
-                      subtitle: Text(
-                          "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions - value: ${formatCurrency.format(positionEquity)}"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.filter_list),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              //constraints: BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const ListTile(
-                                      tileColor: Colors.blue,
-                                      title: Text(
-                                        "Filter Stocks",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 19.0),
-                                      ),
-                                      /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                    ),
-                                    const ListTile(
-                                      title: Text("Position Type"), // & Date
-                                    ),
-                                    positionTypeFilterWidget,
-                                    //orderDateFilterWidget,
-                                    const ListTile(
-                                      title: Text("Symbols"),
-                                    ),
-                                    stockOrderSymbolFilterWidget,
-                                  ],
-                                );
-                              },
-                            );
-                          }),
-                    ))),
-            sliver: SliverList(
-              // delegate: SliverChildListDelegate(widgets),
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) {
-                  return _buildPositionRow(filteredPositions, index, ru);
-                },
-                // Or, uncomment the following line:
-                childCount: filteredPositions.length,
-              ),
-            )));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          // color: Colors.white,
-          height: 25.0,
-        )));
-      }
-      if (positionOrders != null) {
-        positionOrderSymbols = positionOrders
-            .where((element) => element.instrumentObj != null)
-            .map((e) => e.instrumentObj!.symbol)
-            .toSet()
-            .toList();
-        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
-
-        var filteredPositionOrders = positionOrders
-            .where((element) =>
-                (orderFilters.isEmpty ||
-                    orderFilters.contains(element.state)) &&
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                (stockSymbolFilters.isEmpty ||
-                    stockSymbolFilters.contains(element.instrumentObj!.symbol)))
-            .toList();
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  color: Colors.white,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Stock Orders",
-                      style: TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredPositionOrders.length)} of ${formatCompactNumber.format(positionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    title: Text(
-                                      "Filter Stock Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
-                                    ),
-                                    /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  stockOrderSymbolFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredPositionOrders[index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 18))),
-                      title: Text(
-                          "${filteredPositionOrders[index].instrumentObj != null ? filteredPositionOrders[index].instrumentObj!.symbol : ""} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
-                      subtitle: Text(
-                          "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          filteredPositionOrders[index].averagePrice != null
-                              ? formatCurrency.format(
-                                  filteredPositionOrders[index].averagePrice! *
-                                      filteredPositionOrders[index].quantity!)
-                              : "",
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
-
-                      //isThreeLine: true,
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => PositionOrderWidget(
-                                    ru, filteredPositionOrders[index])));
-                      },
-                    ),
-                  ],
-                ));
-              },
-              childCount: filteredPositionOrders.length,
-            ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          // color: Colors.white,
-          height: 25.0,
-        )));
-      }
       /*
       if (watchlists != null) {
         slivers.add(SliverStickyHeader(
@@ -1819,7 +1922,7 @@ class _HomePageState extends State<HomePage>
                 child: Container(
                   //height: 208.0, //60.0,
                   //color: Colors.blue,
-                  color: Colors.white,
+                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: const ListTile(
@@ -1883,7 +1986,7 @@ class _HomePageState extends State<HomePage>
               child: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
-                color: Colors.white,
+                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
@@ -1939,7 +2042,7 @@ class _HomePageState extends State<HomePage>
               child: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
-                color: Colors.white,
+                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
@@ -1964,7 +2067,7 @@ class _HomePageState extends State<HomePage>
             child: Container(
                 //height: 208.0, //60.0,
                 //color: Colors.blue,
-                color: Colors.white,
+                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child:
@@ -2000,7 +2103,7 @@ class _HomePageState extends State<HomePage>
             */
         sliver: SliverToBoxAdapter(
             child: Container(
-                color: Colors.white,
+                //color: Colors.white,
                 //height: 420.0,
                 padding: const EdgeInsets.all(12.0),
                 child: const Align(
@@ -2775,6 +2878,36 @@ class _HomePageState extends State<HomePage>
     return symbolWidgets(widgets);
   }
 
+  Widget get cryptoFilterWidget {
+    var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters).toList();
+    return symbolWidgets(widgets);
+  }
+
+  Iterable<Widget> symbolFilterWidgets(
+      List<String> symbols, List<String> selectedSymbols) sync* {
+    for (final String chainSymbol in symbols) {
+      yield Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: FilterChip(
+          // avatar: CircleAvatar(child: Text(contractCount.toString())),
+          label: Text(chainSymbol),
+          selected: selectedSymbols.contains(chainSymbol),
+          onSelected: (bool value) {
+            setState(() {
+              if (value) {
+                selectedSymbols.add(chainSymbol);
+              } else {
+                selectedSymbols.removeWhere((String name) {
+                  return name == chainSymbol;
+                });
+              }
+            });
+          },
+        ),
+      );
+    }
+  }
+
   Widget get orderDateFilterWidget {
     return SizedBox(
         height: 56,
@@ -2871,31 +3004,6 @@ class _HomePageState extends State<HomePage>
           },
           itemCount: 1,
         ));
-  }
-
-  Iterable<Widget> symbolFilterWidgets(
-      List<String> symbols, List<String> selectedSymbols) sync* {
-    for (final String chainSymbol in symbols) {
-      yield Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
-          label: Text(chainSymbol),
-          selected: selectedSymbols.contains(chainSymbol),
-          onSelected: (bool value) {
-            setState(() {
-              if (value) {
-                selectedSymbols.add(chainSymbol);
-              } else {
-                selectedSymbols.removeWhere((String name) {
-                  return name == chainSymbol;
-                });
-              }
-            });
-          },
-        ),
-      );
-    }
   }
 
   SliverAppBar buildSliverAppBar(
@@ -3570,12 +3678,18 @@ class _HomePageState extends State<HomePage>
         ),
         // isThreeLine: true,
         onTap: () {
+          widget.navigatorKey!.currentState!.push(MaterialPageRoute(
+              builder: (context) => InstrumentWidget(
+                  ru, positions[index].instrumentObj as Instrument,
+                  position: positions[index])));
+          /*
           Navigator.push(
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
                       ru, positions[index].instrumentObj as Instrument,
                       position: positions[index])));
+                      */
         },
       )
     ]));
@@ -3668,17 +3782,93 @@ class _HomePageState extends State<HomePage>
           ),*/
           //isThreeLine: true,
           onTap: () {
+            widget.navigatorKey!.currentState!.push(MaterialPageRoute(
+                builder: (context) => OptionInstrumentWidget(
+                    ru, op.optionInstrument!,
+                    optionPosition: op)));
+            /*
             Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
                         ru, op.optionInstrument!,
                         optionPosition: op)));
+                        */
           },
         ),
       ],
     ));
   }
+
+  Widget _buildCryptoRow(List<Holding> holdings, int index, RobinhoodUser ru) {
+    return Card(
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        leading: CircleAvatar(
+            child: Icon(
+                holdings[index].gainLossPerShare > 0
+                    ? Icons.trending_up
+                    : (holdings[index].gainLossPerShare < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (holdings[index].gainLossPerShare > 0
+                    ? Colors.green
+                    : (holdings[index].gainLossPerShare < 0
+                        ? Colors.red
+                        : Colors.grey)),
+                size: 36.0)),
+        title: Text(
+            "${holdings[index].currencyCode} ${holdings[index].currencyName}"),
+        subtitle: Text("${holdings[index].quantity} shares"),
+        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+        /*
+        subtitle: Text(
+            '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+            */
+        trailing: Wrap(
+          spacing: 8,
+          children: [
+            /*Icon(
+                holdings[index].gainLossPerShare > 0
+                    ? Icons.trending_up
+                    : (holdings[index].gainLossPerShare < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (holdings[index].gainLossPerShare > 0
+                    ? Colors.green
+                    : (holdings[index].gainLossPerShare < 0
+                        ? Colors.red
+                        : Colors.grey))),
+                        */
+            Text(
+              formatCurrency
+                  .format(holdings[index].value! * holdings[index].quantity!),
+              style: const TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.right,
+            ),
+            /*
+            Text(
+              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
+              style: const TextStyle(fontSize: 16.0),
+              textAlign: TextAlign.right,
+            ),*/
+          ],
+        ),
+        // isThreeLine: true,
+        onTap: () {
+          /*
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(
+                      ru, holdings[index].instrumentObj as Instrument,
+                      position: holdings[index])));
+                      */
+        },
+      )
+    ]));
+  }
+
   /*
   Widget _buildWatchlistRow(Watchlist watchlist, RobinhoodUser ru) {
     return Card(
@@ -3924,6 +4114,7 @@ class _HomePageState extends State<HomePage>
   }
   */
 
+  /*
   void _generateCsvFile() async {
     File file = await OptionAggregatePosition.generateCsv(optionPositions);
 
@@ -3938,4 +4129,5 @@ class _HomePageState extends State<HomePage>
             },
           )));
   }
+  */
 }

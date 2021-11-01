@@ -968,6 +968,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             TextButton(
               child: const Text('VIEW STOCK'),
               onPressed: () {
+                /*
+                _navKey.currentState!.push(
+                  MaterialPageRoute(
+                    builder: (_) => SubSecondPage(),
+                  ),
+                );
+                */
                 Navigator.push(
                     context,
                     MaterialPageRoute(
