@@ -70,10 +70,10 @@ class _ListsWidgetState extends State<ListsWidget>
               spacing: 20,
               //runSpacing: 5,
               children: [
-                Text('Lists', style: TextStyle(fontSize: 20.0)),
+                const Text('Lists', style: TextStyle(fontSize: 20.0)),
                 Text(
                   "${watchlists != null ? formatCompactNumber.format(watchlists!.length) : ""} items",
-                  style: TextStyle(fontSize: 16.0, color: Colors.white70),
+                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
                 )
               ]),
           actions: [

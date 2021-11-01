@@ -5,13 +5,11 @@ import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
-final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-
-const routeHome = '/';
-const routeLogin = '/login';
-const routePortfolio = '/portfolio';
-const routeSearch = '/search';
-const routeLists = '/lists';
+//const routeHome = '/';
+//const routeLogin = '/login';
+//const routePortfolio = '/portfolio';
+//const routeSearch = '/search';
+//const routeLists = '/lists';
 //const routeOptionInstrument = '/options/instrument';
 //const routeOptionOrder = '/options/order';
 //const routeTradeOption = '/options/trade';
