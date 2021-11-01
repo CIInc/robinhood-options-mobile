@@ -1,0 +1,42 @@
+on:
+  release:
+    types:
+      - created
+      - updated
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '12.x'
+
+      - uses: subosito/flutter-action@v1
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK Build Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          # Artifact name
+          name: release-apk
+          # A file, directory or wildcard pattern that describes what to upload
+          path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+          # The desired behavior if no files are found using the provided path.
+
+      # steps for building assets
+      #- run: echo "REPLACE ME!" > assets.txt
+
+      - uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
