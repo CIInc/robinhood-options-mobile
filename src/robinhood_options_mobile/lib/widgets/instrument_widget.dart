@@ -1638,7 +1638,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance)}"),
+                    "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
                 trailing: IconButton(
                     icon: const Icon(Icons.filter_list),
                     onPressed: () {
