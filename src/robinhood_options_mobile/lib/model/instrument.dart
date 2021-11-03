@@ -48,6 +48,7 @@ class Instrument {
   Fundamentals? fundamentalsObj;
   InstrumentHistoricals? instrumentHistoricalsObj;
   OptionChain? optionChainObj;
+  List<dynamic>? newsObj;
 
   List<Split> splitsObj = [];
 

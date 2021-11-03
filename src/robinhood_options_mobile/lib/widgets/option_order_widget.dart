@@ -239,7 +239,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
       SliverToBoxAdapter(
           child: Align(alignment: Alignment.center, child: buildOverview())),
           */
-
+      SliverToBoxAdapter(
+        child: _buildOverview(widget.user, instrument),
+      ),
       SliverToBoxAdapter(
           child: Card(
               child: Column(
@@ -390,9 +392,6 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
         mainAxisSize: MainAxisSize.min,
         children: _buildLegs(widget.optionOrder).toList(),
       ))),
-      SliverToBoxAdapter(
-        child: _buildStockView(instrument),
-      ),
     ]);
   }
 
@@ -471,7 +470,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   }
   */
 
-  Widget _buildStockView(Instrument instrument) {
+  Card _buildOverview(RobinhoodUser user, Instrument instrument) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -502,26 +501,27 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
             ],
           ),
         ),
-        /*
-        ListTile(
-        title: const Text("Expiration Date"),
-        trailing: Text(formatDate.format(leg.expirationDate!),
-            style: const TextStyle(fontSize: 18)),
-        ),
-        */
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             TextButton(
               child: const Text('VIEW STOCK'),
               onPressed: () {
+                /*
+                _navKey.currentState!.push(
+                  MaterialPageRoute(
+                    builder: (_) => SubSecondPage(),
+                  ),
+                );
+                */
                 Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) =>
-                            InstrumentWidget(widget.user, instrument)));
+                            InstrumentWidget(user, instrument)));
               },
             ),
+            const SizedBox(width: 8),
           ],
         ),
       ],

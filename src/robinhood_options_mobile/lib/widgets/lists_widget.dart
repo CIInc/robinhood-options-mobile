@@ -38,13 +38,8 @@ class _ListsWidgetState extends State<ListsWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Navigator(
-        key: widget.navigatorKey,
-        onGenerateRoute: (_) =>
-            MaterialPageRoute(builder: (_) => _buildScaffold()));
-    /*
     return WillPopScope(
-      onWillPop: () => Future.value(true),
+      onWillPop: () => Future.value(false),
       child: Scaffold(
           //appBar: _buildFlowAppBar(),
           body: Navigator(
@@ -52,7 +47,6 @@ class _ListsWidgetState extends State<ListsWidget>
               onGenerateRoute: (_) =>
                   MaterialPageRoute(builder: (_) => _buildScaffold()))),
     );
-    */
   }
 
   Widget _buildScaffold() {

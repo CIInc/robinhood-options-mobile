@@ -42,6 +42,7 @@ dependencies:
     git:
       url: git://github.com/google/charts.git
       path: charts_flutter
+  url_launcher: ^6.0.12
   # flutter_echarts: ^2.3.0
   # shared_preferences: ^0.5.12
   # local_auth: ^1.1.4

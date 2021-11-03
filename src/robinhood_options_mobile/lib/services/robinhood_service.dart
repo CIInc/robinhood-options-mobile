@@ -446,6 +446,20 @@ class RobinhoodService {
     return splits;
   }
 
+  static Future<List<dynamic>> getNews(
+      RobinhoodUser user, String symbol) async {
+    //https://api.robinhood.com/midlands/news/MSFT/
+    var results = await RobinhoodService.pagedGet(
+        user, "${Constants.robinHoodEndpoint}/midlands/news/$symbol/");
+
+    List<dynamic> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+    }
+    return list;
+  }
+
   static Future<dynamic> getLists(
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood

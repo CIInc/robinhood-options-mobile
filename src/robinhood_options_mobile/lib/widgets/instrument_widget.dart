@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
@@ -47,6 +48,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<Quote?>? futureQuote;
   Future<InstrumentHistoricals?>? futureHistoricals;
   Future<OptionChain>? futureOptionChain;
+  Future<List<dynamic>>? futureNews;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
@@ -141,7 +143,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureFundamentals ??= Future.value(instrument.fundamentalsObj);
     }
 
-    futureOptionChain = RobinhoodService.getOptionChains(user, instrument.id);
+    futureOptionChain ??= RobinhoodService.getOptionChains(user, instrument.id);
+
+    futureNews ??= RobinhoodService.getNews(user, instrument.symbol);
 
     String? bounds;
     String? interval;
@@ -193,7 +197,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureQuote as Future,
         futureFundamentals as Future,
         futureHistoricals as Future,
-        futureOptionChain as Future
+        futureOptionChain as Future,
+        futureNews as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -203,6 +208,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.instrumentHistoricalsObj =
               data.length > 2 ? data[2] : null;
           instrument.optionChainObj = data.length > 3 ? data[3] : null;
+          instrument.newsObj = data.length > 4 ? data[4] : null;
 
           chart = null;
 
@@ -549,6 +555,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Align(
               alignment: Alignment.center, child: buildOverview(instrument))),
     );
+
     if (position != null) {
       slivers.add(SliverToBoxAdapter(
           child: Card(
@@ -616,6 +623,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(fundamentalsWidget(instrument));
     }
 
+    if (instrument.newsObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildNewsWidget(instrument));
+    }
+
     if (positionOrders.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -623,6 +638,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       )));
       slivers.add(positionOrdersWidget);
     }
+
     if (optionPositions.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -630,6 +646,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       )));
       slivers.add(optionPositionsWidget);
     }
+
     if (optionOrders.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -976,6 +993,67 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             height: 25,
           )
         ]))));
+  }
+
+  Widget _buildNewsWidget(Instrument instrument) {
+    return SliverStickyHeader(
+      header: Material(
+          elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //color: Colors.blue,
+              //color: Colors.white,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: ListTile(
+                title: const Text(
+                  "News",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+              ))),
+      sliver: SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return Card(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading:
+                    instrument.newsObj![index]["preview_image_url"] != null &&
+                            instrument.newsObj![index]["preview_image_url"]
+                                .toString()
+                                .isNotEmpty
+                        ? Image.network(
+                            instrument.newsObj![index]["preview_image_url"],
+                            width: 96,
+                            height: 56)
+                        : SizedBox(width: 96, height: 56),
+                title: Text(
+                  "${instrument.newsObj![index]["title"]}",
+                ), //style: TextStyle(fontSize: 17.0)),
+                subtitle: Text(
+                    "Published ${formatDate.format(DateTime.parse(instrument.newsObj![index]["published_at"]!))} by ${instrument.newsObj![index]["source"]}"),
+                /*
+                  trailing: Image.network(
+                      instrument.newsObj![index]["preview_image_url"])
+                      */
+                isThreeLine: true,
+                onTap: () async {
+                  var _url = instrument.newsObj![index]["url"];
+                  await canLaunch(_url)
+                      ? await launch(_url)
+                      : throw 'Could not launch $_url';
+                },
+              ),
+            ],
+          ));
+
+          //if (positionOrders.length > index) {
+          //}
+        }, childCount: instrument.newsObj!.length),
+      ),
+    );
   }
 
   Widget get optionChainFilterWidget {
