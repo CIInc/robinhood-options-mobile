@@ -37,7 +37,7 @@
     - [x] Fundamentals view.
     - [x] Historical charts view.
     - [ ] Related stock view.
-    - [ ] News view.
+    - [x] News view.
     - [ ] Earnings view.
     - [ ] Splits & Corporate Actions view.
   - [ ] Stock research
