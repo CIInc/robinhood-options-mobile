@@ -1005,8 +1005,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
-              child: ListTile(
-                title: const Text(
+              child: const ListTile(
+                title: Text(
                   "News",
                   style: TextStyle(fontSize: 19.0),
                 ),
@@ -1028,7 +1028,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             instrument.newsObj![index]["preview_image_url"],
                             width: 96,
                             height: 56)
-                        : SizedBox(width: 96, height: 56),
+                        : const SizedBox(width: 96, height: 56),
                 title: Text(
                   "${instrument.newsObj![index]["title"]}",
                 ), //style: TextStyle(fontSize: 17.0)),
