@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -35,40 +36,34 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   @override
   void initState() {
     super.initState();
-    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, positionOrder);
-    // futureQuote = RobinhoodService.getQuote(user, positionOrder.chainSymbol);
+
+    futureInstrument = RobinhoodService.getInstrument(
+        widget.user, widget.positionOrder.instrument);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _buildPage(widget.positionOrder)
-        /*
-      FutureBuilder(
-          future: futureQuote,
-          builder: (context, AsyncSnapshot<Quote> snapshot) {
-            if (snapshot.hasData) {
-              var quote = snapshot.data!;
-              futureInstrument = RobinhoodService.getInstrument(
-                  user, snapshot.data!.instrument);
-              return FutureBuilder(
-                  future: futureInstrument,
-                  builder:
-                      (context, AsyncSnapshot<Instrument> instrumentSnapshot) {
-                    if (instrumentSnapshot.hasData) {
-                      var instrument = instrumentSnapshot.data!;
-                      instrument.quoteObj = quote;
-                      return _buildPage(instrument);
-                    } else if (instrumentSnapshot.hasError) {
-                      print("${instrumentSnapshot.error}");
-                      return Text("${instrumentSnapshot.error}");
-                    }
-                    return Container();
-                  });
-            }
-            return Container();
-          }),
-          */
-        /*
+    return FutureBuilder(
+        future: futureInstrument,
+        builder: (context, AsyncSnapshot<Instrument> snapshot) {
+          if (snapshot.hasData) {
+            widget.positionOrder.instrumentObj = snapshot.data!;
+            futureQuote = RobinhoodService.getQuote(
+                widget.user, widget.positionOrder.instrumentObj!.symbol);
+            return FutureBuilder(
+                future: futureQuote,
+                builder: (context, AsyncSnapshot<Quote> quoteSnapshot) {
+                  if (quoteSnapshot.hasData) {
+                    widget.positionOrder.instrumentObj!.quoteObj =
+                        quoteSnapshot.data!;
+                  }
+                  return Scaffold(body: _buildPage(widget.positionOrder));
+                });
+          }
+          return Scaffold(body: _buildPage(widget.positionOrder));
+        });
+
+    /*
         floatingActionButton: (user != null && user.userName != null)
             ? FloatingActionButton(
                 onPressed: () => Navigator.push(
@@ -80,7 +75,6 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                 child: const Icon(Icons.shopping_cart),
               )
             : null*/
-        );
   }
 
   Widget _buildPage(PositionOrder positionOrder) {
@@ -103,7 +97,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                       //runSpacing: 5,
                       children: [
                         Text(
-                            "${positionOrder.instrumentId} ${positionOrder.averagePrice != null ? formatCurrency.format(positionOrder.averagePrice) : ""} ${positionOrder.type} ${positionOrder.side}",
+                            "${positionOrder.instrumentObj!.symbol} ${positionOrder.type} ${positionOrder.side}",
+                            style: const TextStyle(fontSize: 20.0)),
+                        Text(
+                            "${positionOrder.averagePrice != null ? formatCurrency.format(positionOrder.averagePrice) : ""}",
                             style: const TextStyle(fontSize: 20.0)),
                         Text(formatDate.format(positionOrder.updatedAt!),
                             style: const TextStyle(fontSize: 15.0))

@@ -1,5 +1,3 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -28,8 +26,6 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
-import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -116,8 +112,6 @@ class _HomePageState extends State<HomePage>
   final List<String> orderFilters = <String>["placed", "filled"];
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
-
-  int orderDateFilterSelected = 1;
 
   /*
   Stream<List<Watchlist>>? watchlistStream;
@@ -340,6 +334,26 @@ class _HomePageState extends State<HomePage>
                                                   optionAggregatePositionSnapshot
                                                       .data!;
 
+                                              return _buildPage(
+                                                  portfolios: portfolios,
+                                                  user: user,
+                                                  ru: robinhoodUser,
+                                                  accounts: accounts,
+                                                  nummusHoldings:
+                                                      nummusHoldings,
+                                                  portfolioHistoricals:
+                                                      portfolioHistoricals,
+                                                  optionPositions:
+                                                      optionPositions,
+                                                  positions: positions,
+                                                  done: positionSnapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .done &&
+                                                      optionAggregatePositionSnapshot
+                                                              .connectionState ==
+                                                          ConnectionState.done);
+
 /*
                                               watchlistStream ??=
                                                   RobinhoodService.streamLists(
@@ -405,10 +419,12 @@ class _HomePageState extends State<HomePage>
                                                         }
                                                       }
 */
+                                              /*
                                               optionOrderStream ??=
                                                   RobinhoodService
                                                       .streamOptionOrders(
                                                           robinhoodUser!);
+
                                               return StreamBuilder(
                                                   stream: optionOrderStream,
                                                   builder: (context5,
@@ -554,6 +570,8 @@ class _HomePageState extends State<HomePage>
                                                           );
                                                     }
                                                   });
+                                                  */
+
                                               /*
                                                     } else if (watchlistsSnapshot
                                                         .hasError) {
@@ -683,11 +701,7 @@ class _HomePageState extends State<HomePage>
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
       List<OptionAggregatePosition>? optionPositions,
-      List<OptionOrder>? optionOrders,
       List<Position>? positions,
-      List<PositionOrder>? positionOrders,
-      //List<Watchlist>? watchlists,
-      //List<WatchlistItem>? watchListItems,
       bool done = false}) {
     var slivers = <Widget>[];
     double changeToday = 0;
@@ -718,24 +732,6 @@ class _HomePageState extends State<HomePage>
           .reduce((a, b) => a + b);
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
-    }
-
-    int days = 0;
-    switch (orderDateFilterSelected) {
-      case 0:
-        days = 1;
-        break;
-      case 1:
-        days = 7;
-        break;
-      case 2:
-        days = 30;
-        break;
-      case 3:
-        days = 365;
-        break;
-      case 4:
-        break;
     }
 
     SliverAppBar sliverAppBar = buildSliverAppBar(
@@ -831,7 +827,7 @@ class _HomePageState extends State<HomePage>
             ],
             behaviors: [
               charts.SeriesLegend(
-                  defaultHiddenSeries: ['Equity', 'Market Value'])
+                  defaultHiddenSeries: const ['Equity', 'Market Value'])
             ],
           );
         }
@@ -1097,6 +1093,7 @@ class _HomePageState extends State<HomePage>
                                 children: [
                                   const ListTile(
                                     tileColor: Colors.blue,
+                                    leading: Icon(Icons.filter_list),
                                     title: Text(
                                       "Filter Options",
                                       style: TextStyle(
@@ -1211,6 +1208,7 @@ class _HomePageState extends State<HomePage>
                                   children: [
                                     const ListTile(
                                       tileColor: Colors.blue,
+                                      leading: Icon(Icons.filter_list),
                                       title: Text(
                                         "Filter Stocks",
                                         style: TextStyle(
@@ -1303,6 +1301,7 @@ class _HomePageState extends State<HomePage>
                                   children: [
                                     const ListTile(
                                       tileColor: Colors.blue,
+                                      leading: Icon(Icons.filter_list),
                                       title: Text(
                                         "Filter Cryptos",
                                         style: TextStyle(
@@ -1345,575 +1344,6 @@ class _HomePageState extends State<HomePage>
         )));
       }
 
-      if (positionOrders != null) {
-        positionOrderSymbols = positionOrders
-            .where((element) => element.instrumentObj != null)
-            .map((e) => e.instrumentObj!.symbol)
-            .toSet()
-            .toList();
-        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
-
-        var filteredPositionOrders = positionOrders
-            .where((element) =>
-                (orderFilters.isEmpty ||
-                    orderFilters.contains(element.state)) &&
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                (stockSymbolFilters.isEmpty ||
-                    stockSymbolFilters.contains(element.instrumentObj!.symbol)))
-            .toList();
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Stock Orders",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredPositionOrders.length)} of ${formatCompactNumber.format(positionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    title: Text(
-                                      "Filter Stock Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
-                                    ),
-                                    /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  stockOrderSymbolFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredPositionOrders[index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 18))),
-                      title: Text(
-                          "${filteredPositionOrders[index].instrumentObj != null ? filteredPositionOrders[index].instrumentObj!.symbol : ""} ${filteredPositionOrders[index].averagePrice != null ? formatCurrency.format(filteredPositionOrders[index].averagePrice) : ""} ${filteredPositionOrders[index].type} ${filteredPositionOrders[index].side}"),
-                      subtitle: Text(
-                          "${filteredPositionOrders[index].state} ${formatDate.format(filteredPositionOrders[index].updatedAt!)}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          filteredPositionOrders[index].averagePrice != null
-                              ? formatCurrency.format(
-                                  filteredPositionOrders[index].averagePrice! *
-                                      filteredPositionOrders[index].quantity!)
-                              : "",
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
-
-                      //isThreeLine: true,
-                      onTap: () {
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => PositionOrderWidget(
-                                    ru, filteredPositionOrders[index])));
-                        /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => PositionOrderWidget(
-                                    ru, filteredPositionOrders[index])));
-                                    */
-                      },
-                    ),
-                  ],
-                ));
-              },
-              childCount: filteredPositionOrders.length,
-            ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
-      if (optionOrders != null) {
-        optionOrderSymbols =
-            optionOrders.map((e) => e.chainSymbol).toSet().toList();
-        optionOrderSymbols.sort((a, b) => (a.compareTo(b)));
-
-        var filteredOptionOrders = optionOrders
-            .where((element) =>
-                (orderFilters.isEmpty ||
-                    orderFilters.contains(element.state)) &&
-                (days == 0 ||
-                    element.createdAt!
-                            .add(Duration(days: days))
-                            .compareTo(DateTime.now()) >=
-                        0) &&
-                (optionSymbolFilters.isEmpty ||
-                    optionSymbolFilters.contains(element.chainSymbol)))
-            .toList();
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Option Orders",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionOrders.length)} of ${formatCompactNumber.format(optionOrders.length)} orders ${orderDateFilterSelected == 0 ? "Today" : (orderDateFilterSelected == 1 ? "Past Week" : (orderDateFilterSelected == 2 ? "Past Month" : (orderDateFilterSelected == 3 ? "Past Year" : "")))}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    title: Text(
-                                      "Filter Option Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
-                                    ),
-                                    /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  optionOrderSymbolFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredOptionOrders[index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 18))),
-                      title: Text(
-                          "${filteredOptionOrders[index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders[index].legs.first.strikePrice)} ${filteredOptionOrders[index].strategy} ${formatCompactDate.format(filteredOptionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                      subtitle: Text(
-                          "${filteredOptionOrders[index].state} ${formatDate.format(filteredOptionOrders[index].updatedAt!)}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          (filteredOptionOrders[index].direction == "credit"
-                                  ? "+"
-                                  : "-") +
-                              (filteredOptionOrders[index].processedPremium !=
-                                      null
-                                  ? formatCurrency.format(
-                                      filteredOptionOrders[index]
-                                          .processedPremium)
-                                  : ""),
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
-
-                      //isThreeLine: true,
-                      onTap: () {
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    ru, filteredOptionOrders[index])));
-                        /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    ru, filteredOptionOrders[index])));
-                                    */
-                      },
-                    ),
-                  ],
-                ));
-              },
-              childCount: filteredOptionOrders.length,
-            ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
-
-      /*
-      if (watchlists != null) {
-        slivers.add(SliverStickyHeader(
-            header: Material(
-                elevation: 2,
-                child: Container(
-                    //height: 208.0, //60.0,
-                    //color: Colors.blue,
-                    color: Colors.white,
-                    //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    alignment: Alignment.centerLeft,
-                    child: ListTile(
-                      title: const Text(
-                        "Lists",
-                        style: TextStyle(
-                            //color: Colors.white,
-                            fontSize: 19.0),
-                      ),
-                      subtitle: Text(
-                          "${formatCompactNumber.format(watchlists.length)} items"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.sort),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                              context: context,
-                              //constraints: BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const ListTile(
-                                      tileColor: Colors.blue,
-                                      title: Text(
-                                        "Sort Watch List",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 19.0),
-                                      ),
-                                      /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                    ),
-                                    Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        RadioListTile<SortType>(
-                                          title: const Text(
-                                              'Alphabetical (Ascending)'),
-                                          value: SortType.alphabetical,
-                                          groupValue: _sortType,
-                                          onChanged: (SortType? value) {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              _sortType = value;
-                                              _sortDirection =
-                                                  SortDirection.asc;
-                                            });
-                                          },
-                                        ),
-                                        RadioListTile<SortType>(
-                                          title: const Text(
-                                              'Alphabetical (Descending)'),
-                                          value: SortType.alphabetical,
-                                          groupValue: _sortType,
-                                          onChanged: (SortType? value) {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              _sortType = value;
-                                              _sortDirection =
-                                                  SortDirection.desc;
-                                            });
-                                          },
-                                        ),
-                                        RadioListTile<SortType>(
-                                          title:
-                                              const Text('Change (Ascending)'),
-                                          value: SortType.change,
-                                          groupValue: _sortType,
-                                          onChanged: (SortType? value) {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              _sortType = value;
-                                              _sortDirection =
-                                                  SortDirection.asc;
-                                            });
-                                          },
-                                        ),
-                                        RadioListTile<SortType>(
-                                          title:
-                                              const Text('Change (Descending)'),
-                                          value: SortType.change,
-                                          groupValue: _sortType,
-                                          onChanged: (SortType? value) {
-                                            Navigator.pop(context);
-                                            setState(() {
-                                              _sortType = value;
-                                              _sortDirection =
-                                                  SortDirection.desc;
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                );
-                              },
-                            );
-                          }),
-                    ))),
-            sliver: SliverToBoxAdapter(child: Container())));
-
-        for (var watchlist in watchlists) {
-          slivers.add(SliverStickyHeader(
-              header: Material(
-                  elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //color: Colors.blue,
-                      color: Colors.white,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: Text(
-                          watchlist.displayName,
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(watchlist.items.length)} items"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.sort),
-                            onPressed: () {
-                              showModalBottomSheet<void>(
-                                context: context,
-                                constraints:
-                                    const BoxConstraints(maxHeight: 260),
-                                builder: (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const ListTile(
-                                        tileColor: Colors.blue,
-                                        title: Text(
-                                          "Sort Watch List",
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 19.0),
-                                        ),
-                                        //trailing: TextButton(
-                                        //    child: const Text("APPLY"),
-                                        //    onPressed: () => Navigator.pop(context))
-                                      ),
-                                      Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          RadioListTile<SortType>(
-                                            title: const Text('Alphabetical'),
-                                            value: SortType.alphabetical,
-                                            groupValue: _sortType,
-                                            onChanged: (SortType? value) {
-                                              Navigator.pop(context);
-                                              setState(() {
-                                                _sortType = value;
-                                              });
-                                            },
-                                          ),
-                                          RadioListTile<SortType>(
-                                            title: const Text('Change'),
-                                            value: SortType.change,
-                                            groupValue: _sortType,
-                                            onChanged: (SortType? value) {
-                                              Navigator.pop(context);
-                                              setState(() {
-                                                _sortType = value;
-                                              });
-                                            },
-                                          ),
-                                        ],
-                                      )
-                                    ],
-                                  );
-                                },
-                              );
-                            }),
-                      ))),
-              sliver: watchListWidget(watchlist.items)));
-        }
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          // color: Colors.white,
-          height: 25.0,
-        )));
-      }
-      */
-
-      /*
-      if (watchListItems != null) {
-        slivers.add(SliverStickyHeader(
-            header: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: Text(
-                    "Watch List",
-                    style: const TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                  subtitle: Text(
-                      "${formatCompactNumber.format(watchListItems.length)} items"),
-                  trailing: IconButton(
-                      icon: const Icon(Icons.sort),
-                      onPressed: () {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          constraints: BoxConstraints(maxHeight: 260),
-                          builder: (BuildContext context) {
-                            return Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ListTile(
-                                  tileColor: Colors.blue,
-                                  title: Text(
-                                    "Sort Watch List",
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 19.0),
-                                  ),
-                                  /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                ),
-                                Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    RadioListTile<SortType>(
-                                      title: const Text('Alphabetical'),
-                                      value: SortType.alphabetical,
-                                      groupValue: _sortType,
-                                      onChanged: (SortType? value) {
-                                        Navigator.pop(context);
-                                        setState(() {
-                                          _sortType = value;
-                                        });
-                                      },
-                                    ),
-                                    RadioListTile<SortType>(
-                                      title: const Text('Change'),
-                                      value: SortType.change,
-                                      groupValue: _sortType,
-                                      onChanged: (SortType? value) {
-                                        Navigator.pop(context);
-                                        setState(() {
-                                          _sortType = value;
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                )
-                              ],
-                            );
-                          },
-                        );
-                      }),
-                )),
-            sliver: watchListWidget(watchListItems)));
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-          // color: Colors.white,
-          height: 25.0,
-        )));
-      }
-      */
       if (accounts != null) {
         slivers.add(SliverStickyHeader(
             header: Material(
@@ -2907,104 +2337,6 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  Widget get orderDateFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Today'),
-                  selected: orderDateFilterSelected == 0,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelected = 0;
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Week'),
-                  selected: orderDateFilterSelected == 1,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelected = 1;
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Month'),
-                  selected: orderDateFilterSelected == 2,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelected = 2;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Year'),
-                  selected: orderDateFilterSelected == 3,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelected = 3;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('All Time'),
-                  selected: orderDateFilterSelected == 4,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderDateFilterSelected = 4;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
-
   SliverAppBar buildSliverAppBar(
       RobinhoodUser? ru,
       List<Portfolio>? portfolios,
@@ -3064,7 +2396,7 @@ class _HomePageState extends State<HomePage>
                   //mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(children: [const SizedBox(height: 68)]),
+                    Row(children: const [SizedBox(height: 68)]),
                     Wrap(
                         crossAxisAlignment: WrapCrossAlignment.end,
                         //runAlignment: WrapAlignment.end,
@@ -3218,8 +2550,8 @@ class _HomePageState extends State<HomePage>
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
+                            children: const [
+                              SizedBox(
                                 width: 80,
                                 child: Text(
                                   "Stocks & Options",
@@ -3266,8 +2598,8 @@ class _HomePageState extends State<HomePage>
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
+                            children: const [
+                              SizedBox(
                                 width: 80,
                                 child: Text(
                                   "Options",
@@ -3312,8 +2644,8 @@ class _HomePageState extends State<HomePage>
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
+                            children: const [
+                              SizedBox(
                                 width: 80,
                                 child: Text(
                                   "Stocks",
@@ -3358,8 +2690,8 @@ class _HomePageState extends State<HomePage>
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
+                            children: const [
+                              SizedBox(
                                   width: 80,
                                   child: Text(
                                     "Crypto",
@@ -3402,8 +2734,8 @@ class _HomePageState extends State<HomePage>
                         ),
                         Column(
                             mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              const SizedBox(
+                            children: const [
+                              SizedBox(
                                   width: 80,
                                   child: Text(
                                     "Cash",
@@ -3493,11 +2825,10 @@ class _HomePageState extends State<HomePage>
                             title: const Text('Logout process'),
                             content: SingleChildScrollView(
                               child: ListBody(
-                                children: <Widget>[
-                                  const Text(
+                                children: const <Widget>[
+                                  Text(
                                       'This action will require you to log in again.'),
-                                  const Text(
-                                      'Are you sure you want to log out?'),
+                                  Text('Are you sure you want to log out?'),
                                 ],
                               ),
                             ),

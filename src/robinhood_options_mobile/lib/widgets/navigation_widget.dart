@@ -1,5 +1,8 @@
+//import 'dart:html';
+
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
@@ -80,6 +83,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               //const HomePage(title: 'Orders'),
               SearchWidget(robinhoodUser!, navigatorKey: navigatorKeys[1]),
               ListsWidget(robinhoodUser!, navigatorKey: navigatorKeys[2]),
+              HistoryPage(robinhoodUser!, navigatorKey: navigatorKeys[3]),
               //const LoginWidget(),
               //HomePage(key: Key('history')),
               //Screen2(),
@@ -157,6 +161,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                       icon: Icon(
                           Icons.collections_bookmark), //bookmarks //visibility
                       label: 'Lists',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.history),
+                      label: 'History',
                     ),
                     /*
                 BottomNavigationBarItem(

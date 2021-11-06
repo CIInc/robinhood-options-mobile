@@ -53,6 +53,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               var quote = quoteSnapshot.data!;
               futureInstrument =
                   RobinhoodService.getInstrument(widget.user, quote.instrument);
+              /*
+              var events = RobinhoodService.getOptionEventsByChainIds(
+                  widget.user,
+                  quote.instrument,
+                  [widget.optionInstrument.chainId]);
+                  */
               return FutureBuilder(
                   future: futureInstrument,
                   builder: (context1, instrumentSnapshot) {

@@ -30,6 +30,7 @@ class _OptionOrderFilterBottomSheetState
       children: [
         const ListTile(
           tileColor: Colors.blue,
+          leading: Icon(Icons.filter_list),
           title: Text(
             "Filter Option Orders",
             style: TextStyle(color: Colors.white, fontSize: 19.0),

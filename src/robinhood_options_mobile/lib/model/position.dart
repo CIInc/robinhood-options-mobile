@@ -112,6 +112,11 @@ class Position {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
             DateTime.tryParse(json['created_at']);
 
+  String get instrumentId {
+    var splits = instrument.split("/");
+    return splits[splits.length - 2];
+  }
+
   double get marketValue {
     if (instrumentObj == null ||
         instrumentObj!.quoteObj == null ||

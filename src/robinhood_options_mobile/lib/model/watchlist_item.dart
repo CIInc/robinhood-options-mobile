@@ -6,6 +6,7 @@ class WatchlistItem {
   final String watchlist;
   final String url;
   Instrument? instrumentObj;
+  dynamic forexObj;
 
   WatchlistItem(this.instrument, this.createdAt, this.watchlist, this.url);
 

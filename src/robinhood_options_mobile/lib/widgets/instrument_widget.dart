@@ -829,39 +829,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     "Fundamentals",
                     style: TextStyle(fontSize: 19.0),
                   ),
-                  /*
-              subtitle: Text(
-                  "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
-              trailing: IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () {
-                    showModalBottomSheet<void>(
-                      context: context,
-                      constraints: BoxConstraints(maxHeight: 260),
-                      builder: (BuildContext context) {
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ListTile(
-                              tileColor: Colors.blue,
-                              title: Text(
-                                "Filter Position Orders",
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 19.0),
-                              ),
-                              /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                            ),
-                            orderFilterWidget,
-                          ],
-                        );
-                      },
-                    );
-                  }),
-                  */
                 ))),
         sliver: SliverToBoxAdapter(
             child: Card(
@@ -1169,7 +1136,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance)}"),
+                    "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
                 trailing: IconButton(
                     icon: const Icon(Icons.filter_list),
                     onPressed: () {
@@ -1183,6 +1150,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             children: [
                               const ListTile(
                                 tileColor: Colors.blue,
+                                leading: Icon(Icons.filter_list),
                                 title: Text(
                                   "Filter Position Orders",
                                   style: TextStyle(
@@ -1339,6 +1307,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             children: [
                               const ListTile(
                                 tileColor: Colors.blue,
+                                leading: Icon(Icons.filter_list),
                                 title: Text(
                                   "Filter Options",
                                   style: TextStyle(
@@ -1730,6 +1699,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             children: [
                               const ListTile(
                                 tileColor: Colors.blue,
+                                leading: Icon(Icons.filter_list),
                                 title: Text(
                                   "Filter Option Orders",
                                   style: TextStyle(
