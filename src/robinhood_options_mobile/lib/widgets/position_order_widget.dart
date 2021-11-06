@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -111,6 +112,11 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                 ]))),
         pinned: true,
       ),
+      if (positionOrder.instrumentObj != null) ...[
+        SliverToBoxAdapter(
+          child: _buildOverview(widget.user, positionOrder.instrumentObj!),
+        ),
+      ],
       SliverToBoxAdapter(
           child: Card(
               child: Column(
@@ -478,46 +484,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     }
   }
   */
-
-  /*
-  Card buildOverview() {
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            TextButton(
-                child: Text(positionOrder.direction == "debit"
-                    ? "BUY"
-                    : "BUY TO CLOSE"),
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TradeOptionWidget(user,
-                            positionOrder: positionOrder,
-                            positionType: "Buy")))),
-            TextButton(
-                child: Text(positionOrder.direction == "debit"
-                    ? "SELL"
-                    : "SELL TO OPEN"),
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => TradeOptionWidget(user,
-                            positionOrder: positionOrder,
-                            positionType: "Sell")))),
-            const SizedBox(width: 8),
-          ],
-        ),
-      ],
-    ));
-  }
-  */
-
-  /*
-  Widget _buildStockView(Instrument instrument) {
+  Card _buildOverview(RobinhoodUser user, Instrument instrument) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -554,6 +521,13 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
             TextButton(
               child: const Text('VIEW STOCK'),
               onPressed: () {
+                /*
+                _navKey.currentState!.push(
+                  MaterialPageRoute(
+                    builder: (_) => SubSecondPage(),
+                  ),
+                );
+                */
                 Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -561,10 +535,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                             InstrumentWidget(user, instrument)));
               },
             ),
+            const SizedBox(width: 8),
           ],
         ),
       ],
     ));
   }
-  */
 }

@@ -557,10 +557,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
 
     if (position != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
       slivers.add(SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        const ListTile(title: Text("Position", style: TextStyle(fontSize: 20))),
+        const ListTile(
+            title: Text("Stock Position", style: TextStyle(fontSize: 20))),
         ListTile(
           title: const Text("Quantity"),
           trailing: Text(formatCompactNumber.format(position.quantity!),
@@ -614,6 +619,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ]))));
     }
+    if (optionPositions.isNotEmpty) {
+      var filteredOptionPositions = optionPositions
+          .where((e) =>
+              (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+              (!hasQuantityFilters[0] || e.quantity! > 0) &&
+                  (!hasQuantityFilters[1] || e.quantity! <= 0))
+          .toList();
+      double optionEquity = 0;
+      if (filteredOptionPositions.isNotEmpty) {
+        optionEquity = filteredOptionPositions
+            .map((e) => e.legs.first.positionType == "long"
+                ? e.marketValue
+                : e.marketValue)
+            .reduce((a, b) => a + b);
+
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )));
+        slivers
+            .add(optionPositionsWidget(filteredOptionPositions, optionEquity));
+      }
+    }
 
     if (instrument.fundamentalsObj != null) {
       slivers.add(const SliverToBoxAdapter(
@@ -637,14 +665,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         height: 25.0,
       )));
       slivers.add(positionOrdersWidget);
-    }
-
-    if (optionPositions.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(optionPositionsWidget);
     }
 
     if (optionOrders.isNotEmpty) {
@@ -1261,23 +1281,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget get optionPositionsWidget {
-    var filteredOptionPositions = optionPositions
-        .where((e) =>
-            (hasQuantityFilters[0] && hasQuantityFilters[0]) ||
-            (!hasQuantityFilters[0] || e.quantity! > 0) &&
-                (!hasQuantityFilters[1] || e.quantity! <= 0))
-        .toList();
-
-    double optionEquity = 0;
-    if (filteredOptionPositions.isNotEmpty) {
-      optionEquity = filteredOptionPositions
-          .map((e) => e.legs.first.positionType == "long"
-              ? e.marketValue
-              : e.marketValue)
-          .reduce((a, b) => a + b);
-    }
-
+  Widget optionPositionsWidget(
+      List<OptionAggregatePosition> filteredOptionPositions,
+      double optionEquity) {
     return SliverStickyHeader(
       header: Material(
           elevation: 2,

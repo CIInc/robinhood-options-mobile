@@ -84,6 +84,7 @@ class _HomePageState extends State<HomePage>
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
+  PortfolioHistoricals? portfolioHistoricals;
   //Chart? chart;
   charts.TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
@@ -297,7 +298,7 @@ class _HomePageState extends State<HomePage>
                               List<dynamic> data =
                                   historicalsSnapshot.data as List<dynamic>;
 
-                              var portfolioHistoricals = data.isNotEmpty
+                              portfolioHistoricals = data.isNotEmpty
                                   ? data[0] as PortfolioHistoricals
                                   : null;
 
@@ -353,263 +354,6 @@ class _HomePageState extends State<HomePage>
                                                       optionAggregatePositionSnapshot
                                                               .connectionState ==
                                                           ConnectionState.done);
-
-/*
-                                              watchlistStream ??=
-                                                  RobinhoodService.streamLists(
-                                                      robinhoodUser!);
-
-                                              return StreamBuilder(
-                                                  stream: watchlistStream,
-                                                  builder: (context4,
-                                                      watchlistsSnapshot) {
-                                                    if (watchlistsSnapshot
-                                                        .hasData) {
-                                                      List<Watchlist>
-                                                          watchLists =
-                                                          watchlistsSnapshot
-                                                                  .data!
-                                                              as List<
-                                                                  Watchlist>;
-                                                      for (var watchList
-                                                          in watchLists) {
-                                                        if (_sortType ==
-                                                            SortType
-                                                                .alphabetical) {
-                                                          watchList.items.sort((a, b) => a
-                                                                          .instrumentObj !=
-                                                                      null &&
-                                                                  b.instrumentObj !=
-                                                                      null
-                                                              ? (_sortDirection ==
-                                                                      SortDirection
-                                                                          .asc
-                                                                  ? (a.instrumentObj!
-                                                                      .symbol
-                                                                      .compareTo(b
-                                                                          .instrumentObj!
-                                                                          .symbol))
-                                                                  : (b.instrumentObj!
-                                                                      .symbol
-                                                                      .compareTo(a.instrumentObj!.symbol)))
-                                                              : 0);
-                                                        } else if (_sortType ==
-                                                            SortType.change) {
-                                                          watchList.items.sort((a, b) => a.instrumentObj !=
-                                                                      null &&
-                                                                  b.instrumentObj !=
-                                                                      null
-                                                              ? (_sortDirection ==
-                                                                      SortDirection
-                                                                          .asc
-                                                                  ? (b
-                                                                      .instrumentObj!
-                                                                      .quoteObj!
-                                                                      .changePercentToday
-                                                                      .compareTo(a
-                                                                          .instrumentObj!
-                                                                          .quoteObj!
-                                                                          .changePercentToday))
-                                                                  : (a
-                                                                      .instrumentObj!
-                                                                      .quoteObj!
-                                                                      .changePercentToday
-                                                                      .compareTo(b.instrumentObj!.quoteObj!.changePercentToday)))
-                                                              : 0);
-                                                        }
-                                                      }
-*/
-                                              /*
-                                              optionOrderStream ??=
-                                                  RobinhoodService
-                                                      .streamOptionOrders(
-                                                          robinhoodUser!);
-
-                                              return StreamBuilder(
-                                                  stream: optionOrderStream,
-                                                  builder: (context5,
-                                                      optionOrdersSnapshot) {
-                                                    if (optionOrdersSnapshot
-                                                        .hasData) {
-                                                      var optionOrders =
-                                                          optionOrdersSnapshot
-                                                                  .data
-                                                              as List<
-                                                                  OptionOrder>;
-
-                                                      positionOrderStream ??=
-                                                          RobinhoodService
-                                                              .streamPositionOrders(
-                                                                  robinhoodUser!);
-
-                                                      return StreamBuilder(
-                                                          stream:
-                                                              positionOrderStream,
-                                                          builder: (context6,
-                                                              positionOrdersSnapshot) {
-                                                            if (positionOrdersSnapshot
-                                                                .hasData) {
-                                                              var positionOrders =
-                                                                  positionOrdersSnapshot
-                                                                          .data
-                                                                      as List<
-                                                                          PositionOrder>;
-                                                              return _buildPage(
-                                                                  portfolios:
-                                                                      portfolios,
-                                                                  user: user,
-                                                                  ru:
-                                                                      robinhoodUser,
-                                                                  accounts:
-                                                                      accounts,
-                                                                  nummusHoldings:
-                                                                      nummusHoldings,
-                                                                  portfolioHistoricals:
-                                                                      portfolioHistoricals,
-                                                                  optionPositions:
-                                                                      optionPositions,
-                                                                  optionOrders:
-                                                                      optionOrders,
-                                                                  positions:
-                                                                      positions,
-                                                                  positionOrders:
-                                                                      positionOrders,
-                                                                  //watchlists:
-                                                                  //    watchLists,
-                                                                  //watchListItems:
-                                                                  //    watchListItems,
-                                                                  done: positionSnapshot
-                                                                              .connectionState ==
-                                                                          ConnectionState
-                                                                              .done &&
-                                                                      optionAggregatePositionSnapshot
-                                                                              .connectionState ==
-                                                                          ConnectionState
-                                                                              .done /* &&
-                                                            watchlistSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState.done*/
-                                                                  );
-                                                            } else if (positionOrdersSnapshot
-                                                                .hasError) {
-                                                              debugPrint(
-                                                                  "${positionOrdersSnapshot.error}");
-                                                              return _buildPage(
-                                                                  //ru: snapshotUser,
-                                                                  welcomeWidget:
-                                                                      Text(
-                                                                          "${positionOrdersSnapshot.error}"));
-                                                            } else {
-                                                              // No Position Orders Found.
-                                                              return _buildPage(
-                                                                  portfolios:
-                                                                      portfolios,
-                                                                  user: user,
-                                                                  ru:
-                                                                      robinhoodUser,
-                                                                  accounts:
-                                                                      accounts,
-                                                                  nummusHoldings:
-                                                                      nummusHoldings,
-                                                                  portfolioHistoricals:
-                                                                      portfolioHistoricals,
-                                                                  optionPositions:
-                                                                      optionPositions,
-                                                                  optionOrders:
-                                                                      optionOrders,
-                                                                  positions:
-                                                                      positions,
-                                                                  //watchlists:
-                                                                  //    watchLists,
-                                                                  //watchListItems:
-                                                                  //    watchListItems,
-                                                                  done: positionSnapshot
-                                                                              .connectionState ==
-                                                                          ConnectionState
-                                                                              .done &&
-                                                                      optionAggregatePositionSnapshot
-                                                                              .connectionState ==
-                                                                          ConnectionState
-                                                                              .done /* &&
-                                                            watchlistSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState.done*/
-                                                                  );
-                                                            }
-                                                          });
-                                                    } else {
-                                                      // No Options Orders found.
-                                                      return _buildPage(
-                                                          portfolios:
-                                                              portfolios,
-                                                          user: user,
-                                                          ru: robinhoodUser,
-                                                          accounts: accounts,
-                                                          nummusHoldings:
-                                                              nummusHoldings,
-                                                          portfolioHistoricals:
-                                                              portfolioHistoricals,
-                                                          optionPositions:
-                                                              optionPositions,
-                                                          positions: positions,
-                                                          //watchlists:
-                                                          //    watchLists,
-                                                          //watchListItems:
-                                                          //    watchListItems,
-                                                          done: positionSnapshot
-                                                                      .connectionState ==
-                                                                  ConnectionState
-                                                                      .done &&
-                                                              optionAggregatePositionSnapshot
-                                                                      .connectionState ==
-                                                                  ConnectionState
-                                                                      .done /* &&
-                                                            watchlistSnapshot
-                                                                    .connectionState ==
-                                                                ConnectionState.done*/
-                                                          );
-                                                    }
-                                                  });
-                                                  */
-
-                                              /*
-                                                    } else if (watchlistsSnapshot
-                                                        .hasError) {
-                                                      debugPrint(
-                                                          "${watchlistsSnapshot.error}");
-                                                      return _buildPage(
-                                                        welcomeWidget: Text(
-                                                            "${watchlistsSnapshot.error}"),
-                                                        portfolios: portfolios,
-                                                        user: user,
-                                                        ru: robinhoodUser,
-                                                        accounts: accounts,
-                                                        nummusHoldings:
-                                                            nummusHoldings,
-                                                        portfolioHistoricals:
-                                                            portfolioHistoricals,
-                                                        optionPositions:
-                                                            optionPositions,
-                                                        positions: positions,
-                                                      );
-                                                    } else {
-                                                      // No Watchlists found.
-                                                      return _buildPage(
-                                                        portfolios: portfolios,
-                                                        user: user,
-                                                        ru: robinhoodUser,
-                                                        accounts: accounts,
-                                                        nummusHoldings:
-                                                            nummusHoldings,
-                                                        portfolioHistoricals:
-                                                            portfolioHistoricals,
-                                                        optionPositions:
-                                                            optionPositions,
-                                                        positions: positions,
-                                                      );
-                                                    }
-                                                  });
-                                                  */
                                             } else {
                                               // No Options found.
                                               return _buildPage(
@@ -780,6 +524,12 @@ class _HomePageState extends State<HomePage>
                 //filteredEquityHistoricals.indexOf(history),
                 measureFn: (EquityHistorical history, _) =>
                     history.adjustedCloseEquity,
+                /*
+                measureLowerBoundFn: (EquityHistorical history, _) =>
+                    history.adjustedOpenEquity,
+                measureUpperBoundFn: (EquityHistorical history, _) =>
+                    history.adjustedCloseEquity,
+                    */
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
@@ -802,12 +552,35 @@ class _HomePageState extends State<HomePage>
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
+            /*
+            charts.Series<EquityHistorical, DateTime>(
+                id: 'Open Equity',
+                overlaySeries: true,
+                colorFn: (_, __) => charts.MaterialPalette.gray.shadeDefault,
+                domainFn: (EquityHistorical history, _) => history.beginsAt!,
+                //filteredEquityHistoricals.indexOf(history),
+                measureFn: (EquityHistorical history, _) => portfolioHistoricals
+                    .equityHistoricals[0]
+                    .adjustedOpenEquity, // portfolioHistoricals.adjustedOpenEquity,
+                data: portfolioHistoricals
+                    .equityHistoricals //filteredEquityHistoricals,
+                ),
+                */
           ];
           chart = charts.TimeSeriesChart(
             seriesList,
+            //defaultRenderer: charts.BarRendererConfig<DateTime>(),
             defaultRenderer:
                 charts.LineRendererConfig(includeArea: true, stacked: false),
+            //defaultRenderer: charts.BarTargetLineRendererConfig<DateTime>(),
+            //defaultRenderer: charts.PointRendererConfig<DateTime>(),
             animate: true,
+            /*
+            defaultRenderer: charts.LineRendererConfig(includeArea: true, stacked: false),
+            primaryMeasureAxis: const charts.NumericAxisSpec(
+                tickProviderSpec:
+                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
+                    */
             primaryMeasureAxis: const charts.NumericAxisSpec(
                 tickProviderSpec:
                     charts.BasicNumericTickProviderSpec(zeroBound: false)),
@@ -827,7 +600,8 @@ class _HomePageState extends State<HomePage>
             ],
             behaviors: [
               charts.SeriesLegend(
-                  defaultHiddenSeries: const ['Equity', 'Market Value'])
+                defaultHiddenSeries: const ['Equity', 'Market Value'],
+              )
             ],
           );
         }
@@ -2969,7 +2743,7 @@ class _HomePageState extends State<HomePage>
       ListTile(
         leading: CircleAvatar(
             child: Text(formatCompactNumber.format(positions[index].quantity!),
-                style: const TextStyle(fontSize: 18))),
+                style: const TextStyle(fontSize: 17))),
         title: Text(positions[index].instrumentObj != null
             ? positions[index].instrumentObj!.symbol
             : ""),
@@ -3056,8 +2830,8 @@ class _HomePageState extends State<HomePage>
                   ? const Text('Call')
                   : const Text('Put')),
                       */
-              child: Text('${op.quantity!.round()}',
-                  style: const TextStyle(fontSize: 18))),
+              child: Text(formatCompactNumber.format(op.quantity!),
+                  style: const TextStyle(fontSize: 17))),
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(

@@ -359,6 +359,9 @@ class _HistoryPageState extends State<HistoryPage>
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
+                var amount = filteredPositionOrders![index].averagePrice! *
+                    filteredPositionOrders![index].quantity! *
+                    (filteredPositionOrders![index].side == "buy" ? -1 : 1);
                 return Card(
                     child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -367,18 +370,17 @@ class _HistoryPageState extends State<HistoryPage>
                       leading: CircleAvatar(
                           //backgroundImage: AssetImage(user.profilePicture),
                           child: Text(
-                              '${filteredPositionOrders![index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 18))),
+                              formatCompactNumber.format(
+                                  filteredPositionOrders![index].quantity!),
+                              style: const TextStyle(fontSize: 17))),
                       title: Text(
-                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side}"),
+                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
                       subtitle: Text(
                           "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
                       trailing: Wrap(spacing: 8, children: [
                         Text(
                           filteredPositionOrders![index].averagePrice != null
-                              ? formatCurrency.format(
-                                  filteredPositionOrders![index].averagePrice! *
-                                      filteredPositionOrders![index].quantity!)
+                              ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
                               : "",
                           style: const TextStyle(fontSize: 18.0),
                           textAlign: TextAlign.right,
@@ -490,7 +492,7 @@ class _HistoryPageState extends State<HistoryPage>
                           //backgroundImage: AssetImage(user.profilePicture),
                           child: Text(
                               '${filteredOptionOrders![index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 18))),
+                              style: const TextStyle(fontSize: 17))),
                       title: Text(
                           "${filteredOptionOrders![index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders![index].legs.first.strikePrice)} ${filteredOptionOrders![index].strategy} ${formatCompactDate.format(filteredOptionOrders![index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
                       subtitle: Text(
