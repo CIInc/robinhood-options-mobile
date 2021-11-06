@@ -100,7 +100,10 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                             "${positionOrder.instrumentObj!.symbol} ${positionOrder.type} ${positionOrder.side}",
                             style: const TextStyle(fontSize: 20.0)),
                         Text(
-                            "${positionOrder.averagePrice != null ? formatCurrency.format(positionOrder.averagePrice) : ""}",
+                            positionOrder.averagePrice != null
+                                ? formatCurrency
+                                    .format(positionOrder.averagePrice)
+                                : "",
                             style: const TextStyle(fontSize: 20.0)),
                         Text(formatDate.format(positionOrder.updatedAt!),
                             style: const TextStyle(fontSize: 15.0))

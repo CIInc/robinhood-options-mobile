@@ -134,7 +134,7 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildScaffold() {
     optionOrderStream ??= RobinhoodService.streamOptionOrders(widget.user);
 
-    var optionEventStream = RobinhoodService.streamOptionEvents(widget.user);
+    //var optionEventStream = RobinhoodService.streamOptionEvents(widget.user);
 
     return StreamBuilder(
         stream: optionOrderStream,

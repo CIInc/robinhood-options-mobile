@@ -6,21 +6,20 @@
 - Price target recommendations. 
 
 ## Requirements
+
+### Tabs
+
 - Portfolio tab
-  - Summary view
+  - Summary section
     - [x] Portfolio historical charts view.
     - [x] Portfolio summary breakdown view.
-  - Options view
+  - Options section
     - [x] Options list with filters.
-    - [x] Option detail view with market data.
-    - [x] Option greeks view.
-      - [ ] Risk analysis with charts.
-    - [x] Option chain view.
-      - [ ] Show current price list divider with scroll to function.
-  - Stocks view
+    - [x] Option detail view with market data (see Option view).
+  - Stocks section
     - [x] Stock list with filters.
     - [x] Stock detail view with market data (see Stock view).
-  - Crypto view
+  - Crypto section
     - [x] Crypto holdings
 - Search tab
   - [x] Search companies by name or symbol.
@@ -31,6 +30,17 @@
   - [ ] Create new list.
   - [ ] Edit list.
   - [ ] Add symbol to list.
+- History tab
+  - [x] Position order list.
+  - [x] Option order list.
+  - [x] Balances and order counts.
+  - [ ] Option event list.
+
+### Views
+
+- Option view
+  - [x] Option greeks view.
+    - [ ] Risk analysis with charts.
 - Stock view
   - [x] Instrument (Stock) view
     - [x] Positions, options, orders view
@@ -40,11 +50,13 @@
     - [x] News view.
     - [ ] Earnings view.
     - [ ] Splits & Corporate Actions view.
+  - [x] Option chain view.
+    - [ ] Show current price list divider with scroll to function.
   - [ ] Stock research
     - [ ] Movers (gainers and losers).
     - [ ] Popular (based on average volume vs current volume).
     - [ ] Undervalued/Overvalued (Fair value evaluation)
-- Trading UI
+- Trading View
   - [ ] Place stock order.
   - [ ] Place option order.
     - [ ] buy-to-close, sell-to-open, limit, time-in-force
@@ -56,12 +68,15 @@
   - [ ] Place crypto order.
   - [ ] Cancel pending order.
   - [ ] Replace order.
-- Account UI
+- Account View
   - [ ] Manage multiple account on the trading platform.
   - [ ] Allow the switching between acounts without having to logout.
-- Social integration
+
+## Future work
+
+### Social integration
   - [ ] Reddit
     - [ ] Publish gain/loss results to /WSB
   - [ ] Twitter
-- ML service
-  - [ ] Machine learning target price model.
+### Machine Learning
+  - [ ] Machine learning target price model service.
