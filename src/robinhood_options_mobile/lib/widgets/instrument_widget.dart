@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -89,10 +90,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     super.initState();
 
     if (RobinhoodService.optionOrders != null) {
-      optionOrders = RobinhoodService.optionOrders!
+      var cachedOptionOrders = RobinhoodService.optionOrders!
           .where((element) => element.chainSymbol == widget.instrument.symbol)
           .toList();
-      _calculateOptionOrderBalance();
+      futureOptionOrders = Future.value(cachedOptionOrders);
     } else {
       futureOptionOrders = RobinhoodService.getOptionOrders(
           widget.user, widget.instrument.tradeableChainId!);
@@ -105,10 +106,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     if (RobinhoodService.positionOrders != null) {
-      positionOrders = RobinhoodService.positionOrders!
+      var cachedPositionOrders = RobinhoodService.positionOrders!
           .where((element) => element.instrumentId == widget.instrument.id)
           .toList();
-      _calculatePositionOrderBalance();
+      futureInstrumentOrders = Future.value(cachedPositionOrders);
     } else {
       futureInstrumentOrders = RobinhoodService.getInstrumentOrders(
           widget.user, [widget.instrument.url]);
@@ -1756,6 +1757,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   !orderFilters.contains(optionOrders[index].state))) {
             return Container();
           }
+          var optionOrder = optionOrders[index];
+          var subtitle =
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}"),
+            if (optionOrder.optionEvents != null) ...[
+              Text(
+                "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : optionOrder.optionEvents!.first.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice)}",
+                //style: TextStyle(fontSize: 16.0)
+              )
+            ]
+          ]);
 
           return Card(
               child: Column(
@@ -1764,12 +1777,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ListTile(
                 leading: CircleAvatar(
                     //backgroundImage: AssetImage(user.profilePicture),
-                    child: Text('${optionOrders[index].quantity!.round()}',
-                        style: const TextStyle(fontSize: 18))),
+                    backgroundColor: optionOrder.optionEvents != null
+                        ? Colors.blue.shade100
+                        : Colors.blue,
+                    child: optionOrder.optionEvents != null
+                        ? const Icon(Icons.check)
+                        : Text('${optionOrder.quantity!.round()}',
+                            style: const TextStyle(fontSize: 17))),
                 title: Text(
                     "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                subtitle: Text(
-                    "${optionOrders[index].state} ${formatDate.format(optionOrders[index].updatedAt!)}"),
+                subtitle: subtitle,
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     (optionOrders[index].direction == "credit" ? "+" : "-") +
@@ -1813,7 +1830,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               )
             ],
           ),*/
-                //isThreeLine: true,
+                isThreeLine: optionOrder.optionEvents != null,
                 onTap: () {
                   Navigator.push(
                       context,
@@ -2042,7 +2059,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         crossAxisAlignment: WrapCrossAlignment.start,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
-        spacing: 15,
+        spacing: 10,
         //runSpacing: 5,
         children: [
           Text(

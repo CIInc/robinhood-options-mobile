@@ -608,12 +608,13 @@ class _HomePageState extends State<HomePage>
               ),
               charts.RangeAnnotation([
                 charts.RangeAnnotationSegment(
-                    open <= close ? open : close,
-                    open <= close ? close : open,
-                    charts.RangeAnnotationAxisType.measure,
-                    startLabel: open <= close ? 'Open' : 'Close',
-                    endLabel: open <= close ? 'Close' : 'Open',
-                    color: charts.MaterialPalette.gray.shade200),
+                  open <= close ? open : close,
+                  open <= close ? close : open,
+                  charts.RangeAnnotationAxisType.measure,
+                  startLabel: open <= close ? 'Open' : 'Close',
+                  endLabel: open <= close ? 'Close' : 'Open',
+                  //color: charts.MaterialPalette.transparent // gray.shade200
+                ),
               ])
             ],
           );

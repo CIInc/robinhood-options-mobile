@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
 
 //@immutable
@@ -30,6 +31,8 @@ class OptionOrder {
   final double? stopPrice;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  List<OptionEvent>? optionEvents;
 
   OptionOrder(
       this.id,

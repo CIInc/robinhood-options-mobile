@@ -59,19 +59,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     super.dispose();
   }
 
+  /*
   void _onIndexedViewChanged(int index) {
     setState(() {
       _pageIndex = index;
     });
   }
+  */
 
   void _onPageChanged(int index) {
     setState(() {
       _pageIndex = index;
     });
-    // _pageController!.jumpToPage(index);
+    //_pageController!.jumpToPage(index);
     _pageController!.animateToPage(index,
-        duration: const Duration(milliseconds: 200), curve: Curves.easeInOut);
+        duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
   }
 
   @override

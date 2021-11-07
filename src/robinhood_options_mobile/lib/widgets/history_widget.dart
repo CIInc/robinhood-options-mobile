@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -162,6 +163,15 @@ class _HistoryPageState extends State<HistoryPage>
                           if (optionEventSnapshot.hasData) {
                             optionEvents =
                                 optionEventSnapshot.data as List<OptionEvent>;
+                            for (var optionEvent in optionEvents!) {
+                              var originalOptionOrder = optionOrders!
+                                  .firstWhere((element) =>
+                                      element.legs.first.option ==
+                                      optionEvent.option);
+                              originalOptionOrder.optionEvents ??= [];
+                              originalOptionOrder.optionEvents!
+                                  .add(optionEvent);
+                            }
                             return _buildPage(
                                 optionOrders: optionOrders,
                                 positionOrders: positionOrders,
@@ -240,10 +250,16 @@ class _HistoryPageState extends State<HistoryPage>
           .where((element) =>
               (orderFilters.isEmpty || orderFilters.contains(element.state)) &&
               (days == 0 ||
-                  element.createdAt!
+                  (element.createdAt!
                           .add(Duration(days: days))
                           .compareTo(DateTime.now()) >=
-                      0) &&
+                      0) ||
+                  (element.optionEvents != null &&
+                      element.optionEvents!.any((event) =>
+                          event.eventDate!
+                              .add(Duration(days: days))
+                              .compareTo(DateTime.now()) >=
+                          0))) &&
               (optionSymbolFilters.isEmpty ||
                   optionSymbolFilters.contains(element.chainSymbol)))
           .toList();
@@ -256,7 +272,7 @@ class _HistoryPageState extends State<HistoryPage>
               .reduce((a, b) => a + b) as double
           : 0;
     }
-
+    /*
     if (optionEvents != null) {
       filteredOptionEvents = optionEvents
           .where((element) =>
@@ -274,6 +290,7 @@ class _HistoryPageState extends State<HistoryPage>
               )
           .toList();
     }
+    */
 
     if (positionOrders != null) {
       positionOrderSymbols = positionOrders
@@ -344,7 +361,7 @@ class _HistoryPageState extends State<HistoryPage>
                   alignment: Alignment.centerLeft,
                   child: ListTile(
                     title: const Text(
-                      "Option Orders",
+                      "Option Orders & Events",
                       style: TextStyle(fontSize: 19.0),
                     ),
                     subtitle: Text(
@@ -400,6 +417,14 @@ class _HistoryPageState extends State<HistoryPage>
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
               (BuildContext context, int index) {
+                var optionOrder = filteredOptionOrders![index];
+                var subtitle = Text(
+                    "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
+                if (optionOrder.optionEvents != null) {
+                  var optionEvent = optionOrder.optionEvents!.first;
+                  subtitle = Text(
+                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : optionEvent.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice)}");
+                }
                 return Card(
                     child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -407,42 +432,40 @@ class _HistoryPageState extends State<HistoryPage>
                     ListTile(
                       leading: CircleAvatar(
                           //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredOptionOrders![index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 17))),
+                          backgroundColor: optionOrder.optionEvents != null
+                              ? Colors.blue.shade100
+                              : Colors.blue,
+                          child: optionOrder.optionEvents != null
+                              ? const Icon(Icons.check)
+                              : Text('${optionOrder.quantity!.round()}',
+                                  style: const TextStyle(fontSize: 17))),
                       title: Text(
-                          "${filteredOptionOrders![index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders![index].legs.first.strikePrice)} ${filteredOptionOrders![index].strategy} ${formatCompactDate.format(filteredOptionOrders![index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                      subtitle: Text(
-                          "${filteredOptionOrders![index].state} ${formatDate.format(filteredOptionOrders![index].updatedAt!)}"),
+                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                      subtitle: subtitle,
                       trailing: Wrap(spacing: 8, children: [
                         Text(
-                          (filteredOptionOrders![index].direction == "credit"
-                                  ? "+"
-                                  : "-") +
-                              (filteredOptionOrders![index].processedPremium !=
-                                      null
-                                  ? formatCurrency.format(
-                                      filteredOptionOrders![index]
-                                          .processedPremium)
+                          (optionOrder.direction == "credit" ? "+" : "-") +
+                              (optionOrder.processedPremium != null
+                                  ? formatCurrency
+                                      .format(optionOrder.processedPremium)
                                   : ""),
                           style: const TextStyle(fontSize: 18.0),
                           textAlign: TextAlign.right,
                         )
                       ]),
 
-                      //isThreeLine: true,
+                      isThreeLine: optionOrder.optionEvents != null,
                       onTap: () {
                         widget.navigatorKey!.currentState!.push(
                             MaterialPageRoute(
                                 builder: (context) => OptionOrderWidget(
-                                    widget.user,
-                                    filteredOptionOrders![index])));
+                                    widget.user, optionOrder)));
                         /*
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => OptionOrderWidget(
-                                    ru, filteredOptionOrders![index])));
+                                    ru, optionOrder)));
                                     */
                       },
                     ),
@@ -458,7 +481,7 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
-
+      /*
       if (optionEvents != null) {
         slivers.add(SliverStickyHeader(
           header: Material(
@@ -566,12 +589,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   content: const Text(
                                       'This feature is not implemented.'),
                                   actions: <Widget>[
-                                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.pop(context, 'OK'),
@@ -579,20 +596,6 @@ class _HistoryPageState extends State<HistoryPage>
                                     ),
                                   ],
                                 ));
-                        /*
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => OptionEventWidget(
-                                    widget.user,
-                                    filteredOptionEvents![index])));
-                                    */
-                        /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    ru, filteredOptionEvents![index])));
-                                    */
                       },
                     ),
                   ],
@@ -607,6 +610,7 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
+      */
 
       if (positionOrders != null) {
         slivers.add(SliverStickyHeader(
