@@ -522,8 +522,9 @@ class _HomePageState extends State<HomePage>
                 colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
                 domainFn: (EquityHistorical history, _) => history.beginsAt!,
                 //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, _) =>
-                    history.adjustedCloseEquity,
+                measureFn: (EquityHistorical history, index) => index == 0
+                    ? history.adjustedOpenEquity
+                    : history.adjustedCloseEquity,
                 /*
                 measureLowerBoundFn: (EquityHistorical history, _) =>
                     history.adjustedOpenEquity,
@@ -538,7 +539,8 @@ class _HomePageState extends State<HomePage>
                 colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
                 domainFn: (EquityHistorical history, _) => history.beginsAt!,
                 //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, _) => history.closeEquity,
+                measureFn: (EquityHistorical history, index) =>
+                    index == 0 ? history.openEquity : history.closeEquity,
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
@@ -547,12 +549,12 @@ class _HomePageState extends State<HomePage>
                 colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
                 domainFn: (EquityHistorical history, _) => history.beginsAt!,
                 //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, _) =>
-                    history.closeMarketValue,
+                measureFn: (EquityHistorical history, index) => index == 0
+                    ? history.openMarketValue
+                    : history.closeMarketValue,
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
-            /*
             charts.Series<EquityHistorical, DateTime>(
                 id: 'Open Equity',
                 overlaySeries: true,
@@ -565,25 +567,27 @@ class _HomePageState extends State<HomePage>
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
-                */
           ];
+          var open =
+              portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
+          var close = portfolioHistoricals
+              .equityHistoricals[
+                  portfolioHistoricals.equityHistoricals.length - 1]
+              .adjustedCloseEquity!;
           chart = charts.TimeSeriesChart(
             seriesList,
             //defaultRenderer: charts.BarRendererConfig<DateTime>(),
-            defaultRenderer:
-                charts.LineRendererConfig(includeArea: true, stacked: false),
-            //defaultRenderer: charts.BarTargetLineRendererConfig<DateTime>(),
+            //defaultRenderer:
+            //    charts.LineRendererConfig(includeArea: true, stacked: false),
+            defaultRenderer: charts.BarTargetLineRendererConfig<DateTime>(),
             //defaultRenderer: charts.PointRendererConfig<DateTime>(),
             animate: true,
+            primaryMeasureAxis: const charts.NumericAxisSpec(
+                tickProviderSpec:
+                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
+            //domainAxis: const charts.DateTimeAxisSpec(),
+            //domainAxis: const charts.EndPointsTimeAxisSpec(),
             /*
-            defaultRenderer: charts.LineRendererConfig(includeArea: true, stacked: false),
-            primaryMeasureAxis: const charts.NumericAxisSpec(
-                tickProviderSpec:
-                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
-                    */
-            primaryMeasureAxis: const charts.NumericAxisSpec(
-                tickProviderSpec:
-                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
             selectionModels: [
               charts.SelectionModelConfig(
                 type: charts.SelectionModelType.info,
@@ -597,11 +601,20 @@ class _HomePageState extends State<HomePage>
                   }
                 },
               )
-            ],
+            ],*/
             behaviors: [
               charts.SeriesLegend(
                 defaultHiddenSeries: const ['Equity', 'Market Value'],
-              )
+              ),
+              charts.RangeAnnotation([
+                charts.RangeAnnotationSegment(
+                    open <= close ? open : close,
+                    open <= close ? close : open,
+                    charts.RangeAnnotationAxisType.measure,
+                    startLabel: open <= close ? 'Open' : 'Close',
+                    endLabel: open <= close ? 'Close' : 'Open',
+                    color: charts.MaterialPalette.gray.shade200),
+              ])
             ],
           );
         }
@@ -2960,6 +2973,24 @@ class _HomePageState extends State<HomePage>
         ),
         // isThreeLine: true,
         onTap: () {
+          showDialog<String>(
+              context: context,
+              builder: (BuildContext context) => AlertDialog(
+                    title: const Text('Alert'),
+                    content: const Text('This feature is not implemented.'),
+                    actions: <Widget>[
+                      /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, 'OK'),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ));
           /*
           Navigator.push(
               context,

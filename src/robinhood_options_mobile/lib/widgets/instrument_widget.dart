@@ -49,6 +49,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<InstrumentHistoricals?>? futureHistoricals;
   Future<OptionChain>? futureOptionChain;
   Future<List<dynamic>>? futureNews;
+  Future<List<PositionOrder>>? futureInstrumentOrders;
+  Future<List<OptionOrder>>? futureOptionOrders;
 
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
@@ -90,13 +92,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       optionOrders = RobinhoodService.optionOrders!
           .where((element) => element.chainSymbol == widget.instrument.symbol)
           .toList();
-      optionOrdersPremiumBalance = optionOrders.isNotEmpty
-          ? optionOrders
-              .map((e) =>
-                  (e.processedPremium != null ? e.processedPremium! : 0) *
-                  (e.direction == "credit" ? 1 : -1))
-              .reduce((a, b) => a + b) as double
-          : 0;
+      _calculateOptionOrderBalance();
+    } else {
+      futureOptionOrders = RobinhoodService.getOptionOrders(
+          widget.user, widget.instrument.tradeableChainId!);
     }
 
     if (RobinhoodService.optionPositions != null) {
@@ -109,16 +108,33 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       positionOrders = RobinhoodService.positionOrders!
           .where((element) => element.instrumentId == widget.instrument.id)
           .toList();
-      positionOrdersBalance = positionOrders.isNotEmpty
-          ? positionOrders
-              .map((e) =>
-                  (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
-                  (e.side == "buy" ? 1 : -1))
-              .reduce((a, b) => a + b) as double
-          : 0;
+      _calculatePositionOrderBalance();
+    } else {
+      futureInstrumentOrders = RobinhoodService.getInstrumentOrders(
+          widget.user, [widget.instrument.url]);
     }
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
+  }
+
+  void _calculateOptionOrderBalance() {
+    optionOrdersPremiumBalance = optionOrders.isNotEmpty
+        ? optionOrders
+            .map((e) =>
+                (e.processedPremium != null ? e.processedPremium! : 0) *
+                (e.direction == "credit" ? 1 : -1))
+            .reduce((a, b) => a + b) as double
+        : 0;
+  }
+
+  void _calculatePositionOrderBalance() {
+    positionOrdersBalance = positionOrders.isNotEmpty
+        ? positionOrders
+            .map((e) =>
+                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
+                (e.side == "buy" ? 1 : -1))
+            .reduce((a, b) => a + b) as double
+        : 0;
   }
 
 /*
@@ -198,7 +214,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureFundamentals as Future,
         futureHistoricals as Future,
         futureOptionChain as Future,
-        futureNews as Future
+        futureNews as Future,
+        futureInstrumentOrders as Future,
+        futureOptionOrders as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -209,6 +227,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               data.length > 2 ? data[2] : null;
           instrument.optionChainObj = data.length > 3 ? data[3] : null;
           instrument.newsObj = data.length > 4 ? data[4] : null;
+          instrument.positionOrders = data.length > 5 ? data[5] : null;
+          instrument.optionOrders = data.length > 6 ? data[6] : null;
+
+          positionOrders = instrument.positionOrders!;
+          _calculatePositionOrderBalance();
+          optionOrders = instrument.optionOrders!;
+          _calculateOptionOrderBalance();
 
           chart = null;
 

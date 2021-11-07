@@ -4,6 +4,8 @@
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
+import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/split.dart';
 
@@ -49,6 +51,8 @@ class Instrument {
   InstrumentHistoricals? instrumentHistoricalsObj;
   OptionChain? optionChainObj;
   List<dynamic>? newsObj;
+  List<PositionOrder>? positionOrders;
+  List<OptionOrder>? optionOrders;
 
   List<Split> splitsObj = [];
 

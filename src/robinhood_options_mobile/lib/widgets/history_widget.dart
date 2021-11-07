@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/model/option_event.dart';
 
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/position_order.dart';
@@ -55,6 +56,9 @@ class _HistoryPageState extends State<HistoryPage>
   Stream<List<OptionOrder>>? optionOrderStream;
   List<OptionOrder>? optionOrders;
   List<OptionOrder>? filteredOptionOrders;
+  Stream<List<dynamic>>? optionEventStream;
+  List<OptionEvent>? optionEvents;
+  List<OptionEvent>? filteredOptionEvents;
 
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
@@ -134,8 +138,6 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildScaffold() {
     optionOrderStream ??= RobinhoodService.streamOptionOrders(widget.user);
 
-    //var optionEventStream = RobinhoodService.streamOptionEvents(widget.user);
-
     return StreamBuilder(
         stream: optionOrderStream,
         builder: (context5, optionOrdersSnapshot) {
@@ -151,13 +153,33 @@ class _HistoryPageState extends State<HistoryPage>
                   if (positionOrdersSnapshot.hasData) {
                     positionOrders =
                         positionOrdersSnapshot.data as List<PositionOrder>;
-                    return _buildPage(
-                        optionOrders: optionOrders,
-                        positionOrders: positionOrders,
-                        done: positionOrdersSnapshot.connectionState ==
-                                ConnectionState.done &&
-                            optionOrdersSnapshot.connectionState ==
-                                ConnectionState.done);
+
+                    optionEventStream ??=
+                        RobinhoodService.streamOptionEvents(widget.user);
+                    return StreamBuilder(
+                        stream: optionEventStream,
+                        builder: (context6, optionEventSnapshot) {
+                          if (optionEventSnapshot.hasData) {
+                            optionEvents =
+                                optionEventSnapshot.data as List<OptionEvent>;
+                            return _buildPage(
+                                optionOrders: optionOrders,
+                                positionOrders: positionOrders,
+                                optionEvents: optionEvents,
+                                done: positionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    optionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done);
+                          } else {
+                            return _buildPage(
+                                optionOrders: optionOrders,
+                                positionOrders: positionOrders,
+                                done: positionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    optionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done);
+                          }
+                        });
                   } else if (positionOrdersSnapshot.hasError) {
                     debugPrint("${positionOrdersSnapshot.error}");
                     return _buildPage(
@@ -185,6 +207,7 @@ class _HistoryPageState extends State<HistoryPage>
       {Widget? welcomeWidget,
       List<OptionOrder>? optionOrders,
       List<PositionOrder>? positionOrders,
+      List<OptionEvent>? optionEvents,
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
@@ -232,6 +255,24 @@ class _HistoryPageState extends State<HistoryPage>
                   (e.direction == "credit" ? 1 : -1))
               .reduce((a, b) => a + b) as double
           : 0;
+    }
+
+    if (optionEvents != null) {
+      filteredOptionEvents = optionEvents
+          .where((element) =>
+                  //(orderFilters.isEmpty ||
+                  //    orderFilters.contains(element.state)) &&
+                  (days == 0 ||
+                      element.createdAt!
+                              .add(Duration(days: days))
+                              .compareTo(DateTime.now()) >=
+                          0)
+              // TODO: Reintroduce
+              //&&
+              //(optionSymbolFilters.isEmpty ||
+              //    optionSymbolFilters.contains(element.chainSymbol))
+              )
+          .toList();
     }
 
     if (positionOrders != null) {
@@ -288,6 +329,282 @@ class _HistoryPageState extends State<HistoryPage>
             child: SizedBox(
           height: 150.0,
           child: Align(alignment: Alignment.center, child: welcomeWidget),
+        )));
+      }
+
+      if (optionOrders != null) {
+        slivers.add(SliverStickyHeader(
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  //color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: const Text(
+                      "Option Orders",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders $orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          var future = showModalBottomSheet<void>(
+                            context: context,
+                            // constraints: BoxConstraints(maxHeight: 260),
+                            builder:
+                                /*
+                          (_) => OptionOrderFilterBottomSheet(
+                              orderSymbols: orderSymbols,
+                              optionPositions:
+                                  optionPositions)
+                                  */
+                                (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const ListTile(
+                                    tileColor: Colors.blue,
+                                    leading: Icon(Icons.filter_list),
+                                    title: Text(
+                                      "Filter Option Orders",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                  ),
+                                  const ListTile(
+                                    title: Text("Order State & Date"),
+                                  ),
+                                  orderFilterWidget,
+                                  orderDateFilterWidget,
+                                  const ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  optionOrderSymbolFilterWidget,
+                                ],
+                              );
+                            },
+                          );
+                          future.then((void value) => {});
+                        }),
+                  ))),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundImage: AssetImage(user.profilePicture),
+                          child: Text(
+                              '${filteredOptionOrders![index].quantity!.round()}',
+                              style: const TextStyle(fontSize: 17))),
+                      title: Text(
+                          "${filteredOptionOrders![index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders![index].legs.first.strikePrice)} ${filteredOptionOrders![index].strategy} ${formatCompactDate.format(filteredOptionOrders![index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                      subtitle: Text(
+                          "${filteredOptionOrders![index].state} ${formatDate.format(filteredOptionOrders![index].updatedAt!)}"),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          (filteredOptionOrders![index].direction == "credit"
+                                  ? "+"
+                                  : "-") +
+                              (filteredOptionOrders![index].processedPremium !=
+                                      null
+                                  ? formatCurrency.format(
+                                      filteredOptionOrders![index]
+                                          .processedPremium)
+                                  : ""),
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]),
+
+                      //isThreeLine: true,
+                      onTap: () {
+                        widget.navigatorKey!.currentState!.push(
+                            MaterialPageRoute(
+                                builder: (context) => OptionOrderWidget(
+                                    widget.user,
+                                    filteredOptionOrders![index])));
+                        /*
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => OptionOrderWidget(
+                                    ru, filteredOptionOrders![index])));
+                                    */
+                      },
+                    ),
+                  ],
+                ));
+              },
+              childCount: filteredOptionOrders!.length,
+            ),
+          ),
+        ));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )));
+      }
+
+      if (optionEvents != null) {
+        slivers.add(SliverStickyHeader(
+          header: Material(
+              elevation: 2,
+              child: Container(
+                  //height: 208.0, //60.0,
+                  //color: Colors.blue,
+                  //color: Colors.white,
+                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  alignment: Alignment.centerLeft,
+                  child: ListTile(
+                    title: const Text(
+                      "Option Events",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                    subtitle: Text(
+                        "${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders $orderDateFilterDisplay"),
+                    trailing: IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        onPressed: () {
+                          var future = showModalBottomSheet<void>(
+                            context: context,
+                            // constraints: BoxConstraints(maxHeight: 260),
+                            builder:
+                                /*
+                          (_) => OptionOrderFilterBottomSheet(
+                              orderSymbols: orderSymbols,
+                              optionPositions:
+                                  optionPositions)
+                                  */
+                                (BuildContext context) {
+                              return Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const ListTile(
+                                    tileColor: Colors.blue,
+                                    leading: Icon(Icons.filter_list),
+                                    title: Text(
+                                      "Filter Option Events",
+                                      style: TextStyle(
+                                          color: Colors.white, fontSize: 19.0),
+                                    ),
+                                    /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                  ),
+                                  const ListTile(
+                                    title: Text("Order State & Date"),
+                                  ),
+                                  orderFilterWidget,
+                                  orderDateFilterWidget,
+                                  const ListTile(
+                                    title: Text("Symbols"),
+                                  ),
+                                  optionOrderSymbolFilterWidget,
+                                ],
+                              );
+                            },
+                          );
+                          future.then((void value) => {});
+                        }),
+                  ))),
+          sliver: SliverList(
+            // delegate: SliverChildListDelegate(widgets),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                return Card(
+                    child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundImage: AssetImage(user.profilePicture),
+                          child: Text(
+                              '${filteredOptionEvents![index].quantity!.round()}',
+                              style: const TextStyle(fontSize: 17))),
+                      title: Text(
+                          "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${formatCurrency.format(filteredOptionEvents![index].underlyingPrice)}"), // , style: TextStyle(fontSize: 18.0)),
+                      subtitle: Text(
+                          "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          (filteredOptionEvents![index].direction == "credit"
+                                  ? "+"
+                                  : "-") +
+                              (filteredOptionEvents![index].totalCashAmount !=
+                                      null
+                                  ? formatCurrency.format(
+                                      filteredOptionEvents![index]
+                                          .totalCashAmount)
+                                  : ""),
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]),
+
+                      //isThreeLine: true,
+                      onTap: () {
+                        () => showDialog<String>(
+                            context: context,
+                            builder: (BuildContext context) => AlertDialog(
+                                  title: const Text('Alert'),
+                                  content: const Text(
+                                      'This feature is not implemented.'),
+                                  actions: <Widget>[
+                                    /*
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, 'Cancel'),
+                      child: const Text('Cancel'),
+                    ),
+                    */
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, 'OK'),
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ));
+                        /*
+                        widget.navigatorKey!.currentState!.push(
+                            MaterialPageRoute(
+                                builder: (context) => OptionEventWidget(
+                                    widget.user,
+                                    filteredOptionEvents![index])));
+                                    */
+                        /*
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => OptionOrderWidget(
+                                    ru, filteredOptionEvents![index])));
+                                    */
+                      },
+                    ),
+                  ],
+                ));
+              },
+              childCount: filteredOptionEvents!.length,
+            ),
+          ),
+        ));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
         )));
       }
 
@@ -415,182 +732,7 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
-      if (optionOrders != null) {
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Option Orders",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders $orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
-                                      "Filter Option Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
-                                    ),
-                                    /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  optionOrderSymbolFilterWidget,
-                                ],
-                              );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredOptionOrders![index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 17))),
-                      title: Text(
-                          "${filteredOptionOrders![index].chainSymbol} \$${formatCompactNumber.format(filteredOptionOrders![index].legs.first.strikePrice)} ${filteredOptionOrders![index].strategy} ${formatCompactDate.format(filteredOptionOrders![index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                      subtitle: Text(
-                          "${filteredOptionOrders![index].state} ${formatDate.format(filteredOptionOrders![index].updatedAt!)}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          (filteredOptionOrders![index].direction == "credit"
-                                  ? "+"
-                                  : "-") +
-                              (filteredOptionOrders![index].processedPremium !=
-                                      null
-                                  ? formatCurrency.format(
-                                      filteredOptionOrders![index]
-                                          .processedPremium)
-                                  : ""),
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
-
-                      //isThreeLine: true,
-                      onTap: () {
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    widget.user,
-                                    filteredOptionOrders![index])));
-                        /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    ru, filteredOptionOrders![index])));
-                                    */
-                      },
-                    ),
-                  ],
-                ));
-              },
-              childCount: filteredOptionOrders!.length,
-            ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
     }
-    slivers.add(SliverStickyHeader(
-        header: Material(
-            elevation: 2.0,
-            child: Container(
-                //height: 208.0, //60.0,
-                //color: Colors.blue,
-                //color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child:
-                    null /*ListTile(
-                title: Text(
-                  "Disclaimer",
-                  style: const TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
-                ),
-              ),*/
-                )),
-        /*
-        header: Container(
-            //height: 208.0, //60.0,
-            //color: Colors.blue,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: Column(
-              children: [
-                Container(
-                    //height: 40,
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      'Disclaimer',
-                      style: const TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    )),
-              ],
-            )),
-            */
-        sliver: SliverToBoxAdapter(
-            child: Container(
-                //color: Colors.white,
-                //height: 420.0,
-                padding: const EdgeInsets.all(12.0),
-                child: const Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                        "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque."))))));
     /*
     slivers.add(SliverPersistentHeader(
       // pinned: true,

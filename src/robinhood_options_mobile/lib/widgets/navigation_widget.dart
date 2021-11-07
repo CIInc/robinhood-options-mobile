@@ -59,6 +59,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     super.dispose();
   }
 
+  void _onIndexedViewChanged(int index) {
+    setState(() {
+      _pageIndex = index;
+    });
+  }
+
   void _onPageChanged(int index) {
     setState(() {
       _pageIndex = index;
@@ -131,14 +137,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             children: tabPages,
             //onPageChanged: _onPageChanged,
             controller: _pageController,
-            // physics: const NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
           ),
           /*
-      IndexedStack(
-        children: tabPages,
-        index: _pageIndex,
-      ),
-      */
+          IndexedStack(
+            children: tabPages,
+            index: _pageIndex,
+          ),
+          */
           bottomNavigationBar: robinhoodUser != null &&
                   robinhoodUser!.userName != null
               ? BottomNavigationBar(
@@ -178,6 +184,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   selectedItemColor: Colors.blue, //.amber[800],
                   unselectedItemColor: Colors.grey, //.amber[800],
                   onTap: _onPageChanged,
+                  //onTap: _onIndexedViewChanged,
                 )
               : null,
         ));

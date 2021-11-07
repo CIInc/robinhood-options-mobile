@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
+import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -420,19 +421,19 @@ class RobinhoodService {
     return InstrumentHistoricals.fromJson(result);
   }
 
-  static Future<List<Split>> getInstrumentOrders(
+  static Future<List<PositionOrder>> getInstrumentOrders(
       RobinhoodUser user, List<String> instrumentUrls) async {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodEndpoint}/orders/?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}");
-    List<Split> splits = [];
+    List<PositionOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = Split.fromJson(result);
-      splits.add(op);
+      var op = PositionOrder.fromJson(result);
+      list.add(op);
     }
-    return splits;
+    return list;
   }
 
   // Collars
@@ -872,6 +873,19 @@ class RobinhoodService {
     optionOrders = list;
   }
 
+  static Future<List<OptionOrder>> getOptionOrders(
+      RobinhoodUser user, String chainId) async {
+    var results = await RobinhoodService.pagedGet(user,
+        "${Constants.robinHoodEndpoint}/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}");
+    List<OptionOrder> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = OptionOrder.fromJson(result);
+      list.add(op);
+    }
+    return list;
+  }
+
   /*
   static Future<List<OptionOrder>> getOptionOrders(RobinhoodUser user) async {
     // , Instrument instrument
@@ -889,9 +903,9 @@ class RobinhoodService {
   }
   */
 
-  static Stream<List<dynamic>> streamOptionEvents(RobinhoodUser user,
+  static Stream<List<OptionEvent>> streamOptionEvents(RobinhoodUser user,
       {int pageSize = 10}) async* {
-    List<dynamic> list = [];
+    List<OptionEvent> list = [];
     //https://api.robinhood.com/options/orders/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/options/events/?page_size=$pageSize"); // ?chain_id=${instrument.tradeableChainId}
@@ -899,7 +913,8 @@ class RobinhoodService {
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        list.add(result);
+        var obj = OptionEvent.fromJson(result);
+        list.add(obj);
         yield list;
       }
     }
