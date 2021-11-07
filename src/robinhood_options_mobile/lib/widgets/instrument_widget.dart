@@ -711,8 +711,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: Column(
@@ -866,8 +864,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
-                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
@@ -1014,8 +1010,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
-              //color: Colors.blue,
-              //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: const ListTile(
@@ -1172,8 +1166,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           elevation: 2,
           child: Container(
             //height: 208.0, //60.0,
-            //color: Colors.blue,
-            //color: Colors.white,
             //padding: EdgeInsets.symmetric(horizontal: 16.0),
             alignment: Alignment.centerLeft,
             child: ListTile(
@@ -1194,10 +1186,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const ListTile(
-                                tileColor: Colors.blue,
-                                leading: Icon(Icons.filter_list),
-                                title: Text(
+                              ListTile(
+                                tileColor:
+                                    Theme.of(context).colorScheme.primary,
+                                leading: const Icon(Icons.filter_list),
+                                title: const Text(
                                   "Filter Position Orders",
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
@@ -1315,8 +1308,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
-              //color: Colors.blue,
-              //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: ListTile(
@@ -1337,10 +1328,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const ListTile(
-                                tileColor: Colors.blue,
-                                leading: Icon(Icons.filter_list),
-                                title: Text(
+                              ListTile(
+                                tileColor:
+                                    Theme.of(context).colorScheme.primary,
+                                leading: const Icon(Icons.filter_list),
+                                title: const Text(
                                   "Filter Options",
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
@@ -1707,8 +1699,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
-              //color: Colors.blue,
-              //color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
               child: ListTile(
@@ -1729,10 +1719,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const ListTile(
-                                tileColor: Colors.blue,
-                                leading: Icon(Icons.filter_list),
-                                title: Text(
+                              ListTile(
+                                tileColor:
+                                    Theme.of(context).colorScheme.primary,
+                                leading: const Icon(Icons.filter_list),
+                                title: const Text(
                                   "Filter Option Orders",
                                   style: TextStyle(
                                       color: Colors.white, fontSize: 19.0),
@@ -1777,9 +1768,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ListTile(
                 leading: CircleAvatar(
                     //backgroundImage: AssetImage(user.profilePicture),
+                    /*
                     backgroundColor: optionOrder.optionEvents != null
-                        ? Colors.blue.shade100
-                        : Colors.blue,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.secondary,
+                        */
                     child: optionOrder.optionEvents != null
                         ? const Icon(Icons.check)
                         : Text('${optionOrder.quantity!.round()}',

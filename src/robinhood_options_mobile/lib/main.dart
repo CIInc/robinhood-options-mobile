@@ -19,8 +19,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Robinhood Options',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.light(),
-      darkTheme: ThemeData.dark(),
+      //theme: ThemeData.light(),
+      theme: ThemeData(
+          primarySwatch: Colors.blueGrey, brightness: Brightness.light),
+      //darkTheme: ThemeData.dark(),
+      darkTheme: ThemeData(
+          primarySwatch: Colors.blueGrey, brightness: Brightness.dark),
       /*
         theme: ThemeData.dark().copyWith(
           elevatedButtonTheme: ElevatedButtonThemeData(

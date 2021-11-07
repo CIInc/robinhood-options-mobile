@@ -857,8 +857,6 @@ class _HomePageState extends State<HomePage>
               elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
@@ -879,10 +877,11 @@ class _HomePageState extends State<HomePage>
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
+                                  ListTile(
+                                    tileColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    leading: const Icon(Icons.filter_list),
+                                    title: const Text(
                                       "Filter Options",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -972,8 +971,6 @@ class _HomePageState extends State<HomePage>
                 elevation: 2,
                 child: Container(
                     //height: 208.0, //60.0,
-                    //color: Colors.blue,
-                    //color: Colors.white,
                     //padding: EdgeInsets.symmetric(horizontal: 16.0),
                     alignment: Alignment.centerLeft,
                     child: ListTile(
@@ -994,10 +991,11 @@ class _HomePageState extends State<HomePage>
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const ListTile(
-                                      tileColor: Colors.blue,
-                                      leading: Icon(Icons.filter_list),
-                                      title: Text(
+                                    ListTile(
+                                      tileColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      leading: const Icon(Icons.filter_list),
+                                      title: const Text(
                                         "Filter Stocks",
                                         style: TextStyle(
                                             color: Colors.white,
@@ -1065,8 +1063,6 @@ class _HomePageState extends State<HomePage>
                 elevation: 2,
                 child: Container(
                     //height: 208.0, //60.0,
-                    //color: Colors.blue,
-                    //color: Colors.white,
                     //padding: EdgeInsets.symmetric(horizontal: 16.0),
                     alignment: Alignment.centerLeft,
                     child: ListTile(
@@ -1087,10 +1083,11 @@ class _HomePageState extends State<HomePage>
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const ListTile(
-                                      tileColor: Colors.blue,
-                                      leading: Icon(Icons.filter_list),
-                                      title: Text(
+                                    ListTile(
+                                      tileColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      leading: const Icon(Icons.filter_list),
+                                      title: const Text(
                                         "Filter Cryptos",
                                         style: TextStyle(
                                             color: Colors.white,
@@ -1138,8 +1135,6 @@ class _HomePageState extends State<HomePage>
                 elevation: 2.0,
                 child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: const ListTile(
@@ -1154,7 +1149,6 @@ class _HomePageState extends State<HomePage>
             /*
             header: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
                 color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
@@ -1202,8 +1196,6 @@ class _HomePageState extends State<HomePage>
               elevation: 2.0,
               child: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
-                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
@@ -1218,7 +1210,6 @@ class _HomePageState extends State<HomePage>
 /*
           header: Container(
               //height: 208.0, //60.0,
-              //color: Colors.blue,
               color: Colors.white,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
               alignment: Alignment.centerLeft,
@@ -1258,8 +1249,6 @@ class _HomePageState extends State<HomePage>
               elevation: 2.0,
               child: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
-                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child: const ListTile(
@@ -1283,8 +1272,6 @@ class _HomePageState extends State<HomePage>
             elevation: 2.0,
             child: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
-                //color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
                 child:
@@ -1300,7 +1287,6 @@ class _HomePageState extends State<HomePage>
         /*
         header: Container(
             //height: 208.0, //60.0,
-            //color: Colors.blue,
             color: Colors.white,
             //padding: EdgeInsets.symmetric(horizontal: 16.0),
             alignment: Alignment.centerLeft,
@@ -2178,60 +2164,57 @@ class _HomePageState extends State<HomePage>
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
-            background: const FlutterLogo(),
+            //background: const FlutterLogo(),
             title: SingleChildScrollView(
-              child: Column(
-                  //mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(children: const [SizedBox(height: 68)]),
-                    Wrap(
-                        crossAxisAlignment: WrapCrossAlignment.end,
-                        //runAlignment: WrapAlignment.end,
-                        //alignment: WrapAlignment.end,
-                        spacing: 10,
-                        //runSpacing: 5,
+          child: Column(
+              //mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(children: const [SizedBox(height: 68)]),
+                Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    //runAlignment: WrapAlignment.end,
+                    //alignment: WrapAlignment.end,
+                    spacing: 10,
+                    //runSpacing: 5,
+                    children: [
+                      Text(
+                        user!.profileName,
+                        //style: const TextStyle(fontSize: 20.0)
+                      ),
+                      Text(
+                        formatCurrency.format(portfolioValue),
+                        //style: const TextStyle(fontSize: 20.0),
+                        //textAlign: TextAlign.right
+                      ),
+                      Wrap(
                         children: [
+                          Icon(
+                            changeToday > 0
+                                ? Icons.trending_up
+                                : (changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changeToday > 0
+                                ? Colors.lightGreenAccent
+                                : (changeToday < 0 ? Colors.red : Colors.grey)),
+                            //size: 16.0
+                          ),
+                          Container(
+                            width: 2,
+                          ),
                           Text(
-                            user!.profileName,
+                            formatPercentage.format(changePercentToday.abs()),
                             //style: const TextStyle(fontSize: 20.0)
                           ),
-                          Text(
-                            formatCurrency.format(portfolioValue),
-                            //style: const TextStyle(fontSize: 20.0),
-                            //textAlign: TextAlign.right
-                          ),
-                          Wrap(
-                            children: [
-                              Icon(
-                                changeToday > 0
-                                    ? Icons.trending_up
-                                    : (changeToday < 0
-                                        ? Icons.trending_down
-                                        : Icons.trending_flat),
-                                color: (changeToday > 0
-                                    ? Colors.lightGreenAccent
-                                    : (changeToday < 0
-                                        ? Colors.red
-                                        : Colors.grey)),
-                                //size: 16.0
-                              ),
-                              Container(
-                                width: 2,
-                              ),
-                              Text(
-                                formatPercentage
-                                    .format(changePercentToday.abs()),
-                                //style: const TextStyle(fontSize: 20.0)
-                              ),
-                            ],
-                          ),
-                          Text(
-                            "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
-                            //style: const TextStyle(fontSize: 20.0)
-                          ),
-                        ]),
-                    /*
+                        ],
+                      ),
+                      Text(
+                        "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
+                        //style: const TextStyle(fontSize: 20.0)
+                      ),
+                    ]),
+                /*
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -2245,7 +2228,7 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
                 */
-                    /*
+                /*
                 Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -2284,7 +2267,7 @@ class _HomePageState extends State<HomePage>
                       ),
                     ]),
                     */
-                    /*
+                /*
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -2328,236 +2311,221 @@ class _HomePageState extends State<HomePage>
                   ],
                 ),
                 */
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 80,
-                                child: Text(
-                                  "Stocks & Options",
-                                  style: TextStyle(fontSize: 10.0),
-                                ),
-                              )
-                            ]),
-                        Container(
-                          width: 3,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                  width: 39,
-                                  child: Text(
-                                      formatPercentage
-                                          .format(stockAndOptionsEquityPercent),
-                                      style: const TextStyle(fontSize: 10.0),
-                                      textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 65,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          SizedBox(
+                            width: 80,
                             child: Text(
-                                formatCurrency
-                                    .format(portfolios[0].marketValue),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                              "Stocks & Options",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 80,
-                                child: Text(
-                                  "Options",
-                                  style: TextStyle(fontSize: 10.0),
-                                ),
-                              )
-                            ]),
-                        Container(
-                          width: 3,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                  width: 39,
-                                  child: Text(
-                                      formatPercentage
-                                          .format(optionEquityPercent),
-                                      style: const TextStyle(fontSize: 10.0),
-                                      textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 65,
-                            child: Text(formatCurrency.format(optionEquity),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              formatPercentage
+                                  .format(stockAndOptionsEquityPercent),
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 80,
-                                child: Text(
-                                  "Stocks",
-                                  style: TextStyle(fontSize: 10.0),
-                                ),
-                              )
-                            ]),
-                        Container(
-                          width: 3,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                  width: 39,
-                                  child: Text(
-                                      formatPercentage
-                                          .format(positionEquityPercent),
-                                      style: const TextStyle(fontSize: 10.0),
-                                      textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 65,
-                            child: Text(formatCurrency.format(positionEquity),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                    SizedBox(
+                        width: 65,
+                        child: Text(
+                            formatCurrency.format(portfolios[0].marketValue),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    "Crypto",
-                                    style: TextStyle(fontSize: 10.0),
-                                  )),
-                            ]),
-                        Container(
-                          width: 3,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                  width: 39,
-                                  child: Text(
-                                      formatPercentage.format(cryptoPercent),
-                                      style: const TextStyle(fontSize: 10.0),
-                                      textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 65,
-                            child: Text(formatCurrency.format(nummusEquity),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                  width: 80,
-                                  child: Text(
-                                    "Cash",
-                                    style: TextStyle(fontSize: 10.0),
-                                  )),
-                            ]),
-                        Container(
-                          width: 3,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              SizedBox(
-                                  width: 39,
-                                  child: Text(
-                                      formatPercentage.format(cashPercent),
-                                      style: const TextStyle(fontSize: 10.0),
-                                      textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 65,
-                            child: Text(formatCurrency.format(portfolioCash),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Options",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
                     ),
-                  ]),
-            ));
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              formatPercentage.format(optionEquityPercent),
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(optionEquity),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          SizedBox(
+                            width: 80,
+                            child: Text(
+                              "Stocks",
+                              style: TextStyle(fontSize: 10.0),
+                            ),
+                          )
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(
+                              formatPercentage.format(positionEquityPercent),
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(positionEquity),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          SizedBox(
+                              width: 80,
+                              child: Text(
+                                "Crypto",
+                                style: TextStyle(fontSize: 10.0),
+                              )),
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(formatPercentage.format(cryptoPercent),
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(nummusEquity),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Container(
+                      width: 10,
+                    ),
+                    Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: const [
+                          SizedBox(
+                              width: 80,
+                              child: Text(
+                                "Cash",
+                                style: TextStyle(fontSize: 10.0),
+                              )),
+                        ]),
+                    Container(
+                      width: 3,
+                    ),
+                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      SizedBox(
+                          width: 39,
+                          child: Text(formatPercentage.format(cashPercent),
+                              style: const TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
+                    Container(
+                      width: 5,
+                    ),
+                    SizedBox(
+                        width: 65,
+                        child: Text(formatCurrency.format(portfolioCash),
+                            style: const TextStyle(fontSize: 12.0),
+                            textAlign: TextAlign.right)),
+                    Container(
+                      width: 10,
+                    ),
+                  ],
+                ),
+              ]),
+        ));
       }),
       actions: <Widget>[
         IconButton(

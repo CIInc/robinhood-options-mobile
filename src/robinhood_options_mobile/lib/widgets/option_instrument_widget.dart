@@ -488,7 +488,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               elevation: 2.0,
               child: Container(
                 //height: 208.0, //60.0,
-                //color: Colors.blue,
                 color: Colors.white,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,

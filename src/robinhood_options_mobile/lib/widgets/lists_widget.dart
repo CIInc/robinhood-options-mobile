@@ -127,10 +127,10 @@ class _ListsWidgetState extends State<ListsWidget>
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const ListTile(
-                            tileColor: Colors.blue,
-                            leading: Icon(Icons.sort),
-                            title: Text(
+                          ListTile(
+                            tileColor: Theme.of(context).colorScheme.primary,
+                            leading: const Icon(Icons.sort),
+                            title: const Text(
                               "Sort Watch List",
                               style: TextStyle(
                                   color: Colors.white, fontSize: 19.0),
@@ -208,7 +208,6 @@ class _ListsWidgetState extends State<ListsWidget>
                           elevation: 2,
                           child: Container(
                               //height: 208.0, //60.0,
-                              //color: Colors.blue,
                               color: Colors.white,
                               //padding: EdgeInsets.symmetric(horizontal: 16.0),
                               alignment: Alignment.centerLeft,
@@ -234,9 +233,9 @@ class _ListsWidgetState extends State<ListsWidget>
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              const ListTile(
-                                                tileColor: Colors.blue,
-                                                title: Text(
+                                              ListTile(
+                                                tileColor: Theme.of(context).colorScheme.primary,
+                                                title: const Text(
                                                   "Sort Watch List",
                                                   style: TextStyle(
                                                       color: Colors.white,
@@ -332,8 +331,6 @@ class _ListsWidgetState extends State<ListsWidget>
                       elevation: 2,
                       child: Container(
                           //height: 208.0, //60.0,
-                          //color: Colors.blue,
-                          //color: Colors.white,
                           //padding: EdgeInsets.symmetric(horizontal: 16.0),
                           alignment: Alignment.centerLeft,
                           child: ListTile(
@@ -359,9 +356,11 @@ class _ListsWidgetState extends State<ListsWidget>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const ListTile(
-                                            tileColor: Colors.blue,
-                                            title: Text(
+                                          ListTile(
+                                            tileColor: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            title: const Text(
                                               "Sort Watch List",
                                               style: TextStyle(
                                                   color: Colors.white,

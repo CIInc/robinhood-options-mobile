@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -163,14 +164,18 @@ class _HistoryPageState extends State<HistoryPage>
                           if (optionEventSnapshot.hasData) {
                             optionEvents =
                                 optionEventSnapshot.data as List<OptionEvent>;
-                            for (var optionEvent in optionEvents!) {
-                              var originalOptionOrder = optionOrders!
-                                  .firstWhere((element) =>
-                                      element.legs.first.option ==
-                                      optionEvent.option);
-                              originalOptionOrder.optionEvents ??= [];
-                              originalOptionOrder.optionEvents!
-                                  .add(optionEvent);
+                            if (optionOrders != null) {
+                              for (var optionEvent in optionEvents!) {
+                                var originalOptionOrder = optionOrders!
+                                    .firstWhereOrNull((element) =>
+                                        element.legs.first.option ==
+                                        optionEvent.option);
+                                if (originalOptionOrder != null) {
+                                  originalOptionOrder.optionEvents ??= [];
+                                  originalOptionOrder.optionEvents!
+                                      .add(optionEvent);
+                                }
+                              }
                             }
                             return _buildPage(
                                 optionOrders: optionOrders,
@@ -355,8 +360,6 @@ class _HistoryPageState extends State<HistoryPage>
               elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
@@ -384,10 +387,11 @@ class _HistoryPageState extends State<HistoryPage>
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
+                                  ListTile(
+                                    tileColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    leading: const Icon(Icons.filter_list),
+                                    title: const Text(
                                       "Filter Option Orders",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -432,9 +436,11 @@ class _HistoryPageState extends State<HistoryPage>
                     ListTile(
                       leading: CircleAvatar(
                           //backgroundImage: AssetImage(user.profilePicture),
+                          /*
                           backgroundColor: optionOrder.optionEvents != null
-                              ? Colors.blue.shade100
-                              : Colors.blue,
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.secondary,
+                              */
                           child: optionOrder.optionEvents != null
                               ? const Icon(Icons.check)
                               : Text('${optionOrder.quantity!.round()}',
@@ -488,8 +494,6 @@ class _HistoryPageState extends State<HistoryPage>
               elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
@@ -517,8 +521,8 @@ class _HistoryPageState extends State<HistoryPage>
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
+                                  ListTile(
+                                    tileColor: Theme.of(context).colorScheme.primary,
                                     leading: Icon(Icons.filter_list),
                                     title: Text(
                                       "Filter Option Events",
@@ -618,8 +622,6 @@ class _HistoryPageState extends State<HistoryPage>
               elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
-                  //color: Colors.blue,
-                  //color: Colors.white,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
                   alignment: Alignment.centerLeft,
                   child: ListTile(
@@ -647,10 +649,11 @@ class _HistoryPageState extends State<HistoryPage>
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const ListTile(
-                                    tileColor: Colors.blue,
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
+                                  ListTile(
+                                    tileColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    leading: const Icon(Icons.filter_list),
+                                    title: const Text(
                                       "Filter Stock Orders",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -804,10 +807,10 @@ class _HistoryPageState extends State<HistoryPage>
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const ListTile(
-                            tileColor: Colors.blue,
-                            leading: Icon(Icons.filter_list),
-                            title: Text(
+                          ListTile(
+                            tileColor: Theme.of(context).colorScheme.primary,
+                            leading: const Icon(Icons.filter_list),
+                            title: const Text(
                               "Filter Orders",
                               style: TextStyle(
                                   color: Colors.white, fontSize: 19.0),
@@ -1171,6 +1174,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   Future<void> _pullRefresh() async {
     setState(() {
+      optionEventStream = null;
       optionOrderStream = null;
       positionOrderStream = null;
     });

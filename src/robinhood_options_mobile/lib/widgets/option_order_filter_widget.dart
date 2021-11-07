@@ -28,10 +28,10 @@ class _OptionOrderFilterBottomSheetState
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const ListTile(
-          tileColor: Colors.blue,
-          leading: Icon(Icons.filter_list),
-          title: Text(
+        ListTile(
+          tileColor: Theme.of(context).colorScheme.primary,
+          leading: const Icon(Icons.filter_list),
+          title: const Text(
             "Filter Option Orders",
             style: TextStyle(color: Colors.white, fontSize: 19.0),
           ),

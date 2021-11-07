@@ -183,8 +183,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   ],
                   currentIndex: _pageIndex,
                   //fixedColor: Colors.grey,
-                  selectedItemColor: Colors.blue, //.amber[800],
-                  unselectedItemColor: Colors.grey, //.amber[800],
+                  selectedItemColor: Theme.of(context).colorScheme.primary,
+                  //selectedItemColor: Colors.blue,
+                  //unselectedItemColor: Theme.of(context).colorScheme.secondary,
+                  //unselectedItemColor: Colors.grey, //.amber[800],
                   onTap: _onPageChanged,
                   //onTap: _onIndexedViewChanged,
                 )
