@@ -100,28 +100,28 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
         //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 160.0,
         flexibleSpace: FlexibleSpaceBar(
-            background: const FlutterLogo(),
+            //background: const FlutterLogo(),
             title: SingleChildScrollView(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                  Row(children: const [SizedBox(height: 70)]),
-                  Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.end,
-                      //runAlignment: WrapAlignment.end,
-                      //alignment: WrapAlignment.end,
-                      spacing: 5,
-                      //runSpacing: 5,
-                      children: [
-                        Text(
-                            "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
-                            style: const TextStyle(fontSize: 20.0)),
-                        Text(
-                            formatDate.format(
-                                widget.optionOrder.legs.first.expirationDate!),
-                            style: const TextStyle(fontSize: 15.0))
-                      ]),
-                  /*
+              Row(children: const [SizedBox(height: 70)]),
+              Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  //runAlignment: WrapAlignment.end,
+                  //alignment: WrapAlignment.end,
+                  spacing: 5,
+                  //runSpacing: 5,
+                  children: [
+                    Text(
+                        "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
+                        style: const TextStyle(fontSize: 20.0)),
+                    Text(
+                        formatDate.format(
+                            widget.optionOrder.legs.first.expirationDate!),
+                        style: const TextStyle(fontSize: 15.0))
+                  ]),
+              /*
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -221,7 +221,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     ],
                   ),
                   */
-                ]))),
+            ]))),
         pinned: true,
         /*
         actions: <Widget>[

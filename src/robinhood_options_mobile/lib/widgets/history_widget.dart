@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:share_plus/share_plus.dart';
+
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 
@@ -78,6 +80,12 @@ class _HistoryPageState extends State<HistoryPage>
   final List<String> cryptoFilters = <String>[];
 
   int orderDateFilterSelected = 1;
+
+  bool showShareView = false;
+  List<String> selectedPositionOrdersToShare = [];
+  List<String> selectedOptionOrdersToShare = [];
+  bool shareText = true;
+  bool shareLink = true;
 
 /*
   late ScrollController _controller;
@@ -433,48 +441,71 @@ class _HistoryPageState extends State<HistoryPage>
                     child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          /*
+                    showShareView
+                        ? CheckboxListTile(
+                            value: selectedOptionOrdersToShare
+                                .contains(filteredOptionOrders![index].id),
+                            onChanged: (bool? newValue) {
+                              if (newValue!) {
+                                setState(() {
+                                  selectedOptionOrdersToShare
+                                      .add(filteredOptionOrders![index].id);
+                                });
+                              } else {
+                                setState(() {
+                                  selectedOptionOrdersToShare
+                                      .remove(filteredOptionOrders![index].id);
+                                });
+                              }
+                            },
+                            title: Text(
+                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                            subtitle: subtitle,
+                          )
+                        : ListTile(
+                            leading: CircleAvatar(
+                                //backgroundImage: AssetImage(user.profilePicture),
+                                /*
                           backgroundColor: optionOrder.optionEvents != null
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.secondary,
                               */
-                          child: optionOrder.optionEvents != null
-                              ? const Icon(Icons.check)
-                              : Text('${optionOrder.quantity!.round()}',
-                                  style: const TextStyle(fontSize: 17))),
-                      title: Text(
-                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                      subtitle: subtitle,
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          (optionOrder.direction == "credit" ? "+" : "-") +
-                              (optionOrder.processedPremium != null
-                                  ? formatCurrency
-                                      .format(optionOrder.processedPremium)
-                                  : ""),
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
+                                child: optionOrder.optionEvents != null
+                                    ? const Icon(Icons.check)
+                                    : Text('${optionOrder.quantity!.round()}',
+                                        style: const TextStyle(fontSize: 17))),
+                            title: Text(
+                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                            subtitle: subtitle,
+                            trailing: Wrap(spacing: 8, children: [
+                              Text(
+                                (optionOrder.direction == "credit"
+                                        ? "+"
+                                        : "-") +
+                                    (optionOrder.processedPremium != null
+                                        ? formatCurrency.format(
+                                            optionOrder.processedPremium)
+                                        : ""),
+                                style: const TextStyle(fontSize: 18.0),
+                                textAlign: TextAlign.right,
+                              )
+                            ]),
 
-                      isThreeLine: optionOrder.optionEvents != null,
-                      onTap: () {
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    widget.user, optionOrder)));
-                        /*
+                            isThreeLine: optionOrder.optionEvents != null,
+                            onTap: () {
+                              widget.navigatorKey!.currentState!.push(
+                                  MaterialPageRoute(
+                                      builder: (context) => OptionOrderWidget(
+                                          widget.user, optionOrder)));
+                              /*
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => OptionOrderWidget(
                                     ru, optionOrder)));
                                     */
-                      },
-                    ),
+                            },
+                          ),
                   ],
                 ));
               },
@@ -690,43 +721,67 @@ class _HistoryPageState extends State<HistoryPage>
                     child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              formatCompactNumber.format(
-                                  filteredPositionOrders![index].quantity!),
-                              style: const TextStyle(fontSize: 17))),
-                      title: Text(
-                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                      subtitle: Text(
-                          "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          filteredPositionOrders![index].averagePrice != null
-                              ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
-                              : "",
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
+                    showShareView
+                        ? CheckboxListTile(
+                            value: selectedPositionOrdersToShare
+                                .contains(filteredPositionOrders![index].id),
+                            onChanged: (bool? newValue) {
+                              if (newValue!) {
+                                setState(() {
+                                  selectedPositionOrdersToShare
+                                      .add(filteredPositionOrders![index].id);
+                                });
+                              } else {
+                                setState(() {
+                                  selectedPositionOrdersToShare.remove(
+                                      filteredPositionOrders![index].id);
+                                });
+                              }
+                            },
+                            title: Text(
+                                "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                            subtitle: Text(
+                                "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                          )
+                        : ListTile(
+                            leading: CircleAvatar(
+                                //backgroundImage: AssetImage(user.profilePicture),
+                                child: Text(
+                                    formatCompactNumber.format(
+                                        filteredPositionOrders![index]
+                                            .quantity!),
+                                    style: const TextStyle(fontSize: 17))),
+                            title: Text(
+                                "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                            subtitle: Text(
+                                "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                            trailing: Wrap(spacing: 8, children: [
+                              Text(
+                                filteredPositionOrders![index].averagePrice !=
+                                        null
+                                    ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
+                                    : "",
+                                style: const TextStyle(fontSize: 18.0),
+                                textAlign: TextAlign.right,
+                              )
+                            ]),
 
-                      //isThreeLine: true,
-                      onTap: () {
-                        widget.navigatorKey!.currentState!.push(
-                            MaterialPageRoute(
-                                builder: (context) => PositionOrderWidget(
-                                    widget.user,
-                                    filteredPositionOrders![index])));
-                        /*
+                            //isThreeLine: true,
+                            onTap: () {
+                              widget.navigatorKey!.currentState!.push(
+                                  MaterialPageRoute(
+                                      builder: (context) => PositionOrderWidget(
+                                          widget.user,
+                                          filteredPositionOrders![index])));
+                              /*
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => PositionOrderWidget(
                                     ru, filteredPositionOrders![index])));
                                     */
-                      },
-                    ),
+                            },
+                          ),
                   ],
                 ));
               },
@@ -761,7 +816,7 @@ class _HistoryPageState extends State<HistoryPage>
     )));
 
     return Scaffold(
-        /* Using SliverAppBar below
+      /* Using SliverAppBar below
         appBar: new AppBar(
           title: new Text(widget.drawerItems[_selectedDrawerIndex].title),
         ),
@@ -781,55 +836,55 @@ class _HistoryPageState extends State<HistoryPage>
           },
         ),
         */
-        appBar: AppBar(
-          title: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 20,
-              //runSpacing: 5,
-              children: [
-                const Text('History', style: TextStyle(fontSize: 20.0)),
-                Text(
-                    "${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : ""} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                    style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              ]),
-          actions: [
-            IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    //constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            tileColor: Theme.of(context).colorScheme.primary,
-                            leading: const Icon(Icons.filter_list),
-                            title: const Text(
-                              "Filter Orders",
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 19.0),
-                            ),
-                            /*
+      appBar: AppBar(
+        title: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            //runAlignment: WrapAlignment.end,
+            //alignment: WrapAlignment.end,
+            spacing: 20,
+            //runSpacing: 5,
+            children: [
+              const Text('History', style: TextStyle(fontSize: 20.0)),
+              Text(
+                  "${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : ""} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                  style:
+                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
+            ]),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.filter_list),
+              onPressed: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  //constraints: BoxConstraints(maxHeight: 260),
+                  builder: (BuildContext context) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          tileColor: Theme.of(context).colorScheme.primary,
+                          leading: const Icon(Icons.filter_list),
+                          title: const Text(
+                            "Filter Orders",
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 19.0),
+                          ),
+                          /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                          ),
-                          const ListTile(
-                            title: Text("Order State & Date"),
-                          ),
-                          orderFilterWidget,
-                          orderDateFilterWidget,
-                          const ListTile(
-                            title: Text("Symbols"),
-                          ),
-                          stockOrderSymbolFilterWidget,
-                          /*                         
+                        ),
+                        const ListTile(
+                          title: Text("Order State & Date"),
+                        ),
+                        orderFilterWidget,
+                        orderDateFilterWidget,
+                        const ListTile(
+                          title: Text("Symbols"),
+                        ),
+                        stockOrderSymbolFilterWidget,
+                        /*                         
                           Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -885,27 +940,24 @@ class _HistoryPageState extends State<HistoryPage>
                             ],
                           )
                           */
-                        ],
-                      );
-                    },
-                  );
-                })
-          ],
-        ),
-        body: RefreshIndicator(
-          child: CustomScrollView(slivers: slivers), //controller: _controller,
-          onRefresh: _pullRefresh,
-        ) /*
-      floatingActionButton:
-          (widget.user != null && widget.user.userName != null)
-              ? FloatingActionButton(
-                  onPressed: _generateCsvFile,
-                  tooltip: 'Export to CSV',
-                  child: const Icon(Icons.download),
-                )
-              : null,
-              */
-        );
+                      ],
+                    );
+                  },
+                );
+              })
+        ],
+      ),
+      body: RefreshIndicator(
+        child: CustomScrollView(slivers: slivers), //controller: _controller,
+        onRefresh: _pullRefresh,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showShareView,
+        tooltip: 'Share Orders',
+        child:
+            showShareView ? const Icon(Icons.preview) : const Icon(Icons.share),
+      ),
+    );
   }
 
   Widget symbolWidgets(List<Widget> widgets) {
@@ -1170,6 +1222,118 @@ class _HistoryPageState extends State<HistoryPage>
           },
           itemCount: 1,
         ));
+  }
+
+  _showShareView() async {
+    if (showShareView) {
+      var optionOrdersToShare = optionOrders!
+          .where((element) => selectedOptionOrdersToShare.contains(element.id));
+      var positionOrdersToShare = positionOrders!.where(
+          (element) => selectedPositionOrdersToShare.contains(element.id));
+      String ordersText = "";
+      var optionOrdersMap = optionOrdersToShare.map((e) =>
+          "${e.chainSymbol} \$${formatCompactNumber.format(e.legs.first.strikePrice)} ${e.strategy} ${formatCompactDate.format(e.legs.first.expirationDate!)} for ${e.direction == "credit" ? "+" : "-"}${formatCurrency.format(e.processedPremium)} (${e.quantity!.round()} ${e.openingStrategy != null ? e.openingStrategy!.split("_")[0] : e.closingStrategy!.split("_")[0]} contract${e.quantity! > 1 ? "s" : ""} at ${formatCurrency.format(e.price)})");
+      var optionOrdersIdMap = optionOrdersToShare.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      });
+      var positionOrdersMap = positionOrdersToShare.map((e) =>
+          "${e.instrumentObj != null ? e.instrumentObj!.symbol : ""} ${e.type} ${e.side} ${e.averagePrice != null ? formatCurrency.format(e.averagePrice) : ""}");
+      var positionOrdersIdMap =
+          positionOrdersToShare.map((e) => e.instrumentId);
+      if (shareText) {
+        ordersText += "Here are my";
+        if (optionOrdersMap.isNotEmpty) {
+          ordersText += " option orders:\n";
+        }
+        ordersText += optionOrdersMap.join("\n");
+
+        if (positionOrdersMap.isNotEmpty) {
+          ordersText += " stock orders:\n";
+        }
+        ordersText += positionOrdersMap.join("\n");
+      }
+      if (shareLink) {
+        ordersText +=
+            "\n\nClick the link to import this data into Robinhood Options Mobile: https://ciinc.github.io/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
+      }
+
+      await showModalBottomSheet<void>(
+        context: context,
+        //isScrollControlled: true,
+        //useRootNavigator: true,
+        //constraints: BoxConstraints(maxHeight: 260),
+        builder: (BuildContext context) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ListTile(
+                tileColor: Theme.of(context).colorScheme.primary,
+                // leading: const Icon(Icons.share),
+                title: const Text(
+                  "Sharing Options",
+                  style: TextStyle(color: Colors.white, fontSize: 19.0),
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Share.share(ordersText);
+                  },
+                ),
+                /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CheckboxListTile(
+                    value: shareText,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        shareText = newValue!;
+                      });
+                    },
+                    title: const Text(
+                        "Share Text"), // , style: TextStyle(fontSize: 18.0)),
+                    //subtitle: subtitle,
+                  ),
+                  CheckboxListTile(
+                    value: shareLink,
+                    onChanged: (bool? newValue) {
+                      setState(() {
+                        shareLink = newValue!;
+                      });
+                    },
+                    title: const Text(
+                        "Share Link"), // , style: TextStyle(fontSize: 18.0)),
+                    //subtitle: subtitle,
+                  )
+                ],
+              ),
+              ListTile(
+                subtitle: Text(ordersText,
+                    maxLines: 17, overflow: TextOverflow.ellipsis),
+                /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+              ),
+            ],
+          );
+        },
+      );
+      /*
+adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://ciinc.github.io/?options=123"
+      */
+    }
+    setState(() {
+      showShareView = !showShareView;
+    });
   }
 
   Future<void> _pullRefresh() async {

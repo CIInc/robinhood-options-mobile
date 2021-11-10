@@ -33,8 +33,9 @@
 - History tab
   - [x] Position order list.
   - [x] Option order list.
+    - [x] Integrated option event list.
   - [x] Balances and order counts.
-  - [ ] Option event list.
+  - [x] Share orders as a link.
 
 ### Views
 

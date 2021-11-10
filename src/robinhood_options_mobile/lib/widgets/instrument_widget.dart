@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -27,9 +28,6 @@ final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
-
-enum ChartDateSpan { day, week, month, month_3, year, year_5 }
-enum Bounds { regular, trading }
 
 class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
@@ -174,6 +172,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       case Bounds.trading:
         bounds = "trading";
         break;
+      default:
+        bounds = "regular";
+        break;
     }
     switch (chartDateSpanFilter) {
       case ChartDateSpan.day:
@@ -202,6 +203,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       case ChartDateSpan.year_5:
         interval = "day";
         span = "5year";
+        break;
+      default:
+        interval = "5minute";
+        span = "day";
+        bounds = "trading";
         break;
     }
     futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
@@ -296,7 +302,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       //expandedHeight: 160,
       expandedHeight: 300.0,
       flexibleSpace: FlexibleSpaceBar(
-        background: const FlutterLogo(),
+        //background: const FlutterLogo(),
         title: SingleChildScrollView(
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

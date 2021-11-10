@@ -46,5 +46,20 @@
 	<string>https</string>
 	<string>http</string>
 	</array>
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+		<key>CFBundleTypeRole</key>
+		<string>Editor</string>
+		<key>CFBundleURLName</key>
+		<string>ciinc.github.io</string>
+		<key>CFBundleURLSchemes</key>
+		<array>
+		<string>https</string>
+		</array>
+		</dict>
+	</array>
 </dict>
 </plist>

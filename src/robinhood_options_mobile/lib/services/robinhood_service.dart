@@ -102,12 +102,65 @@ class RobinhoodService {
   // All bounds: 24_7, span: all
   */
   static Future<PortfolioHistoricals> getPortfolioHistoricals(
-      RobinhoodUser user, String account,
-      {String? bounds, String? interval, String? span}) async {
+      RobinhoodUser user,
+      String account,
+      Bounds chartBoundsFilter,
+      ChartDateSpan chartDateSpanFilter) async {
+    String? bounds;
+    String? interval;
+    String? span;
+    switch (chartBoundsFilter) {
+      case Bounds.regular:
+        bounds = "regular";
+        break;
+      case Bounds.t24_7:
+        bounds = "24_7";
+        break;
+      default:
+        bounds = "regular";
+        break;
+    }
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.hour:
+        interval = "15second";
+        span = "hour";
+        bounds = "24_7"; // Does not work with regular?!
+        break;
+      case ChartDateSpan.day:
+        interval = "5minute";
+        span = "day";
+        break;
+      case ChartDateSpan.week:
+        interval = "hour";
+        span = "week";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month:
+        interval = "hour";
+        span = "month";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month_3:
+        interval = "day";
+        span = "3month";
+        break;
+      case ChartDateSpan.year:
+        interval = "day";
+        span = "year";
+        break;
+      case ChartDateSpan.all:
+        // interval = "week";
+        span = "all";
+        break;
+      default:
+        interval = "5minute";
+        span = "day";
+    }
+
     // https://api.robinhood.com/portfolios/historicals/5QR24141/?account=5QR24141&bounds=24_7&interval=5minute&span=day
     // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=e4e27a2e-4621-4ccb-8922-860a99fe0cd2&interval=10minute&ratios=1&span=week&types=long
     var result = await RobinhoodService.getJson(user,
-        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?${bounds != null ? "&bounds=$bounds" : ""}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}"); //${account}/
+        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?&bounds=$bounds&span=$span${interval != null ? "&interval=$interval" : ""}"); //${account}/
     return PortfolioHistoricals.fromJson(result);
   }
 

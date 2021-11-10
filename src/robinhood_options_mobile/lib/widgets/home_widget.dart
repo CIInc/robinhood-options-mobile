@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:robinhood_options_mobile/constants.dart';
 //import 'package:flutter_echarts/flutter_echarts.dart';
 
 //import 'dart:io';
@@ -23,20 +24,17 @@ import 'package:robinhood_options_mobile/model/user.dart';
 //import 'package:robinhood_options_mobile/model/watchlist.dart';
 //import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
+final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
-
-enum SortType { alphabetical, change }
-enum SortDirection { asc, desc }
-enum ChartDateSpan { hour, day, week, month, month_3, year, all }
-enum Bounds { regular, t24_7 }
 
 /*
 class DrawerItem {
@@ -55,9 +53,12 @@ class HomePage extends StatefulWidget {
   ];
   */
 
-  const HomePage({Key? key, this.title, this.navigatorKey}) : super(key: key);
+  const HomePage(
+      {Key? key, this.title, this.navigatorKey, required this.onUserChanged})
+      : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final ValueChanged<RobinhoodUser> onUserChanged;
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -80,13 +81,14 @@ class _HomePageState extends State<HomePage>
   RobinhoodUser? robinhoodUser;
 
   Future<List<Account>>? futureAccounts;
+  List<Account>? accounts;
   Future<List<Holding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
   PortfolioHistoricals? portfolioHistoricals;
-  //Chart? chart;
-  charts.TimeSeriesChart? chart;
+  //charts.TimeSeriesChart? chart;
+  Chart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.regular;
   EquityHistorical? selection;
@@ -235,74 +237,35 @@ class _HomePageState extends State<HomePage>
                     if (dataSnapshot.hasData) {
                       List<dynamic> data = dataSnapshot.data as List<dynamic>;
                       var user = data.isNotEmpty ? data[0] as User : null;
-                      var accounts =
+                      accounts =
                           data.length > 1 ? data[1] as List<Account> : null;
                       var portfolios =
                           data.length > 2 ? data[2] as List<Portfolio> : null;
                       var nummusHoldings =
                           data.length > 3 ? data[3] as List<Holding> : null;
-                      String? bounds;
-                      String? interval;
-                      String? span;
-                      switch (chartBoundsFilter) {
-                        case Bounds.regular:
-                          bounds = "regular";
-                          break;
-                        case Bounds.t24_7:
-                          bounds = "24_7";
-                          break;
-                      }
-                      switch (chartDateSpanFilter) {
-                        case ChartDateSpan.hour:
-                          interval = "15second";
-                          span = "hour";
-                          bounds = "24_7"; // Does not work with regular?!
-                          break;
-                        case ChartDateSpan.day:
-                          interval = "5minute";
-                          span = "day";
-                          break;
-                        case ChartDateSpan.week:
-                          interval = "hour";
-                          span = "week";
-                          // bounds = "24_7"; // Does not look good with regular?!
-                          break;
-                        case ChartDateSpan.month:
-                          interval = "hour";
-                          span = "month";
-                          // bounds = "24_7"; // Does not look good with regular?!
-                          break;
-                        case ChartDateSpan.month_3:
-                          interval = "day";
-                          span = "3month";
-                          break;
-                        case ChartDateSpan.year:
-                          interval = "day";
-                          span = "year";
-                          break;
-                        case ChartDateSpan.all:
-                          // interval = "week";
-                          span = "all";
-                          break;
-                      }
+
                       futurePortfolioHistoricals ??=
                           RobinhoodService.getPortfolioHistoricals(
-                              robinhoodUser!, accounts![0].accountNumber,
-                              bounds: bounds, interval: interval, span: span);
+                              robinhoodUser!,
+                              accounts![0].accountNumber,
+                              chartBoundsFilter,
+                              chartDateSpanFilter);
 
-                      return FutureBuilder(
-                          future: Future.wait(
-                              [futurePortfolioHistoricals as Future]),
+                      return FutureBuilder<PortfolioHistoricals>(
+                          future: futurePortfolioHistoricals,
                           builder: (context11, historicalsSnapshot) {
                             if (historicalsSnapshot.hasData) {
-                              List<dynamic> data =
-                                  historicalsSnapshot.data as List<dynamic>;
-
-                              portfolioHistoricals = data.isNotEmpty
-                                  ? data[0] as PortfolioHistoricals
-                                  : null;
-
-                              chart = null;
+                              if (portfolioHistoricals == null ||
+                                  historicalsSnapshot.data!.bounds !=
+                                      portfolioHistoricals!.bounds ||
+                                  historicalsSnapshot.data!.span !=
+                                      portfolioHistoricals!.span) {
+                                chart = null;
+                                selection = historicalsSnapshot
+                                    .data!.equityHistoricals.last;
+                              }
+                              portfolioHistoricals = historicalsSnapshot.data
+                                  as PortfolioHistoricals;
 
                               positionStream ??=
                                   RobinhoodService.streamPositions(
@@ -436,6 +399,26 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  _chartOnSelection(EquityHistorical equityHistorical) {
+    setState(() {
+      selection = equityHistorical;
+    });
+  }
+
+  void resetChart(ChartDateSpan span, {Bounds bounds = Bounds.regular}) {
+    setState(() {
+      chartDateSpanFilter = span;
+      chartBoundsFilter = bounds;
+      futurePortfolioHistoricals = null;
+    });
+    //portfolioHistoricals = null;
+    /* RobinhoodService.getPortfolioHistoricals(
+        robinhoodUser!,
+        accounts![0].accountNumber,
+        chartBoundsFilter,
+        chartDateSpanFilter);*/
+  }
+
   Widget _buildPage(
       {List<Portfolio>? portfolios,
       User? user,
@@ -506,15 +489,29 @@ class _HomePageState extends State<HomePage>
         )));
       }
       if (portfolioHistoricals != null) {
-        /*
-        var filteredEquityHistoricals = portfolioHistoricals.equityHistoricals
-            .where((element) =>
-                days == 0 ||
-                element.beginsAt!
-                        .compareTo(DateTime.now().add(Duration(days: -days))) >
-                    0)
-            .toList();
-            */
+        if (selection != null) {
+          slivers.add(SliverToBoxAdapter(
+              child: SizedBox(
+                  height: 35,
+                  child: Center(
+                      child: Column(
+                    children: [
+                      Text(
+                          "${formatCurrency.format(selection!.adjustedCloseEquity)} ${formatPercentage.format(selection!.netReturn)}",
+                          style: const TextStyle(fontSize: 20)),
+                      Text(formatLongDate.format(selection!.beginsAt!),
+                          style: const TextStyle(fontSize: 10)),
+                      /*
+                      Text(
+                          "Equity ${formatCurrency.format(selection!.openEquity)}, ${formatCurrency.format(selection!.closeEquity)}",
+                          style: const TextStyle(fontSize: 11)),
+                      Text(
+                          "Value ${formatCurrency.format(selection!.openMarketValue)}, ${formatCurrency.format(selection!.closeMarketValue)}",
+                          style: const TextStyle(fontSize: 11))
+                          */
+                    ],
+                  )))));
+        }
         if (chart == null) {
           List<charts.Series<dynamic, DateTime>> seriesList = [
             charts.Series<EquityHistorical, DateTime>(
@@ -525,12 +522,6 @@ class _HomePageState extends State<HomePage>
                 measureFn: (EquityHistorical history, index) => index == 0
                     ? history.adjustedOpenEquity
                     : history.adjustedCloseEquity,
-                /*
-                measureLowerBoundFn: (EquityHistorical history, _) =>
-                    history.adjustedOpenEquity,
-                measureUpperBoundFn: (EquityHistorical history, _) =>
-                    history.adjustedCloseEquity,
-                    */
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
@@ -555,18 +546,6 @@ class _HomePageState extends State<HomePage>
                 data: portfolioHistoricals
                     .equityHistoricals //filteredEquityHistoricals,
                 ),
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Open Equity',
-                overlaySeries: true,
-                colorFn: (_, __) => charts.MaterialPalette.gray.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, _) => portfolioHistoricals
-                    .equityHistoricals[0]
-                    .adjustedOpenEquity, // portfolioHistoricals.adjustedOpenEquity,
-                data: portfolioHistoricals
-                    .equityHistoricals //filteredEquityHistoricals,
-                ),
           ];
           var open =
               portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
@@ -574,78 +553,17 @@ class _HomePageState extends State<HomePage>
               .equityHistoricals[
                   portfolioHistoricals.equityHistoricals.length - 1]
               .adjustedCloseEquity!;
-          chart = charts.TimeSeriesChart(
-            seriesList,
-            //defaultRenderer: charts.BarRendererConfig<DateTime>(),
-            //defaultRenderer:
-            //    charts.LineRendererConfig(includeArea: true, stacked: false),
-            defaultRenderer: charts.BarTargetLineRendererConfig<DateTime>(),
-            //defaultRenderer: charts.PointRendererConfig<DateTime>(),
-            animate: true,
-            primaryMeasureAxis: const charts.NumericAxisSpec(
-                tickProviderSpec:
-                    charts.BasicNumericTickProviderSpec(zeroBound: false)),
-            //domainAxis: const charts.DateTimeAxisSpec(),
-            //domainAxis: const charts.EndPointsTimeAxisSpec(),
-            /*
-            selectionModels: [
-              charts.SelectionModelConfig(
-                type: charts.SelectionModelType.info,
-                changedListener: (charts.SelectionModel model) {
-                  if (model.hasDatumSelection) {
-                    var selected =
-                        model.selectedDatum[0].datum as EquityHistorical;
-                    setState(() {
-                      selection = selected;
-                    });
-                  }
-                },
-              )
-            ],*/
-            behaviors: [
-              charts.SeriesLegend(
-                defaultHiddenSeries: const ['Equity', 'Market Value'],
-              ),
-              charts.RangeAnnotation([
-                charts.RangeAnnotationSegment(
-                  open <= close ? open : close,
-                  open <= close ? close : open,
-                  charts.RangeAnnotationAxisType.measure,
-                  startLabel: open <= close ? 'Open' : 'Close',
-                  endLabel: open <= close ? 'Close' : 'Open',
-                  //color: charts.MaterialPalette.transparent // gray.shade200
-                ),
-              ])
-            ],
-          );
+          chart = Chart(seriesList, open, close, onSelected: _chartOnSelection);
         }
+
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
-                height: 220,
+                height: 320,
                 child: Padding(
                   //padding: EdgeInsets.symmetric(horizontal: 12.0),
                   padding: const EdgeInsets.all(10.0),
                   child: chart,
                 ))));
-        if (selection != null) {
-          slivers.add(SliverToBoxAdapter(
-              child: SizedBox(
-                  height: 24,
-                  child: Center(
-                      child: Wrap(
-                    spacing: 8,
-                    children: [
-                      Text(formatDate.format(selection!.beginsAt!),
-                          style: const TextStyle(fontSize: 11)),
-                      Text(
-                          "Equity ${formatCurrency.format(selection!.openEquity)}, ${formatCurrency.format(selection!.closeEquity)}",
-                          style: const TextStyle(fontSize: 11)),
-                      Text(
-                          "Value ${formatCurrency.format(selection!.openMarketValue)}, ${formatCurrency.format(selection!.closeMarketValue)}",
-                          style: const TextStyle(fontSize: 11))
-                    ],
-                  )))));
-        }
         //child: StackedAreaLineChart.withSampleData()))));
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -663,13 +581,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Hour'),
                           selected: chartDateSpanFilter == ChartDateSpan.hour,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.hour;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.hour);
+                            }
                           },
                         ),
                       ),
@@ -681,13 +595,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Day'),
                           selected: chartDateSpanFilter == ChartDateSpan.day,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.day;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.day);
+                            }
                           },
                         ),
                       ),
@@ -699,13 +609,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Week'),
                           selected: chartDateSpanFilter == ChartDateSpan.week,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.week;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.week);
+                            }
                           },
                         ),
                       ),
@@ -717,13 +623,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Month'),
                           selected: chartDateSpanFilter == ChartDateSpan.month,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.month;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.month);
+                            }
                           },
                         ),
                       ),
@@ -736,13 +638,9 @@ class _HomePageState extends State<HomePage>
                           selected:
                               chartDateSpanFilter == ChartDateSpan.month_3,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.month_3;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.month_3);
+                            }
                           },
                         ),
                       ),
@@ -754,13 +652,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Year'),
                           selected: chartDateSpanFilter == ChartDateSpan.year,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.year;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.year);
+                            }
                           },
                         ),
                       ),
@@ -772,13 +666,9 @@ class _HomePageState extends State<HomePage>
                           label: const Text('All'),
                           selected: chartDateSpanFilter == ChartDateSpan.all,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartDateSpanFilter = ChartDateSpan.all;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(ChartDateSpan.all);
+                            }
                           },
                         ),
                       ),
@@ -793,13 +683,10 @@ class _HomePageState extends State<HomePage>
                           label: const Text('Regular Hours'),
                           selected: chartBoundsFilter == Bounds.regular,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartBoundsFilter = Bounds.regular;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(chartDateSpanFilter,
+                                  bounds: Bounds.regular);
+                            }
                           },
                         ),
                       ),
@@ -811,13 +698,10 @@ class _HomePageState extends State<HomePage>
                           label: const Text('24/7 Hours'),
                           selected: chartBoundsFilter == Bounds.t24_7,
                           onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                chartBoundsFilter = Bounds.t24_7;
-                                selection = null;
-                                futurePortfolioHistoricals = null;
-                              }
-                            });
+                            if (value) {
+                              resetChart(chartDateSpanFilter,
+                                  bounds: Bounds.t24_7);
+                            }
                           },
                         ),
                       ),
@@ -3072,6 +2956,9 @@ class _HomePageState extends State<HomePage>
 
     if (result != null) {
       await RobinhoodUser.writeUserToStore(result);
+
+      widget.onUserChanged(result);
+
       setState(() {
         futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;

@@ -41,12 +41,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   int _pageIndex = 0;
   PageController? _pageController;
-  List<Widget> tabPages = [const HomePage(title: 'Robinhood Options')];
+  List<Widget> tabPages = [];
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _pageIndex);
+    tabPages = [
+      HomePage(
+        title: 'Robinhood Options',
+        navigatorKey: navigatorKeys[0],
+        onUserChanged: _handleUserChanged,
+      )
+    ];
 
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
   }
@@ -76,6 +83,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
   }
 
+  void _handleUserChanged(RobinhoodUser user) {
+    setState(() {
+      futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -85,9 +98,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             robinhoodUser = userSnapshot.data!;
             tabPages = [
               HomePage(
-                title: 'Robinhood Options',
-                navigatorKey: navigatorKeys[0],
-              ),
+                  title: 'Robinhood Options',
+                  navigatorKey: navigatorKeys[0],
+                  onUserChanged: _handleUserChanged),
               //const HomePage(title: 'Orders'),
               SearchWidget(robinhoodUser!, navigatorKey: navigatorKeys[1]),
               ListsWidget(robinhoodUser!, navigatorKey: navigatorKeys[2]),
@@ -185,8 +198,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   //fixedColor: Colors.grey,
                   selectedItemColor: Theme.of(context).colorScheme.primary,
                   //selectedItemColor: Colors.blue,
-                  //unselectedItemColor: Theme.of(context).colorScheme.secondary,
-                  //unselectedItemColor: Colors.grey, //.amber[800],
+                  unselectedItemColor: Theme.of(context).colorScheme.background,
+                  //unselectedItemColor: Colors.grey.shade400, //.amber[800],
                   onTap: _onPageChanged,
                   //onTap: _onIndexedViewChanged,
                 )
