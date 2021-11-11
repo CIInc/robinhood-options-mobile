@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
@@ -15,10 +16,12 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.user, {Key? key, this.navigatorKey}) : super(key: key);
+  const ListsWidget(this.user, this.account, {Key? key, this.navigatorKey})
+      : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
+  final Account account;
 
   @override
   _ListsWidgetState createState() => _ListsWidgetState();
@@ -564,8 +567,8 @@ class _ListsWidgetState extends State<ListsWidget>
               ]),
               onTap: () {
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(
-                        ru, watchLists[index].instrumentObj as Instrument)));
+                    builder: (context) => InstrumentWidget(ru, widget.account,
+                        watchLists[index].instrumentObj as Instrument)));
                 /*
                 Navigator.push(
                     context,

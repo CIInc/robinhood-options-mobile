@@ -1,6 +1,7 @@
 import 'dart:convert';
-
+import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
+
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/holding.dart';
@@ -980,50 +981,56 @@ class RobinhoodService {
   TRADING
   */
 
-  static Future<dynamic> buyOptionLimit(
+  static Future<dynamic> placeOptionsOrder(
       RobinhoodUser user,
       Account account,
-      Instrument instrument,
+      //Instrument instrument,
+      OptionInstrument optionInstrument,
+      String side, // Either 'buy' or 'sell'
       String
           positionEffect, // Either 'open' for a buy to open effect or 'close' for a buy to close effect.
       String creditOrDebit, // Either 'debit' or 'credit'.
       double price, // Limit price to trigger a buy of the option.
-      String symbol, // Ticker of the stock to trade.
+      //String symbol, // Ticker of the stock to trade.
       int quantity, // Number of options to buy.
-      String
-          expirationDate, // Expiration date of the option in 'YYYY-MM-DD' format.
-      double strike, // The strike price of the option.
-      String optionType, // This should be 'call' or 'put'
-      {String timeInForce =
+      //String expirationDate, // Expiration date of the option in 'YYYY-MM-DD' format.
+      //double strike, // The strike price of the option.
+      //String optionType, // This should be 'call' or 'put'
+      {String type = 'limit', // market
+      String trigger = 'immediate',
+      String timeInForce =
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       }) async {
     // instrument.tradeableChainId
-
-    /*
+    var uuid = const Uuid();
     var payload = {
-        'account': account.url,
-        'direction': creditOrDebit,
-        'time_in_force': timeInForce,
-        'legs': [
-            {
-              'position_effect': positionEffect, 
-              'side': 'buy',
-              'ratio_quantity': 1, 
-              'option': // option_instruments_url(optionID)
-            },
-        ],
-        'type': 'limit',
-        'trigger': 'immediate',
-        'price': price,
-        'quantity': quantity,
-        'override_day_trade_checks': false,
-        'override_dtbp_checks': false,
-        'ref_id': str(uuid4()),
-    }
-    */
+      'account': account.url,
+      'direction': creditOrDebit,
+      'time_in_force': timeInForce,
+      'legs': [
+        {
+          'position_effect': positionEffect,
+          'side': side,
+          'ratio_quantity': 1,
+          'option': optionInstrument.url // option_instruments_url(optionID)
+        },
+      ],
+      'type': type,
+      'trigger': trigger,
+      'price': price,
+      'quantity': quantity,
+      'override_day_trade_checks': false,
+      'override_dtbp_checks': false,
+      'ref_id': uuid.v4(),
+    };
     var url = "${Constants.robinHoodEndpoint}/options/orders/";
     debugPrint(url);
-    var result = await user.oauth2Client!.post(Uri.parse(url));
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
 
     return result;
   }

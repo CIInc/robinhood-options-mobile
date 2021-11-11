@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -31,10 +32,11 @@ final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
   final Instrument instrument;
   final Position? position;
   final OptionAggregatePosition? optionPosition;
-  const InstrumentWidget(this.user, this.instrument,
+  const InstrumentWidget(this.user, this.account, this.instrument,
       {Key? key, this.position, this.optionPosition})
       : super(key: key);
 
@@ -64,7 +66,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   final List<bool> hasQuantityFilters = [true, false];
 
-  final List<String> orderFilters = <String>["placed", "filled"];
+  final List<String> orderFilters = <String>["confirmed", "filled"];
 
   List<DateTime>? expirationDates;
   DateTime? expirationDateFilter;
@@ -1691,7 +1693,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
-                        ru, op.optionInstrument!,
+                        ru, widget.account, op.optionInstrument!,
                         optionPosition: op)));
           },
         ),
@@ -1834,8 +1836,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => OptionOrderWidget(
-                              widget.user, optionOrders[index])));
+                          builder: (context) => OptionOrderWidget(widget.user,
+                              widget.account, optionOrders[index])));
                 },
               ),
             ],
@@ -1858,15 +1860,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child: FilterChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Placed'),
-                  selected: orderFilters.contains("placed"),
+                  label: const Text('Confirmed'),
+                  selected: orderFilters.contains("confirmed"),
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderFilters.add("placed");
+                        orderFilters.add("confirmed");
                       } else {
                         orderFilters.removeWhere((String name) {
-                          return name == "placed";
+                          return name == "confirmed";
                         });
                       }
                     });
@@ -2031,8 +2033,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => OptionInstrumentWidget(
                                 widget.user,
+                                widget.account,
                                 optionInstruments[index],
-                                optionPosition: optionPosition,
+                                optionPosition: optionInstrumentQuantity > 0
+                                    ? optionPosition
+                                    : null,
                               )));
                 },
               )

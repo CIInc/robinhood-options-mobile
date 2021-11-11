@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/extension_methods.dart';
@@ -43,10 +44,12 @@ class HistoryPage extends StatefulWidget {
   ];
   */
 
-  const HistoryPage(this.user, {Key? key, this.navigatorKey}) : super(key: key);
+  const HistoryPage(this.user, this.account, {Key? key, this.navigatorKey})
+      : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
+  final Account account;
 
   @override
   _HistoryPageState createState() => _HistoryPageState();
@@ -75,7 +78,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   final List<String> optionSymbolFilters = <String>[];
 
-  final List<String> orderFilters = <String>["placed", "filled"];
+  final List<String> orderFilters = <String>["confirmed", "filled"];
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
 
@@ -496,7 +499,9 @@ class _HistoryPageState extends State<HistoryPage>
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
-                                          widget.user, optionOrder)));
+                                          widget.user,
+                                          widget.account,
+                                          optionOrder)));
                               /*
                         Navigator.push(
                             context,
@@ -772,6 +777,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
+                                          widget.account,
                                           filteredPositionOrders![index])));
                               /*
                         Navigator.push(
@@ -1023,15 +1029,15 @@ class _HistoryPageState extends State<HistoryPage>
                 child: FilterChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Placed'),
-                  selected: orderFilters.contains("placed"),
+                  label: const Text('Confirmed'),
+                  selected: orderFilters.contains("confirmed"),
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderFilters.add("placed");
+                        orderFilters.add("confirmed");
                       } else {
                         orderFilters.removeWhere((String name) {
-                          return name == "placed";
+                          return name == "confirmed";
                         });
                       }
                     });

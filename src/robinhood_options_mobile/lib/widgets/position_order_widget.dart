@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 
 import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -17,8 +18,10 @@ final formatCompactNumber = NumberFormat.compact();
 
 class PositionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
   final PositionOrder positionOrder;
-  const PositionOrderWidget(this.user, this.positionOrder, {Key? key})
+  const PositionOrderWidget(this.user, this.account, this.positionOrder,
+      {Key? key})
       : super(key: key);
 
   @override
@@ -296,8 +299,8 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            InstrumentWidget(user, instrument)));
+                        builder: (context) => InstrumentWidget(
+                            user, widget.account, instrument)));
               },
             ),
             const SizedBox(width: 8),

@@ -1,6 +1,7 @@
 //import 'dart:html';
 
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
@@ -31,6 +32,7 @@ class NavigationStatefulWidget extends StatefulWidget {
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   Future<RobinhoodUser>? futureRobinhoodUser;
   RobinhoodUser? robinhoodUser;
+  List<Account>? accounts;
 
   Map<int, GlobalKey<NavigatorState>> navigatorKeys = {
     0: GlobalKey<NavigatorState>(),
@@ -52,6 +54,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         title: 'Robinhood Options',
         navigatorKey: navigatorKeys[0],
         onUserChanged: _handleUserChanged,
+        onAccountsChanged: _handleAccountChanged,
       )
     ];
 
@@ -89,6 +92,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
 
+  void _handleAccountChanged(List<Account> accts) {
+    setState(() {
+      accounts = accts;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -100,15 +109,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               HomePage(
                   title: 'Robinhood Options',
                   navigatorKey: navigatorKeys[0],
-                  onUserChanged: _handleUserChanged),
+                  onUserChanged: _handleUserChanged,
+                  onAccountsChanged: _handleAccountChanged),
               //const HomePage(title: 'Orders'),
-              SearchWidget(robinhoodUser!, navigatorKey: navigatorKeys[1]),
-              ListsWidget(robinhoodUser!, navigatorKey: navigatorKeys[2]),
-              HistoryPage(robinhoodUser!, navigatorKey: navigatorKeys[3]),
+              if (accounts != null && accounts!.isNotEmpty) ...[
+                SearchWidget(robinhoodUser!, accounts!.first,
+                    navigatorKey: navigatorKeys[1]),
+                ListsWidget(robinhoodUser!, accounts!.first,
+                    navigatorKey: navigatorKeys[2]),
+                HistoryPage(robinhoodUser!, accounts!.first,
+                    navigatorKey: navigatorKeys[3]),
+              ]
               //const LoginWidget(),
-              //HomePage(key: Key('history')),
-              //Screen2(),
-              //Screen3(),
             ];
           } else if (userSnapshot.hasError) {
             debugPrint("${userSnapshot.error}");

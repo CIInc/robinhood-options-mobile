@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
+import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -11,11 +14,12 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class TradeOptionWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
   final OptionAggregatePosition? optionPosition;
   final OptionInstrument? optionInstrument;
   final String? positionType;
 
-  const TradeOptionWidget(this.user,
+  const TradeOptionWidget(this.user, this.account,
       {Key? key,
       this.optionPosition,
       this.optionInstrument,
@@ -45,6 +49,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   @override
   void initState() {
     super.initState();
+    positionType = widget.positionType;
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
   }
 
@@ -56,12 +61,39 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           label: Text(positionType!),
           //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
           icon: const Icon(Icons.attach_money),
-          onPressed: () {
-            return;
+          onPressed: () async {
+            var orderJson = await RobinhoodService.placeOptionsOrder(
+              widget.user,
+              widget.account,
+              widget.optionInstrument!,
+              positionType == "Buy" ? "buy" : "sell", // side
+              "open", //positionEffect
+              "debit", //creditOrDebit
+              double.parse(priceCtl.text),
+              int.parse(quantityCtl.text),
+            );
+            var newOrder = OptionOrder.fromJson(orderJson);
+            if (newOrder.state == "confirmed" ||
+                newOrder.state == "unconfirmed") {
+              Navigator.pop(context);
+
+              ScaffoldMessenger.of(context)
+                ..removeCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                    content: Text(
+                        "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.")));
+            } else {
+              setState(() {
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text("Error placing order. $orderJson")));
+              });
+            }
           },
         ));
-    priceCtl.text = formatCurrency
-        .format(widget.optionInstrument!.optionMarketData!.markPrice);
+    priceCtl.text =
+        widget.optionInstrument!.optionMarketData!.markPrice!.toString();
     return Scaffold(
         appBar: AppBar(
           title: Wrap(

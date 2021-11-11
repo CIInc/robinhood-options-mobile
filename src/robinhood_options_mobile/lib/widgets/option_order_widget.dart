@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -17,8 +18,9 @@ final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
   final OptionOrder optionOrder;
-  const OptionOrderWidget(this.user, this.optionOrder, {Key? key})
+  const OptionOrderWidget(this.user, this.account, this.optionOrder, {Key? key})
       : super(key: key);
 
   @override
@@ -517,8 +519,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) =>
-                            InstrumentWidget(user, instrument)));
+                        builder: (context) => InstrumentWidget(
+                            user, widget.account, instrument)));
               },
             ),
             const SizedBox(width: 8),

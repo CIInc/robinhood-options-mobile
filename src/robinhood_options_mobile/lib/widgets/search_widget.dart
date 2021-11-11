@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -12,8 +13,9 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
 
-  const SearchWidget(this.user, {Key? key, this.navigatorKey})
+  const SearchWidget(this.user, this.account, {Key? key, this.navigatorKey})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -121,7 +123,9 @@ class _SearchWidgetState extends State<SearchWidget>
                             widget.navigatorKey!.currentState!.push(
                                 MaterialPageRoute(
                                     builder: (context) => InstrumentWidget(
-                                        widget.user, instrument)));
+                                        widget.user,
+                                        widget.account,
+                                        instrument)));
                             /*
                             Navigator.push(
                                 context,

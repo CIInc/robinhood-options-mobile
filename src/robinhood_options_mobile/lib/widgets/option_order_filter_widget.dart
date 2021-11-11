@@ -18,7 +18,7 @@ class OptionOrderFilterBottomSheet extends StatefulWidget {
 
 class _OptionOrderFilterBottomSheetState
     extends State<OptionOrderFilterBottomSheet> {
-  final List<String> orderFilters = <String>["placed", "filled"];
+  final List<String> orderFilters = <String>["confirmed", "filled"];
   int dateFilterSelected = 0;
   final List<String> orderSymbolFilters = <String>[];
 
@@ -60,15 +60,15 @@ class _OptionOrderFilterBottomSheetState
                 child: FilterChip(
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Placed'),
-                  selected: orderFilters.contains("placed"),
+                  label: const Text('Confirmed'),
+                  selected: orderFilters.contains("confirmed"),
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderFilters.add("placed");
+                        orderFilters.add("confirmed");
                       } else {
                         orderFilters.removeWhere((String name) {
-                          return name == "placed";
+                          return name == "confirmed";
                         });
                       }
                     });

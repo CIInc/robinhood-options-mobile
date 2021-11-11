@@ -54,11 +54,16 @@ class HomePage extends StatefulWidget {
   */
 
   const HomePage(
-      {Key? key, this.title, this.navigatorKey, required this.onUserChanged})
+      {Key? key,
+      this.title,
+      this.navigatorKey,
+      required this.onUserChanged,
+      required this.onAccountsChanged})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final ValueChanged<RobinhoodUser> onUserChanged;
+  final ValueChanged<List<Account>> onAccountsChanged;
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -112,7 +117,6 @@ class _HomePageState extends State<HomePage>
 
   final List<bool> hasQuantityFilters = [true, false];
 
-  final List<String> orderFilters = <String>["placed", "filled"];
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
 
@@ -237,8 +241,12 @@ class _HomePageState extends State<HomePage>
                     if (dataSnapshot.hasData) {
                       List<dynamic> data = dataSnapshot.data as List<dynamic>;
                       var user = data.isNotEmpty ? data[0] as User : null;
-                      accounts =
-                          data.length > 1 ? data[1] as List<Account> : null;
+                      if (accounts == null) {
+                        accounts =
+                            data.length > 1 ? data[1] as List<Account> : null;
+                        WidgetsBinding.instance!.addPostFrameCallback(
+                            (_) => widget.onAccountsChanged(accounts!));
+                      }
                       var portfolios =
                           data.length > 2 ? data[2] as List<Portfolio> : null;
                       var nummusHoldings =
@@ -1879,86 +1887,6 @@ class _HomePageState extends State<HomePage>
         ));
   }
 
-  Widget get orderFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Placed'),
-                  selected: orderFilters.contains("placed"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("placed");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "placed";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Filled'),
-                  selected: orderFilters.contains("filled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("filled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "filled";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Cancelled'),
-                  selected: orderFilters.contains("cancelled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("cancelled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "cancelled";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
-
-  Widget get optionOrderSymbolFilterWidget {
-    var widgets =
-        symbolFilterWidgets(optionOrderSymbols, optionSymbolFilters).toList();
-    return symbolWidgets(widgets);
-  }
-
   Widget get stockOrderSymbolFilterWidget {
     var widgets =
         symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters).toList();
@@ -2649,8 +2577,8 @@ class _HomePageState extends State<HomePage>
         // isThreeLine: true,
         onTap: () {
           widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-              builder: (context) => InstrumentWidget(
-                  ru, positions[index].instrumentObj as Instrument,
+              builder: (context) => InstrumentWidget(ru, accounts!.first,
+                  positions[index].instrumentObj as Instrument,
                   position: positions[index])));
           /*
           Navigator.push(
@@ -2754,7 +2682,7 @@ class _HomePageState extends State<HomePage>
           onTap: () {
             widget.navigatorKey!.currentState!.push(MaterialPageRoute(
                 builder: (context) => OptionInstrumentWidget(
-                    ru, op.optionInstrument!,
+                    ru, accounts!.first, op.optionInstrument!,
                     optionPosition: op)));
             /*
             Navigator.push(

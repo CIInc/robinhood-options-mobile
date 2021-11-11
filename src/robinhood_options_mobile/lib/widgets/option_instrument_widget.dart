@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -18,9 +19,10 @@ final formatCompactNumber = NumberFormat.compact();
 
 class OptionInstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
+  final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
-  const OptionInstrumentWidget(this.user, this.optionInstrument,
+  const OptionInstrumentWidget(this.user, this.account, this.optionInstrument,
       {Key? key, this.optionPosition})
       : super(key: key);
 
@@ -977,7 +979,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(user, instrument,
+                        builder: (context) => InstrumentWidget(
+                            user, widget.account, instrument,
                             optionPosition: optionPosition)));
               },
             ),
@@ -990,8 +993,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
+                          builder: (context) => TradeOptionWidget(
+                              user, widget.account,
                               optionPosition: optionPosition,
+                              optionInstrument: optionInstrument,
                               positionType: "Buy")))),
               TextButton(
                   child: Text(optionPosition.direction == "debit"
@@ -1000,8 +1005,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
+                          builder: (context) => TradeOptionWidget(
+                              user, widget.account,
                               optionPosition: optionPosition,
+                              optionInstrument: optionInstrument,
                               positionType: "Sell")))),
             ] else ...[
               TextButton(
@@ -1009,7 +1016,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
+                          builder: (context) => TradeOptionWidget(
+                              user, widget.account,
                               optionInstrument: optionInstrument)))),
             ],
             const SizedBox(width: 8),
