@@ -288,25 +288,6 @@ class _HistoryPageState extends State<HistoryPage>
               .reduce((a, b) => a + b) as double
           : 0;
     }
-    /*
-    if (optionEvents != null) {
-      filteredOptionEvents = optionEvents
-          .where((element) =>
-                  //(orderFilters.isEmpty ||
-                  //    orderFilters.contains(element.state)) &&
-                  (days == 0 ||
-                      element.createdAt!
-                              .add(Duration(days: days))
-                              .compareTo(DateTime.now()) >=
-                          0)
-              // TODO: Reintroduce
-              //&&
-              //(optionSymbolFilters.isEmpty ||
-              //    optionSymbolFilters.contains(element.chainSymbol))
-              )
-          .toList();
-    }
-    */
 
     if (positionOrders != null) {
       positionOrderSymbols = positionOrders

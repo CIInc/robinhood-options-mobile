@@ -45,8 +45,8 @@ class InstrumentWidget extends StatefulWidget {
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
-  Future<Fundamentals?>? futureFundamentals;
   Future<Quote?>? futureQuote;
+  Future<Fundamentals?>? futureFundamentals;
   Future<InstrumentHistoricals?>? futureHistoricals;
   Future<OptionChain>? futureOptionChain;
   Future<List<dynamic>>? futureNews;
@@ -742,7 +742,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               optionPosition: widget.optionPosition)));
     }
 
-    return CustomScrollView(slivers: slivers);
+    return RefreshIndicator(
+        onRefresh: _pullRefresh, child: CustomScrollView(slivers: slivers));
+  }
+
+  Future<void> _pullRefresh() async {
+    setState(() {
+      futureQuote = null;
+      futureFundamentals = null;
+      futureHistoricals = null;
+      futureOptionChain = null;
+      futureNews = null;
+      //futureInstrumentOrders = null;
+      //futureOptionOrders = null;
+      optionInstrumentStream = null;
+    });
   }
 
   Card buildOverview(Instrument instrument) {
@@ -1931,6 +1945,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           if (optionInstruments.length > index) {
             if (typeFilter!.toLowerCase() !=
                     optionInstruments[index].type.toLowerCase() ||
+                expirationDateFilter == null ||
                 !expirationDateFilter!.isAtSameMomentAs(
                     optionInstruments[index].expirationDate!)) {
               return Container();

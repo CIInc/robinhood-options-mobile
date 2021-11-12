@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
+import 'package:collection/collection.dart';
 
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -684,8 +685,14 @@ class RobinhoodService {
     var url =
         "${Constants.robinHoodEndpoint}/options/chains/?equity_instrument_id=$id";
     var resultJson = await getJson(user, url);
-    var op = OptionChain.fromJson(resultJson['results'][0]);
-    return op;
+    List<OptionChain> list = [];
+    for (var result in resultJson['results']) {
+      var op = OptionChain.fromJson(result);
+      list.add(op);
+    }
+    var canOpenOptionChain =
+        list.firstWhereOrNull((element) => element.canOpenPosition);
+    return canOpenOptionChain ?? list[0];
   }
 
   static Stream<List<OptionInstrument>> streamOptionInstruments(
