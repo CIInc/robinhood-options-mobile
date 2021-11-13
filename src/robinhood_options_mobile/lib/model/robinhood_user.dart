@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/services/store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 //@immutable
 class RobinhoodUser {
@@ -26,8 +27,9 @@ class RobinhoodUser {
     // await Store.deleteFile(Constants.cacheFilename);
     debugPrint('Loading cache.');
 
-    // SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? contents = await Store.readFile(Constants.cacheFilename);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? contents = prefs.getString(Constants.cacheFilename);
+    //String? contents = await Store.readFile(Constants.cacheFilename);
     if (contents == null) {
       debugPrint('No cache file found.');
       return RobinhoodUser(null, null, null);
@@ -49,11 +51,15 @@ class RobinhoodUser {
 
   static Future writeUserToStore(RobinhoodUser user) async {
     var contents = jsonEncode(user);
-    await Store.writeFile(Constants.cacheFilename, contents);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(Constants.cacheFilename, contents);
+    //await Store.writeFile(Constants.cacheFilename, contents);
   }
 
   static Future clearUserFromStore() async {
     debugPrint("Cleared user from store.");
-    await Store.deleteFile(Constants.cacheFilename);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(Constants.cacheFilename);
+    //await Store.deleteFile(Constants.cacheFilename);
   }
 }

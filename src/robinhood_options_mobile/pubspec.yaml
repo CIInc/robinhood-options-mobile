@@ -30,7 +30,8 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   oauth2: ^2.0.0
-  path_provider: ^2.0.5
+  shared_preferences: ^2.0.8
+  path_provider: ^2.0.5 # TODO: Remove dependency for shared_preferences
   intl: ^0.17.0
   decimal: ^1.2.0
   csv: ^5.0.0
@@ -44,7 +45,6 @@ dependencies:
 #      path: charts_flutter
   url_launcher: ^6.0.12
   # flutter_echarts: ^2.3.0
-  # shared_preferences: ^0.5.12
   # local_auth: ^1.1.4
   share_plus: ^3.0.4
   uuid: ^3.0.5
