@@ -1,20 +1,3 @@
-/*
-{
-  "url":"https://api.robinhood.com/user/",
-  "id":"8e620d87-d864-4297-828b-c9b7662f2c2b",
-  "id_info":"https://api.robinhood.com/user/id/",
-  "username":"aymeric",
-  "email":"aymeric@grassart.com",
-  "email_verified":true,
-  "first_name":"Aymeric",
-  "last_name":"Grassart",
-  "origin":{
-    "locality":"US"
-  },
-  "profile_name":"Aymeric",
-  "created_at":"2015-02-11T13:14:48.784036-05:00"
-}
-*/
 class User {
   final String url;
   final String id;
