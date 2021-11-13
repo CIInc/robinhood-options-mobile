@@ -46,6 +46,7 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
+    /* For navigation within this tab, uncomment
     return WillPopScope(
       onWillPop: () => Future.value(false),
       child: Scaffold(
@@ -55,6 +56,9 @@ class _SearchWidgetState extends State<SearchWidget>
               onGenerateRoute: (_) =>
                   MaterialPageRoute(builder: (_) => _buildScaffold()))),
     );
+    */
+    return WillPopScope(
+        onWillPop: () => Future.value(false), child: _buildScaffold());
   }
 
   Widget _buildScaffold() {
@@ -120,19 +124,21 @@ class _SearchWidgetState extends State<SearchWidget>
                                     */
                             var instrument = Instrument.fromJson(data["item"]);
 
+                            /* For navigation within this tab, uncomment
                             widget.navigatorKey!.currentState!.push(
                                 MaterialPageRoute(
                                     builder: (context) => InstrumentWidget(
                                         widget.user,
                                         widget.account,
                                         instrument)));
-                            /*
+                                        */
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) => InstrumentWidget(
-                                        widget.user, instrument)));
-                                        */
+                                        widget.user,
+                                        widget.account,
+                                        instrument)));
                           },
                         ),
                       ]

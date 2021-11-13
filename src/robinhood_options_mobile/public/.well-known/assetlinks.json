@@ -1,0 +1,9 @@
+[{
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cidevelop.robinhood_options_mobile",
+      "sha256_cert_fingerprints":
+      ["FC:3E:CF:C6:76:0D:47:F7:02:A8:80:E8:24:C6:1B:9E:34:97:5D:05:29:98:8B:14:7A:C5:26:74:86:D2:73:B0"]
+    }
+  }]

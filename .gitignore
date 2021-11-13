@@ -30,3 +30,6 @@ doc/api/
 
 # Local History for Visual Studio Code
 .history/
+
+# Firebase
+.firebase/

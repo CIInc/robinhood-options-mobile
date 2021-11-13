@@ -41,6 +41,7 @@ class _ListsWidgetState extends State<ListsWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
+    /* For navigation within this tab, uncomment
     return WillPopScope(
       onWillPop: () => Future.value(false),
       child: Scaffold(
@@ -50,6 +51,9 @@ class _ListsWidgetState extends State<ListsWidget>
               onGenerateRoute: (_) =>
                   MaterialPageRoute(builder: (_) => _buildPage()))),
     );
+    */
+    return WillPopScope(
+        onWillPop: () => Future.value(false), child: _buildPage());
   }
 
   Widget _buildPage() {
@@ -566,16 +570,18 @@ class _ListsWidgetState extends State<ListsWidget>
                 ]),
               ]),
               onTap: () {
+                /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
                     builder: (context) => InstrumentWidget(ru, widget.account,
                         watchLists[index].instrumentObj as Instrument)));
-                /*
+                        */
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(ru,
+                        builder: (context) => InstrumentWidget(
+                            ru,
+                            widget.account,
                             watchLists[index].instrumentObj as Instrument)));
-                            */
               },
             )));
   }

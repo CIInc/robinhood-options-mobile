@@ -131,16 +131,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   buildScaffold() {
+    /*
     return WillPopScope(
         onWillPop: () async =>
             !await navigatorKeys[_pageIndex]!.currentState!.maybePop(),
-        child: Scaffold(
-          /*
+        child: */
+    return Scaffold(
+      /*
       appBar: AppBar(
         title: const Text('BottomNavigationBar Sample'),
       ),
       */
-          /*
+      /*
       body: Navigator(
         key: _navKey,
         onGenerateRoute: (_) => MaterialPageRoute(
@@ -160,62 +162,63 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             ),
       ),
       */
-          body: PageView(
-            children: tabPages,
-            //onPageChanged: _onPageChanged,
-            controller: _pageController,
-            physics: const NeverScrollableScrollPhysics(),
-          ),
-          /*
+      body: PageView(
+        children: tabPages,
+        //onPageChanged: _onPageChanged,
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+      ),
+      /*
           IndexedStack(
             children: tabPages,
             index: _pageIndex,
           ),
           */
-          bottomNavigationBar: robinhoodUser != null &&
-                  robinhoodUser!.userName != null
-              ? BottomNavigationBar(
-                  items: const <BottomNavigationBarItem>[
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.account_balance), //home
-                      label: 'Portfolio',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.search),
-                      label: 'Search',
-                    ),
-                    /*
+      bottomNavigationBar: robinhoodUser != null &&
+              robinhoodUser!.userName != null
+          ? BottomNavigationBar(
+              items: const <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.account_balance), //home
+                  label: 'Portfolio',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.search),
+                  label: 'Search',
+                ),
+                /*
                 BottomNavigationBarItem(
                   icon: Icon(Icons.payments), //inventory //history
                   label: 'Orders',
                 ),
                 */
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                          Icons.collections_bookmark), //bookmarks //visibility
-                      label: 'Lists',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.history),
-                      label: 'History',
-                    ),
-                    /*
+                BottomNavigationBarItem(
+                  icon:
+                      Icon(Icons.collections_bookmark), //bookmarks //visibility
+                  label: 'Lists',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.history),
+                  label: 'History',
+                ),
+                /*
                 BottomNavigationBarItem(
                   icon: Icon(Icons.account_circle), // manage_accounts //person
                   label: 'Accounts',
                 ),
                 */
-                  ],
-                  currentIndex: _pageIndex,
-                  //fixedColor: Colors.grey,
-                  selectedItemColor: Theme.of(context).colorScheme.primary,
-                  //selectedItemColor: Colors.blue,
-                  unselectedItemColor: Theme.of(context).colorScheme.background,
-                  //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-                  onTap: _onPageChanged,
-                  //onTap: _onIndexedViewChanged,
-                )
-              : null,
-        ));
+              ],
+              currentIndex: _pageIndex,
+              //fixedColor: Colors.grey,
+              selectedItemColor: Theme.of(context).colorScheme.primary,
+              //selectedItemColor: Colors.blue,
+              unselectedItemColor: Theme.of(context).colorScheme.background,
+              //unselectedItemColor: Colors.grey.shade400, //.amber[800],
+              onTap: _onPageChanged,
+              //onTap: _onIndexedViewChanged,
+            )
+          : null,
+    );
+    //);
   }
 }

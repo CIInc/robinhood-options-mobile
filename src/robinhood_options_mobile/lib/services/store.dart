@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
+// TODO: Delete. Moved to shared_preferences
 class Store {
   static Future<String> get _localPath async {
     final directory = await getApplicationDocumentsDirectory();

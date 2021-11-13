@@ -54,7 +54,7 @@
 		<key>CFBundleTypeRole</key>
 		<string>Editor</string>
 		<key>CFBundleURLName</key>
-		<string>ciinc.github.io</string>
+		<string>robinhood-options-mobile.web.app</string>
 		<key>CFBundleURLSchemes</key>
 		<array>
 		<string>https</string>

@@ -177,6 +177,7 @@ class _HomePageState extends State<HomePage>
         onGenerateRoute: (_) =>
             MaterialPageRoute(builder: (_) => _buildScaffold()));
             */
+    /* For navigation within this tab, uncomment
     return WillPopScope(
       onWillPop: () => Future.value(false),
       child: Scaffold(
@@ -186,6 +187,9 @@ class _HomePageState extends State<HomePage>
               onGenerateRoute: (_) =>
                   MaterialPageRoute(builder: (_) => _buildScaffold()))),
     );
+    */
+    return WillPopScope(
+        onWillPop: () => Future.value(false), child: _buildScaffold());
   }
 
   Widget _buildScaffold() {
@@ -2576,18 +2580,18 @@ class _HomePageState extends State<HomePage>
         ),
         // isThreeLine: true,
         onTap: () {
+          /* For navigation within this tab, uncomment
           widget.navigatorKey!.currentState!.push(MaterialPageRoute(
               builder: (context) => InstrumentWidget(ru, accounts!.first,
                   positions[index].instrumentObj as Instrument,
                   position: positions[index])));
-          /*
+                  */
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
-                      ru, positions[index].instrumentObj as Instrument,
+                  builder: (context) => InstrumentWidget(ru, accounts!.first,
+                      positions[index].instrumentObj as Instrument,
                       position: positions[index])));
-                      */
         },
       )
     ]));
@@ -2680,18 +2684,18 @@ class _HomePageState extends State<HomePage>
           ),*/
           //isThreeLine: true,
           onTap: () {
+            /* For navigation within this tab, uncomment
             widget.navigatorKey!.currentState!.push(MaterialPageRoute(
                 builder: (context) => OptionInstrumentWidget(
                     ru, accounts!.first, op.optionInstrument!,
                     optionPosition: op)));
-            /*
+                    */
             Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
-                        ru, op.optionInstrument!,
+                        ru, accounts!.first, op.optionInstrument!,
                         optionPosition: op)));
-                        */
           },
         ),
       ],

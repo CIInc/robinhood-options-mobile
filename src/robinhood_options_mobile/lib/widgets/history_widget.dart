@@ -137,6 +137,7 @@ class _HistoryPageState extends State<HistoryPage>
         onGenerateRoute: (_) =>
             MaterialPageRoute(builder: (_) => _buildScaffold()));
             */
+    /* For navigation within this tab, uncomment
     return WillPopScope(
       onWillPop: () => Future.value(false),
       child: Scaffold(
@@ -146,6 +147,9 @@ class _HistoryPageState extends State<HistoryPage>
               onGenerateRoute: (_) =>
                   MaterialPageRoute(builder: (_) => _buildScaffold()))),
     );
+    */
+    return WillPopScope(
+        onWillPop: () => Future.value(false), child: _buildScaffold());
   }
 
   Widget _buildScaffold() {
@@ -477,19 +481,21 @@ class _HistoryPageState extends State<HistoryPage>
 
                             isThreeLine: optionOrder.optionEvents != null,
                             onTap: () {
+                              /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
                                           widget.account,
                                           optionOrder)));
-                              /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => OptionOrderWidget(
-                                    ru, optionOrder)));
-                                    */
+                                          */
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => OptionOrderWidget(
+                                          widget.user,
+                                          widget.account,
+                                          optionOrder)));
                             },
                           ),
                   ],
@@ -754,19 +760,21 @@ class _HistoryPageState extends State<HistoryPage>
 
                             //isThreeLine: true,
                             onTap: () {
+                              /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           widget.account,
                                           filteredPositionOrders![index])));
-                              /*
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => PositionOrderWidget(
-                                    ru, filteredPositionOrders![index])));
-                                    */
+                                          */
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => PositionOrderWidget(
+                                          widget.user,
+                                          widget.account,
+                                          filteredPositionOrders![index])));
                             },
                           ),
                   ],
@@ -1242,8 +1250,11 @@ class _HistoryPageState extends State<HistoryPage>
       }
       if (shareLink) {
         ordersText +=
-            "\n\nClick the link to import this data into Robinhood Options Mobile: https://ciinc.github.io/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
+            "\n\nClick the link to import this data into Robinhood Options Mobile: https://robinhood-options-mobile.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
       }
+      /*
+adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://robinhood-options-mobile.web.app/?options=123"
+      */
 
       await showModalBottomSheet<void>(
         context: context,
@@ -1314,9 +1325,6 @@ class _HistoryPageState extends State<HistoryPage>
           );
         },
       );
-      /*
-adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://ciinc.github.io/?options=123"
-      */
     }
     setState(() {
       showShareView = !showShareView;
