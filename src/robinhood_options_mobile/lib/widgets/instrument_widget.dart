@@ -4,7 +4,6 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
-import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -307,7 +306,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       //expandedHeight: 160,
       expandedHeight: 240, // 280.0,
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+        titlePadding:
+            const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
         //background: const FlutterLogo(),
         title: SingleChildScrollView(
             child: Column(

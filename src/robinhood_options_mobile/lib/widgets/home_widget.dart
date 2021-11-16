@@ -2136,7 +2136,8 @@ class _HomePageState extends State<HomePage>
           return Container();
         }*/
         return FlexibleSpaceBar(
-            titlePadding: EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+            titlePadding:
+                const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
@@ -2363,31 +2364,35 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  const SizedBox(
-                    width: 80,
-                    child: Text(
-                      "Portfolio Value",
-                      style: TextStyle(fontSize: 10.0),
-                    ),
-                  )
-                ]),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          "Portfolio Value",
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      )
+                    ]),
                 Container(
                   width: 3,
                 ),
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: 39,
-                      child: Text("", //${formatPercentage.format(1)}
-                          style: const TextStyle(fontSize: 10.0),
-                          textAlign: TextAlign.right))
-                ]),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: const [
+                      SizedBox(
+                          width: 39,
+                          child: Text("", //${formatPercentage.format(1)}
+                              style: TextStyle(fontSize: 10.0),
+                              textAlign: TextAlign.right))
+                    ]),
                 Container(
                   width: 5,
                 ),
                 SizedBox(
                     width: 65,
-                    child: Text("${formatCurrency.format(portfolioValue)}",
+                    child: Text(formatCurrency.format(portfolioValue),
                         style: const TextStyle(fontSize: 12.0),
                         textAlign: TextAlign.right)),
                 Container(
