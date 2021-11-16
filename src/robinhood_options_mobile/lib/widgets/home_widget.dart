@@ -95,7 +95,7 @@ class _HomePageState extends State<HomePage>
   //charts.TimeSeriesChart? chart;
   Chart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
-  Bounds chartBoundsFilter = Bounds.regular;
+  Bounds chartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
 
   Stream<List<Position>>? positionStream;
@@ -273,8 +273,8 @@ class _HomePageState extends State<HomePage>
                                   historicalsSnapshot.data!.span !=
                                       portfolioHistoricals!.span) {
                                 chart = null;
-                                selection = historicalsSnapshot
-                                    .data!.equityHistoricals.last;
+                                //selection = historicalsSnapshot
+                                //    .data!.equityHistoricals.last;
                               }
                               portfolioHistoricals = historicalsSnapshot.data
                                   as PortfolioHistoricals;
@@ -411,13 +411,17 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  _chartOnSelection(EquityHistorical equityHistorical) {
+  _onChartSelection(dynamic historical) {
     setState(() {
-      selection = equityHistorical;
+      if (historical != null) {
+        selection = historical as EquityHistorical;
+      } else {
+        selection = null;
+      }
     });
   }
 
-  void resetChart(ChartDateSpan span, {Bounds bounds = Bounds.regular}) {
+  void resetChart(ChartDateSpan span, Bounds bounds) {
     setState(() {
       chartDateSpanFilter = span;
       chartBoundsFilter = bounds;
@@ -472,6 +476,55 @@ class _HomePageState extends State<HomePage>
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
     }
+    if (portfolioHistoricals != null) {
+      if (chart == null) {
+        List<charts.Series<dynamic, DateTime>> seriesList = [
+          charts.Series<EquityHistorical, DateTime>(
+              id: 'Adjusted Equity',
+              colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+              domainFn: (EquityHistorical history, _) => history.beginsAt!,
+              //filteredEquityHistoricals.indexOf(history),
+              measureFn: (EquityHistorical history, index) => index == 0
+                  ? history.adjustedOpenEquity
+                  : history.adjustedCloseEquity,
+              data: portfolioHistoricals
+                  .equityHistoricals //filteredEquityHistoricals,
+              ),
+          charts.Series<EquityHistorical, DateTime>(
+              id: 'Equity',
+              colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+              domainFn: (EquityHistorical history, _) => history.beginsAt!,
+              //filteredEquityHistoricals.indexOf(history),
+              measureFn: (EquityHistorical history, index) =>
+                  index == 0 ? history.openEquity : history.closeEquity,
+              data: portfolioHistoricals
+                  .equityHistoricals //filteredEquityHistoricals,
+              ),
+          charts.Series<EquityHistorical, DateTime>(
+              id: 'Market Value',
+              colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+              domainFn: (EquityHistorical history, _) => history.beginsAt!,
+              //filteredEquityHistoricals.indexOf(history),
+              measureFn: (EquityHistorical history, index) => index == 0
+                  ? history.openMarketValue
+                  : history.closeMarketValue,
+              data: portfolioHistoricals
+                  .equityHistoricals //filteredEquityHistoricals,
+              ),
+        ];
+        var open =
+            portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
+        var close = portfolioHistoricals
+            .equityHistoricals[
+                portfolioHistoricals.equityHistoricals.length - 1]
+            .adjustedCloseEquity!;
+        chart = Chart(seriesList,
+            open: open,
+            close: close,
+            hiddenSeries: const ['Equity', 'Market Value'],
+            onSelected: _onChartSelection);
+      }
+    }
 
     SliverAppBar sliverAppBar = buildSliverAppBar(
         ru,
@@ -501,19 +554,113 @@ class _HomePageState extends State<HomePage>
         )));
       }
       if (portfolioHistoricals != null) {
+        var open =
+            portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
+        double changeSelection = 0;
+        double changePercentSelection = 0;
         if (selection != null) {
-          slivers.add(SliverToBoxAdapter(
-              child: SizedBox(
-                  height: 35,
-                  child: Center(
-                      child: Column(
-                    children: [
-                      Text(
-                          "${formatCurrency.format(selection!.adjustedCloseEquity)} ${formatPercentage.format(selection!.netReturn)}",
-                          style: const TextStyle(fontSize: 20)),
+          changeSelection = selection!.adjustedCloseEquity! -
+              open; // portfolios![0].equityPreviousClose!;
+          changePercentSelection =
+              changeSelection / selection!.adjustedCloseEquity!;
+        }
+
+        var brightness = MediaQuery.of(context).platformBrightness;
+        var textColor = Theme.of(context).colorScheme.background;
+        if (brightness == Brightness.dark) {
+          textColor = Colors.grey.shade500;
+        } else {
+          textColor = Colors.grey.shade700;
+        }
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+                height: 36,
+                child: Center(
+                    child: Column(
+                  children: [
+                    Wrap(
+                      children: [
+                        if (selection != null) ...[
+                          Text(
+                              formatCurrency
+                                  .format(selection!.adjustedCloseEquity),
+                              style: TextStyle(fontSize: 20, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Icon(
+                            changePercentSelection > 0
+                                ? Icons.trending_up
+                                : (changePercentSelection < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changePercentSelection > 0
+                                ? Colors.green
+                                : (changePercentSelection < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            //size: 16.0
+                          ),
+                          Container(
+                            width: 2,
+                          ),
+                          Text(
+                              formatPercentage
+                                  //.format(selection!.netReturn!.abs()),
+                                  .format(changePercentSelection.abs()),
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Text(
+                              "${changeSelection > 0 ? "+" : changeSelection < 0 ? "-" : ""}${formatCurrency.format(changeSelection.abs())}",
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                        ] else ...[
+                          Text(
+                              formatCurrency.format(
+                                  (portfolios![0].equity ?? 0) + nummusEquity),
+                              style: TextStyle(fontSize: 20, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Icon(
+                            changeToday > 0
+                                ? Icons.trending_up
+                                : (changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changeToday > 0
+                                ? Colors.lightGreenAccent
+                                : (changeToday < 0 ? Colors.red : Colors.grey)),
+                            //size: 16.0
+                          ),
+                          Container(
+                            width: 2,
+                          ),
+                          Text(
+                              formatPercentage.format(changePercentToday.abs()),
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Text(
+                              "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
+                              style:
+                                  TextStyle(fontSize: 20.0, color: textColor)),
+                        ]
+                      ],
+                    ),
+                    if (selection != null) ...[
                       Text(formatLongDate.format(selection!.beginsAt!),
-                          style: const TextStyle(fontSize: 10)),
-                      /*
+                          style: TextStyle(fontSize: 10, color: textColor)),
+                    ] else ...[
+                      Text(formatLongDate.format(portfolios![0].updatedAt!),
+                          style: TextStyle(fontSize: 10, color: textColor)),
+                    ]
+                    /*
                       Text(
                           "Equity ${formatCurrency.format(selection!.openEquity)}, ${formatCurrency.format(selection!.closeEquity)}",
                           style: const TextStyle(fontSize: 11)),
@@ -521,52 +668,8 @@ class _HomePageState extends State<HomePage>
                           "Value ${formatCurrency.format(selection!.openMarketValue)}, ${formatCurrency.format(selection!.closeMarketValue)}",
                           style: const TextStyle(fontSize: 11))
                           */
-                    ],
-                  )))));
-        }
-        if (chart == null) {
-          List<charts.Series<dynamic, DateTime>> seriesList = [
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Adjusted Equity',
-                colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, index) => index == 0
-                    ? history.adjustedOpenEquity
-                    : history.adjustedCloseEquity,
-                data: portfolioHistoricals
-                    .equityHistoricals //filteredEquityHistoricals,
-                ),
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Equity',
-                colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, index) =>
-                    index == 0 ? history.openEquity : history.closeEquity,
-                data: portfolioHistoricals
-                    .equityHistoricals //filteredEquityHistoricals,
-                ),
-            charts.Series<EquityHistorical, DateTime>(
-                id: 'Market Value',
-                colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-                domainFn: (EquityHistorical history, _) => history.beginsAt!,
-                //filteredEquityHistoricals.indexOf(history),
-                measureFn: (EquityHistorical history, index) => index == 0
-                    ? history.openMarketValue
-                    : history.closeMarketValue,
-                data: portfolioHistoricals
-                    .equityHistoricals //filteredEquityHistoricals,
-                ),
-          ];
-          var open =
-              portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
-          var close = portfolioHistoricals
-              .equityHistoricals[
-                  portfolioHistoricals.equityHistoricals.length - 1]
-              .adjustedCloseEquity!;
-          chart = Chart(seriesList, open, close, onSelected: _chartOnSelection);
-        }
+                  ],
+                )))));
 
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
@@ -594,7 +697,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.hour,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.hour);
+                              resetChart(ChartDateSpan.hour, chartBoundsFilter);
                             }
                           },
                         ),
@@ -608,7 +711,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.day,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.day);
+                              resetChart(ChartDateSpan.day, chartBoundsFilter);
                             }
                           },
                         ),
@@ -622,7 +725,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.week,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.week);
+                              resetChart(ChartDateSpan.week, chartBoundsFilter);
                             }
                           },
                         ),
@@ -636,7 +739,8 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.month,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.month);
+                              resetChart(
+                                  ChartDateSpan.month, chartBoundsFilter);
                             }
                           },
                         ),
@@ -651,7 +755,8 @@ class _HomePageState extends State<HomePage>
                               chartDateSpanFilter == ChartDateSpan.month_3,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.month_3);
+                              resetChart(
+                                  ChartDateSpan.month_3, chartBoundsFilter);
                             }
                           },
                         ),
@@ -665,7 +770,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.year,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.year);
+                              resetChart(ChartDateSpan.year, chartBoundsFilter);
                             }
                           },
                         ),
@@ -679,7 +784,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartDateSpanFilter == ChartDateSpan.all,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(ChartDateSpan.all);
+                              resetChart(ChartDateSpan.all, chartBoundsFilter);
                             }
                           },
                         ),
@@ -696,8 +801,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartBoundsFilter == Bounds.regular,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(chartDateSpanFilter,
-                                  bounds: Bounds.regular);
+                              resetChart(chartDateSpanFilter, Bounds.regular);
                             }
                           },
                         ),
@@ -711,8 +815,7 @@ class _HomePageState extends State<HomePage>
                           selected: chartBoundsFilter == Bounds.t24_7,
                           onSelected: (bool value) {
                             if (value) {
-                              resetChart(chartDateSpanFilter,
-                                  bounds: Bounds.t24_7);
+                              resetChart(chartDateSpanFilter, Bounds.t24_7);
                             }
                           },
                         ),
@@ -1230,7 +1333,9 @@ class _HomePageState extends State<HomePage>
     )));
 
     return RefreshIndicator(
-      child: CustomScrollView(slivers: slivers), //controller: _controller,
+      child: CustomScrollView(
+          // physics: ClampingScrollPhysics(),
+          slivers: slivers), //controller: _controller,
       onRefresh: _pullRefresh,
     );
   }
@@ -1937,6 +2042,24 @@ class _HomePageState extends State<HomePage>
       double optionEquity,
       double changeToday,
       double changePercentToday) {
+    var portfolioValue = 0.0;
+    var stockAndOptionsEquityPercent = 0.0;
+    var optionEquityPercent = 0.0;
+    var positionEquityPercent = 0.0;
+    var portfolioCash = 0.0;
+    var cashPercent = 0.0;
+    var cryptoPercent = 0.0;
+    if (portfolios != null) {
+      portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
+      stockAndOptionsEquityPercent =
+          portfolios[0].marketValue! / portfolioValue;
+      optionEquityPercent = optionEquity / portfolioValue;
+      positionEquityPercent = positionEquity / portfolioValue;
+      portfolioCash = accounts![0].portfolioCash ?? 0;
+      cashPercent = portfolioCash / portfolioValue;
+      cryptoPercent = nummusEquity / portfolioValue;
+    }
+
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
                     leading: IconButton(
@@ -1946,8 +2069,8 @@ class _HomePageState extends State<HomePage>
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 300.0,
-      // collapsedHeight: 80.0,
+      expandedHeight: 240.0, //280.0,
+      //collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
                         child: Icon(Icons.linear_scale, size: 60.0),
@@ -1956,8 +2079,52 @@ class _HomePageState extends State<HomePage>
       floating: false,
       pinned: true,
       snap: false,
+      leading: Container(),
+      /*IconButton(
+        icon: const Icon(Icons.menu),
+        tooltip: 'Menu',
+        onPressed: () {/* ... */},
+      ),*/
+      title: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.end,
+          //runAlignment: WrapAlignment.end,
+          //alignment: WrapAlignment.end,
+          spacing: 10,
+          //runSpacing: 5,
+          children: [
+            if (user != null) ...[
+              Text(user.profileName, style: const TextStyle(fontSize: 22.0)),
+              Wrap(spacing: 10, children: [
+                Text(formatCurrency.format(portfolioValue),
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+                //style: const TextStyle(fontSize: 20.0),
+                //textAlign: TextAlign.right
+                Wrap(children: [
+                  Icon(
+                    changeToday > 0
+                        ? Icons.trending_up
+                        : (changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (changeToday > 0
+                        ? Colors.lightGreenAccent
+                        : (changeToday < 0 ? Colors.red : Colors.grey)),
+                    //size: 16.0
+                  ),
+                  Text(formatPercentage.format(changePercentToday.abs()),
+                      style: const TextStyle(
+                          fontSize: 16.0, color: Colors.white70)),
+                ]),
+                Text(
+                    "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              ]),
+            ]
+          ]),
       /*
-      title: silverCollapsed && user != null && portfolios != null
+      silverCollapsed && user != null && portfolios != null
           ? getAppBarTitle(user, changeToday, changePercentToday)
           : Container(),
           */
@@ -1968,380 +2135,25 @@ class _HomePageState extends State<HomePage>
         } /* else if (silverCollapsed) {
           return Container();
         }*/
-        var portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
-        var stockAndOptionsEquityPercent =
-            portfolios[0].marketValue! / portfolioValue;
-        var optionEquityPercent = optionEquity / portfolioValue;
-        var positionEquityPercent = positionEquity / portfolioValue;
-        var portfolioCash = accounts![0].portfolioCash ?? 0;
-        var cashPercent = portfolioCash / portfolioValue;
-        var cryptoPercent = nummusEquity / portfolioValue;
         return FlexibleSpaceBar(
+            titlePadding: EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
             //background: const FlutterLogo(),
-            title: SingleChildScrollView(
-          child: Column(
-              //mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(children: const [SizedBox(height: 68)]),
-                Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.end,
-                    //runAlignment: WrapAlignment.end,
-                    //alignment: WrapAlignment.end,
-                    spacing: 10,
-                    //runSpacing: 5,
-                    children: [
-                      Text(
-                        user!.profileName,
-                        //style: const TextStyle(fontSize: 20.0)
-                      ),
-                      Text(
-                        formatCurrency.format(portfolioValue),
-                        //style: const TextStyle(fontSize: 20.0),
-                        //textAlign: TextAlign.right
-                      ),
-                      Wrap(
-                        children: [
-                          Icon(
-                            changeToday > 0
-                                ? Icons.trending_up
-                                : (changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (changeToday > 0
-                                ? Colors.lightGreenAccent
-                                : (changeToday < 0 ? Colors.red : Colors.grey)),
-                            //size: 16.0
-                          ),
-                          Container(
-                            width: 2,
-                          ),
-                          Text(
-                            formatPercentage.format(changePercentToday.abs()),
-                            //style: const TextStyle(fontSize: 20.0)
-                          ),
-                        ],
-                      ),
-                      Text(
-                        "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
-                        //style: const TextStyle(fontSize: 20.0)
-                      ),
-                    ]),
-                /*
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Text(user!.profileName,
-                        style: const TextStyle(fontSize: 24.0)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                */
-                /*
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Wrap(
-                        children: [
-                          Icon(
-                              changeToday > 0
-                                  ? Icons.trending_up
-                                  : (changeToday < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (changeToday > 0
-                                  ? Colors.lightGreenAccent
-                                  : (changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                              size: 16.0),
-                          Container(
-                            width: 2,
-                          ),
-                          Text(
-                              '${formatPercentage.format(changePercentToday.abs())}',
-                              style: const TextStyle(fontSize: 16.0)),
-                          Container(
-                            width: 10,
-                          ),
-                          Text(
-                              "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
-                              style: const TextStyle(fontSize: 16.0)),
-                          Container(
-                            width: 10,
-                          ),
-                        ],
-                      ),
-                    ]),
-                    */
-                /*
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          const SizedBox(
-                            width: 80,
-                            child: Text(
-                              "Portfolio Value",
-                              style: TextStyle(fontSize: 10.0),
-                            ),
-                          )
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text("", //${formatPercentage.format(1)}
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text("${formatCurrency.format(portfolioValue)}",
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                */
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: const [
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              "Stocks & Options",
-                              style: TextStyle(fontSize: 10.0),
-                            ),
-                          )
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text(
-                              formatPercentage
-                                  .format(stockAndOptionsEquityPercent),
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text(
-                            formatCurrency.format(portfolios[0].marketValue),
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: const [
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              "Options",
-                              style: TextStyle(fontSize: 10.0),
-                            ),
-                          )
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text(
-                              formatPercentage.format(optionEquityPercent),
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text(formatCurrency.format(optionEquity),
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: const [
-                          SizedBox(
-                            width: 80,
-                            child: Text(
-                              "Stocks",
-                              style: TextStyle(fontSize: 10.0),
-                            ),
-                          )
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text(
-                              formatPercentage.format(positionEquityPercent),
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text(formatCurrency.format(positionEquity),
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: const [
-                          SizedBox(
-                              width: 80,
-                              child: Text(
-                                "Crypto",
-                                style: TextStyle(fontSize: 10.0),
-                              )),
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text(formatPercentage.format(cryptoPercent),
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text(formatCurrency.format(nummusEquity),
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Container(
-                      width: 10,
-                    ),
-                    Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: const [
-                          SizedBox(
-                              width: 80,
-                              child: Text(
-                                "Cash",
-                                style: TextStyle(fontSize: 10.0),
-                              )),
-                        ]),
-                    Container(
-                      width: 3,
-                    ),
-                    Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                      SizedBox(
-                          width: 39,
-                          child: Text(formatPercentage.format(cashPercent),
-                              style: const TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                    Container(
-                      width: 5,
-                    ),
-                    SizedBox(
-                        width: 65,
-                        child: Text(formatCurrency.format(portfolioCash),
-                            style: const TextStyle(fontSize: 12.0),
-                            textAlign: TextAlign.right)),
-                    Container(
-                      width: 10,
-                    ),
-                  ],
-                ),
-              ]),
-        ));
+            title: _buildExpandedSliverAppBarTitle(
+                user,
+                portfolioValue,
+                stockAndOptionsEquityPercent,
+                portfolios,
+                optionEquityPercent,
+                optionEquity,
+                positionEquityPercent,
+                positionEquity,
+                cryptoPercent,
+                nummusEquity,
+                cashPercent,
+                portfolioCash));
       }),
       actions: <Widget>[
         IconButton(
@@ -2502,6 +2314,300 @@ class _HomePageState extends State<HomePage>
       ],
     );
     return sliverAppBar;
+  }
+
+  SingleChildScrollView _buildExpandedSliverAppBarTitle(
+      User? user,
+      double portfolioValue,
+      double stockAndOptionsEquityPercent,
+      List<Portfolio> portfolios,
+      double optionEquityPercent,
+      double optionEquity,
+      double positionEquityPercent,
+      double positionEquity,
+      double cryptoPercent,
+      double nummusEquity,
+      double cashPercent,
+      double portfolioCash) {
+    return SingleChildScrollView(
+      child: Column(
+          //mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            /*Row(children: const [SizedBox(height: 68)]),*/
+            /*
+            Wrap(
+                crossAxisAlignment: WrapCrossAlignment.end,
+                //runAlignment: WrapAlignment.end,
+                //alignment: WrapAlignment.end,
+                spacing: 10,
+                //runSpacing: 5,
+                children: [
+                  Text(
+                    user!.profileName,
+                    //style: const TextStyle(fontSize: 20.0)
+                  ),
+                  Text(
+                    formatCurrency.format(portfolioValue),
+                    //style: const TextStyle(fontSize: 20.0),
+                    //textAlign: TextAlign.right
+                  ),
+                ]),
+                */
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  const SizedBox(
+                    width: 80,
+                    child: Text(
+                      "Portfolio Value",
+                      style: TextStyle(fontSize: 10.0),
+                    ),
+                  )
+                ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text("", //${formatPercentage.format(1)}
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text("${formatCurrency.format(portfolioValue)}",
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          "Stocks & Options",
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      )
+                    ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text(
+                          formatPercentage.format(stockAndOptionsEquityPercent),
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text(
+                        formatCurrency.format(portfolios[0].marketValue),
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          "Options",
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      )
+                    ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text(formatPercentage.format(optionEquityPercent),
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text(formatCurrency.format(optionEquity),
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          "Stocks",
+                          style: TextStyle(fontSize: 10.0),
+                        ),
+                      )
+                    ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text(
+                          formatPercentage.format(positionEquityPercent),
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text(formatCurrency.format(positionEquity),
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                          width: 80,
+                          child: Text(
+                            "Crypto",
+                            style: TextStyle(fontSize: 10.0),
+                          )),
+                    ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text(formatPercentage.format(cryptoPercent),
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text(formatCurrency.format(nummusEquity),
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                          width: 80,
+                          child: Text(
+                            "Cash",
+                            style: TextStyle(fontSize: 10.0),
+                          )),
+                    ]),
+                Container(
+                  width: 3,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 39,
+                      child: Text(formatPercentage.format(cashPercent),
+                          style: const TextStyle(fontSize: 10.0),
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 65,
+                    child: Text(formatCurrency.format(portfolioCash),
+                        style: const TextStyle(fontSize: 12.0),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+          ]),
+    );
   }
 
   Future<void> _pullRefresh() async {

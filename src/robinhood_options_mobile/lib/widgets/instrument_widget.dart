@@ -4,6 +4,8 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/equity_historical.dart';
+import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -56,7 +58,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Stream<List<OptionInstrument>>? optionInstrumentStream;
   List<OptionInstrument>? optionInstruments;
 
-  charts.TimeSeriesChart? chart;
+  //charts.TimeSeriesChart? chart;
+  Chart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.regular;
   InstrumentHistorical? selection;
@@ -300,10 +303,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       {List<OptionInstrument>? optionInstruments, Position? position}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
-      //title: Text(instrument.symbol),
+      title: headerTitle(instrument),
       //expandedHeight: 160,
-      expandedHeight: 300.0,
+      expandedHeight: 240, // 280.0,
       flexibleSpace: FlexibleSpaceBar(
+        titlePadding: EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
         //background: const FlutterLogo(),
         title: SingleChildScrollView(
             child: Column(
@@ -364,6 +368,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             data: instrument.instrumentHistoricalsObj!.historicals,
           ),
         ];
+        var open =
+            instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
+        var close = instrument
+            .instrumentHistoricalsObj!
+            .historicals[
+                instrument.instrumentHistoricalsObj!.historicals.length - 1]
+            .closePrice!;
+        chart = Chart(seriesList,
+            open: open,
+            close: close,
+            hiddenSeries: const ["Volume", "Open", "Low", "High"],
+            onSelected: _onChartSelection);
+        /*
         chart = charts.TimeSeriesChart(
           seriesList,
           defaultRenderer:
@@ -391,6 +408,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 defaultHiddenSeries: const ["Volume", "Open", "Low", "High"])
           ],
         );
+        */
       }
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -756,6 +774,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       //futureInstrumentOrders = null;
       //futureOptionOrders = null;
       optionInstrumentStream = null;
+    });
+  }
+
+  _onChartSelection(dynamic historical) {
+    setState(() {
+      if (historical != null) {
+        selection = historical as InstrumentHistorical;
+      } else {
+        selection = null;
+      }
     });
   }
 
@@ -2071,10 +2099,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Iterable<Widget> get headerWidgets sync* {
-    var instrument = widget.instrument;
-    yield Row(children: const [SizedBox(height: 70)]);
-    yield Wrap(
+  Widget headerTitle(Instrument instrument) {
+    return Wrap(
         crossAxisAlignment: WrapCrossAlignment.start,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
@@ -2119,20 +2145,57 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 textAlign: TextAlign.right)
           ],
         ]);
+  }
+
+  Iterable<Widget> get headerWidgets sync* {
+    var instrument = widget.instrument;
+    // yield Row(children: const [SizedBox(height: 70)]);
     if (instrument.simpleName != null) {
-      yield Text(
-        '${instrument.simpleName}',
-        style: const TextStyle(fontSize: 16.0),
-        textAlign: TextAlign.left,
-        //overflow: TextOverflow.ellipsis
-      );
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              SizedBox(
+                  width: 190,
+                  child: Text(
+                    '${instrument.simpleName}',
+                    style: const TextStyle(fontSize: 16.0),
+                    textAlign: TextAlign.left,
+                    //overflow: TextOverflow.ellipsis
+                  ))
+            ]),
+            Container(
+              width: 10,
+            ),
+          ]);
     } else {
-      yield Text(
-        '$instrument.name',
-        style: const TextStyle(fontSize: 14.0),
-        textAlign: TextAlign.left,
-        //overflow: TextOverflow.ellipsis
-      );
+      yield Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Container(
+              width: 10,
+            ),
+            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+              SizedBox(
+                  width: 190,
+                  child: Text(
+                    '$instrument.name',
+                    style: const TextStyle(fontSize: 14.0),
+                    textAlign: TextAlign.left,
+                    //overflow: TextOverflow.ellipsis
+                  ))
+            ]),
+            Container(
+              width: 10,
+            ),
+          ]);
     }
     /*
     yield Row(children: const [SizedBox(height: 10)]);

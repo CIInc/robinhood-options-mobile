@@ -1,17 +1,22 @@
 /// Example of a stacked area chart.
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
 class Chart extends StatefulWidget {
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
-  final double open;
-  final double close;
-  final void Function(EquityHistorical) onSelected;
+  final double? open;
+  final double? close;
+  final List<String>? hiddenSeries;
+  final void Function(dynamic) onSelected;
 
-  const Chart(this.seriesList, this.open, this.close,
-      {Key? key, this.animate = true, required this.onSelected})
+  const Chart(this.seriesList,
+      {Key? key,
+      this.animate = true,
+      required this.onSelected,
+      this.open,
+      this.close,
+      this.hiddenSeries})
       : super(key: key);
 
   // We need a Stateful widget to build the selection details with the current
@@ -25,8 +30,10 @@ class _ChartState extends State<Chart> {
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
     var rangeAnnotationColor = charts.MaterialPalette.gray.shade800;
+    var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
       rangeAnnotationColor = charts.MaterialPalette.gray.shade100;
+      axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
 
     return charts.TimeSeriesChart(
@@ -34,9 +41,23 @@ class _ChartState extends State<Chart> {
       defaultRenderer:
           charts.LineRendererConfig(includeArea: true, stacked: false),
       animate: widget.animate,
-      primaryMeasureAxis: const charts.NumericAxisSpec(
+      primaryMeasureAxis: charts.NumericAxisSpec(
+          //showAxisLine: true,
+          //renderSpec: charts.GridlineRendererSpec(),
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec:
-              charts.BasicNumericTickProviderSpec(zeroBound: false)),
+              const charts.BasicNumericTickProviderSpec(zeroBound: false)),
+      domainAxis: charts.DateTimeAxisSpec(
+          //showAxisLine: true,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor))
+          //tickProviderSpec:
+          //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
+          //tickProviderSpec: charts.DayTickProviderSpec()
+          //tickProviderSpec: charts.DateTimeEndPointsTickProviderSpec()
+          ),
       selectionModels: [
         charts.SelectionModelConfig(
           type: charts.SelectionModelType.info,
@@ -44,12 +65,15 @@ class _ChartState extends State<Chart> {
         )
       ],
       behaviors: [
-        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tapAndDrag),
+        charts.SelectNearest(
+            eventTrigger: charts.SelectionTrigger.tapAndDrag,
+            selectAcrossAllDrawAreaComponents: true),
         charts.LinePointHighlighter(
             showHorizontalFollowLine:
                 charts.LinePointHighlighterFollowLineType.none,
             showVerticalFollowLine:
-                charts.LinePointHighlighterFollowLineType.nearest),
+                charts.LinePointHighlighterFollowLineType.nearest,
+            dashPattern: const []),
         /*
         charts.InitialSelection(selectedDataConfig: [
           charts.SeriesDatumConfig<DateTime>(
@@ -57,18 +81,21 @@ class _ChartState extends State<Chart> {
         ]),
         */
         charts.SeriesLegend(
-          defaultHiddenSeries: const ['Equity', 'Market Value'],
+          position: charts.BehaviorPosition.top,
+          defaultHiddenSeries: widget.hiddenSeries,
         ),
-        charts.RangeAnnotation([
-          charts.RangeAnnotationSegment(
-              widget.open <= widget.close ? widget.open : widget.close,
-              widget.open <= widget.close ? widget.close : widget.open,
-              charts.RangeAnnotationAxisType.measure,
-              startLabel: widget.open <= widget.close ? 'Open' : 'Close',
-              endLabel: widget.open <= widget.close ? 'Close' : 'Open',
-              color: rangeAnnotationColor // gray.shade200
-              ),
-        ])
+        if (widget.open != null && widget.close != null) ...[
+          charts.RangeAnnotation([
+            charts.RangeAnnotationSegment(
+                widget.open! <= widget.close! ? widget.open! : widget.close!,
+                widget.open! <= widget.close! ? widget.close! : widget.open!,
+                charts.RangeAnnotationAxisType.measure,
+                startLabel: widget.open! <= widget.close! ? 'Open' : 'Close',
+                endLabel: widget.open! <= widget.close! ? 'Close' : 'Open',
+                color: rangeAnnotationColor // gray.shade200
+                ),
+          ])
+        ]
       ],
     );
     /*
@@ -83,8 +110,10 @@ class _ChartState extends State<Chart> {
 
   _onSelectionChanged(charts.SelectionModel model) {
     if (model.hasDatumSelection) {
-      var selected = model.selectedDatum[0].datum as EquityHistorical;
+      var selected = model.selectedDatum[0].datum;
       widget.onSelected(selected);
+    } else {
+      widget.onSelected(null);
     }
   }
 }

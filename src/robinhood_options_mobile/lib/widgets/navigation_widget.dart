@@ -55,7 +55,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         navigatorKey: navigatorKeys[0],
         onUserChanged: _handleUserChanged,
         onAccountsChanged: _handleAccountChanged,
-      )
+      ),
     ];
 
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
@@ -152,22 +152,28 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   controller: _pageController,
                   // physics: const NeverScrollableScrollPhysics(),
                 )
-            /*TabBarView(
-            controller: _tabController,
-            children: [
-              FirstPage(),
-              SecondPage(),
-            ],
-          ),*/
             ),
       ),
       */
+      body: PageView.builder(
+        itemBuilder: (context, index) {
+          if (index < tabPages.length) {
+            return tabPages[index];
+          } else {
+            return tabPages[0];
+          }
+        },
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+      ),
+      /*
       body: PageView(
         children: tabPages,
         //onPageChanged: _onPageChanged,
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
       ),
+      */
       /*
           IndexedStack(
             children: tabPages,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
@@ -283,8 +284,8 @@ class RobinhoodService {
     positionOrders = list;
   }
 
-  /* 
-  INSTRUMENTS
+  /*
+  SEARCH and MARKETS
   */
 
   static Future<dynamic> search(RobinhoodUser user, String query) async {
@@ -293,6 +294,65 @@ class RobinhoodService {
     //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
     return resultJson;
   }
+
+  static Future<List<MidlandMoversItem>> getMovers(RobinhoodUser user,
+      {String direction = "up"}) async {
+    //https://api.robinhood.com/midlands/movers/sp500/?direction=up
+    var results = await RobinhoodService.pagedGet(user,
+        "${Constants.robinHoodEndpoint}/midlands/movers/sp500/?direction=$direction");
+    List<MidlandMoversItem> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var op = MidlandMoversItem.fromJson(result);
+      list.add(op);
+    }
+    /*
+    var instrumentIds = results["results"]
+        .map((e) {
+          var splits = e["instrument_url"].split("/");
+          return splits[splits.length - 2];
+        })
+        .toSet()
+        .toList();
+    var instruments = await getInstrumentsByIds(user, instrumentIds);
+    instruments.map((i) => )
+    */
+    return list;
+  }
+
+  static Future<List<Instrument>> getListMovers(RobinhoodUser user) async {
+    var resultJson = await getJson(
+        user, "${Constants.robinHoodEndpoint}/midlands/tags/tag/top-movers/");
+    // https://api.robinhood.com/midlands/tags/tag/top-movers/
+    var instrumentIds = resultJson["instruments"]
+        .map((e) {
+          var splits = e.split("/");
+          return splits[splits.length - 2];
+        })
+        .toSet()
+        .toList();
+    var list = getInstrumentsByIds(user, instrumentIds);
+    return list;
+  }
+
+  static Future<List<Instrument>> getListMostPopular(RobinhoodUser user) async {
+    var resultJson = await getJson(user,
+        "${Constants.robinHoodEndpoint}/midlands/tags/tag/100-most-popular/");
+    // https://api.robinhood.com/midlands/tags/tag/top-movers/
+    var instrumentIds = resultJson["instruments"]
+        .map((e) {
+          var splits = e.split("/");
+          return splits[splits.length - 2].toString();
+        })
+        .toSet()
+        .toList();
+    var list = getInstrumentsByIds(user, instrumentIds);
+    return list;
+  }
+
+  /* 
+  INSTRUMENTS
+  */
 
   static Future<Instrument> getInstrument(
       RobinhoodUser user, String instrumentUrl) async {

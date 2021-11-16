@@ -49,6 +49,7 @@ class Portfolio {
   final double? withdrawableAmount;
   final double? unwithdrawableDeposits;
   final double? unwithdrawableGrants;
+  final DateTime? updatedAt;
 
   Portfolio(
       this.url,
@@ -72,7 +73,8 @@ class Portfolio {
       this.adjustedPortfolioEquityPreviousClose,
       this.withdrawableAmount,
       this.unwithdrawableDeposits,
-      this.unwithdrawableGrants);
+      this.unwithdrawableGrants,
+      this.updatedAt);
 
   Portfolio.fromJson(dynamic json)
       : url = json['url'],
@@ -110,6 +112,7 @@ class Portfolio {
         withdrawableAmount = double.tryParse(json['withdrawable_amount']),
         unwithdrawableDeposits =
             double.tryParse(json['unwithdrawable_deposits']),
-        unwithdrawableGrants = double.tryParse(json['unwithdrawable_grants']);
+        unwithdrawableGrants = double.tryParse(json['unwithdrawable_grants']),
+        updatedAt = DateTime.now();
   // 2021-02-09T18:01:28.135813Z
 }
