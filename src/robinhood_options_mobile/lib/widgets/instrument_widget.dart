@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -302,25 +303,59 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       {List<OptionInstrument>? optionInstruments, Position? position}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
-      title: headerTitle(instrument),
-      //expandedHeight: 160,
-      expandedHeight: 240, // 280.0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding:
-            const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-        //background: const FlutterLogo(),
-        title: SingleChildScrollView(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: headerWidgets.toList())),
-        /*
+        title: headerTitle(instrument),
+        //expandedHeight: 160,
+        expandedHeight: 240, // 280.0,
+        floating: false,
+        pinned: true,
+        snap: false,
+        flexibleSpace: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+          //var top = constraints.biggest.height;
+          //debugPrint(top.toString());
+          //debugPrint(kToolbarHeight.toString());
+
+          final settings = context
+              .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+          final deltaExtent = settings!.maxExtent - settings.minExtent;
+          final t = (1.0 -
+                  (settings.currentExtent - settings.minExtent) / deltaExtent)
+              .clamp(0.0, 1.0);
+          final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+          const fadeEnd = 1.0;
+          final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+          return FlexibleSpaceBar(
+              //titlePadding:
+              //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+              //background: const FlutterLogo(),
+              background: SizedBox(
+                width: double.infinity,
+                child: Image.network(
+                  'https://source.unsplash.com/daily?code',
+                  fit: BoxFit.cover,
+                ),
+              ),
+              //const FlutterLogo(),
+              title: Opacity(
+                //duration: Duration(milliseconds: 300),
+                opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                child: SingleChildScrollView(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: headerWidgets.toList())),
+                /*
           ListTile(
             title: Text('${instrument.simpleName}'),
             subtitle: Text(instrument.name),
           )*/
-      ),
-      pinned: true,
-    ));
+              ));
+        })));
+    slivers.add(
+      SliverToBoxAdapter(
+          child: Align(
+              alignment: Alignment.center, child: buildOverview(instrument))),
+    );
+
     if (instrument.instrumentHistoricalsObj != null) {
       /*
         var filteredInstrumentHistoricals = portfolioHistoricals.equityHistoricals
@@ -412,7 +447,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 220,
+              height: 320,
               child: Padding(
                 //padding: EdgeInsets.symmetric(horizontal: 12.0),
                 padding: const EdgeInsets.all(10.0),
@@ -601,12 +636,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 itemCount: 1,
               ))));
     }
-
-    slivers.add(
-      SliverToBoxAdapter(
-          child: Align(
-              alignment: Alignment.center, child: buildOverview(instrument))),
-    );
 
     if (position != null) {
       slivers.add(const SliverToBoxAdapter(
@@ -1805,7 +1834,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}"),
             if (optionOrder.optionEvents != null) ...[
               Text(
-                "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : optionOrder.optionEvents!.first.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice)}",
+                "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
                 //style: TextStyle(fontSize: 16.0)
               )
             ]

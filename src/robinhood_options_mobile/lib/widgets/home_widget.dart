@@ -2146,7 +2146,7 @@ class _HomePageState extends State<HomePage>
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
-            background: Container(
+            background: SizedBox(
               width: double.infinity,
               child: Image.network(
                 'https://source.unsplash.com/daily?code',

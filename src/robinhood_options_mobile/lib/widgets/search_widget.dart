@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -144,31 +145,30 @@ class _SearchWidgetState extends State<SearchWidget>
       List<Instrument>? listMostPopular}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
-        child: CustomScrollView(slivers: [
-          SliverAppBar(
-            //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
-            //expandedHeight: 80.0,
-            flexibleSpace: FlexibleSpaceBar(
-                //background: const FlutterLogo(),
-                title: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                  //Row(children: const [SizedBox(height: 70)]),
-                  Wrap(crossAxisAlignment: WrapCrossAlignment.end,
-                      //runAlignment: WrapAlignment.end,
-                      //alignment: WrapAlignment.end,
-                      //spacing: 5,
-                      //runSpacing: 5,
-                      children: [
-                        TextField(
+        child: GestureDetector(
+            onTap: () {
+              FocusScopeNode currentFocus = FocusScope.of(context);
+
+              if (!currentFocus.hasPrimaryFocus) {
+                currentFocus.unfocus();
+              }
+            },
+            child: CustomScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                slivers: [
+                  SliverAppBar(
+                    title: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        child: TextField(
                             controller: searchCtl,
                             decoration: const InputDecoration(
-                              hintText: 'Search...',
+                              hintText:
+                                  'Start typing to search by name or symbol.',
                               hintStyle: TextStyle(
-                                color: Colors.white,
+                                //color: Colors.white,
                                 fontSize: 18,
-                                fontStyle: FontStyle.italic,
+                                //fontStyle: FontStyle.italic,
                               ),
                             ),
                             onChanged: (text) {
@@ -176,206 +176,185 @@ class _SearchWidgetState extends State<SearchWidget>
                                 futureSearch =
                                     RobinhoodService.search(widget.user, text);
                               });
-                            }),
-                      ]),
-                ]))),
-            pinned: true,
-          ),
-          if (search != null) ...[
-            /*
-        SliverToBoxAdapter(child: _buildListView(search["results"]))
-        */
-            SliverToBoxAdapter(
-                child: SizedBox(
-              height: 40,
-              child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Wrap(children: const [
-                        Text(
-                          "Search Results",
-                          style: TextStyle(fontSize: 18.0),
-                        ),
-                      ]))),
-            )),
-            SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 120.0,
-                    mainAxisSpacing: 10.0,
-                    crossAxisSpacing: 10.0,
-                    childAspectRatio: 1.5,
+                            })),
+                    //expandedHeight: 80.0,
+                    pinned: true,
                   ),
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return _buildSearchGridItem(search, index);
-                    },
-                    childCount: search["results"][0]["content"]["data"].length,
-                  ),
-                ))
-          ],
-          if (movers != null && movers.isNotEmpty) ...[
-            SliverToBoxAdapter(
-                child: SizedBox(
-              height: 40,
-              child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Align(
-                      alignment:
-                          Alignment.centerLeft, //.symmetric(horizontal: 2),
-                      child: Wrap(children: const [
-                        Text(
-                          "S&P Movers",
-                          style: TextStyle(fontSize: 18.0),
-                        ),
-                        Icon(Icons.trending_up, color: Colors.green, size: 28)
-                      ]))),
-            )),
-            SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200.0,
-                    mainAxisSpacing: 10.0,
-                    crossAxisSpacing: 10.0,
-                    childAspectRatio: 1.5,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return _buildMoversGridItem(movers, index);
-                    },
-                    childCount: movers.length,
-                  ),
-                ))
-          ],
-          if (losers != null && losers.isNotEmpty) ...[
-            SliverToBoxAdapter(
-                child: SizedBox(
-                    height: 40,
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Align(
-                          alignment:
-                              Alignment.centerLeft, //.symmetric(horizontal: 2),
-                          child: Wrap(children: const [
-                            Text(
-                              "S&P Movers",
-                              style: TextStyle(fontSize: 18.0),
-                            ),
-                            Icon(Icons.trending_down,
-                                color: Colors.red, size: 28)
-                          ]),
-                        )))),
-            SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 200.0,
-                    mainAxisSpacing: 10.0,
-                    crossAxisSpacing: 10.0,
-                    childAspectRatio: 1.5,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return _buildMoversGridItem(losers, index);
-                    },
-                    childCount: losers.length,
-                  ),
-                ))
-          ],
-          if (listMovers != null && listMovers.isNotEmpty) ...[
-            SliverToBoxAdapter(
-                child: SizedBox(
-                    height: 40,
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Align(
-                          alignment:
-                              Alignment.centerLeft, //.symmetric(horizontal: 2),
-                          child: Wrap(children: const [
-                            Text(
-                              "Top Movers",
-                              style: TextStyle(fontSize: 18.0),
-                            ),
-                            Icon(Icons.trending_down,
-                                color: Colors.red, size: 28)
-                          ]),
-                        )))),
-            SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 150.0,
-                    mainAxisSpacing: 6.0,
-                    crossAxisSpacing: 2.0,
-                    childAspectRatio: 1.3,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return _buildListGridItem(listMovers, index, widget.user);
-                      /*
-          return Container(
-            alignment: Alignment.center,
-            color: Colors.teal[100 * (index % 9)],
-            child: Text('grid item $index'),
-          );
-          */
-                    },
-                    childCount: listMovers.length,
-                  ),
-                ))
-          ],
-          if (listMostPopular != null && listMostPopular.isNotEmpty) ...[
-            SliverToBoxAdapter(
-                child: SizedBox(
-                    height: 40,
-                    child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Align(
-                          alignment:
-                              Alignment.centerLeft, //.symmetric(horizontal: 2),
-                          child: Wrap(children: const [
-                            Text(
-                              "100 Most Popular",
-                              style: TextStyle(fontSize: 18.0),
-                            ),
-                            Icon(Icons.trending_down,
-                                color: Colors.red, size: 28)
-                          ]),
-                        )))),
-            SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 150.0,
-                    mainAxisSpacing: 6.0,
-                    crossAxisSpacing: 2.0,
-                    childAspectRatio: 1.3,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                      return _buildListGridItem(
-                          listMostPopular, index, widget.user);
-                      /*
-          return Container(
-            alignment: Alignment.center,
-            color: Colors.teal[100 * (index % 9)],
-            child: Text('grid item $index'),
-          );
-          */
-                    },
-                    childCount: listMostPopular.length,
-                  ),
-                ))
-          ],
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-          const SliverToBoxAdapter(child: DisclaimerWidget())
-        ]));
+                  if (search != null) ...[
+                    SliverStickyHeader(
+                        header: Material(
+                            elevation: 2,
+                            child: Container(
+                                alignment: Alignment.centerLeft,
+                                child: const ListTile(
+                                  title: Text(
+                                    "Search Results",
+                                    style: TextStyle(fontSize: 19.0),
+                                  ),
+                                  //subtitle: Text(
+                                  //    "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+                                ))),
+                        sliver: SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 120.0,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                                childAspectRatio: 1.25,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildSearchGridItem(search, index);
+                                },
+                                childCount: search["results"][0]["content"]
+                                        ["data"]
+                                    .length,
+                              ),
+                            )))
+                  ],
+                  if (movers != null && movers.isNotEmpty) ...[
+                    SliverStickyHeader(
+                        header: Material(
+                            elevation: 2,
+                            child: Container(
+                                alignment: Alignment.centerLeft,
+                                child: ListTile(
+                                  title: Wrap(children: const [
+                                    Text(
+                                      "S&P Movers",
+                                      style: TextStyle(fontSize: 19.0),
+                                    ),
+                                    Icon(Icons.trending_up,
+                                        color: Colors.green, size: 28)
+                                  ]),
+                                ))),
+                        sliver: SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 200.0,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                                childAspectRatio: 1.5,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildMoversGridItem(movers, index);
+                                },
+                                childCount: movers.length,
+                              ),
+                            )))
+                  ],
+                  if (losers != null && losers.isNotEmpty) ...[
+                    SliverStickyHeader(
+                        header: Material(
+                            elevation: 2,
+                            child: Container(
+                                alignment: Alignment.centerLeft,
+                                child: ListTile(
+                                  title: Wrap(children: const [
+                                    Text(
+                                      "S&P Movers",
+                                      style: TextStyle(fontSize: 19.0),
+                                    ),
+                                    Icon(Icons.trending_down,
+                                        color: Colors.red, size: 28)
+                                  ]),
+                                ))),
+                        sliver: SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 200.0,
+                                mainAxisSpacing: 10.0,
+                                crossAxisSpacing: 10.0,
+                                childAspectRatio: 1.5,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildMoversGridItem(losers, index);
+                                },
+                                childCount: losers.length,
+                              ),
+                            )))
+                  ],
+                  if (listMovers != null && listMovers.isNotEmpty) ...[
+                    SliverStickyHeader(
+                        header: Material(
+                            elevation: 2,
+                            child: Container(
+                                alignment: Alignment.centerLeft,
+                                child: ListTile(
+                                  title: Wrap(children: const [
+                                    Text(
+                                      "Top Movers",
+                                      style: TextStyle(fontSize: 19.0),
+                                    ),
+                                  ]),
+                                ))),
+                        sliver: SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 150.0,
+                                mainAxisSpacing: 6.0,
+                                crossAxisSpacing: 2.0,
+                                childAspectRatio: 1.3,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildListGridItem(
+                                      listMovers, index, widget.user);
+                                },
+                                childCount: listMovers.length,
+                              ),
+                            )))
+                  ],
+                  if (listMostPopular != null &&
+                      listMostPopular.isNotEmpty) ...[
+                    SliverStickyHeader(
+                        header: Material(
+                            elevation: 2,
+                            child: Container(
+                                alignment: Alignment.centerLeft,
+                                child: ListTile(
+                                  title: Wrap(children: const [
+                                    Text(
+                                      "100 Most Popular",
+                                      style: TextStyle(fontSize: 19.0),
+                                    ),
+                                  ]),
+                                ))),
+                        sliver: SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithMaxCrossAxisExtent(
+                                maxCrossAxisExtent: 150.0,
+                                mainAxisSpacing: 6.0,
+                                crossAxisSpacing: 2.0,
+                                childAspectRatio: 1.3,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (BuildContext context, int index) {
+                                  return _buildListGridItem(
+                                      listMostPopular, index, widget.user);
+                                },
+                                childCount: listMostPopular.length,
+                              ),
+                            )))
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget())
+                ])));
   }
 
   Future<void> _pullRefresh() async {

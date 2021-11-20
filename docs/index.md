@@ -53,10 +53,10 @@
     - [ ] Splits & Corporate Actions view.
   - [x] Option chain view.
     - [ ] Show current price list divider with scroll to function.
-  - [ ] Stock research
-    - [ ] Movers (gainers and losers).
-    - [ ] Popular (based on average volume vs current volume).
-    - [ ] Undervalued/Overvalued (Fair value evaluation)
+- [x] Stock Search/Research
+  - [x] Movers (gainers and losers).
+  - [x] Popular (based on average volume vs current volume).
+  - [ ] Undervalued/Overvalued (Fair value evaluation)
 - Trading View
   - [ ] Place stock order.
   - [ ] Place option order.
