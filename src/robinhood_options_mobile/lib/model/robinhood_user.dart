@@ -27,7 +27,7 @@ class RobinhoodUser {
     debugPrint('Loading cache.');
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? contents = prefs.getString(Constants.cacheFilename);
+    String? contents = prefs.getString(Constants.preferencesUserKey);
     //String? contents = await Store.readFile(Constants.cacheFilename);
     if (contents == null) {
       debugPrint('No cache file found.');
@@ -51,14 +51,14 @@ class RobinhoodUser {
   static Future writeUserToStore(RobinhoodUser user) async {
     var contents = jsonEncode(user);
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(Constants.cacheFilename, contents);
+    await prefs.setString(Constants.preferencesUserKey, contents);
     //await Store.writeFile(Constants.cacheFilename, contents);
   }
 
   static Future clearUserFromStore() async {
     debugPrint("Cleared user from store.");
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove(Constants.cacheFilename);
+    await prefs.remove(Constants.preferencesUserKey);
     //await Store.deleteFile(Constants.cacheFilename);
   }
 }

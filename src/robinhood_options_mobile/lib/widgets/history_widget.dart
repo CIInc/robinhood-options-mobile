@@ -23,11 +23,6 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
-enum SortType { alphabetical, change }
-enum SortDirection { asc, desc }
-enum ChartDateSpan { hour, day, week, month, month_3, year, all }
-enum Bounds { regular, t24_7 }
-
 /*
 class DrawerItem {
   String title;
