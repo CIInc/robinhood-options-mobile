@@ -53,6 +53,8 @@ class OptionEvent {
         state = json['state'],
         totalCashAmount = double.tryParse(json['total_cash_amount']),
         type = json['type'],
-        underlyingPrice = double.tryParse(json['underlying_price']),
+        underlyingPrice = json['underlying_price'] != null
+            ? double.tryParse(json['underlying_price'])
+            : null,
         updatedAt = DateTime.tryParse(json['updated_at']);
 }
