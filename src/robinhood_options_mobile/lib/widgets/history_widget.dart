@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/extension_methods.dart';
@@ -423,7 +424,7 @@ class _HistoryPageState extends State<HistoryPage>
                 if (optionOrder.optionEvents != null) {
                   var optionEvent = optionOrder.optionEvents!.first;
                   subtitle = Text(
-                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : optionEvent.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice)}");
+                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : optionEvent.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
                 }
                 return Card(
                     child: Column(
@@ -788,6 +789,7 @@ class _HistoryPageState extends State<HistoryPage>
             child: SizedBox(
           height: 25.0,
         )));
+        slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
       }
     }
     /*
@@ -841,7 +843,7 @@ class _HistoryPageState extends State<HistoryPage>
             children: [
               const Text('History', style: TextStyle(fontSize: 20.0)),
               Text(
-                  "${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : ""} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                  "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : ""} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : ""} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
                   style:
                       const TextStyle(fontSize: 16.0, color: Colors.white70)),
             ]),

@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 enum SortType { alphabetical, change }
@@ -416,7 +417,12 @@ class _ListsWidgetState extends State<ListsWidget>
                           ))),
                   sliver: watchListWidget(watchlist.items))
             ]
-          ]
+          ],
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget())
         ])
 
         /*body: Builder(builder: (context) {

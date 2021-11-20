@@ -5,7 +5,7 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:robinhood_options_mobile/constants.dart';
 //import 'package:flutter_echarts/flutter_echarts.dart';
-
+import 'dart:math' as math;
 //import 'dart:io';
 //import 'package:open_file/open_file.dart';
 
@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 //import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
@@ -1303,15 +1304,7 @@ class _HomePageState extends State<HomePage>
               ],
             )),
             */
-        sliver: SliverToBoxAdapter(
-            child: Container(
-                //color: Colors.white,
-                //height: 420.0,
-                padding: const EdgeInsets.all(12.0),
-                child: const Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                        "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque."))))));
+        sliver: const SliverToBoxAdapter(child: DisclaimerWidget())));
     /*
     slivers.add(SliverPersistentHeader(
       // pinned: true,
@@ -2079,7 +2072,7 @@ class _HomePageState extends State<HomePage>
       floating: false,
       pinned: true,
       snap: false,
-      leading: Container(),
+      //leading: Container(),
       /*IconButton(
         icon: const Icon(Icons.menu),
         tooltip: 'Menu',
@@ -2089,7 +2082,7 @@ class _HomePageState extends State<HomePage>
           crossAxisAlignment: WrapCrossAlignment.end,
           //runAlignment: WrapAlignment.end,
           //alignment: WrapAlignment.end,
-          spacing: 10,
+          spacing: 20,
           //runSpacing: 5,
           children: [
             if (user != null) ...[
@@ -2100,18 +2093,17 @@ class _HomePageState extends State<HomePage>
                         const TextStyle(fontSize: 16.0, color: Colors.white70)),
                 //style: const TextStyle(fontSize: 20.0),
                 //textAlign: TextAlign.right
-                Wrap(children: [
+                Wrap(alignment: WrapAlignment.center, children: [
                   Icon(
-                    changeToday > 0
-                        ? Icons.trending_up
-                        : (changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (changeToday > 0
-                        ? Colors.lightGreenAccent
-                        : (changeToday < 0 ? Colors.red : Colors.grey)),
-                    //size: 16.0
-                  ),
+                      changeToday > 0
+                          ? Icons.trending_up
+                          : (changeToday < 0
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
+                      color: (changeToday > 0
+                          ? Colors.lightGreenAccent
+                          : (changeToday < 0 ? Colors.red : Colors.grey)),
+                      size: 20.0),
                   Text(formatPercentage.format(changePercentToday.abs()),
                       style: const TextStyle(
                           fontSize: 16.0, color: Colors.white70)),
@@ -2132,29 +2124,52 @@ class _HomePageState extends State<HomePage>
           builder: (BuildContext context, BoxConstraints constraints) {
         if (ru == null || ru.userName == null || portfolios == null) {
           return const FlexibleSpaceBar(title: Text('Robinhood Options'));
-        } /* else if (silverCollapsed) {
-          return Container();
-        }*/
+        }
+        //var top = constraints.biggest.height;
+        //debugPrint(top.toString());
+        //debugPrint(kToolbarHeight.toString());
+
+        final settings = context
+            .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+        final deltaExtent = settings!.maxExtent - settings.minExtent;
+        final t =
+            (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
+                .clamp(0.0, 1.0);
+        final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+        const fadeEnd = 1.0;
+        final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
         return FlexibleSpaceBar(
+            /*
             titlePadding:
                 const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+                */
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
-            //background: const FlutterLogo(),
-            title: _buildExpandedSliverAppBarTitle(
-                user,
-                portfolioValue,
-                stockAndOptionsEquityPercent,
-                portfolios,
-                optionEquityPercent,
-                optionEquity,
-                positionEquityPercent,
-                positionEquity,
-                cryptoPercent,
-                nummusEquity,
-                cashPercent,
-                portfolioCash));
+            background: Container(
+              width: double.infinity,
+              child: Image.network(
+                'https://source.unsplash.com/daily?code',
+                fit: BoxFit.cover,
+              ),
+            ),
+            //const FlutterLogo(),
+            title: Opacity(
+                //duration: Duration(milliseconds: 300),
+                opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                child: _buildExpandedSliverAppBarTitle(
+                    user,
+                    portfolioValue,
+                    stockAndOptionsEquityPercent,
+                    portfolios,
+                    optionEquityPercent,
+                    optionEquity,
+                    positionEquityPercent,
+                    positionEquity,
+                    cryptoPercent,
+                    nummusEquity,
+                    cashPercent,
+                    portfolioCash)));
       }),
       actions: <Widget>[
         IconButton(
@@ -2355,7 +2370,7 @@ class _HomePageState extends State<HomePage>
                   ),
                 ]),
                 */
-
+            /*
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -2400,6 +2415,7 @@ class _HomePageState extends State<HomePage>
                 ),
               ],
             ),
+            */
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.baseline,

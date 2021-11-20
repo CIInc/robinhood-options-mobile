@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -368,7 +369,12 @@ class _SearchWidgetState extends State<SearchWidget>
                     childCount: listMostPopular.length,
                   ),
                 ))
-          ]
+          ],
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget())
         ]));
   }
 
