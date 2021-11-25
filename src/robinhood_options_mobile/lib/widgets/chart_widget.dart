@@ -60,9 +60,8 @@ class _ChartState extends State<Chart> {
           ),
       selectionModels: [
         charts.SelectionModelConfig(
-          type: charts.SelectionModelType.info,
-          changedListener: _onSelectionChanged,
-        )
+            type: charts.SelectionModelType.info,
+            changedListener: _onSelectionChanged)
       ],
       behaviors: [
         charts.SelectNearest(

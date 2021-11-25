@@ -51,6 +51,8 @@ class Instrument {
   InstrumentHistoricals? instrumentHistoricalsObj;
   OptionChain? optionChainObj;
   List<dynamic>? newsObj;
+  List<dynamic>? listsObj;
+  dynamic ratingsObj;
   List<PositionOrder>? positionOrders;
   List<OptionOrder>? optionOrders;
 

@@ -2,10 +2,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -28,6 +30,7 @@ import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatExpirationDate = DateFormat('yyyy-MM-dd');
 final formatCompactDate = DateFormat("MMMd");
+final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
@@ -52,6 +55,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<InstrumentHistoricals?>? futureHistoricals;
   Future<OptionChain>? futureOptionChain;
   Future<List<dynamic>>? futureNews;
+  Future<List<dynamic>>? futureLists;
+  Future<dynamic>? futureRatings;
   Future<List<PositionOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
 
@@ -167,6 +172,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     futureNews ??= RobinhoodService.getNews(user, instrument.symbol);
 
+    futureLists ??= RobinhoodService.getLists(user, instrument.id);
+
+    futureRatings ??= RobinhoodService.getRatings(user, instrument.id);
+
     String? bounds;
     String? interval;
     String? span;
@@ -227,6 +236,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureHistoricals as Future,
         futureOptionChain as Future,
         futureNews as Future,
+        futureLists as Future,
+        futureRatings as Future,
         futureInstrumentOrders as Future,
         futureOptionOrders as Future
       ]),
@@ -235,19 +246,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           List<dynamic> data = snapshot.data as List<dynamic>;
           instrument.quoteObj = data.isNotEmpty ? data[0] : null;
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
+
+          if (instrument.instrumentHistoricalsObj == null ||
+              data[2].bounds != instrument.instrumentHistoricalsObj!.bounds ||
+              data[2].span != instrument.instrumentHistoricalsObj!.span) {
+            chart = null;
+          }
+
           instrument.instrumentHistoricalsObj =
               data.length > 2 ? data[2] : null;
           instrument.optionChainObj = data.length > 3 ? data[3] : null;
           instrument.newsObj = data.length > 4 ? data[4] : null;
-          instrument.positionOrders = data.length > 5 ? data[5] : null;
-          instrument.optionOrders = data.length > 6 ? data[6] : null;
+          instrument.listsObj = data.length > 5 ? data[5] : null;
+          instrument.ratingsObj = data.length > 6 ? data[6] : null;
+          instrument.positionOrders = data.length > 7 ? data[7] : null;
+          instrument.optionOrders = data.length > 8 ? data[8] : null;
 
           positionOrders = instrument.positionOrders!;
           _calculatePositionOrderBalance();
           optionOrders = instrument.optionOrders!;
           _calculateOptionOrderBalance();
-
-          chart = null;
 
           expirationDates = instrument.optionChainObj!.expirationDates;
           expirationDates!.sort((a, b) => a.compareTo(b));
@@ -331,7 +349,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               background: SizedBox(
                 width: double.infinity,
                 child: Image.network(
-                  'https://source.unsplash.com/daily?code',
+                  Constants.flexibleSpaceBarBackground,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -366,6 +384,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     0)
             .toList();
             */
+      var brightness = MediaQuery.of(context).platformBrightness;
+      var textColor = Theme.of(context).colorScheme.background;
+      if (brightness == Brightness.dark) {
+        textColor = Colors.grey.shade500;
+      } else {
+        textColor = Colors.grey.shade700;
+      }
+      var open = instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
+      var close = instrument
+          .instrumentHistoricalsObj!
+          .historicals[
+              instrument.instrumentHistoricalsObj!.historicals.length - 1]
+          .closePrice!;
+      double changeToday = close - open;
+      double changePercentToday = changeToday / close;
+
+      if (selection != null) {
+// portfolios![0].equityPreviousClose!;
+      }
+
       if (chart == null) {
         List<charts.Series<dynamic, DateTime>> seriesList = [
           charts.Series<InstrumentHistorical, DateTime>(
@@ -403,78 +441,83 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             data: instrument.instrumentHistoricalsObj!.historicals,
           ),
         ];
-        var open =
-            instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
-        var close = instrument
-            .instrumentHistoricalsObj!
-            .historicals[
-                instrument.instrumentHistoricalsObj!.historicals.length - 1]
-            .closePrice!;
         chart = Chart(seriesList,
             open: open,
             close: close,
-            hiddenSeries: const ["Volume", "Open", "Low", "High"],
+            hiddenSeries: const ["Close", "Volume", "Low", "High"],
             onSelected: _onChartSelection);
-        /*
-        chart = charts.TimeSeriesChart(
-          seriesList,
-          defaultRenderer:
-              charts.LineRendererConfig(includeArea: true, stacked: false),
-          animate: true,
-          primaryMeasureAxis: const charts.NumericAxisSpec(
-              tickProviderSpec:
-                  charts.BasicNumericTickProviderSpec(zeroBound: false)),
-          selectionModels: [
-            charts.SelectionModelConfig(
-              type: charts.SelectionModelType.info,
-              changedListener: (charts.SelectionModel model) {
-                if (model.hasDatumSelection) {
-                  var selected =
-                      model.selectedDatum[0].datum as InstrumentHistorical;
-                  setState(() {
-                    selection = selected;
-                  });
-                }
-              },
-            )
-          ],
-          behaviors: [
-            charts.SeriesLegend(
-                defaultHiddenSeries: const ["Volume", "Open", "Low", "High"])
-          ],
-        );
-        */
       }
+
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 320,
+              height: 36,
+              child: Center(
+                  child: Column(children: [
+                if (selection != null) ...[
+                  Wrap(
+                    //spacing: 8,
+                    children: [
+                      Text(
+                          "O ${formatCurrency.format(selection!.openPrice)} H ${formatCurrency.format(selection!.highPrice)} L ${formatCurrency.format(selection!.lowPrice)} C ${formatCurrency.format(selection!.closePrice)}",
+                          style: const TextStyle(fontSize: 14)),
+                      /*
+                            Text(
+                                "Volume ${formatCompactNumber.format(selection!.volume)}",
+                                style: const TextStyle(fontSize: 11))
+                                */
+                    ],
+                  ),
+                  Text(formatLongDate.format(selection!.beginsAt!.toLocal()),
+                      style: TextStyle(fontSize: 10, color: textColor)),
+                ] else ...[
+                  Wrap(children: [
+                    Text(formatCurrency.format(close),
+                        style: TextStyle(fontSize: 20, color: textColor)),
+                    Container(
+                      width: 10,
+                    ),
+                    Icon(
+                      changeToday > 0
+                          ? Icons.trending_up
+                          : (changeToday < 0
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
+                      color: (changeToday > 0
+                          ? Colors.green
+                          : (changeToday < 0 ? Colors.red : Colors.grey)),
+                      //size: 16.0
+                    ),
+                    Container(
+                      width: 2,
+                    ),
+                    Text(formatPercentage.format(changePercentToday.abs()),
+                        style: TextStyle(fontSize: 20.0, color: textColor)),
+                    Container(
+                      width: 10,
+                    ),
+                    Text(
+                        "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
+                        style: TextStyle(fontSize: 20.0, color: textColor)),
+                  ]),
+                  Text(
+                      formatLongDate.format(instrument
+                          .instrumentHistoricalsObj!
+                          .historicals[instrument.instrumentHistoricalsObj!
+                                  .historicals.length -
+                              1]
+                          .beginsAt!
+                          .toLocal()),
+                      style: TextStyle(fontSize: 10, color: textColor)),
+                ]
+              ])))));
+      slivers.add(SliverToBoxAdapter(
+          child: SizedBox(
+              height: 420,
               child: Padding(
                 //padding: EdgeInsets.symmetric(horizontal: 12.0),
                 padding: const EdgeInsets.all(10.0),
                 child: chart,
               ))));
-      if (selection != null) {
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: 24,
-                child: Center(
-                    child: Wrap(
-                  spacing: 8,
-                  children: [
-                    Text(formatDate.format(selection!.beginsAt!),
-                        style: const TextStyle(fontSize: 11)),
-                    Text(
-                        "Open/Close Price ${formatCurrency.format(selection!.openPrice)}, ${formatCurrency.format(selection!.closePrice)}",
-                        style: const TextStyle(fontSize: 11)),
-                    Text(
-                        "Low/High Price ${formatCurrency.format(selection!.lowPrice)}, ${formatCurrency.format(selection!.highPrice)}",
-                        style: const TextStyle(fontSize: 11)),
-                    Text(
-                        "Volume ${formatCompactNumber.format(selection!.volume)}",
-                        style: const TextStyle(fontSize: 11))
-                  ],
-                )))));
-      }
       //child: StackedAreaLineChart.withSampleData()))));
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -732,6 +775,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(fundamentalsWidget(instrument));
     }
 
+    if (instrument.ratingsObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildRatingsWidget(instrument));
+    }
+
+    if (instrument.listsObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildListsWidget(instrument));
+    }
+
     if (instrument.newsObj != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -807,13 +866,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   _onChartSelection(dynamic historical) {
-    setState(() {
-      if (historical != null) {
-        selection = historical as InstrumentHistorical;
-      } else {
-        selection = null;
+    if (historical != null) {
+      if (selection != historical as InstrumentHistorical) {
+        setState(() {
+          selection = historical;
+        });
       }
-    });
+    } else {
+      if (selection != null) {
+        setState(() {
+          selection = null;
+        });
+      }
+    }
   }
 
   Card buildOverview(Instrument instrument) {
@@ -1081,6 +1146,225 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             height: 25,
           )
         ]))));
+  }
+
+  Widget _buildRatingsWidget(Instrument instrument) {
+    return SliverStickyHeader(
+      header: Material(
+          elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: const ListTile(
+                title: Text(
+                  "Ratings",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+              ))),
+      sliver: SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 150.0,
+                //mainAxisSpacing: 6.0,
+                crossAxisSpacing: 2.0,
+                childAspectRatio: 1.3),
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                switch (index) {
+                  case 0:
+                    return Card(
+                        child: InkWell(
+                      child: Center(
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(
+                                  formatCompactNumber.format(
+                                      instrument.ratingsObj["summary"]
+                                          ["num_buy_ratings"]),
+                                  style: const TextStyle(fontSize: 21.0)),
+                              Container(
+                                height: 5,
+                              ),
+                              const Text("Buy",
+                                  style: TextStyle(fontSize: 17.0)),
+                              //const Text("Delta",
+                              //    style: TextStyle(fontSize: 10.0)),
+                            ]),
+                      ),
+                      onTap: () {
+                        showDialog<String>(
+                          context: context,
+                          builder: (BuildContext context) => AlertDialog(
+                            title: const Text('Buy Ratings'),
+                            content: SingleChildScrollView(
+                                child: Column(children: [
+                              for (var rating
+                                  in instrument.ratingsObj["ratings"]) ...[
+                                if (rating["type"] == "buy") ...[
+                                  Text("${rating["text"]}\n"),
+                                  Text(
+                                      "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
+                                      style: const TextStyle(fontSize: 11.0)),
+                                ]
+                              ]
+                            ])),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, 'OK'),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ));
+                  case 1:
+                    return Card(
+                      child: Center(
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(
+                                  formatCompactNumber.format(
+                                      instrument.ratingsObj["summary"]
+                                          ["num_hold_ratings"]),
+                                  style: const TextStyle(fontSize: 21.0)),
+                              Container(
+                                height: 5,
+                              ),
+                              const Text("Hold",
+                                  style: TextStyle(fontSize: 17.0)),
+                              //const Text("Gamma",
+                              //    style: TextStyle(fontSize: 10.0)),
+                            ]),
+                      ),
+                    );
+                  case 2:
+                    return Card(
+                        child: InkWell(
+                      child: Center(
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(
+                                  formatCompactNumber.format(
+                                      instrument.ratingsObj["summary"]
+                                          ["num_sell_ratings"]),
+                                  style: const TextStyle(fontSize: 21.0)),
+                              Container(
+                                height: 5,
+                              ),
+                              const Text("Sell",
+                                  style: TextStyle(fontSize: 17.0)),
+                              //const Text("Theta",
+                              //    style: TextStyle(fontSize: 10.0)),
+                            ]),
+                      ),
+                      onTap: () {
+                        showDialog<String>(
+                          context: context,
+                          builder: (BuildContext context) => AlertDialog(
+                            title: const Text('Sell Ratings'),
+                            content: SingleChildScrollView(
+                                child: Column(children: [
+                              for (var rating
+                                  in instrument.ratingsObj["ratings"]) ...[
+                                if (rating["type"] == "sell") ...[
+                                  Text("${rating["text"]}\n"),
+                                  Text(
+                                      "${formatLongDate.format(DateTime.parse(rating["published_at"]))}\n",
+                                      style: const TextStyle(fontSize: 11.0)),
+                                ]
+                              ]
+                            ])),
+                            actions: <Widget>[
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, 'OK'),
+                                child: const Text('OK'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ));
+
+                  default:
+                }
+              },
+              childCount: 3,
+            ),
+          )),
+
+      /*
+      SliverToBoxAdapter(
+          child: Align(
+              alignment: Alignment.center,
+              child: Card(
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min, children: <Widget>[
+                        Row()
+                      ])))),
+                      */
+    );
+  }
+
+  Widget _buildListsWidget(Instrument instrument) {
+    return SliverStickyHeader(
+      header: Material(
+          elevation: 2,
+          child: Container(
+              //height: 208.0, //60.0,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: const ListTile(
+                title: Text(
+                  "Lists",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+              ))),
+      sliver: SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return Card(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: instrument.listsObj![index]["image_urls"] != null
+                    ? Image.network(instrument.listsObj![index]["image_urls"]
+                        ["circle_64:3"]) //,width: 96, height: 56
+                    : Container(), //SizedBox(width: 96, height: 56),
+                title: Text(
+                  "${instrument.listsObj![index]["display_name"]} - ${instrument.listsObj![index]["item_count"]} items",
+                ), //style: TextStyle(fontSize: 17.0)),
+                subtitle: Text(
+                    "${instrument.listsObj![index]["display_description"]}"),
+                /*
+                  trailing: Image.network(
+                      instrument.newsObj![index]["preview_image_url"])
+                      */
+                isThreeLine: true,
+                onTap: () async {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ListWidget(
+                              widget.user,
+                              widget.account,
+                              instrument.listsObj![index]["id"].toString())));
+                },
+              ),
+            ],
+          ));
+
+          //if (positionOrders.length > index) {
+          //}
+        }, childCount: instrument.listsObj!.length),
+      ),
+    );
   }
 
   Widget _buildNewsWidget(Instrument instrument) {

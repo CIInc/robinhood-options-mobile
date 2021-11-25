@@ -593,13 +593,18 @@ class RobinhoodService {
     return list;
   }
 
-  static Future<dynamic> getLists(
+  static Future<List<dynamic>> getLists(
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
-    var resultJson = await getJson(user,
+    var results = await pagedGet(user,
         "${Constants.robinHoodEndpoint}/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
-    return resultJson;
+    List<dynamic> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+    }
+    return list;
   }
 
   static Future<dynamic> getDividends(
@@ -616,7 +621,7 @@ class RobinhoodService {
     //https://api.robinhood.com/midlands/ratings/943c5009-a0bb-4665-8cf4-a95dab5874e4/overview/
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     var resultJson = await getJson(
-        user, "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId");
+        user, "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
     return resultJson;
   }
 
@@ -1112,11 +1117,7 @@ WATCHLIST
         "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
     var userItemsJson = await getJson(user, watchlistsUrl);
     for (var entry in userItemsJson.entries) {
-      var watchlistUrl =
-          "${Constants.robinHoodEndpoint}/midlands/lists/${entry.key}/?owner_type=custom";
-      var entryJson = await getJson(user, watchlistUrl);
-
-      var wl = Watchlist.fromJson(entryJson);
+      Watchlist wl = await getList(entry.key, user);
 
       list.add(wl);
       yield list;
@@ -1162,6 +1163,67 @@ WATCHLIST
         }
       }
     }
+  }
+
+  static Stream<List<Watchlist>> streamList(String key, RobinhoodUser user,
+      {String ownerType = "custom"}) async* {
+    List<Watchlist> list = [];
+    Watchlist wl = await getList(key, user, ownerType: ownerType);
+
+    list.add(wl);
+    yield list;
+    /*
+      var instrumentIds = entry.value
+          .where((e) => e['object_type'] == "instrument")
+          .map((e) => e['object_id'].toString())
+          .toList();
+      var instrumentObjs = await getInstrumentsByIds(user, instrumentIds);
+      for (var instrumentObj in instrumentObjs) {
+        var watchlistItem =
+            WatchlistItem(instrumentObj.id, DateTime.now(), entry.key, "");
+        watchlistItem.instrumentObj = instrumentObj;
+        wl.items.add(watchlistItem);
+        yield list;
+      }
+
+      var instrumentUrls = wl.items
+          .where((e) => e.instrumentObj != null)
+          .map((e) => e.instrumentObj!.url)
+          .toList();
+      var quoteObjs = await getQuoteByInstrumentUrls(user, instrumentUrls);
+      for (var quoteObj in quoteObjs) {
+        var watchlistItem = wl.items
+            .where(
+                (element) => element.instrumentObj!.symbol == quoteObj.symbol)
+            .first;
+        watchlistItem.instrumentObj!.quoteObj = quoteObj;
+        yield list;
+      }
+
+      List<String> forexIds = List<String>.from(entry.value
+          .where((e) => e['object_type'] == "currency_pair")
+          .map((e) => e['object_id'].toString()));
+      if (forexIds.isNotEmpty) {
+        var forexQuotes = await getForexQuoteByIds(user, forexIds);
+        for (var forexQuote in forexQuotes) {
+          var watchlistItem =
+              WatchlistItem(forexQuote['id'], DateTime.now(), entry.key, "");
+          watchlistItem.forexObj = forexQuote;
+          wl.items.add(watchlistItem);
+          yield list;
+        }
+      }
+  */
+  }
+
+  static Future<Watchlist> getList(String key, RobinhoodUser user,
+      {String ownerType = "custom"}) async {
+    var watchlistUrl =
+        "${Constants.robinHoodEndpoint}/midlands/lists/$key/?owner_type=$ownerType";
+    var entryJson = await getJson(user, watchlistUrl);
+
+    var wl = Watchlist.fromJson(entryJson);
+    return wl;
   }
 
   /*

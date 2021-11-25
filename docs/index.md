@@ -39,16 +39,14 @@
 
 ### Views
 
-- Option view
-  - [x] Option greeks view.
-    - [ ] Risk analysis with charts.
 - Stock view
   - [x] Instrument (Stock) view
     - [x] Positions, options, orders view
     - [x] Fundamentals view.
     - [x] Historical charts view.
-    - [ ] Related stock view.
+    - [x] Related lists view.
     - [x] News view.
+    - [x] Ratings view.
     - [ ] Earnings view.
     - [ ] Splits & Corporate Actions view.
   - [x] Option chain view.
@@ -57,9 +55,12 @@
   - [x] Movers (gainers and losers).
   - [x] Popular (based on average volume vs current volume).
   - [ ] Undervalued/Overvalued (Fair value evaluation)
-- Trading View
+- Option view
+  - [x] Option greeks view.
+    - [ ] Risk analysis with charts.
+- Trading view
   - [ ] Place stock order.
-  - [ ] Place option order.
+  - [x] Place option order.
     - [ ] buy-to-close, sell-to-open, limit, time-in-force
     - [ ] Multi-leg strategies.
       - [ ] Call/Put debit/credit spreads.
@@ -69,7 +70,7 @@
   - [ ] Place crypto order.
   - [ ] Cancel pending order.
   - [ ] Replace order.
-- Account View
+- Account view
   - [ ] Manage multiple account on the trading platform.
   - [ ] Allow the switching between acounts without having to logout.
 

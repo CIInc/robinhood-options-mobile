@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 //import 'package:flutter_echarts/flutter_echarts.dart';
 import 'dart:math' as math;
@@ -413,13 +414,19 @@ class _HomePageState extends State<HomePage>
   }
 
   _onChartSelection(dynamic historical) {
-    setState(() {
-      if (historical != null) {
-        selection = historical as EquityHistorical;
-      } else {
-        selection = null;
+    if (historical != null) {
+      if (selection != historical as EquityHistorical) {
+        setState(() {
+          selection = historical;
+        });
       }
-    });
+    } else {
+      if (selection != historical) {
+        setState(() {
+          selection = null;
+        });
+      }
+    }
   }
 
   void resetChart(ChartDateSpan span, Bounds bounds) {
@@ -633,7 +640,7 @@ class _HomePageState extends State<HomePage>
                                     ? Icons.trending_down
                                     : Icons.trending_flat),
                             color: (changeToday > 0
-                                ? Colors.lightGreenAccent
+                                ? Colors.green
                                 : (changeToday < 0 ? Colors.red : Colors.grey)),
                             //size: 16.0
                           ),
@@ -655,10 +662,13 @@ class _HomePageState extends State<HomePage>
                       ],
                     ),
                     if (selection != null) ...[
-                      Text(formatLongDate.format(selection!.beginsAt!),
+                      Text(
+                          formatLongDate.format(selection!.beginsAt!.toLocal()),
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ] else ...[
-                      Text(formatLongDate.format(portfolios![0].updatedAt!),
+                      Text(
+                          formatLongDate
+                              .format(portfolios![0].updatedAt!.toLocal()),
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ]
                     /*
@@ -674,7 +684,7 @@ class _HomePageState extends State<HomePage>
 
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(
-                height: 320,
+                height: 420,
                 child: Padding(
                   //padding: EdgeInsets.symmetric(horizontal: 12.0),
                   padding: const EdgeInsets.all(10.0),
@@ -841,8 +851,9 @@ class _HomePageState extends State<HomePage>
       if (optionPositions != null) {
         var filteredOptionAggregatePositions = optionPositions
             .where((element) =>
-                (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                    (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                        (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
                 (positionFilters.isEmpty ||
                     positionFilters
                         .contains(element.legs.first.positionType)) &&
@@ -952,9 +963,10 @@ class _HomePageState extends State<HomePage>
       if (positions != null) {
         var filteredPositions = positions
             .where((element) =>
-                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                    //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
+                    (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                        (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
                 /*
                 (days == 0 ||
                     element.createdAt!
@@ -1044,9 +1056,9 @@ class _HomePageState extends State<HomePage>
 
         var filteredHoldings = nummusHoldings
             .where((element) =>
-                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                (!hasQuantityFilters[1] || element.quantity! <= 0) &&
+                ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                    (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                        (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
                 /*
                 (days == 0 ||
                     element.createdAt!
@@ -2101,7 +2113,7 @@ class _HomePageState extends State<HomePage>
                               ? Icons.trending_down
                               : Icons.trending_flat),
                       color: (changeToday > 0
-                          ? Colors.lightGreenAccent
+                          ? Colors.green
                           : (changeToday < 0 ? Colors.red : Colors.grey)),
                       size: 20.0),
                   Text(formatPercentage.format(changePercentToday.abs()),
@@ -2146,14 +2158,14 @@ class _HomePageState extends State<HomePage>
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
+            //background: const FlutterLogo(),
             background: SizedBox(
               width: double.infinity,
               child: Image.network(
-                'https://source.unsplash.com/daily?code',
+                Constants.flexibleSpaceBarBackground,
                 fit: BoxFit.cover,
               ),
             ),
-            //const FlutterLogo(),
             title: Opacity(
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
@@ -2760,7 +2772,7 @@ class _HomePageState extends State<HomePage>
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(
-              'Expires ${formatDate.format(op.legs.first.expirationDate!)}'),
+              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
             Icon(
                 op.gainLossPerContract > 0

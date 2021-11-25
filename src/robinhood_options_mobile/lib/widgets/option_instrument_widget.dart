@@ -1,5 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
@@ -108,309 +110,375 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
           SliverAppBar(
-            //title: Text(instrument.symbol), // Text('${optionInstrument.symbol} \$${optionInstrument.strikePrice} ${optionInstrument.strategy.split('_').first} ${optionInstrument.type.toUpperCase()}')
-            expandedHeight: optionPosition != null ? 260 : 160,
-            flexibleSpace: FlexibleSpaceBar(
-                //background: const FlutterLogo(),
-                title: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                  Row(children: const [SizedBox(height: 70)]),
-                  Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.end,
-                      //runAlignment: WrapAlignment.end,
-                      //alignment: WrapAlignment.end,
-                      spacing: 20,
-                      //runSpacing: 5,
-                      children: [
-                        Text(
-                            '${optionInstrument.chainSymbol} \$${optionInstrument.strikePrice} ${optionInstrument.type}',
-                            style: const TextStyle(fontSize: 20.0)),
-                        Text(
-                            formatDate.format(optionInstrument.expirationDate!),
-                            style: const TextStyle(fontSize: 15.0))
-                      ]),
-                  if (optionPosition != null) ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  "Strategy",
-                                  style: TextStyle(fontSize: 10.0),
-                                ),
-                              )
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 115,
-                            child: Text(
-                                "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
+              title: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  //runAlignment: WrapAlignment.end,
+                  //alignment: WrapAlignment.end,
+                  spacing: 10,
+                  //runSpacing: 5,
+                  children: [
+                    Text(optionInstrument.chainSymbol),
+                    Text("\$${optionInstrument.strikePrice}"),
+                    Text(optionInstrument.type.toUpperCase()),
+                    Text(formatDate.format(optionInstrument.expirationDate!))
+                  ]),
+              expandedHeight: optionPosition != null ? 240 : 160,
+              floating: false,
+              pinned: true,
+              snap: false,
+              flexibleSpace: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                //var top = constraints.biggest.height;
+                //debugPrint(top.toString());
+                //debugPrint(kToolbarHeight.toString());
+
+                final settings = context.dependOnInheritedWidgetOfExactType<
+                    FlexibleSpaceBarSettings>();
+                final deltaExtent = settings!.maxExtent - settings.minExtent;
+                final t = (1.0 -
+                        (settings.currentExtent - settings.minExtent) /
+                            deltaExtent)
+                    .clamp(0.0, 1.0);
+                final fadeStart =
+                    math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+                const fadeEnd = 1.0;
+                final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+                return FlexibleSpaceBar(
+                    //background: const FlutterLogo(),
+                    background: SizedBox(
+                      width: double.infinity,
+                      child: Image.network(
+                        Constants.flexibleSpaceBarBackground,
+                        fit: BoxFit.cover,
+                      ),
                     ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  "Contracts",
-                                  style: TextStyle(fontSize: 10.0),
+                    title: Opacity(
+                        //duration: Duration(milliseconds: 300),
+                        opacity:
+                            opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                        child: SingleChildScrollView(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              if (optionPosition != null) ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: const [
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text(
+                                              "Strategy",
+                                              style: TextStyle(fontSize: 10.0),
+                                            ),
+                                          )
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    SizedBox(
+                                        width: 115,
+                                        child: Text(
+                                            "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right)),
+                                    Container(
+                                      width: 10,
+                                    ),
+                                  ],
                                 ),
-                              )
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 115,
-                            child: Text(
-                                "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  optionPosition.legs.first.positionType ==
-                                          "long"
-                                      ? "Cost"
-                                      : "Credit",
-                                  style: const TextStyle(fontSize: 10.0),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: const [
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text(
+                                              "Contracts",
+                                              style: TextStyle(fontSize: 10.0),
+                                            ),
+                                          )
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    SizedBox(
+                                        width: 115,
+                                        child: Text(
+                                            "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right)),
+                                    Container(
+                                      width: 10,
+                                    ),
+                                  ],
                                 ),
-                              )
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: const [
-                              SizedBox(
-                                  width: 40,
-                                  child:
-                                      Text("", //${formatPercentage.format(1)}
-                                          style: TextStyle(fontSize: 10.0),
-                                          textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 70,
-                            child: Text(
-                                formatCurrency.format(optionPosition.totalCost),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Container(
-                          width: 10,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: const [
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  "Market Value",
-                                  style: TextStyle(fontSize: 10.0),
-                                ),
-                              )
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: const [
-                              SizedBox(
-                                  width: 40,
-                                  child:
-                                      Text("", //${formatPercentage.format(1)}
-                                          style: TextStyle(fontSize: 10.0),
-                                          textAlign: TextAlign.right))
-                            ]),
-                        Container(
-                          width: 5,
-                        ),
-                        SizedBox(
-                            width: 70,
-                            child: Text(
-                                formatCurrency
-                                    .format(optionPosition.marketValue),
-                                style: const TextStyle(fontSize: 12.0),
-                                textAlign: TextAlign.right)),
-                        Container(
-                          width: 10,
-                        ),
-                      ],
-                    ),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Container(
-                            width: 10,
-                          ),
-                          Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: const [
-                                SizedBox(
-                                  width: 55,
-                                  child: Text(
-                                    "Today",
-                                    style: TextStyle(fontSize: 10.0),
-                                  ),
-                                )
-                              ]),
-                          Container(
-                            width: 5,
-                          ),
-                          Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                    width: 65,
-                                    child: Wrap(
-                                        alignment: WrapAlignment.end,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
                                         children: [
-                                          optionPosition.trendingIconToday,
-                                          Container(
-                                            width: 2,
-                                          ),
-                                          Text(
-                                              formatPercentage.format(
-                                                  optionPosition
-                                                      .changePercentToday
-                                                      .abs()),
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text(
+                                              optionPosition.legs.first
+                                                          .positionType ==
+                                                      "long"
+                                                  ? "Cost"
+                                                  : "Credit",
+                                              style: const TextStyle(
+                                                  fontSize: 10.0),
+                                            ),
+                                          )
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: const [
+                                          SizedBox(
+                                              width: 40,
+                                              child: Text(
+                                                  "", //${formatPercentage.format(1)}
+                                                  style:
+                                                      TextStyle(fontSize: 10.0),
+                                                  textAlign: TextAlign.right))
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    SizedBox(
+                                        width: 70,
+                                        child: Text(
+                                            formatCurrency.format(
+                                                optionPosition.totalCost),
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right)),
+                                    Container(
+                                      width: 10,
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.baseline,
+                                  textBaseline: TextBaseline.alphabetic,
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        children: const [
+                                          SizedBox(
+                                            width: 70,
+                                            child: Text(
+                                              "Market Value",
+                                              style: TextStyle(fontSize: 10.0),
+                                            ),
+                                          )
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: const [
+                                          SizedBox(
+                                              width: 40,
+                                              child: Text(
+                                                  "", //${formatPercentage.format(1)}
+                                                  style:
+                                                      TextStyle(fontSize: 10.0),
+                                                  textAlign: TextAlign.right))
+                                        ]),
+                                    Container(
+                                      width: 5,
+                                    ),
+                                    SizedBox(
+                                        width: 70,
+                                        child: Text(
+                                            formatCurrency.format(
+                                                optionPosition.marketValue),
+                                            style:
+                                                const TextStyle(fontSize: 12.0),
+                                            textAlign: TextAlign.right)),
+                                    Container(
+                                      width: 10,
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                      ),
+                                      Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: const [
+                                            SizedBox(
+                                              width: 55,
+                                              child: Text(
+                                                "Today",
+                                                style:
+                                                    TextStyle(fontSize: 10.0),
+                                              ),
+                                            )
+                                          ]),
+                                      Container(
+                                        width: 5,
+                                      ),
+                                      Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                                width: 65,
+                                                child: Wrap(
+                                                    alignment:
+                                                        WrapAlignment.end,
+                                                    children: [
+                                                      optionPosition
+                                                          .trendingIconToday,
+                                                      Container(
+                                                        width: 2,
+                                                      ),
+                                                      Text(
+                                                          formatPercentage.format(
+                                                              optionPosition
+                                                                  .changePercentToday
+                                                                  .abs()),
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize:
+                                                                      12.0),
+                                                          textAlign:
+                                                              TextAlign.right),
+                                                    ]))
+                                          ]),
+                                      Container(
+                                        width: 5,
+                                      ),
+                                      SizedBox(
+                                          width: 60,
+                                          child: Text(
+                                              "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
                                               style: const TextStyle(
                                                   fontSize: 12.0),
-                                              textAlign: TextAlign.right),
-                                        ]))
-                              ]),
-                          Container(
-                            width: 5,
-                          ),
-                          SizedBox(
-                              width: 60,
-                              child: Text(
-                                  "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
-                                  style: const TextStyle(fontSize: 12.0),
-                                  textAlign: TextAlign.right)),
-                          Container(
-                            width: 10,
-                          ),
-                        ]),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Container(
-                            width: 10,
-                          ),
-                          Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: const [
-                                SizedBox(
-                                  width: 55,
-                                  child: Text(
-                                    "Return",
-                                    style: TextStyle(fontSize: 10.0),
-                                  ),
-                                )
-                              ]),
-                          Container(
-                            width: 5,
-                          ),
-                          Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                    width: 65,
-                                    child: Wrap(
-                                        alignment: WrapAlignment.end,
-                                        children: [
-                                          optionPosition.trendingIcon,
-                                          Container(
-                                            width: 2,
-                                          ),
-                                          Text(
-                                              formatPercentage.format(
-                                                  optionPosition.gainLossPercent
-                                                      .abs()),
+                                              textAlign: TextAlign.right)),
+                                      Container(
+                                        width: 10,
+                                      ),
+                                    ]),
+                                Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                      ),
+                                      Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: const [
+                                            SizedBox(
+                                              width: 55,
+                                              child: Text(
+                                                "Return",
+                                                style:
+                                                    TextStyle(fontSize: 10.0),
+                                              ),
+                                            )
+                                          ]),
+                                      Container(
+                                        width: 5,
+                                      ),
+                                      Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                                width: 65,
+                                                child: Wrap(
+                                                    alignment:
+                                                        WrapAlignment.end,
+                                                    children: [
+                                                      optionPosition
+                                                          .trendingIcon,
+                                                      Container(
+                                                        width: 2,
+                                                      ),
+                                                      Text(
+                                                          formatPercentage.format(
+                                                              optionPosition
+                                                                  .gainLossPercent
+                                                                  .abs()),
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize:
+                                                                      12.0),
+                                                          textAlign:
+                                                              TextAlign.right),
+                                                    ]))
+                                          ]),
+                                      Container(
+                                        width: 5,
+                                      ),
+                                      SizedBox(
+                                          width: 60,
+                                          child: Text(
+                                              "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
                                               style: const TextStyle(
                                                   fontSize: 12.0),
-                                              textAlign: TextAlign.right),
-                                        ]))
-                              ]),
-                          Container(
-                            width: 5,
-                          ),
-                          SizedBox(
-                              width: 60,
-                              child: Text(
-                                  "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
-                                  style: const TextStyle(fontSize: 12.0),
-                                  textAlign: TextAlign.right)),
-                          Container(
-                            width: 10,
-                          ),
-                        ]),
-                  ],
-                ]))),
-            pinned: true,
-            /*
+                                              textAlign: TextAlign.right)),
+                                      Container(
+                                        width: 10,
+                                      ),
+                                    ]),
+                              ],
+                            ]))));
+                /*
           actions: <Widget>[
             IconButton(
                 icon: const Icon(Icons.shopping_cart),
@@ -421,7 +489,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         builder: (context) => TradeOptionWidget(user,
                             optionInstrument: optionInstrument)))),
           ]*/
-          ),
+              })),
           if (instrument != null) ...[
             SliverToBoxAdapter(
                 child: Align(
