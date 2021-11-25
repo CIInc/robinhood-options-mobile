@@ -658,20 +658,31 @@ class RobinhoodService {
     return resultJson;
   }
 
-  static Future<dynamic> getEarnings(
+  static Future<List<dynamic>> getEarnings(
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     var resultJson = await getJson(user,
-        "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=$instrumentId");
-    return resultJson;
+        "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/" + instrumentId + "/")}");
+    List<dynamic> list = [];
+    for (var i = 0; i < resultJson["results"].length; i++) {
+      var result = resultJson["results"][i];
+      list.add(result);
+    }
+    return list;
   }
 
-  static Future<dynamic> getSimilar(
+  static Future<List<dynamic>> getSimilar(
       RobinhoodUser user, String instrumentId) async {
     //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
     var resultJson = await getJson(user,
         "${Constants.robinhoodExploreEndpoint}/instruments/similar/$instrumentId/");
-    return resultJson;
+    //return resultJson;
+    List<dynamic> list = [];
+    for (var i = 0; i < resultJson["similar"].length; i++) {
+      var result = resultJson["similar"][i];
+      list.add(result);
+    }
+    return list;
   }
 
   /* 

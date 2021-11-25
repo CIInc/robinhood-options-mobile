@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -60,6 +61,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<List<dynamic>>? futureLists;
   Future<dynamic>? futureRatings;
   Future<dynamic>? futureRatingsOverview;
+  Future<dynamic>? futureEarnings;
+  Future<List<dynamic>>? futureSimilar;
   Future<List<PositionOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<List<OptionEvent>>? futureOptionEvents;
@@ -170,6 +173,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     futureRatingsOverview ??=
         RobinhoodService.getRatingsOverview(user, instrument.id);
 
+    futureEarnings ??= RobinhoodService.getEarnings(user, instrument.id);
+
+    futureSimilar ??= RobinhoodService.getSimilar(user, instrument.id);
+
     String? bounds;
     String? interval;
     String? span;
@@ -237,7 +244,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureRatingsOverview as Future,
         futureInstrumentOrders as Future,
         futureOptionOrders as Future,
-        futureOptionEvents as Future
+        futureOptionEvents as Future,
+        futureEarnings as Future,
+        futureSimilar as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -260,6 +269,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.positionOrders = data.length > 7 ? data[7] : null;
           instrument.optionOrders = data.length > 8 ? data[8] : null;
           instrument.optionEvents = data.length > 9 ? data[9] : null;
+          instrument.earningsObj = data.length > 10 ? data[10] : null;
+          instrument.similarObj = data.length > 11 ? data[11] : null;
 
           positionOrders = instrument.positionOrders!;
           _calculatePositionOrderBalance();
@@ -307,10 +318,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               //background: const FlutterLogo(),
               background: SizedBox(
                 width: double.infinity,
-                child: Image.network(
-                  Constants.flexibleSpaceBarBackground,
-                  fit: BoxFit.cover,
-                ),
+                child: instrument.logoUrl != null
+                    ? Image.network(
+                        instrument.logoUrl!,
+                        fit: BoxFit.none,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          return const
+                              //CircleAvatar(child: Text(""));
+                              SizedBox(width: 56, height: 56);
+                          //const Icon(Icons.error); //Text('Your error widget...');
+                        },
+                      )
+                    : Image.network(
+                        Constants.flexibleSpaceBarBackground,
+                        fit: BoxFit.cover,
+                      ),
               ),
               //const FlutterLogo(),
               title: Opacity(
@@ -751,12 +774,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(_buildRatingsOverviewWidget(instrument));
     }
 
-    if (instrument.listsObj != null) {
+    if (instrument.earningsObj != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(_buildListsWidget(instrument));
+      slivers.add(_buildEarningsWidget(instrument));
     }
 
     if (instrument.newsObj != null) {
@@ -765,6 +788,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         height: 25.0,
       )));
       slivers.add(_buildNewsWidget(instrument));
+    }
+
+    if (instrument.similarObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildSimilarWidget(instrument));
+    }
+
+    if (instrument.listsObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildListsWidget(instrument));
     }
 
     if (positionOrders.isNotEmpty) {
@@ -782,6 +821,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       )));
       slivers.add(optionOrdersWidget);
     }
+
+    slivers.add(const SliverToBoxAdapter(
+        child: SizedBox(
+      height: 25.0,
+    )));
+    slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
 
     return RefreshIndicator(
         onRefresh: _pullRefresh, child: CustomScrollView(slivers: slivers));
@@ -1349,6 +1394,183 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
           ])
         ]))));
+  }
+
+  Widget _buildEarningsWidget(Instrument instrument) {
+    var futureEarning =
+        instrument.earningsObj![instrument.earningsObj!.length - 1];
+    var pastEarning =
+        instrument.earningsObj![instrument.earningsObj!.length - 2];
+    return SliverStickyHeader(
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: const ListTile(
+                  title: Text(
+                    "Earnings",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                ))),
+        sliver: SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          for (var earning in instrument.earningsObj!) ...[
+            ListTile(
+                title: Text(
+                  "${earning!["year"]} Q${earning!["quarter"]}",
+                  style: const TextStyle(fontSize: 18.0),
+                  //overflow: TextOverflow.visible
+                ),
+                subtitle: Text(
+                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                    style: const TextStyle(fontSize: 14)),
+                trailing: (earning!["eps"]["estimate"] != null ||
+                        earning!["eps"]["actual"] != null)
+                    ? Wrap(spacing: 10.0, children: [
+                        if (earning!["eps"]["estimate"] != null) ...[
+                          Column(
+                            children: [
+                              const Text("Estimate",
+                                  style: const TextStyle(fontSize: 11)),
+                              Text(
+                                  formatCurrency.format(double.parse(
+                                      earning!["eps"]["estimate"])),
+                                  style: const TextStyle(fontSize: 18)),
+                            ],
+                          )
+                        ],
+                        if (earning!["eps"]["actual"] != null) ...[
+                          Column(children: [
+                            const Text("Actual",
+                                style: const TextStyle(fontSize: 11)),
+                            Text(
+                                formatCurrency.format(
+                                    double.parse(earning!["eps"]["actual"])),
+                                style: const TextStyle(fontSize: 18))
+                          ])
+                        ]
+                      ])
+                    : null),
+            if (earning!["call"] != null &&
+                ((pastEarning["year"] == earning!["year"] &&
+                        pastEarning["quarter"] == earning!["quarter"]) ||
+                    (futureEarning["year"] == earning!["year"] &&
+                        futureEarning["quarter"] == earning!["quarter"]))) ...[
+              if (!earning!["report"]["verified"]) ...[
+                ListTile(
+                  title: Text(
+                      "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                      style: const TextStyle(fontSize: 18)),
+                  subtitle: Text(
+                      "${formatLongDate.format(DateTime.parse(earning!["call"]["datetime"]))}", // ${earning!["report"]["timing"]}",
+                      style: const TextStyle(fontSize: 16)),
+                ),
+              ],
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
+                if (earning!["call"]["replay_url"] != null) ...[
+                  TextButton(
+                    child: const Text('LISTEN TO REPLAY'),
+                    onPressed: () async {
+                      var _url = earning!["call"]["replay_url"];
+                      await canLaunch(_url)
+                          ? await launch(_url)
+                          : throw 'Could not launch $_url';
+                    },
+                  ),
+                ],
+                if (earning!["call"]["broadcast_url"] != null) ...[
+                  Container(width: 50),
+                  TextButton(
+                    child: const Text('LISTEN TO BROADCAST'),
+                    onPressed: () async {
+                      var _url = earning!["call"]["broadcast_url"];
+                      await canLaunch(_url)
+                          ? await launch(_url)
+                          : throw 'Could not launch $_url';
+                    },
+                  ),
+                ],
+              ])
+            ],
+          ],
+        ]))));
+  }
+
+  Widget _buildSimilarWidget(Instrument instrument) {
+    return SliverStickyHeader(
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: const ListTile(
+                  title: Text(
+                    "Similar",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                ))),
+        sliver: SliverList(
+          // delegate: SliverChildListDelegate(widgets),
+          delegate:
+              SliverChildBuilderDelegate((BuildContext context, int index) {
+            return Card(
+                child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: instrument.similarObj![index]["logo_url"] != null
+                      ? Image.network(
+                          instrument.similarObj![index]["logo_url"]
+                              .toString()
+                              .replaceAll("https:////", "https://"),
+                          width: 56,
+                          height: 56,
+                          errorBuilder: (BuildContext context, Object exception,
+                              StackTrace? stackTrace) {
+                            return const
+                                //CircleAvatar(child: Text(""));
+                                SizedBox(width: 56, height: 56);
+                            //const Icon(Icons.error); //Text('Your error widget...');
+                          },
+                        )
+                      : const SizedBox(width: 56, height: 56),
+                  title: Text(
+                    "${instrument.similarObj![index]["symbol"]}",
+                  ), //style: TextStyle(fontSize: 17.0)),
+                  subtitle: Text("${instrument.similarObj![index]["name"]}"),
+                  // ["tags"][0]["name"]
+                  /*
+                  trailing: Text(instrument.similarObj![index]["extraData"]
+                      ["popularityFraction"]), // ["boostFraction"]
+                      */
+                  //isThreeLine: true,
+                  onTap: () async {
+                    var similarInstruments =
+                        await RobinhoodService.getInstrumentsByIds(widget.user,
+                            [instrument.similarObj![index]["instrument_id"]]);
+                    similarInstruments[0].logoUrl = instrument
+                        .similarObj![index]["logo_url"]
+                        .toString()
+                        .replaceAll("https:////", "https://");
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(widget.user,
+                                widget.account, similarInstruments[0])));
+                  },
+                ),
+              ],
+            ));
+
+            //if (positionOrders.length > index) {
+            //}
+          }, childCount: instrument.similarObj!.length),
+        ));
   }
 
   Widget _buildListsWidget(Instrument instrument) {
@@ -2270,53 +2492,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Iterable<Widget> get headerWidgets sync* {
     var instrument = widget.instrument;
     // yield Row(children: const [SizedBox(height: 70)]);
-    if (instrument.simpleName != null) {
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              SizedBox(
-                  width: 190,
-                  child: Text(
-                    '${instrument.simpleName}',
-                    style: const TextStyle(fontSize: 16.0),
-                    textAlign: TextAlign.left,
-                    //overflow: TextOverflow.ellipsis
-                  ))
-            ]),
-            Container(
-              width: 10,
-            ),
-          ]);
-    } else {
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              SizedBox(
-                  width: 190,
-                  child: Text(
-                    '$instrument.name',
-                    style: const TextStyle(fontSize: 14.0),
-                    textAlign: TextAlign.left,
-                    //overflow: TextOverflow.ellipsis
-                  ))
-            ]),
-            Container(
-              width: 10,
-            ),
-          ]);
-    }
+    yield Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Container(
+            width: 10,
+          ),
+          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+            SizedBox(
+                width: 190,
+                child: Text(
+                  '${instrument.name != "" ? instrument.name : instrument.simpleName}',
+                  //instrument.simpleName ?? instrument.name,
+                  style: const TextStyle(fontSize: 16.0),
+                  textAlign: TextAlign.left,
+                  //overflow: TextOverflow.ellipsis
+                ))
+          ]),
+          Container(
+            width: 10,
+          ),
+        ]);
     /*
     yield Row(children: const [SizedBox(height: 10)]);
     */
@@ -2411,6 +2609,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
           ]);
           */
+      /*
       if (instrument.quoteObj!.lastExtendedHoursTradePrice != null) {
         yield Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -2540,6 +2739,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               width: 10,
             ),
           ]);
+          */
     }
     /*
     yield Row(

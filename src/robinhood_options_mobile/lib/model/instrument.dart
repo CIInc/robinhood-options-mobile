@@ -55,9 +55,12 @@ class Instrument {
   List<dynamic>? listsObj;
   dynamic ratingsObj;
   dynamic ratingsOverviewObj;
+  List<dynamic>? earningsObj;
+  List<dynamic>? similarObj;
   List<PositionOrder>? positionOrders;
   List<OptionOrder>? optionOrders;
   List<OptionEvent>? optionEvents;
+  String? logoUrl;
 
   List<Split> splitsObj = [];
 
