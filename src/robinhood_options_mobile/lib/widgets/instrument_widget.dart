@@ -1435,7 +1435,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           Column(
                             children: [
                               const Text("Estimate",
-                                  style: const TextStyle(fontSize: 11)),
+                                  style: TextStyle(fontSize: 11)),
                               Text(
                                   formatCurrency.format(double.parse(
                                       earning!["eps"]["estimate"])),
@@ -1446,7 +1446,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         if (earning!["eps"]["actual"] != null) ...[
                           Column(children: [
                             const Text("Actual",
-                                style: const TextStyle(fontSize: 11)),
+                                style: TextStyle(fontSize: 11)),
                             Text(
                                 formatCurrency.format(
                                     double.parse(earning!["eps"]["actual"])),
@@ -1466,7 +1466,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
                       style: const TextStyle(fontSize: 18)),
                   subtitle: Text(
-                      "${formatLongDate.format(DateTime.parse(earning!["call"]["datetime"]))}", // ${earning!["report"]["timing"]}",
+                      formatLongDate.format(DateTime.parse(earning!["call"]
+                          ["datetime"])), // ${earning!["report"]["timing"]}",
                       style: const TextStyle(fontSize: 16)),
                 ),
               ],
