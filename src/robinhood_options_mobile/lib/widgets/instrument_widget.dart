@@ -6,7 +6,9 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -57,11 +59,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<List<dynamic>>? futureNews;
   Future<List<dynamic>>? futureLists;
   Future<dynamic>? futureRatings;
+  Future<dynamic>? futureRatingsOverview;
   Future<List<PositionOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
-
-  Stream<List<OptionInstrument>>? optionInstrumentStream;
-  List<OptionInstrument>? optionInstruments;
+  Future<List<OptionEvent>>? futureOptionEvents;
 
   //charts.TimeSeriesChart? chart;
   Chart? chart;
@@ -75,13 +76,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   final List<bool> hasQuantityFilters = [true, false];
 
   final List<String> orderFilters = <String>["confirmed", "filled"];
-
-  List<DateTime>? expirationDates;
-  DateTime? expirationDateFilter;
-  String? actionFilter = "Buy";
-  String? typeFilter = "Call";
-
-  final List<bool> isSelected = [true, false];
 
   List<OptionAggregatePosition> optionPositions = [];
   List<OptionOrder> optionOrders = [];
@@ -168,13 +162,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureFundamentals ??= Future.value(instrument.fundamentalsObj);
     }
 
-    futureOptionChain ??= RobinhoodService.getOptionChains(user, instrument.id);
-
     futureNews ??= RobinhoodService.getNews(user, instrument.symbol);
 
     futureLists ??= RobinhoodService.getLists(user, instrument.id);
 
     futureRatings ??= RobinhoodService.getRatings(user, instrument.id);
+    futureRatingsOverview ??=
+        RobinhoodService.getRatingsOverview(user, instrument.id);
 
     String? bounds;
     String? interval;
@@ -228,18 +222,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         user, instrument.symbol,
         interval: interval, span: span, bounds: bounds);
 
+    futureOptionEvents ??= RobinhoodService.getOptionEventsByInstrumentUrl(
+        widget.user, instrument.url);
+
     return Scaffold(
         body: FutureBuilder(
       future: Future.wait([
         futureQuote as Future,
         futureFundamentals as Future,
         futureHistoricals as Future,
-        futureOptionChain as Future,
         futureNews as Future,
         futureLists as Future,
         futureRatings as Future,
+        futureRatingsOverview as Future,
         futureInstrumentOrders as Future,
-        futureOptionOrders as Future
+        futureOptionOrders as Future,
+        futureOptionEvents as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -255,59 +253,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           instrument.instrumentHistoricalsObj =
               data.length > 2 ? data[2] : null;
-          instrument.optionChainObj = data.length > 3 ? data[3] : null;
-          instrument.newsObj = data.length > 4 ? data[4] : null;
-          instrument.listsObj = data.length > 5 ? data[5] : null;
-          instrument.ratingsObj = data.length > 6 ? data[6] : null;
+          instrument.newsObj = data.length > 3 ? data[3] : null;
+          instrument.listsObj = data.length > 4 ? data[4] : null;
+          instrument.ratingsObj = data.length > 5 ? data[5] : null;
+          instrument.ratingsOverviewObj = data.length > 6 ? data[6] : null;
           instrument.positionOrders = data.length > 7 ? data[7] : null;
           instrument.optionOrders = data.length > 8 ? data[8] : null;
+          instrument.optionEvents = data.length > 9 ? data[9] : null;
 
           positionOrders = instrument.positionOrders!;
           _calculatePositionOrderBalance();
           optionOrders = instrument.optionOrders!;
           _calculateOptionOrderBalance();
 
-          expirationDates = instrument.optionChainObj!.expirationDates;
-          expirationDates!.sort((a, b) => a.compareTo(b));
-          if (expirationDates!.isNotEmpty) {
-            expirationDateFilter ??= expirationDates!.first;
-          }
-
-          optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
-              user,
-              instrument,
-              expirationDateFilter != null
-                  ? formatExpirationDate.format(expirationDateFilter!)
-                  : null,
-              null); // 'call'
-
-          return StreamBuilder<List<OptionInstrument>>(
-              stream: optionInstrumentStream,
-              builder: (BuildContext context,
-                  AsyncSnapshot<List<OptionInstrument>> snapshot) {
-                if (snapshot.hasData) {
-                  optionInstruments = snapshot.data!;
-
-                  /*
-                  expirationDates = optionInstruments!
-                      .map((e) => e.expirationDate!)
-                      .toSet()
-                      .toList();
-                  expirationDates!.sort((a, b) => a.compareTo(b));
-                  if (expirationDates!.isNotEmpty) {
-                    expirationDateFilter ??= expirationDates!.first;
-                  }
-                  */
-
-                  return buildScrollView(instrument,
-                      optionInstruments: optionInstruments,
-                      position: widget.position);
-                } else if (snapshot.hasError) {
-                  debugPrint("${snapshot.error}");
-                  return Text("${snapshot.error}");
-                }
-                return buildScrollView(instrument, position: widget.position);
-              });
+          return buildScrollView(instrument, position: widget.position);
         } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Text("${snapshot.error}");
@@ -775,12 +734,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(fundamentalsWidget(instrument));
     }
 
-    if (instrument.ratingsObj != null) {
+    if (instrument.ratingsObj != null &&
+        instrument.ratingsObj["summary"] != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
       slivers.add(_buildRatingsWidget(instrument));
+    }
+
+    if (instrument.ratingsOverviewObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildRatingsOverviewWidget(instrument));
     }
 
     if (instrument.listsObj != null) {
@@ -815,39 +783,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(optionOrdersWidget);
     }
 
-    if (optionInstruments != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(SliverStickyHeader(
-          header: Material(
-              elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                          //height: 40,
-                          padding:
-                              const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 0),
-                          //const EdgeInsets.all(4.0),
-                          //EdgeInsets.symmetric(horizontal: 16.0),
-                          child: const Text(
-                            "Option Chain",
-                            style: TextStyle(fontSize: 19.0),
-                          )),
-                      optionChainFilterWidget
-                    ],
-                  ))),
-          sliver: optionInstrumentsWidget(optionInstruments, instrument,
-              optionPosition: widget.optionPosition)));
-    }
-
     return RefreshIndicator(
         onRefresh: _pullRefresh, child: CustomScrollView(slivers: slivers));
   }
@@ -861,7 +796,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureNews = null;
       //futureInstrumentOrders = null;
       //futureOptionOrders = null;
-      optionInstrumentStream = null;
     });
   }
 
@@ -950,6 +884,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
+            TextButton(
+              child: const Text('VIEW OPTION CHAIN'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentOptionChainWidget(
+                            widget.user, widget.account, instrument)));
+              },
+            ),
+            const SizedBox(width: 8),
             TextButton(
               child: const Text('BUY'),
               onPressed: () => showDialog<String>(
@@ -1297,7 +1242,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               childCount: 3,
             ),
           )),
-
       /*
       SliverToBoxAdapter(
           child: Align(
@@ -1309,6 +1253,102 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ])))),
                       */
     );
+  }
+
+  Widget _buildRatingsOverviewWidget(Instrument instrument) {
+    return SliverStickyHeader(
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: const ListTile(
+                  title: Text(
+                    "Research",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                ))),
+        sliver: SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          ListTile(
+            title: Text(
+              instrument.ratingsOverviewObj!["report_title"],
+              style: const TextStyle(fontSize: 18.0),
+              //overflow: TextOverflow.visible
+            ),
+            subtitle: Text(
+                instrument.ratingsOverviewObj!["report_updated_at"] != null
+                    ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
+                    : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
+                style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            title: const Text("Fair Value"),
+            trailing: Text(
+                formatCurrency.format(double.parse(
+                    instrument.ratingsOverviewObj!["fair_value"]["value"])),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Economic Moat"),
+            trailing: Text(
+                instrument.ratingsOverviewObj!["economic_moat"]
+                    .toString()
+                    .capitalize(),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+              title: const Text("Star Rating"),
+              trailing: Wrap(
+                children: [
+                  for (var i = 0;
+                      i <
+                          int.parse(
+                              instrument.ratingsOverviewObj!["star_rating"]);
+                      i++) ...[
+                    const Icon(Icons.star),
+                  ]
+                ],
+              )
+              /*
+            Text(
+                instrument.ratingsOverviewObj!["star_rating"]
+                    .toString()
+                    .capitalize(),
+                style: const TextStyle(fontSize: 18)),
+                */
+              ),
+          ListTile(
+            title: const Text("Stewardship"),
+            trailing: Text(
+                instrument.ratingsOverviewObj!["stewardship"]
+                    .toString()
+                    .capitalize(),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Uncertainty"),
+            trailing: Text(
+                instrument.ratingsOverviewObj!["uncertainty"]
+                    .toString()
+                    .capitalize(),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
+            TextButton(
+              child: const Text('DOWNLOAD REPORT'),
+              onPressed: () async {
+                var _url = instrument.ratingsOverviewObj!["download_url"];
+                await canLaunch(_url)
+                    ? await launch(_url)
+                    : throw 'Could not launch $_url';
+              },
+            ),
+          ])
+        ]))));
   }
 
   Widget _buildListsWidget(Instrument instrument) {
@@ -1424,103 +1464,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         }, childCount: instrument.newsObj!.length),
       ),
     );
-  }
-
-  Widget get optionChainFilterWidget {
-    return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      /*
-      const ListTile(
-          title: Text("Option Chain", style: TextStyle(fontSize: 20))),
-          */
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(5.0),
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Buy'),
-                      selected: actionFilter == "Buy",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Buy" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Sell'),
-                      selected: actionFilter == "Sell",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          actionFilter = selected ? "Sell" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      label: const Text('Call'),
-                      selected: typeFilter == "Call",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Call" : null;
-                        });
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: ChoiceChip(
-                      //avatar: const Icon(Icons.history_outlined),
-                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      label: const Text('Put'),
-                      selected: typeFilter == "Put",
-                      onSelected: (bool selected) {
-                        setState(() {
-                          typeFilter = selected ? "Put" : null;
-                        });
-                      },
-                    ),
-                  )
-                ],
-              );
-            },
-            itemCount: 1,
-          )),
-      SizedBox(
-          height: 56,
-          child: ListView.builder(
-            padding: const EdgeInsets.all(5.0),
-            scrollDirection: Axis.horizontal,
-            itemBuilder: (context, index) {
-              return Row(children: expirationDateWidgets.toList());
-            },
-            itemCount: 1,
-          )),
-      /*
-      ActionChip(
-          avatar: CircleAvatar(
-            backgroundColor: Colors.grey.shade800,
-            child: const Text('AB'),
-          ),
-          label: const Text('Scroll to current price'),
-          onPressed: () {
-            //_animateToIndex(20);
-            if (dataKey.currentContext != null) {
-              Scrollable.ensureVisible(dataKey.currentContext!);
-            }
-            //print('If you stand for nothing, Burr, what’ll you fall for?');
-          })
-          */
-    ]);
   }
 
   Widget get positionOrdersWidget {
@@ -2276,142 +2219,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ));
   }
 
-  Widget optionInstrumentsWidget(
-      List<OptionInstrument> optionInstruments, Instrument instrument,
-      {OptionAggregatePosition? optionPosition}) {
-    return SliverList(
-      // delegate: SliverChildListDelegate(widgets),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          if (optionInstruments.length > index) {
-            if (typeFilter!.toLowerCase() !=
-                    optionInstruments[index].type.toLowerCase() ||
-                expirationDateFilter == null ||
-                !expirationDateFilter!.isAtSameMomentAs(
-                    optionInstruments[index].expirationDate!)) {
-              return Container();
-            }
-            // TODO: Optimize to batch calls for market data.
-            if (optionInstruments[index].optionMarketData == null) {
-              RobinhoodService.getOptionMarketData(
-                      widget.user, optionInstruments[index])
-                  .then((value) => setState(() {
-                        optionInstruments[index].optionMarketData = value;
-                      }));
-            }
-            var optionPositionsMatchingInstrument = optionPositions.where(
-                (e) => e.optionInstrument!.id == optionInstruments[index].id);
-            var optionInstrumentQuantity =
-                optionPositionsMatchingInstrument.isNotEmpty
-                    ? optionPositionsMatchingInstrument
-                        .map((e) => e.quantity ?? 0)
-                        .reduce((a, b) => a + b)
-                    : 0;
-            return Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              ListTile(
-                //key: index == 0 ? dataKey : null,
-                /*optionInstruments[index].id ==
-                          firstOptionsInstrumentsSorted.id
-                      ? dataKey
-                      : null,
-                      */
-                /*
-                  leading: CircleAvatar(
-                      backgroundColor: optionInstruments[index].type == 'call'
-                          ? Colors.green
-                          : Colors.amber,
-                      //backgroundImage: AssetImage(user.profilePicture),
-                      child: optionInstruments[index].type == 'call'
-                          ? const Text('Call')
-                          : const Text('Put')),
-                          */
-                /*
-                leading: CircleAvatar(
-                    //backgroundImage: AssetImage(user.profilePicture),
-                    child: Text('${optionOrders[index].quantity!.round()}',
-                        style: const TextStyle(fontSize: 18))),
-                leading: Icon(Icons.ac_unit),
-                */
-                leading: optionInstrumentQuantity > 0
-                    ? CircleAvatar(
-                        //backgroundImage: AssetImage(user.profilePicture),
-                        child: Text(
-                            formatCompactNumber
-                                .format(optionInstrumentQuantity),
-                            style: const TextStyle(fontSize: 18)))
-                    : null, //Icon(Icons.ac_unit),
-                title: Text(//${optionInstruments[index].chainSymbol}
-                    '\$${formatCompactNumber.format(optionInstruments[index].strikePrice)} ${optionInstruments[index].type}'), // , style: TextStyle(fontSize: 18.0)),
-                subtitle: Text(optionInstruments[index].optionMarketData != null
-                    //? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstruments[index].optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstruments[index].optionMarketData!.chanceOfProfitShort) : "-"}"
-                    ? "Breakeven ${formatCurrency.format(optionInstruments[index].optionMarketData!.breakEvenPrice)}"
-                    : ""),
-                //'Issued ${dateFormat.format(optionInstruments[index].issueDate as DateTime)}'),
-                trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      optionInstruments[index].optionMarketData != null
-                          ? Text(
-                              formatCurrency.format(optionInstruments[index]
-                                  .optionMarketData!
-                                  .markPrice),
-                              //"${formatCurrency.format(optionInstruments[index].optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstruments[index].optionMarketData!.askPrice)}",
-                              style: const TextStyle(fontSize: 18))
-                          : const Text(""),
-                      Wrap(spacing: 8, children: [
-                        Icon(
-                            instrument.quoteObj!.changeToday > 0
-                                ? Icons.trending_up
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Icons.trending_down
-                                    : Icons.trending_flat),
-                            color: (instrument.quoteObj!.changeToday > 0
-                                ? Colors.green
-                                : (instrument.quoteObj!.changeToday < 0
-                                    ? Colors.red
-                                    : Colors.grey)),
-                            size: 16),
-                        Text(
-                          optionInstruments[index].optionMarketData != null
-                              ? formatPercentage.format(optionInstruments[index]
-                                  .optionMarketData!
-                                  .gainLossPercentToday)
-                              : "-",
-                          //style: TextStyle(fontSize: 16),
-                        )
-                      ]),
-                    ]),
-                onTap: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => OptionInstrumentWidget(
-                                widget.user,
-                                widget.account,
-                                optionInstruments[index],
-                                optionPosition: optionInstrumentQuantity > 0
-                                    ? optionPosition
-                                    : null,
-                              )));
-                },
-              )
-            ]));
-
-            //return Text('\$${optionInstruments[index].strikePrice}');
-          }
-          return null;
-          // To convert this infinite list to a list with three items,
-          // uncomment the following line:
-          // if (index > 3) return null;
-        },
-        // Or, uncomment the following line:
-        // childCount: widgets.length + 10,
-      ),
-    );
-  }
-
   Widget headerTitle(Instrument instrument) {
     return Wrap(
         crossAxisAlignment: WrapCrossAlignment.start,
@@ -2773,103 +2580,5 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             style: const TextStyle(fontSize: 17.0)),
       ])
       */
-  }
-
-  Iterable<Widget> get expirationDateWidgets sync* {
-    if (expirationDates != null) {
-      for (var expirationDate in expirationDates!) {
-        yield Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: ChoiceChip(
-            //avatar: CircleAvatar(child: Text(contractCount.toString())),
-            label: Text(formatDate.format(expirationDate)),
-            selected: expirationDateFilter! == expirationDate,
-            onSelected: (bool selected) {
-              setState(() {
-                expirationDateFilter = selected ? expirationDate : null;
-              });
-              optionInstrumentStream = null;
-            },
-          ),
-        );
-        /*        
-        Padding(
-            padding: const EdgeInsets.all(14.0),
-            child: Row(
-              children: [
-                //Icon(Icons.trending_up),
-                SizedBox(width: 10),
-                Text(
-                  "${dateFormat.format(expirationDate)}",
-                  style: TextStyle(fontSize: 16),
-                )
-              ],
-            ));
-            */
-      }
-    }
-  }
-
-  Card buildOptions() {
-    return Card(
-        child: ToggleButtons(
-      children: <Widget>[
-        Padding(
-            padding: const EdgeInsets.all(14.0),
-            child: Row(
-              children: const [
-                CircleAvatar(child: Text("C", style: TextStyle(fontSize: 18))),
-                //Icon(Icons.trending_up),
-                SizedBox(width: 10),
-                Text(
-                  'Call',
-                  style: TextStyle(fontSize: 16),
-                )
-              ],
-            )),
-        Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Row(
-            children: const [
-              CircleAvatar(child: Text("P", style: TextStyle(fontSize: 18))),
-              // Icon(Icons.trending_down),
-              SizedBox(width: 10),
-              Text(
-                'Put',
-                style: TextStyle(fontSize: 16),
-              )
-            ],
-          ),
-        ),
-        //Icon(Icons.ac_unit),
-        //Icon(Icons.call),
-        //Icon(Icons.cake),
-      ],
-      onPressed: (int index) {
-        setState(() {
-          for (int buttonIndex = 0;
-              buttonIndex < isSelected.length;
-              buttonIndex++) {
-            if (buttonIndex == index) {
-              isSelected[buttonIndex] = true;
-            } else {
-              isSelected[buttonIndex] = false;
-            }
-          }
-          /*
-          if (index == 0 && futureCallOptionInstruments == null) {
-            futureCallOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'call');
-          } else if (index == 1 && futurePutOptionInstruments == null) {
-            futurePutOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'put');
-          }
-          */
-        });
-      },
-      isSelected: isSelected,
-    ));
   }
 }

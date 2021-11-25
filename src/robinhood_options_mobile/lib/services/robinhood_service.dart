@@ -582,6 +582,7 @@ class RobinhoodService {
   static Future<List<dynamic>> getNews(
       RobinhoodUser user, String symbol) async {
     //https://api.robinhood.com/midlands/news/MSFT/
+    //https://dora.robinhood.com/feed/instrument/50810c35-d215-4866-9758-0ada4ac79ffa/?
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/midlands/news/$symbol/");
 
@@ -607,21 +608,53 @@ class RobinhoodService {
     return list;
   }
 
-  static Future<dynamic> getDividends(
+  static Future<List<dynamic>> getDividends(
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
-    var resultJson = await getJson(user,
+    var results = await pagedGet(user,
         "${Constants.robinHoodEndpoint}/dividends/?instrument_id=$instrumentId");
-    return resultJson;
+    List<dynamic> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+    }
+    return list;
+  }
+
+  static Future<List<dynamic>> getRecurringTradeLogs(
+      RobinhoodUser user, String instrumentId) async {
+    //https://bonfire.robinhood.com/recurring_trade_logs/?instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
+    //https://bonfire.robinhood.com/recurring_schedules/?asset_types=equity&instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
+    var results = await pagedGet(user,
+        "${Constants.robinHoodEndpoint}/recurring_trade_logs/?instrument_id=$instrumentId");
+    List<dynamic> list = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+    }
+    return list;
   }
 
   static Future<dynamic> getRatings(
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/ratings/943c5009-a0bb-4665-8cf4-a95dab5874e4/
-    //https://api.robinhood.com/midlands/ratings/943c5009-a0bb-4665-8cf4-a95dab5874e4/overview/
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     var resultJson = await getJson(
         user, "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
+    return resultJson;
+  }
+
+  static Future<dynamic> getRatingsOverview(
+      RobinhoodUser user, String instrumentId) async {
+    //https://api.robinhood.com/midlands/ratings/50810c35-d215-4866-9758-0ada4ac79ffa/overview/
+    dynamic resultJson;
+    try {
+      resultJson = await getJson(user,
+          "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/overview/");
+    } on Exception catch (e) {
+      // Format
+      debugPrint('No rating overview found. Error: $e');
+    }
     return resultJson;
   }
 
@@ -630,6 +663,14 @@ class RobinhoodService {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     var resultJson = await getJson(user,
         "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=$instrumentId");
+    return resultJson;
+  }
+
+  static Future<dynamic> getSimilar(
+      RobinhoodUser user, String instrumentId) async {
+    //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
+    var resultJson = await getJson(user,
+        "${Constants.robinhoodExploreEndpoint}/instruments/similar/$instrumentId/");
     return resultJson;
   }
 
@@ -644,7 +685,7 @@ class RobinhoodService {
         await getAggregateOptionPositions(user, nonzero: nonzero);
 
     var len = ops.length;
-    var size = 20; //15; //17;
+    var size = 25; //20; //15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
@@ -700,7 +741,9 @@ class RobinhoodService {
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = OptionAggregatePosition.fromJson(result);
-      optionPositions.add(op);
+      if (!nonzero || (nonzero && op.quantity! > 0)) {
+        optionPositions.add(op);
+      }
     }
     return optionPositions;
   }
@@ -926,17 +969,28 @@ class RobinhoodService {
     return await getJson(user, url);
   }
 
-  static Future<dynamic> getOptionEventsByChainIds(
-      RobinhoodUser user, String instrumentId, List<String> chainIds) async {
+  static Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
+      RobinhoodUser user, String instrumentUrl) async {
     //https://api.robinhood.com/options/events/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     //var url =
     //    "${Constants.robinHoodEndpoint}/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}&equity_instrument_id=$instrumentId";
     //var url =
     //    "${Constants.robinHoodEndpoint}/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}";
+
+    //https://api.robinhood.com/options/events/?equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F50810c35-d215-4866-9758-0ada4ac79ffa%2F
     var url =
-        "${Constants.robinHoodEndpoint}/options/events/?equity_instrument_id=$instrumentId";
-    return await getJson(user, url);
+        "${Constants.robinHoodEndpoint}/options/events/?equity_instrument_id=${Uri.encodeComponent(instrumentUrl)}";
+
+    var resultJson = await getJson(user, url);
+
+    List<OptionEvent> list = [];
+    for (var i = 0; i < resultJson["results"].length; i++) {
+      var result = resultJson["results"][i];
+      var obj = OptionEvent.fromJson(result);
+      list.add(obj);
+    }
+    return list;
   }
 
   /*
