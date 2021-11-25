@@ -137,10 +137,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     positionOrdersBalance = positionOrders.isNotEmpty
         ? positionOrders
             .map((e) =>
-                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
+                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
                 (e.side == "buy" ? 1 : -1))
-            .reduce((a, b) => a + b) as double
-        : 0;
+            .reduce((a, b) => a + b)
+        : 0.0;
   }
 
 /*
@@ -1747,9 +1747,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           positionOrdersBalance = positionOrders
               .map((e) =>
-                  (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0) *
+                  (e.averagePrice != null
+                      ? e.averagePrice! * e.quantity!
+                      : 0.0) *
                   (e.side == "sell" ? 1 : -1))
-              .reduce((a, b) => a + b) as double;
+              .reduce((a, b) => a + b);
 
           return Card(
               child: Column(
@@ -1761,7 +1763,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Text('${positionOrders[index].quantity!.round()}',
                         style: const TextStyle(fontSize: 18))),
                 title: Text(
-                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${formatCompactNumber.format(positionOrders[index].averagePrice)}"), // , style: TextStyle(fontSize: 18.0)),
+                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${positionOrders[index].averagePrice != null ? formatCompactNumber.format(positionOrders[index].averagePrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
                     "${positionOrders[index].state} ${formatDate.format(positionOrders[index].updatedAt!)}"),
                 trailing: Wrap(spacing: 8, children: [
