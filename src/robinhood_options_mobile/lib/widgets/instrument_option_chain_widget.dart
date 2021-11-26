@@ -1,8 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -100,7 +98,7 @@ class _InstrumentOptionChainWidgetState
               builder: (BuildContext context,
                   AsyncSnapshot<List<OptionInstrument>>
                       optionInstrumentsnapshot) {
-                if (snapshot.hasData) {
+                if (optionInstrumentsnapshot.hasData) {
                   optionInstruments = optionInstrumentsnapshot.data!;
 
                   return buildScrollView(instrument,
@@ -131,12 +129,12 @@ class _InstrumentOptionChainWidgetState
       {List<OptionInstrument>? optionInstruments, bool done = false}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
-        title: headerTitle(instrument),
-        //expandedHeight: 160,
-        expandedHeight: 240, // 280.0,
-        floating: false,
-        pinned: true,
-        snap: false,
+      title: headerTitle(instrument),
+      //expandedHeight: 240,
+      floating: false,
+      pinned: true,
+      snap: false,
+      /*
         flexibleSpace: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
           //var top = constraints.biggest.height;
@@ -183,13 +181,9 @@ class _InstrumentOptionChainWidgetState
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: headerWidgets.toList())),
-                /*
-          ListTile(
-            title: Text('${instrument.simpleName}'),
-            subtitle: Text(instrument.name),
-          )*/
               ));
-        })));
+        })*/
+    ));
 
     if (done == false) {
       slivers.add(const SliverToBoxAdapter(
@@ -207,10 +201,12 @@ class _InstrumentOptionChainWidgetState
     }
 
     if (optionInstruments != null) {
+      /*
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
+      */
       slivers.add(SliverStickyHeader(
           header: Material(
               elevation: 2,
@@ -487,10 +483,10 @@ class _InstrumentOptionChainWidgetState
 
   Widget headerTitle(Instrument instrument) {
     return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.end,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
-        spacing: 10,
+        spacing: 20,
         //runSpacing: 5,
         children: [
           Text(
@@ -498,37 +494,40 @@ class _InstrumentOptionChainWidgetState
             //style: const TextStyle(fontSize: 20.0)
           ),
           if (instrument.quoteObj != null) ...[
-            Text(
-              formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-              //style: const TextStyle(fontSize: 15.0)
-            ),
-            Wrap(children: [
-              Icon(
-                instrument.quoteObj!.changeToday > 0
-                    ? Icons.trending_up
-                    : (instrument.quoteObj!.changeToday < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (instrument.quoteObj!.changeToday > 0
-                    ? Colors.lightGreenAccent
-                    : (instrument.quoteObj!.changeToday < 0
-                        ? Colors.red
-                        : Colors.grey)),
-                //size: 15.0
-              ),
-              Container(
-                width: 2,
-              ),
+            Wrap(spacing: 10, children: [
+              Text(formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                  //style: const TextStyle(fontSize: 15.0)
+                  style:
+                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              Wrap(children: [
+                Icon(
+                    instrument.quoteObj!.changeToday > 0
+                        ? Icons.trending_up
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (instrument.quoteObj!.changeToday > 0
+                        ? Colors.lightGreenAccent
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Colors.red
+                            : Colors.grey)),
+                    size: 20.0),
+                Container(
+                  width: 2,
+                ),
+                Text(
+                    formatPercentage
+                        .format(instrument.quoteObj!.changePercentToday),
+                    //style: const TextStyle(fontSize: 15.0)
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              ]),
               Text(
-                formatPercentage
-                    .format(instrument.quoteObj!.changePercentToday),
-                //style: const TextStyle(fontSize: 15.0)
-              ),
-            ]),
-            Text(
-                "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
-                //style: const TextStyle(fontSize: 12.0),
-                textAlign: TextAlign.right)
+                  "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+                  //style: const TextStyle(fontSize: 12.0),
+                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                  textAlign: TextAlign.right)
+            ])
           ],
         ]);
   }
@@ -536,53 +535,29 @@ class _InstrumentOptionChainWidgetState
   Iterable<Widget> get headerWidgets sync* {
     var instrument = widget.instrument;
     // yield Row(children: const [SizedBox(height: 70)]);
-    if (instrument.simpleName != null) {
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              SizedBox(
-                  width: 190,
-                  child: Text(
-                    '${instrument.simpleName}',
-                    style: const TextStyle(fontSize: 16.0),
-                    textAlign: TextAlign.left,
-                    //overflow: TextOverflow.ellipsis
-                  ))
-            ]),
-            Container(
-              width: 10,
-            ),
-          ]);
-    } else {
-      yield Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Container(
-              width: 10,
-            ),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-              SizedBox(
-                  width: 190,
-                  child: Text(
-                    '$instrument.name',
-                    style: const TextStyle(fontSize: 14.0),
-                    textAlign: TextAlign.left,
-                    //overflow: TextOverflow.ellipsis
-                  ))
-            ]),
-            Container(
-              width: 10,
-            ),
-          ]);
-    }
+    yield Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Container(
+            width: 10,
+          ),
+          Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+            SizedBox(
+                width: 190,
+                child: Text(
+                  '${instrument.name != "" ? instrument.name : instrument.simpleName}',
+                  //instrument.simpleName ?? instrument.name,
+                  style: const TextStyle(fontSize: 16.0),
+                  textAlign: TextAlign.left,
+                  //overflow: TextOverflow.ellipsis
+                ))
+          ]),
+          Container(
+            width: 10,
+          ),
+        ]);
     /*
     yield Row(children: const [SizedBox(height: 10)]);
     */
@@ -677,6 +652,7 @@ class _InstrumentOptionChainWidgetState
             ),
           ]);
           */
+      /*
       if (instrument.quoteObj!.lastExtendedHoursTradePrice != null) {
         yield Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -806,6 +782,7 @@ class _InstrumentOptionChainWidgetState
               width: 10,
             ),
           ]);
+          */
     }
     /*
     yield Row(

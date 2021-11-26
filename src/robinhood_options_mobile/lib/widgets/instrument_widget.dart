@@ -966,8 +966,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
+            const SizedBox(width: 8),
             TextButton(
-              child: const Text('VIEW OPTION CHAIN'),
+              child: const Text('OPTION CHAIN'),
               onPressed: () {
                 Navigator.push(
                     context,
@@ -976,7 +977,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             widget.user, widget.account, instrument)));
               },
             ),
-            const SizedBox(width: 8),
+            const Expanded(child: SizedBox()),
+            //const SizedBox(width: 8),
             TextButton(
               child: const Text('BUY'),
               onPressed: () => showDialog<String>(
@@ -1547,10 +1549,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildSplitsWidget(Instrument instrument) {
-    var futureEarning =
-        instrument.earningsObj![instrument.earningsObj!.length - 1];
-    var pastEarning =
-        instrument.earningsObj![instrument.earningsObj!.length - 2];
     return SliverStickyHeader(
         header: Material(
             elevation: 2,
@@ -1566,10 +1564,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ))),
         sliver: SliverToBoxAdapter(
             child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+              /*
           for (var split in instrument.splitsObj!) ...[
-            /*
             ListTile(
                 title: Text(
                   "${earning!["year"]} Q${earning!["quarter"]}",
@@ -1648,9 +1647,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ],
               ])
             ],
-              */
           ],
-        ]))));
+              */
+            ]))));
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
@@ -2598,10 +2597,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget headerTitle(Instrument instrument) {
     return Wrap(
-        crossAxisAlignment: WrapCrossAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.end,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
-        spacing: 10,
+        spacing: 20,
         //runSpacing: 5,
         children: [
           Text(
@@ -2609,37 +2608,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //style: const TextStyle(fontSize: 20.0)
           ),
           if (instrument.quoteObj != null) ...[
-            Text(
-              formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-              //style: const TextStyle(fontSize: 15.0)
-            ),
-            Wrap(children: [
-              Icon(
-                instrument.quoteObj!.changeToday > 0
-                    ? Icons.trending_up
-                    : (instrument.quoteObj!.changeToday < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (instrument.quoteObj!.changeToday > 0
-                    ? Colors.lightGreenAccent
-                    : (instrument.quoteObj!.changeToday < 0
-                        ? Colors.red
-                        : Colors.grey)),
-                //size: 15.0
-              ),
-              Container(
-                width: 2,
-              ),
+            Wrap(spacing: 10, children: [
+              Text(formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                  //style: const TextStyle(fontSize: 15.0)
+                  style:
+                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              Wrap(children: [
+                Icon(
+                    instrument.quoteObj!.changeToday > 0
+                        ? Icons.trending_up
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (instrument.quoteObj!.changeToday > 0
+                        ? Colors.lightGreenAccent
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Colors.red
+                            : Colors.grey)),
+                    size: 20.0),
+                Container(
+                  width: 2,
+                ),
+                Text(
+                    formatPercentage
+                        .format(instrument.quoteObj!.changePercentToday),
+                    //style: const TextStyle(fontSize: 15.0)
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              ]),
               Text(
-                formatPercentage
-                    .format(instrument.quoteObj!.changePercentToday),
-                //style: const TextStyle(fontSize: 15.0)
-              ),
-            ]),
-            Text(
-                "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
-                //style: const TextStyle(fontSize: 12.0),
-                textAlign: TextAlign.right)
+                  "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+                  //style: const TextStyle(fontSize: 12.0),
+                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                  textAlign: TextAlign.right)
+            ])
           ],
         ]);
   }
