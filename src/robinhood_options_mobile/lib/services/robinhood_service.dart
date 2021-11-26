@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
@@ -23,7 +24,6 @@ import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/split.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
@@ -37,6 +37,8 @@ class RobinhoodService {
   static List<Position>? stockPositions;
   static List<PositionOrder>? positionOrders;
   static List<OptionEvent>? optionEvents;
+
+  static Map<String, dynamic> logoUrls = {};
 
   static List<Quote> quotes = [];
   static List<Instrument> instruments = [];
@@ -439,6 +441,11 @@ class RobinhoodService {
         var result = resultJson['results'][i];
         if (result != null) {
           var op = Instrument.fromJson(result);
+
+          if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
+            op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+          }
+
           list.add(op);
           instruments.add(op);
         }
@@ -565,18 +572,18 @@ class RobinhoodService {
     return oi;
   }
 
-  static Future<List<Split>> getSplits(
+  static Future<List<dynamic>> getSplits(
       RobinhoodUser user, Instrument instrumentObj) async {
     debugPrint(instrumentObj.splits);
     //https://api.robinhood.com/corp_actions/v2/split_payments/?instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var results = await RobinhoodService.pagedGet(user, instrumentObj.splits);
-    List<Split> splits = [];
+    List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = Split.fromJson(result);
-      splits.add(op);
+      //var op = Split.fromJson(result);
+      list.add(result);
     }
-    return splits;
+    return list;
   }
 
   static Future<List<dynamic>> getNews(
@@ -678,11 +685,36 @@ class RobinhoodService {
         "${Constants.robinhoodExploreEndpoint}/instruments/similar/$instrumentId/");
     //return resultJson;
     List<dynamic> list = [];
+    bool savePrefs = false;
     for (var i = 0; i < resultJson["similar"].length; i++) {
       var result = resultJson["similar"][i];
+
+      // Add to cache
+      if (result["logo_url"] != null) {
+        if (!logoUrls.containsKey(result["symbol"])) {
+          // result["instrument_id"]
+          var logoUrl = result["logo_url"]
+              .toString()
+              .replaceAll("https:////", "https://");
+          logoUrls[result["symbol"]] = logoUrl; // result["instrument_id"]
+          savePrefs = true;
+        }
+      }
       list.add(result);
     }
+    if (savePrefs) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString("logoUrls", jsonEncode(logoUrls));
+      debugPrint("Cached ${logoUrls.keys.length} logos");
+    }
     return list;
+  }
+
+  static Future<void> loadLogos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var prefString = prefs.getString("logoUrls");
+    logoUrls = jsonDecode(prefString!);
+    debugPrint("Loaded ${logoUrls.keys.length} logos");
   }
 
   /* 
@@ -694,6 +726,26 @@ class RobinhoodService {
           {bool nonzero = true}) async* {
     List<OptionAggregatePosition> ops =
         await getAggregateOptionPositions(user, nonzero: nonzero);
+
+    // Load logos from cache
+    ops.map((op) {
+      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
+        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      }
+    });
+
+    /*
+    // Load OptionAggregatePosition.instrumentObj
+    var symbols = ops.map((e) => e.symbol);
+    var cachedInstruments =
+        instruments.where((element) => symbols.contains(element.symbol));
+    cachedInstruments.map((e) {
+      var op = ops.firstWhereOrNull((element) => element.symbol == e.symbol);
+      if (op != null) {
+        op.instrumentObj = e;
+      }
+    });
+    */
 
     var len = ops.length;
     var size = 25; //20; //15; //17;

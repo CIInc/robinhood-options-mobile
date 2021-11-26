@@ -98,29 +98,37 @@ class _InstrumentOptionChainWidgetState
           return StreamBuilder<List<OptionInstrument>>(
               stream: optionInstrumentStream,
               builder: (BuildContext context,
-                  AsyncSnapshot<List<OptionInstrument>> snapshot) {
+                  AsyncSnapshot<List<OptionInstrument>>
+                      optionInstrumentsnapshot) {
                 if (snapshot.hasData) {
-                  optionInstruments = snapshot.data!;
+                  optionInstruments = optionInstrumentsnapshot.data!;
 
                   return buildScrollView(instrument,
-                      optionInstruments: optionInstruments);
+                      optionInstruments: optionInstruments,
+                      done: snapshot.connectionState == ConnectionState.done &&
+                          optionInstrumentsnapshot.connectionState ==
+                              ConnectionState.done);
                 } else if (snapshot.hasError) {
                   debugPrint("${snapshot.error}");
                   return Text("${snapshot.error}");
                 }
-                return buildScrollView(instrument);
+                return buildScrollView(instrument,
+                    done: snapshot.connectionState == ConnectionState.done &&
+                        optionInstrumentsnapshot.connectionState ==
+                            ConnectionState.done);
               });
         } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Text("${snapshot.error}");
         }
-        return buildScrollView(instrument);
+        return buildScrollView(instrument,
+            done: snapshot.connectionState == ConnectionState.done);
       },
     ));
   }
 
   buildScrollView(Instrument instrument,
-      {List<OptionInstrument>? optionInstruments}) {
+      {List<OptionInstrument>? optionInstruments, bool done = false}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
         title: headerTitle(instrument),
@@ -150,10 +158,22 @@ class _InstrumentOptionChainWidgetState
               //background: const FlutterLogo(),
               background: SizedBox(
                 width: double.infinity,
-                child: Image.network(
-                  Constants.flexibleSpaceBarBackground,
-                  fit: BoxFit.cover,
-                ),
+                child: instrument.logoUrl != null
+                    ? Image.network(
+                        instrument.logoUrl!,
+                        fit: BoxFit.none,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          return const
+                              //CircleAvatar(child: Text(""));
+                              SizedBox(width: 56, height: 56);
+                          //const Icon(Icons.error); //Text('Your error widget...');
+                        },
+                      )
+                    : Image.network(
+                        Constants.flexibleSpaceBarBackground,
+                        fit: BoxFit.cover,
+                      ),
               ),
               //const FlutterLogo(),
               title: Opacity(
@@ -170,6 +190,21 @@ class _InstrumentOptionChainWidgetState
           )*/
               ));
         })));
+
+    if (done == false) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 3, //150.0,
+        child: Align(
+            alignment: Alignment.center,
+            child: Center(
+                child: LinearProgressIndicator(
+                    //value: controller.value,
+                    //semanticsLabel: 'Linear progress indicator',
+                    ) //CircularProgressIndicator(),
+                )),
+      )));
+    }
 
     if (optionInstruments != null) {
       slivers.add(const SliverToBoxAdapter(

@@ -130,9 +130,11 @@ class _SearchWidgetState extends State<SearchWidget>
                 movers: movers,
                 losers: losers,
                 listMovers: listMovers,
-                listMostPopular: listMostPopular);
+                listMostPopular: listMostPopular,
+                done: snapshot.connectionState == ConnectionState.done);
           } else {
-            return _buildPage();
+            return _buildPage(
+                done: snapshot.connectionState == ConnectionState.done);
           }
         });
   }
@@ -142,7 +144,8 @@ class _SearchWidgetState extends State<SearchWidget>
       List<MidlandMoversItem>? movers,
       List<MidlandMoversItem>? losers,
       List<Instrument>? listMovers,
-      List<Instrument>? listMostPopular}) {
+      List<Instrument>? listMostPopular,
+      bool done = false}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: GestureDetector(
@@ -180,6 +183,20 @@ class _SearchWidgetState extends State<SearchWidget>
                     //expandedHeight: 80.0,
                     pinned: true,
                   ),
+                  if (done == false) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 3, //150.0,
+                      child: Align(
+                          alignment: Alignment.center,
+                          child: Center(
+                              child: LinearProgressIndicator(
+                                  //value: controller.value,
+                                  //semanticsLabel: 'Linear progress indicator',
+                                  ) //CircularProgressIndicator(),
+                              )),
+                    ))
+                  ],
                   if (search != null) ...[
                     SliverStickyHeader(
                         header: Material(

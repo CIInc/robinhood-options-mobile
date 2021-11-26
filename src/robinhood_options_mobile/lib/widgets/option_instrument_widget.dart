@@ -66,16 +66,25 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       instrument.quoteObj = quote;
                       return _buildPage(widget.optionInstrument,
                           instrument: instrument,
-                          optionPosition: widget.optionPosition);
+                          optionPosition: widget.optionPosition,
+                          done: instrumentSnapshot.connectionState ==
+                                  ConnectionState.done &&
+                              quoteSnapshot.connectionState ==
+                                  ConnectionState.done);
                     } else {
-                      return _buildPage(widget.optionInstrument);
+                      return _buildPage(widget.optionInstrument,
+                          done: instrumentSnapshot.connectionState ==
+                                  ConnectionState.done &&
+                              quoteSnapshot.connectionState ==
+                                  ConnectionState.done);
                     }
                   });
             } else if (quoteSnapshot.hasError) {
               debugPrint("${quoteSnapshot.error}");
               // return Text("${quoteSnapshot.error}");
             }
-            return _buildPage(widget.optionInstrument);
+            return _buildPage(widget.optionInstrument,
+                done: quoteSnapshot.connectionState == ConnectionState.done);
           }),
       /*
         floatingActionButton: (user != null && user.userName != null)
@@ -93,7 +102,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   }
 
   Widget _buildPage(OptionInstrument optionInstrument,
-      {Instrument? instrument, OptionAggregatePosition? optionPosition}) {
+      {Instrument? instrument,
+      OptionAggregatePosition? optionPosition,
+      bool done = false}) {
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
@@ -485,6 +496,20 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             optionInstrument: optionInstrument)))),
           ]*/
               })),
+          if (done == false) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 3, //150.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: Center(
+                      child: LinearProgressIndicator(
+                          //value: controller.value,
+                          //semanticsLabel: 'Linear progress indicator',
+                          ) //CircularProgressIndicator(),
+                      )),
+            ))
+          ],
           if (instrument != null) ...[
             SliverToBoxAdapter(
                 child: Align(

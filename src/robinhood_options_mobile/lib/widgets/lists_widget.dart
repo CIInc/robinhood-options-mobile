@@ -96,11 +96,12 @@ class _ListsWidgetState extends State<ListsWidget>
           } else {
             // No Watchlists found.
           }
-          return _buildScaffold();
+          return _buildScaffold(
+              done: watchlistsSnapshot.connectionState == ConnectionState.done);
         });
   }
 
-  Widget _buildScaffold() {
+  Widget _buildScaffold({bool done = false}) {
     var totalItems = 0;
     var totalLists = 0;
     if (watchlists != null) {
@@ -332,6 +333,20 @@ class _ListsWidgetState extends State<ListsWidget>
                               ))),
                       sliver: SliverToBoxAdapter(child: Container())),
                       */
+          if (done == false) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 3, //150.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: Center(
+                      child: LinearProgressIndicator(
+                          //value: controller.value,
+                          //semanticsLabel: 'Linear progress indicator',
+                          ) //CircularProgressIndicator(),
+                      )),
+            ))
+          ],
           if (watchlists != null) ...[
             for (var watchlist in watchlists!) ...[
               SliverStickyHeader(

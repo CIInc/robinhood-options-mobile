@@ -19,7 +19,6 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/position.dart';
@@ -56,13 +55,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<Quote?>? futureQuote;
   Future<Fundamentals?>? futureFundamentals;
   Future<InstrumentHistoricals?>? futureHistoricals;
-  Future<OptionChain>? futureOptionChain;
   Future<List<dynamic>>? futureNews;
   Future<List<dynamic>>? futureLists;
   Future<dynamic>? futureRatings;
   Future<dynamic>? futureRatingsOverview;
   Future<dynamic>? futureEarnings;
   Future<List<dynamic>>? futureSimilar;
+  Future<List<dynamic>>? futureSplits;
   Future<List<PositionOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<List<OptionEvent>>? futureOptionEvents;
@@ -153,6 +152,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var instrument = widget.instrument;
     var user = widget.user;
 
+    if (widget.instrument.logoUrl == null &&
+        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol)) {
+      widget.instrument.logoUrl =
+          RobinhoodService.logoUrls[widget.instrument.symbol];
+    }
+
     if (instrument.quoteObj == null) {
       futureQuote ??= RobinhoodService.getQuote(user, instrument.symbol);
     } else {
@@ -176,6 +181,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     futureEarnings ??= RobinhoodService.getEarnings(user, instrument.id);
 
     futureSimilar ??= RobinhoodService.getSimilar(user, instrument.id);
+
+    futureSplits ??= RobinhoodService.getSplits(user, instrument);
 
     String? bounds;
     String? interval;
@@ -246,7 +253,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureOptionOrders as Future,
         futureOptionEvents as Future,
         futureEarnings as Future,
-        futureSimilar as Future
+        futureSimilar as Future,
+        futureSplits as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -271,24 +279,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.optionEvents = data.length > 9 ? data[9] : null;
           instrument.earningsObj = data.length > 10 ? data[10] : null;
           instrument.similarObj = data.length > 11 ? data[11] : null;
+          instrument.splitsObj = data.length > 12 ? data[12] : null;
 
           positionOrders = instrument.positionOrders!;
           _calculatePositionOrderBalance();
           optionOrders = instrument.optionOrders!;
           _calculateOptionOrderBalance();
 
-          return buildScrollView(instrument, position: widget.position);
+          return buildScrollView(instrument,
+              position: widget.position,
+              done: snapshot.connectionState == ConnectionState.done);
         } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Text("${snapshot.error}");
         }
-        return buildScrollView(instrument, position: widget.position);
+        return buildScrollView(instrument,
+            position: widget.position,
+            done: snapshot.connectionState == ConnectionState.done);
       },
     ));
   }
 
   buildScrollView(Instrument instrument,
-      {List<OptionInstrument>? optionInstruments, Position? position}) {
+      {List<OptionInstrument>? optionInstruments,
+      Position? position,
+      bool done = false}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
         title: headerTitle(instrument),
@@ -350,6 +365,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           )*/
               ));
         })));
+    if (done == false) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 3, //150.0,
+        child: Align(
+            alignment: Alignment.center,
+            child: Center(
+                child: LinearProgressIndicator(
+                    //value: controller.value,
+                    //semanticsLabel: 'Linear progress indicator',
+                    ) //CircularProgressIndicator(),
+                )),
+      )));
+    }
+
     slivers.add(
       SliverToBoxAdapter(
           child: Align(
@@ -782,6 +812,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(_buildEarningsWidget(instrument));
     }
 
+    if (instrument.splitsObj != null && instrument.splitsObj!.isNotEmpty) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(_buildSplitsWidget(instrument));
+    }
+
     if (instrument.newsObj != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -837,7 +875,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureQuote = null;
       futureFundamentals = null;
       futureHistoricals = null;
-      futureOptionChain = null;
       futureNews = null;
       //futureInstrumentOrders = null;
       //futureOptionOrders = null;
@@ -1301,6 +1338,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildRatingsOverviewWidget(Instrument instrument) {
+    if (instrument.ratingsOverviewObj == null) {
+      return Container();
+    }
     return SliverStickyHeader(
         header: Material(
             elevation: 2,
@@ -1318,6 +1358,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: Card(
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          const SizedBox(height: 15),
           ListTile(
             title: Text(
               instrument.ratingsOverviewObj!["report_title"],
@@ -1328,15 +1369,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 instrument.ratingsOverviewObj!["report_updated_at"] != null
                     ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
                     : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
-                style: const TextStyle(fontSize: 16)),
+                style: const TextStyle(fontSize: 14)),
           ),
-          ListTile(
-            title: const Text("Fair Value"),
-            trailing: Text(
-                formatCurrency.format(double.parse(
-                    instrument.ratingsOverviewObj!["fair_value"]["value"])),
-                style: const TextStyle(fontSize: 18)),
-          ),
+          if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
+            ListTile(
+              title: const Text("Fair Value"),
+              trailing: Text(
+                  formatCurrency.format(double.parse(
+                      instrument.ratingsOverviewObj!["fair_value"]["value"])),
+                  style: const TextStyle(fontSize: 18)),
+            ),
+          ],
           ListTile(
             title: const Text("Economic Moat"),
             trailing: Text(
@@ -1345,27 +1388,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     .capitalize(),
                 style: const TextStyle(fontSize: 18)),
           ),
-          ListTile(
-              title: const Text("Star Rating"),
-              trailing: Wrap(
-                children: [
-                  for (var i = 0;
-                      i <
-                          int.parse(
-                              instrument.ratingsOverviewObj!["star_rating"]);
-                      i++) ...[
-                    const Icon(Icons.star),
-                  ]
-                ],
-              )
-              /*
+          if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
+            ListTile(
+                title: const Text("Star Rating"),
+                trailing: Wrap(
+                  children: [
+                    for (var i = 0;
+                        i <
+                            int.parse(
+                                instrument.ratingsOverviewObj!["star_rating"]);
+                        i++) ...[
+                      const Icon(Icons.star),
+                    ]
+                  ],
+                )
+                /*
             Text(
                 instrument.ratingsOverviewObj!["star_rating"]
                     .toString()
                     .capitalize(),
                 style: const TextStyle(fontSize: 18)),
                 */
-              ),
+                ),
+          ],
           ListTile(
             title: const Text("Stewardship"),
             trailing: Text(
@@ -1497,6 +1542,113 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ],
               ])
             ],
+          ],
+        ]))));
+  }
+
+  Widget _buildSplitsWidget(Instrument instrument) {
+    var futureEarning =
+        instrument.earningsObj![instrument.earningsObj!.length - 1];
+    var pastEarning =
+        instrument.earningsObj![instrument.earningsObj!.length - 2];
+    return SliverStickyHeader(
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: const ListTile(
+                  title: Text(
+                    "Splits",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                ))),
+        sliver: SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          for (var split in instrument.splitsObj!) ...[
+            /*
+            ListTile(
+                title: Text(
+                  "${earning!["year"]} Q${earning!["quarter"]}",
+                  style: const TextStyle(fontSize: 18.0),
+                  //overflow: TextOverflow.visible
+                ),
+                subtitle: Text(
+                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                    style: const TextStyle(fontSize: 14)),
+                trailing: (earning!["eps"]["estimate"] != null ||
+                        earning!["eps"]["actual"] != null)
+                    ? Wrap(spacing: 10.0, children: [
+                        if (earning!["eps"]["estimate"] != null) ...[
+                          Column(
+                            children: [
+                              const Text("Estimate",
+                                  style: TextStyle(fontSize: 11)),
+                              Text(
+                                  formatCurrency.format(double.parse(
+                                      earning!["eps"]["estimate"])),
+                                  style: const TextStyle(fontSize: 18)),
+                            ],
+                          )
+                        ],
+                        if (earning!["eps"]["actual"] != null) ...[
+                          Column(children: [
+                            const Text("Actual",
+                                style: TextStyle(fontSize: 11)),
+                            Text(
+                                formatCurrency.format(
+                                    double.parse(earning!["eps"]["actual"])),
+                                style: const TextStyle(fontSize: 18))
+                          ])
+                        ]
+                      ])
+                    : null),
+            if (earning!["call"] != null &&
+                ((pastEarning["year"] == earning!["year"] &&
+                        pastEarning["quarter"] == earning!["quarter"]) ||
+                    (futureEarning["year"] == earning!["year"] &&
+                        futureEarning["quarter"] == earning!["quarter"]))) ...[
+              if (!earning!["report"]["verified"]) ...[
+                ListTile(
+                  title: Text(
+                      "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                      style: const TextStyle(fontSize: 18)),
+                  subtitle: Text(
+                      formatLongDate.format(DateTime.parse(earning!["call"]
+                          ["datetime"])), // ${earning!["report"]["timing"]}",
+                      style: const TextStyle(fontSize: 16)),
+                ),
+              ],
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
+                if (earning!["call"]["replay_url"] != null) ...[
+                  TextButton(
+                    child: const Text('LISTEN TO REPLAY'),
+                    onPressed: () async {
+                      var _url = earning!["call"]["replay_url"];
+                      await canLaunch(_url)
+                          ? await launch(_url)
+                          : throw 'Could not launch $_url';
+                    },
+                  ),
+                ],
+                if (earning!["call"]["broadcast_url"] != null) ...[
+                  Container(width: 50),
+                  TextButton(
+                    child: const Text('LISTEN TO BROADCAST'),
+                    onPressed: () async {
+                      var _url = earning!["call"]["broadcast_url"];
+                      await canLaunch(_url)
+                          ? await launch(_url)
+                          : throw 'Could not launch $_url';
+                    },
+                  ),
+                ],
+              ])
+            ],
+              */
           ],
         ]))));
   }

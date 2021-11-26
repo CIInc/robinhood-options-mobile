@@ -28,6 +28,8 @@ class OptionAggregatePosition {
 
   OptionInstrument? optionInstrument;
   OptionMarketData? marketData;
+  //Instrument? instrumentObj;
+  String? logoUrl;
 
   OptionAggregatePosition(
       this.id,

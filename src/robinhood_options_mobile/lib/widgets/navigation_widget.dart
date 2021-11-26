@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
@@ -59,6 +60,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     ];
 
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+    RobinhoodService.loadLogos();
   }
 
   @override

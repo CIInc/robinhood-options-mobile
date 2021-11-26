@@ -57,12 +57,11 @@ class Instrument {
   dynamic ratingsOverviewObj;
   List<dynamic>? earningsObj;
   List<dynamic>? similarObj;
+  List<dynamic>? splitsObj;
   List<PositionOrder>? positionOrders;
   List<OptionOrder>? optionOrders;
   List<OptionEvent>? optionEvents;
   String? logoUrl;
-
-  List<Split> splitsObj = [];
 
   Instrument(
       this.id,

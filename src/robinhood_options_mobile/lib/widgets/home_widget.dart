@@ -2682,12 +2682,29 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildPositionRow(
       List<Position> positions, int index, RobinhoodUser ru) {
+    var instrument = positions[index].instrumentObj;
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
+        /*
         leading: CircleAvatar(
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 17))),
+                */
+        leading: instrument != null && instrument.logoUrl != null
+            ? Image.network(
+                instrument.logoUrl!,
+                width: 40,
+                height: 40,
+                errorBuilder: (BuildContext context, Object exception,
+                    StackTrace? stackTrace) {
+                  return const
+                      //CircleAvatar(child: Text(""));
+                      SizedBox(width: 40, height: 40);
+                  //const Icon(Icons.error); //Text('Your error widget...');
+                },
+              )
+            : const SizedBox(width: 40, height: 40),
         title: Text(positions[index].instrumentObj != null
             ? positions[index].instrumentObj!.symbol
             : ""),
@@ -2757,27 +2774,34 @@ class _HomePageState extends State<HomePage>
       return Container();
     }
     */
+    var instrument = op;
 
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
+          leading: instrument.logoUrl != null
+              ? Image.network(
+                  instrument.logoUrl!,
+                  width: 40,
+                  height: 40,
+                  errorBuilder: (BuildContext context, Object exception,
+                      StackTrace? stackTrace) {
+                    return const
+                        //CircleAvatar(child: Text(""));
+                        SizedBox(width: 40, height: 40);
+                    //const Icon(Icons.error); //Text('Your error widget...');
+                  },
+                )
+              : const SizedBox(width: 40, height: 40),
+          /*
           leading: CircleAvatar(
-              //backgroundImage: AssetImage(user.profilePicture),
-              /*
-              backgroundColor:
-                  optionsPositions[index].optionInstrument!.type == 'call'
-                      ? Colors.green
-                      : Colors.amber,
-              child: optionsPositions[index].optionInstrument!.type == 'call'
-                  ? const Text('Call')
-                  : const Text('Put')),
-                      */
               child: Text(formatCompactNumber.format(op.quantity!),
                   style: const TextStyle(fontSize: 17))),
+                  */
           title: Text(
-              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
+              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} (${formatCompactNumber.format(op.quantity!)})'),
           subtitle: Text(
               '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
