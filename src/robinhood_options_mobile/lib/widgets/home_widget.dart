@@ -108,8 +108,7 @@ class _HomePageState extends State<HomePage>
 
   List<OptionAggregatePosition> optionPositions = [];
 
-  List<String> optionOrderSymbols = [];
-  List<String> positionOrderSymbols = [];
+  List<String> positionSymbols = [];
   List<String> chainSymbols = [];
   List<String> cryptoSymbols = [];
 
@@ -454,7 +453,6 @@ class _HomePageState extends State<HomePage>
       List<OptionAggregatePosition>? optionPositions,
       List<Position>? positions,
       bool done = false}) {
-    var slivers = <Widget>[];
     double changeToday = 0;
     double changePercentToday = 0;
     if (portfolios != null) {
@@ -544,6 +542,9 @@ class _HomePageState extends State<HomePage>
         optionEquity,
         changeToday,
         changePercentToday);
+
+    var slivers = <Widget>[];
+
     slivers.add(sliverAppBar);
 
     if (ru != null && ru.userName != null) {
@@ -862,6 +863,13 @@ class _HomePageState extends State<HomePage>
                 (optionSymbolFilters.isEmpty ||
                     optionSymbolFilters.contains(element.symbol)))
             .toList();
+        var filteredOptionEquity = filteredOptionAggregatePositions
+            .map((e) => e.legs.first.positionType == "long"
+                ? e.marketValue
+                : e.marketValue)
+            .reduce((a, b) => a + b);
+        positionSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
+        positionSymbols.sort((a, b) => (a.compareTo(b)));
 
         slivers.add(SliverStickyHeader(
           header: Material(
@@ -876,7 +884,7 @@ class _HomePageState extends State<HomePage>
                       style: TextStyle(fontSize: 19.0),
                     ),
                     subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(filteredOptionEquity)}"),
                     trailing: IconButton(
                         icon: const Icon(Icons.filter_list),
                         onPressed: () {
@@ -1059,7 +1067,7 @@ class _HomePageState extends State<HomePage>
       if (nummusHoldings != null) {
         cryptoSymbols =
             nummusHoldings.map((e) => e.currencyCode).toSet().toList();
-        positionOrderSymbols.sort((a, b) => (a.compareTo(b)));
+        cryptoSymbols.sort((a, b) => (a.compareTo(b)));
 
         var filteredHoldings = nummusHoldings
             .where((element) =>
@@ -2010,7 +2018,7 @@ class _HomePageState extends State<HomePage>
 
   Widget get stockOrderSymbolFilterWidget {
     var widgets =
-        symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters).toList();
+        symbolFilterWidgets(positionSymbols, stockSymbolFilters).toList();
     return symbolWidgets(widgets);
   }
 

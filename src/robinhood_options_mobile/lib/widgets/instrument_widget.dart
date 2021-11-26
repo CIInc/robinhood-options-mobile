@@ -54,7 +54,7 @@ class InstrumentWidget extends StatefulWidget {
 class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<Quote?>? futureQuote;
   Future<Fundamentals?>? futureFundamentals;
-  Future<InstrumentHistoricals?>? futureHistoricals;
+  Future<InstrumentHistoricals>? futureHistoricals;
   Future<List<dynamic>>? futureNews;
   Future<List<dynamic>>? futureLists;
   Future<dynamic>? futureRatings;
@@ -184,58 +184,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     futureSplits ??= RobinhoodService.getSplits(user, instrument);
 
-    String? bounds;
-    String? interval;
-    String? span;
-    switch (chartBoundsFilter) {
-      case Bounds.regular:
-        bounds = "regular";
-        break;
-      case Bounds.trading:
-        bounds = "trading";
-        break;
-      default:
-        bounds = "regular";
-        break;
-    }
-    switch (chartDateSpanFilter) {
-      case ChartDateSpan.day:
-        interval = "5minute";
-        span = "day";
-        bounds = "trading";
-        break;
-      case ChartDateSpan.week:
-        interval = "10minute";
-        span = "week";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month:
-        interval = "hour";
-        span = "month";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month_3:
-        interval = "day";
-        span = "3month";
-        break;
-      case ChartDateSpan.year:
-        interval = "day";
-        span = "year";
-        break;
-      case ChartDateSpan.year_5:
-        interval = "day";
-        span = "5year";
-        break;
-      default:
-        interval = "5minute";
-        span = "day";
-        bounds = "trading";
-        break;
-    }
-    futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
-        user, instrument.symbol,
-        interval: interval, span: span, bounds: bounds);
-
     futureOptionEvents ??= RobinhoodService.getOptionEventsByInstrumentUrl(
         widget.user, instrument.url);
 
@@ -244,7 +192,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       future: Future.wait([
         futureQuote as Future,
         futureFundamentals as Future,
-        futureHistoricals as Future,
         futureNews as Future,
         futureLists as Future,
         futureRatings as Future,
@@ -261,38 +208,99 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           List<dynamic> data = snapshot.data as List<dynamic>;
           instrument.quoteObj = data.isNotEmpty ? data[0] : null;
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
-
-          if (instrument.instrumentHistoricalsObj == null ||
-              data[2].bounds != instrument.instrumentHistoricalsObj!.bounds ||
-              data[2].span != instrument.instrumentHistoricalsObj!.span) {
-            chart = null;
-          }
-
-          instrument.instrumentHistoricalsObj =
-              data.length > 2 ? data[2] : null;
-          instrument.newsObj = data.length > 3 ? data[3] : null;
-          instrument.listsObj = data.length > 4 ? data[4] : null;
-          instrument.ratingsObj = data.length > 5 ? data[5] : null;
-          instrument.ratingsOverviewObj = data.length > 6 ? data[6] : null;
-          instrument.positionOrders = data.length > 7 ? data[7] : null;
-          instrument.optionOrders = data.length > 8 ? data[8] : null;
-          instrument.optionEvents = data.length > 9 ? data[9] : null;
-          instrument.earningsObj = data.length > 10 ? data[10] : null;
-          instrument.similarObj = data.length > 11 ? data[11] : null;
-          instrument.splitsObj = data.length > 12 ? data[12] : null;
+          instrument.newsObj = data.length > 2 ? data[2] : null;
+          instrument.listsObj = data.length > 3 ? data[3] : null;
+          instrument.ratingsObj = data.length > 4 ? data[4] : null;
+          instrument.ratingsOverviewObj = data.length > 5 ? data[5] : null;
+          instrument.positionOrders = data.length > 6 ? data[6] : null;
+          instrument.optionOrders = data.length > 7 ? data[7] : null;
+          instrument.optionEvents = data.length > 8 ? data[8] : null;
+          instrument.earningsObj = data.length > 9 ? data[9] : null;
+          instrument.similarObj = data.length > 10 ? data[10] : null;
+          instrument.splitsObj = data.length > 11 ? data[11] : null;
 
           positionOrders = instrument.positionOrders!;
           _calculatePositionOrderBalance();
           optionOrders = instrument.optionOrders!;
           _calculateOptionOrderBalance();
 
-          return buildScrollView(instrument,
-              position: widget.position,
-              done: snapshot.connectionState == ConnectionState.done);
-        } else if (snapshot.hasError) {
+          String? bounds;
+          String? interval;
+          String? span;
+          switch (chartBoundsFilter) {
+            case Bounds.regular:
+              bounds = "regular";
+              break;
+            case Bounds.trading:
+              bounds = "trading";
+              break;
+            default:
+              bounds = "regular";
+              break;
+          }
+          switch (chartDateSpanFilter) {
+            case ChartDateSpan.day:
+              interval = "5minute";
+              span = "day";
+              bounds = "trading";
+              break;
+            case ChartDateSpan.week:
+              interval = "10minute";
+              span = "week";
+              // bounds = "24_7"; // Does not look good with regular?!
+              break;
+            case ChartDateSpan.month:
+              interval = "hour";
+              span = "month";
+              // bounds = "24_7"; // Does not look good with regular?!
+              break;
+            case ChartDateSpan.month_3:
+              interval = "day";
+              span = "3month";
+              break;
+            case ChartDateSpan.year:
+              interval = "day";
+              span = "year";
+              break;
+            case ChartDateSpan.year_5:
+              interval = "day";
+              span = "5year";
+              break;
+            default:
+              interval = "5minute";
+              span = "day";
+              bounds = "trading";
+              break;
+          }
+          futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+              user, instrument.symbol,
+              interval: interval, span: span, bounds: bounds);
+
+          return FutureBuilder<InstrumentHistoricals>(
+              future: futureHistoricals,
+              builder: (context11, historicalsSnapshot) {
+                if (historicalsSnapshot.hasData) {
+                  if (instrument.instrumentHistoricalsObj == null ||
+                      historicalsSnapshot.data!.bounds !=
+                          instrument.instrumentHistoricalsObj!.bounds ||
+                      historicalsSnapshot.data!.span !=
+                          instrument.instrumentHistoricalsObj!.span) {
+                    chart = null;
+                  }
+
+                  instrument.instrumentHistoricalsObj =
+                      historicalsSnapshot.data!;
+                }
+                return buildScrollView(instrument,
+                    position: widget.position,
+                    done: historicalsSnapshot.connectionState ==
+                        ConnectionState.done);
+              });
+        }
+        /* else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Text("${snapshot.error}");
-        }
+        }*/
         return buildScrollView(instrument,
             position: widget.position,
             done: snapshot.connectionState == ConnectionState.done);
@@ -300,10 +308,71 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
+  void resetChart(ChartDateSpan span, Bounds bounds) {
+    setState(() {
+      chartDateSpanFilter = span;
+      chartBoundsFilter = bounds;
+      futureHistoricals = null;
+    });
+  }
+
   buildScrollView(Instrument instrument,
       {List<OptionInstrument>? optionInstruments,
       Position? position,
       bool done = false}) {
+    if (instrument.instrumentHistoricalsObj != null) {
+      if (chart == null) {
+        List<charts.Series<dynamic, DateTime>> seriesList = [
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Open',
+            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.openPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Close',
+            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.closePrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+              id: 'Volume',
+              colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
+              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+              measureFn: (InstrumentHistorical history, _) => history.volume,
+              data: instrument.instrumentHistoricalsObj!.historicals),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'Low',
+            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.lowPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+          charts.Series<InstrumentHistorical, DateTime>(
+            id: 'High',
+            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
+            measureFn: (InstrumentHistorical history, _) => history.highPrice,
+            data: instrument.instrumentHistoricalsObj!.historicals,
+          ),
+        ];
+        var open =
+            instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
+        var close = instrument
+            .instrumentHistoricalsObj!
+            .historicals[
+                instrument.instrumentHistoricalsObj!.historicals.length - 1]
+            .closePrice!;
+        chart = Chart(seriesList,
+            open: open,
+            close: close,
+            hiddenSeries: const ["Close", "Volume", "Low", "High"],
+            onSelected: _onChartSelection);
+      }
+    }
+
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
         title: headerTitle(instrument),
@@ -365,6 +434,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           )*/
               ));
         })));
+
     if (done == false) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -387,15 +457,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
 
     if (instrument.instrumentHistoricalsObj != null) {
-      /*
-        var filteredInstrumentHistoricals = portfolioHistoricals.equityHistoricals
-            .where((element) =>
-                days == 0 ||
-                element.beginsAt!
-                        .compareTo(DateTime.now().add(Duration(days: -days))) >
-                    0)
-            .toList();
-            */
       var brightness = MediaQuery.of(context).platformBrightness;
       var textColor = Theme.of(context).colorScheme.background;
       if (brightness == Brightness.dark) {
@@ -411,54 +472,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           .closePrice!;
       double changeToday = close - open;
       double changePercentToday = changeToday / close;
-
-      if (selection != null) {
-// portfolios![0].equityPreviousClose!;
-      }
-
-      if (chart == null) {
-        List<charts.Series<dynamic, DateTime>> seriesList = [
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Open',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.openPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Close',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.closePrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-              id: 'Volume',
-              colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) => history.volume,
-              data: instrument.instrumentHistoricalsObj!.historicals),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Low',
-            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.lowPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'High',
-            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.highPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-        ];
-        chart = Chart(seriesList,
-            open: open,
-            close: close,
-            hiddenSeries: const ["Close", "Volume", "Low", "High"],
-            onSelected: _onChartSelection);
-      }
 
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -547,13 +560,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Day'),
                         selected: chartDateSpanFilter == ChartDateSpan.day,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.day;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(ChartDateSpan.day, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -565,13 +574,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Week'),
                         selected: chartDateSpanFilter == ChartDateSpan.week,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.week;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(ChartDateSpan.week, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -583,13 +588,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Month'),
                         selected: chartDateSpanFilter == ChartDateSpan.month,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.month;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(ChartDateSpan.month, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -601,13 +602,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('3 Months'),
                         selected: chartDateSpanFilter == ChartDateSpan.month_3,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.month_3;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(
+                                ChartDateSpan.month_3, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -619,13 +617,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Year'),
                         selected: chartDateSpanFilter == ChartDateSpan.year,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.year;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(ChartDateSpan.year, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -637,13 +631,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('5 Years'),
                         selected: chartDateSpanFilter == ChartDateSpan.year_5,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartDateSpanFilter = ChartDateSpan.year_5;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(ChartDateSpan.year_5, chartBoundsFilter);
+                          }
                         },
                       ),
                     ),
@@ -658,13 +648,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Regular Hours'),
                         selected: chartBoundsFilter == Bounds.regular,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartBoundsFilter = Bounds.regular;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(chartDateSpanFilter, Bounds.regular);
+                          }
                         },
                       ),
                     ),
@@ -676,13 +662,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         label: const Text('Trading Hours'),
                         selected: chartBoundsFilter == Bounds.trading,
                         onSelected: (bool value) {
-                          setState(() {
-                            if (value) {
-                              chartBoundsFilter = Bounds.trading;
-                              selection = null;
-                              futureHistoricals = null;
-                            }
-                          });
+                          if (value) {
+                            resetChart(chartDateSpanFilter, Bounds.trading);
+                          }
                         },
                       ),
                     ),
@@ -755,6 +737,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ]))));
     }
+
     if (optionPositions.isNotEmpty) {
       var filteredOptionPositions = optionPositions
           .where((e) =>
@@ -777,6 +760,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         slivers
             .add(optionPositionsWidget(filteredOptionPositions, optionEquity));
       }
+    }
+
+    if (instrument.quoteObj != null) {
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
+      slivers.add(quoteWidget(instrument));
     }
 
     if (instrument.fundamentalsObj != null) {
@@ -882,6 +873,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   _onChartSelection(dynamic historical) {
+    if (selection != historical) {
+      setState(() {
+        selection = historical;
+      });
+    }
+    /*
     if (historical != null) {
       if (selection != historical as InstrumentHistorical) {
         setState(() {
@@ -895,6 +892,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         });
       }
     }
+    */
   }
 
   Card buildOverview(Instrument instrument) {
@@ -905,64 +903,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        /*
-        ListTile(
-            title: Text("Last Trade Price"),
-            trailing: Wrap(spacing: 8, children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                "${formatCurrency.format(instrument.quoteObj!.lastTradePrice)}",
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            ])),
-        ListTile(
-          title: Text("Adjusted Previous Close"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Change Today"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.changeToday)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Change Today %"),
-          trailing: Text(
-              "${formatPercentage.format(instrument.quoteObj!.changePercentToday)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Bid - Ask Price"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Bid - Ask Size"),
-          trailing: Text(
-              "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: Text("Last Extended Hours Trade Price"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.lastExtendedHoursTradePrice)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        */
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -1029,6 +969,89 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
       ],
     ));
+  }
+
+  Widget quoteWidget(Instrument instrument) {
+    return SliverStickyHeader(
+        header: Material(
+            elevation: 2,
+            child: Container(
+                //height: 208.0, //60.0,
+                //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                alignment: Alignment.centerLeft,
+                child: const ListTile(
+                  title: Text(
+                    "Quote",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                ))),
+        sliver: SliverToBoxAdapter(
+            child: Card(
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          ListTile(
+              title: const Text("Last Trade Price"),
+              trailing: Wrap(spacing: 8, children: [
+                Icon(
+                    instrument.quoteObj!.changeToday > 0
+                        ? Icons.trending_up
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (instrument.quoteObj!.changeToday > 0
+                        ? Colors.green
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Colors.red
+                            : Colors.grey))),
+                Text(
+                  formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                  style: const TextStyle(fontSize: 18.0),
+                  textAlign: TextAlign.right,
+                ),
+              ])),
+          ListTile(
+            title: const Text("Adjusted Previous Close"),
+            trailing: Text(
+                formatCurrency
+                    .format(instrument.quoteObj!.adjustedPreviousClose),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Change Today"),
+            trailing: Text(
+                formatCurrency.format(instrument.quoteObj!.changeToday),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Change Today %"),
+            trailing: Text(
+                formatPercentage
+                    .format(instrument.quoteObj!.changePercentToday),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid - Ask Price"),
+            trailing: Text(
+                "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Bid - Ask Size"),
+            trailing: Text(
+                "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            title: const Text("Last Extended Hours Trade Price"),
+            trailing: Text(
+                formatCurrency
+                    .format(instrument.quoteObj!.lastExtendedHoursTradePrice),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          Container(
+            height: 25,
+          )
+        ]))));
   }
 
   Widget fundamentalsWidget(Instrument instrument) {

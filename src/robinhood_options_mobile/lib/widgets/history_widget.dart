@@ -506,7 +506,6 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
-      /*
       if (optionEvents != null) {
         slivers.add(SliverStickyHeader(
           header: Material(
@@ -541,9 +540,10 @@ class _HistoryPageState extends State<HistoryPage>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   ListTile(
-                                    tileColor: Theme.of(context).colorScheme.primary,
-                                    leading: Icon(Icons.filter_list),
-                                    title: Text(
+                                    tileColor:
+                                        Theme.of(context).colorScheme.primary,
+                                    leading: const Icon(Icons.filter_list),
+                                    title: const Text(
                                       "Filter Option Events",
                                       style: TextStyle(
                                           color: Colors.white, fontSize: 19.0),
@@ -633,7 +633,6 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
-      */
 
       if (positionOrders != null) {
         slivers.add(SliverStickyHeader(
