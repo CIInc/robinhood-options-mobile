@@ -713,7 +713,11 @@ class RobinhoodService {
   static Future<void> loadLogos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     var prefString = prefs.getString("logoUrls");
-    logoUrls = jsonDecode(prefString!);
+    if (prefString != null) {
+      logoUrls = jsonDecode(prefString);
+    } else {
+      logoUrls = {};
+    }
     debugPrint("Loaded ${logoUrls.keys.length} logos");
   }
 

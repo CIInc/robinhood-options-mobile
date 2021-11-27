@@ -1,10 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cidevelop.robinhood_options_mobile">
    <application
-        android:label="Options"
+        android:label="Robinhood Options"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
+            android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -49,7 +50,7 @@
 
                 <!-- Include one or more domains that should be verified. -->
                 <data android:host="robinhood-options-mobile.web.app" />
-                <data android:pathPrefix="" />
+                <!--<data android:pathPrefix="" />-->
             </intent-filter>
             <!--
             <intent-filter android:autoVerify="true">

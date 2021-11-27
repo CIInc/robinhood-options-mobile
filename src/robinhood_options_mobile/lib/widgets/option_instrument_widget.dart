@@ -529,10 +529,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               title: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Text("Greeks",
-                        style: TextStyle(
-                            //color: Colors.white,
-                            fontSize: 20.0)),
+                    const Text("Greeks", style: TextStyle(fontSize: 20.0)),
                     Container(
                       width: 5,
                     ),
@@ -572,30 +569,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                             ))
                   ]),
-              /*
-          Text("Greeks",
-              style: const TextStyle(
-                  //color: Colors.white,
-                  fontSize: 19.0)),
-                  */
             ),
-            /*         
-          Material(
-              elevation: 2.0,
-              child: Container(
-                //height: 208.0, //60.0,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: ListTile(
-                  title: Text(
-                    "Greeks",
-                    style: const TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                ),
-              ))*/
           ),
           SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 2),

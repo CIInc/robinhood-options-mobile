@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
+import 'package:dynamic_color/dynamic_color.dart';
+import 'package:material_color_utilities/material_color_utilities.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,25 +18,50 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    return MaterialApp(
-      title: 'Robinhood Options',
-      debugShowCheckedModeBanner: false,
-      //theme: ThemeData.light(),
-      theme:
-          ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light),
-      //darkTheme: ThemeData.dark(),
-      darkTheme:
-          ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark),
-      themeMode: ThemeMode.system,
-      /*
-        theme: ThemeData.dark().copyWith(
-          elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all(Colors.blueGrey[800]),
-          )),
-        ),
-        */
-      /*
+    /*
+    ThemeData lightTheme, darkTheme;
+    lightTheme =
+        ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
+    darkTheme =
+        ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
+    */
+    return DynamicColorBuilder(
+        //future: DynamicColorPlugin.getCorePalette(),
+        builder: (CorePalette? corePalette) {
+      ColorScheme colorScheme = const ColorScheme.light();
+      ColorScheme darkColorScheme = const ColorScheme.dark();
+      if (corePalette != null) {
+        colorScheme = colorScheme.copyWith(
+          primary: Color(corePalette.primary.get(40)),
+        );
+        darkColorScheme = darkColorScheme.copyWith(
+          primary: Color(corePalette.primary.get(80)),
+        );
+        colorScheme = colorScheme.harmonized();
+        darkColorScheme = darkColorScheme.harmonized();
+      }
+      /* else {
+        colorScheme = colorScheme.copyWith(
+          primary: Colors.teal,
+        );
+        darkColorScheme = darkColorScheme.copyWith(
+          primary: Colors.teal,
+        );
+      }
+      */
+      ThemeData lightTheme =
+          ThemeData(colorScheme: colorScheme, useMaterial3: true);
+      ThemeData darkTheme =
+          ThemeData(colorScheme: darkColorScheme, useMaterial3: true);
+      //lightTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
+      //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
+      return MaterialApp(
+        title: 'Robinhood Options',
+        debugShowCheckedModeBanner: false,
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: ThemeMode.system,
+        /*
         theme: ThemeData(
           // This is the theme of your application.
           //
@@ -47,9 +74,10 @@ class MyApp extends StatelessWidget {
           // is not restarted.
           primarySwatch: Colors.blue,
         ), */
-      // home: OptionPositionsWidget()
-      home: const NavigationStatefulWidget(),
-      //HomePage(title: 'Robinhood Options'),
-    );
+        // home: OptionPositionsWidget()
+        home: const NavigationStatefulWidget(),
+        //HomePage(title: 'Robinhood Options'),
+      );
+    });
   }
 }

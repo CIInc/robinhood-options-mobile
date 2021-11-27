@@ -719,6 +719,8 @@ class _HomePageState extends State<HomePage>
                         child: ChoiceChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          //selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                          //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
                           label: const Text('Day'),
                           selected: chartDateSpanFilter == ChartDateSpan.day,
                           onSelected: (bool value) {
@@ -873,7 +875,7 @@ class _HomePageState extends State<HomePage>
 
         slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2,
+              //elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -888,17 +890,51 @@ class _HomePageState extends State<HomePage>
                     trailing: IconButton(
                         icon: const Icon(Icons.filter_list),
                         onPressed: () {
-                          showModalBottomSheet<void>(
+                          showModalBottomSheet(
                             context: context,
                             //constraints: BoxConstraints(maxHeight: 260),
                             builder: (BuildContext context) {
-                              /*
                               return BottomSheet(
                                   onClosing: () {},
                                   builder: (BuildContext context) {
-                                    return Text("");
+                                    return StatefulBuilder(builder:
+                                        (BuildContext context, setState) {
+                                      return Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          ListTile(
+                                            tileColor: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            leading:
+                                                const Icon(Icons.filter_list),
+                                            title: const Text(
+                                              "Filter Options",
+                                              style: TextStyle(fontSize: 19.0),
+                                            ),
+                                            /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                          ),
+                                          const ListTile(
+                                            title:
+                                                Text("Position & Option Type"),
+                                          ),
+                                          openClosedFilterWidget,
+                                          optionTypeFilterWidget,
+                                          const ListTile(
+                                            title: Text("Symbols"),
+                                          ),
+                                          optionSymbolFilterWidget
+                                        ],
+                                      );
+                                    });
                                   });
-                                  */
+                              /*
                               return Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -909,8 +945,7 @@ class _HomePageState extends State<HomePage>
                                     leading: const Icon(Icons.filter_list),
                                     title: const Text(
                                       "Filter Options",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
+                                      style: TextStyle(fontSize: 19.0),
                                     ),
                                     /*
                                   trailing: TextButton(
@@ -928,6 +963,7 @@ class _HomePageState extends State<HomePage>
                                   optionSymbolFilterWidget
                                 ],
                               );
+                              */
                             },
                           );
                         }),
@@ -995,7 +1031,7 @@ class _HomePageState extends State<HomePage>
 
         slivers.add(SliverStickyHeader(
             header: Material(
-                elevation: 2,
+                //elevation: 2,
                 child: Container(
                     //height: 208.0, //60.0,
                     //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1024,9 +1060,7 @@ class _HomePageState extends State<HomePage>
                                       leading: const Icon(Icons.filter_list),
                                       title: const Text(
                                         "Filter Stocks",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 19.0),
+                                        style: TextStyle(fontSize: 19.0),
                                       ),
                                       /*
                                   trailing: TextButton(
@@ -1087,7 +1121,7 @@ class _HomePageState extends State<HomePage>
 
         slivers.add(SliverStickyHeader(
             header: Material(
-                elevation: 2,
+                //elevation: 2,
                 child: Container(
                     //height: 208.0, //60.0,
                     //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1116,9 +1150,7 @@ class _HomePageState extends State<HomePage>
                                       leading: const Icon(Icons.filter_list),
                                       title: const Text(
                                         "Filter Cryptos",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 19.0),
+                                        style: TextStyle(fontSize: 19.0),
                                       ),
                                       /*
                                   trailing: TextButton(
@@ -1159,60 +1191,25 @@ class _HomePageState extends State<HomePage>
       if (accounts != null) {
         slivers.add(SliverStickyHeader(
             header: Material(
-                elevation: 2.0,
+                //elevation: 2,
                 child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: const ListTile(
-                    title: Text(
-                      "Accounts",
-                      style: TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    ),
-                  ),
-                )),
-            /*
-            header: Container(
-                //height: 208.0, //60.0,
-                color: Colors.white,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  children: [
-                    Container(
-                        //height: 40,
-                        padding: const EdgeInsets.all(12.0),
-                        child: Text(
-                          "Accounts",
-                          style: const TextStyle(
-                              //color: Colors.white,
-                              fontSize: 19.0),
-                        )),
-                  ],
-                )),
-                */
+              //height: 208.0, //60.0,
+              //padding: EdgeInsets.symmetric(horizontal: 16.0),
+              alignment: Alignment.centerLeft,
+              child: const ListTile(
+                title: Text(
+                  "Accounts",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+              ),
+            )),
             sliver: SliverToBoxAdapter(
                 child: Card(
                     child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: accountWidgets(accounts).toList())))));
-        /*        
-        slivers.add(SliverPersistentHeader(
-          pinned: true,
-          delegate: PersistentHeader(
-              "Accounts ${formatCurrency.format(accounts[0].portfolioCash)}"),
-        ));
-        slivers.add(SliverToBoxAdapter(
-            child: Card(
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: accountWidgets(accounts).toList()))));
-                    */
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
-          // color: Colors.white,
           height: 25.0,
         )));
       }
@@ -1220,135 +1217,56 @@ class _HomePageState extends State<HomePage>
     if (portfolios != null) {
       slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2.0,
+              //elevation: 2,
               child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Portfolios",
-                    style: TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                ),
-              )),
-/*
-          header: Container(
-              //height: 208.0, //60.0,
-              color: Colors.white,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: Column(
-                children: [
-                  Container(
-                      //height: 40,
-                      padding: const EdgeInsets.all(12.0),
-                      child: Text(
-                        'Portfolios',
-                        style: const TextStyle(
-                            //color: Colors.white,
-                            fontSize: 19.0),
-                      )),
-                ],
-              )),
-              */
+            //height: 208.0, //60.0,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: const ListTile(
+              title: Text(
+                "Portfolios",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            ),
+          )),
           sliver: portfoliosWidget(portfolios)));
-      /*
-      slivers.add(
-        SliverPersistentHeader(
-          pinned: false,
-          delegate: PersistentHeader("Portfolios"),
-        ),
-      );
-      slivers.add(portfoliosWidget(portfolios));
-      */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
     }
     if (user != null) {
       slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2.0,
+              //elevation: 2,
               child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "User",
-                    style: TextStyle(
-                        //color: Colors.white,
-                        fontSize: 19.0),
-                  ),
-                ),
-              )),
+            //height: 208.0, //60.0,
+            //padding: EdgeInsets.symmetric(horizontal: 16.0),
+            alignment: Alignment.centerLeft,
+            child: const ListTile(
+              title: Text(
+                "User",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            ),
+          )),
           sliver: userWidget(user)));
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        // color: Colors.white,
         height: 25.0,
       )));
     }
     slivers.add(SliverStickyHeader(
         header: Material(
-            elevation: 2.0,
+            //elevation: 2.0,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
                 alignment: Alignment.centerLeft,
-                child:
-                    null /*ListTile(
-                title: Text(
-                  "Disclaimer",
-                  style: const TextStyle(
-                      //color: Colors.white,
-                      fontSize: 19.0),
-                ),
-              ),*/
-                )),
-        /*
-        header: Container(
-            //height: 208.0, //60.0,
-            color: Colors.white,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: Column(
-              children: [
-                Container(
-                    //height: 40,
-                    padding: const EdgeInsets.all(12.0),
-                    child: Text(
-                      'Disclaimer',
-                      style: const TextStyle(
-                          //color: Colors.white,
-                          fontSize: 19.0),
-                    )),
-              ],
-            )),
-            */
+                child: null)),
         sliver: const SliverToBoxAdapter(child: DisclaimerWidget())));
-    /*
-    slivers.add(SliverPersistentHeader(
-      // pinned: true,
-      delegate: PersistentHeader("Disclaimer"),
-    ));
-    slivers.add(SliverToBoxAdapter(
-        child: Container(
-            color: Colors.white,
-            height: 420.0,
-            child: const Align(
-                alignment: Alignment.center,
-                child: Text(
-                    "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
-                    */
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
-      // color: Colors.white,
       height: 25.0,
     )));
 
@@ -2117,7 +2035,7 @@ class _HomePageState extends State<HomePage>
               Wrap(spacing: 10, children: [
                 Text(formatCurrency.format(portfolioValue),
                     style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+                        const TextStyle(fontSize: 17.0, color: Colors.white70)),
                 //style: const TextStyle(fontSize: 20.0),
                 //textAlign: TextAlign.right
                 Wrap(alignment: WrapAlignment.center, children: [
@@ -2133,12 +2051,12 @@ class _HomePageState extends State<HomePage>
                       size: 20.0),
                   Text(formatPercentage.format(changePercentToday.abs()),
                       style: const TextStyle(
-                          fontSize: 16.0, color: Colors.white70)),
+                          fontSize: 17.0, color: Colors.white70)),
                 ]),
                 Text(
                     "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
                     style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+                        const TextStyle(fontSize: 17.0, color: Colors.white70)),
               ]),
             ]
           ]),
@@ -2712,7 +2630,14 @@ class _HomePageState extends State<HomePage>
                   //const Icon(Icons.error); //Text('Your error widget...');
                 },
               )
-            : const SizedBox(width: 40, height: 40),
+            : CircleAvatar(
+                foregroundColor:
+                    Theme.of(context).colorScheme.primary, //.onBackground,
+                //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                child: Text(positions[index]
+                    .instrumentObj!
+                    .name
+                    .substring(0, 1))), //const SizedBox(width: 40, height: 40),
         title: Text(positions[index].instrumentObj != null
             ? positions[index].instrumentObj!.symbol
             : ""),
@@ -2802,7 +2727,12 @@ class _HomePageState extends State<HomePage>
                     //const Icon(Icons.error); //Text('Your error widget...');
                   },
                 )
-              : const SizedBox(width: 40, height: 40),
+              : CircleAvatar(
+                  foregroundColor:
+                      Theme.of(context).colorScheme.primary, //.onBackground,
+                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Text(op.symbol.substring(
+                      0, 1))), //const SizedBox(width: 40, height: 40),,
           /*
           leading: CircleAvatar(
               child: Text(formatCompactNumber.format(op.quantity!),
@@ -3114,7 +3044,7 @@ class _HomePageState extends State<HomePage>
                 new DrawerHeader(
                     child: new Text('Robinhood Options',
                         style:
-                            new TextStyle(color: Colors.white, fontSize: 24.9)),
+                            new TextStyle(fontSize: 24.9)),
                     decoration: new BoxDecoration(color: Colors.green)),
                 new ListTile(
                     leading: new Icon(Icons.verified_user),

@@ -974,7 +974,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget quoteWidget(Instrument instrument) {
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1057,7 +1057,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget fundamentalsWidget(Instrument instrument) {
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1203,7 +1203,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildRatingsWidget(Instrument instrument) {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1368,7 +1368,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1473,7 +1473,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         instrument.earningsObj![instrument.earningsObj!.length - 2];
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1574,7 +1574,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildSplitsWidget(Instrument instrument) {
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1678,7 +1678,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildSimilarWidget(Instrument instrument) {
     return SliverStickyHeader(
         header: Material(
-            elevation: 2,
+            //elevation: 2,
             child: Container(
                 //height: 208.0, //60.0,
                 //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1751,7 +1751,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildListsWidget(Instrument instrument) {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1807,7 +1807,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildNewsWidget(Instrument instrument) {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -1866,50 +1866,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget get positionOrdersWidget {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
-            //height: 208.0, //60.0,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: ListTile(
-                title: const Text(
-                  "Position Orders",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                subtitle: Text(
-                    "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                trailing: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        constraints: const BoxConstraints(maxHeight: 260),
-                        builder: (BuildContext context) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                tileColor:
-                                    Theme.of(context).colorScheme.primary,
-                                leading: const Icon(Icons.filter_list),
-                                title: const Text(
-                                  "Filter Position Orders",
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 19.0),
-                                ),
-                                /*
+        //height: 208.0, //60.0,
+        //padding: EdgeInsets.symmetric(horizontal: 16.0),
+        alignment: Alignment.centerLeft,
+        child: ListTile(
+            title: const Text(
+              "Position Orders",
+              style: TextStyle(fontSize: 19.0),
+            ),
+            subtitle: Text(
+                "${formatCompactNumber.format(positionOrders.length)} orders - balance: ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+            trailing: IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    constraints: const BoxConstraints(maxHeight: 260),
+                    builder: (BuildContext context) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ListTile(
+                            tileColor: Theme.of(context).colorScheme.primary,
+                            leading: const Icon(Icons.filter_list),
+                            title: const Text(
+                              "Filter Position Orders",
+                              style: TextStyle(fontSize: 19.0),
+                            ),
+                            /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                              ),
-                              orderFilterWidget,
-                            ],
-                          );
-                        },
+                          ),
+                          orderFilterWidget,
+                        ],
                       );
-                    })),
-          )),
+                    },
+                  );
+                })),
+      )),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
@@ -2010,7 +2008,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       double optionEquity) {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -2039,8 +2037,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Options",
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 19.0),
+                                  style: TextStyle(fontSize: 19.0),
                                 ),
                                 /*
                                   trailing: TextButton(
@@ -2401,7 +2398,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget get optionOrdersWidget {
     return SliverStickyHeader(
       header: Material(
-          elevation: 2,
+          //elevation: 2,
           child: Container(
               //height: 208.0, //60.0,
               //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -2430,8 +2427,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 19.0),
+                                  style: TextStyle(fontSize: 19.0),
                                 ),
                                 /*
                                   trailing: TextButton(

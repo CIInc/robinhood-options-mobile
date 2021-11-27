@@ -69,36 +69,6 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildScaffold() {
-    /*
-    return Scaffold(
-        appBar: AppBar(
-            title: //const Text('Search'),
-//          automaticallyImplyLeading: false,
-//          actions: [
-//            IconButton(
-//              onPressed: () {},
-//              icon: const Icon(Icons.search),
-//            )
-//          ],
-//          centerTitle: true,
-                TextField(
-          controller: searchCtl,
-          decoration: const InputDecoration(
-            hintText: 'Search...',
-            hintStyle: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          onChanged: (text) {
-            setState(() {
-              futureSearch = RobinhoodService.search(widget.user, text);
-            });
-          },
-        )),
-        body: 
-        */
     futureMovers ??= RobinhoodService.getMovers(widget.user, direction: "up");
     futureLosers ??= RobinhoodService.getMovers(widget.user, direction: "down");
     futureListMovers ??= RobinhoodService.getListMovers(widget.user);
@@ -169,7 +139,6 @@ class _SearchWidgetState extends State<SearchWidget>
                               hintText:
                                   'Start typing to search by name or symbol.',
                               hintStyle: TextStyle(
-                                //color: Colors.white,
                                 fontSize: 18,
                                 //fontStyle: FontStyle.italic,
                               ),
@@ -200,7 +169,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (search != null) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: const ListTile(
@@ -234,7 +203,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (movers != null && movers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
@@ -268,7 +237,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (losers != null && losers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
@@ -302,7 +271,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (listMovers != null && listMovers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
@@ -336,7 +305,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       listMostPopular.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            elevation: 2,
+                            //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
@@ -565,42 +534,4 @@ class _SearchWidgetState extends State<SearchWidget>
               },
             )));
   }
-
-/*
-  Widget _buildListView(dynamic results) {
-    return ListView(
-      padding: const EdgeInsets.all(15.0),
-      children: [
-        for (var result in results) ...[
-          ListTile(
-            title: Text(
-              result["display_title"],
-              style: const TextStyle(
-                  //color: Colors.white,
-                  fontSize: 19.0),
-            ),
-            //subtitle: Text(
-            //    "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
-          ),
-          for (var data in result['content']['data']) ...[
-            ListTile(
-              title: Text(data["item"]["symbol"]),
-              subtitle:
-                  Text(data["item"]["simple_name"] ?? data["item"]["name"]),
-              onTap: () {
-                var instrument = Instrument.fromJson(data["item"]);
-
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                            widget.user, widget.account, instrument)));
-              },
-            ),
-          ]
-        ]
-      ],
-    );
-  }
-  */
 }

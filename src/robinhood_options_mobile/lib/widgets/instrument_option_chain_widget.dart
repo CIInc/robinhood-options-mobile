@@ -209,7 +209,7 @@ class _InstrumentOptionChainWidgetState
       */
       slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2,
+              //elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),

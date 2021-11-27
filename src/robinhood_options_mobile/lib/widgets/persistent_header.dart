@@ -13,22 +13,16 @@ class PersistentHeader extends SliverPersistentHeaderDelegate {
       return widget!;
     }
     return Material(
-        elevation: 1,
-        child: Container(
-            color: Colors.white,
-            child: /*Card(
-            color: Colors.white,
-            elevation: 3.0,
-            child: */
-                SizedBox(
-              height: size,
-              child: Center(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontSize: 18.0),
-                ),
-              ),
-            )));
+        //elevation: 1,
+        child: SizedBox(
+      height: size,
+      child: Center(
+        child: Text(
+          title,
+          style: const TextStyle(fontSize: 18.0),
+        ),
+      ),
+    ));
   }
 
   @override

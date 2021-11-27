@@ -142,8 +142,7 @@ class _ListWidgetState extends State<ListWidget>
                             leading: const Icon(Icons.sort),
                             title: const Text(
                               "Sort Watch List",
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 19.0),
+                              style: TextStyle(fontSize: 19.0),
                             ),
                             /*
                                   trailing: TextButton(
@@ -212,133 +211,11 @@ class _ListWidgetState extends State<ListWidget>
           ],
         ),
         body: CustomScrollView(slivers: [
-          /*
-                  SliverStickyHeader(
-                      header: Material(
-                          elevation: 2,
-                          child: Container(
-                              //height: 208.0, //60.0,
-                              color: Colors.white,
-                              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                              alignment: Alignment.centerLeft,
-                              child: ListTile(
-                                title: const Text(
-                                  "Lists",
-                                  style: TextStyle(
-                                      //color: Colors.white,
-                                      fontSize: 19.0),
-                                ),
-                                subtitle: Text(
-                                    "${formatCompactNumber.format(watchlists!.length)} items"),
-                                trailing: IconButton(
-                                    icon: const Icon(Icons.sort),
-                                    onPressed: () {
-                                      showModalBottomSheet<void>(
-                                        context: context,
-                                        //constraints: BoxConstraints(maxHeight: 260),
-                                        builder: (BuildContext context) {
-                                          return Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              ListTile(
-                                                tileColor: Theme.of(context).colorScheme.primary,
-                                                title: const Text(
-                                                  "Sort Watch List",
-                                                  style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 19.0),
-                                                ),
-                                                /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                              ),
-                                              Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.start,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  RadioListTile<SortType>(
-                                                    title: const Text(
-                                                        'Alphabetical (Ascending)'),
-                                                    value:
-                                                        SortType.alphabetical,
-                                                    groupValue: _sortType,
-                                                    onChanged:
-                                                        (SortType? value) {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _sortType = value;
-                                                        _sortDirection =
-                                                            SortDirection.asc;
-                                                      });
-                                                    },
-                                                  ),
-                                                  RadioListTile<SortType>(
-                                                    title: const Text(
-                                                        'Alphabetical (Descending)'),
-                                                    value:
-                                                        SortType.alphabetical,
-                                                    groupValue: _sortType,
-                                                    onChanged:
-                                                        (SortType? value) {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _sortType = value;
-                                                        _sortDirection =
-                                                            SortDirection.desc;
-                                                      });
-                                                    },
-                                                  ),
-                                                  RadioListTile<SortType>(
-                                                    title: const Text(
-                                                        'Change (Ascending)'),
-                                                    value: SortType.change,
-                                                    groupValue: _sortType,
-                                                    onChanged:
-                                                        (SortType? value) {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _sortType = value;
-                                                        _sortDirection =
-                                                            SortDirection.asc;
-                                                      });
-                                                    },
-                                                  ),
-                                                  RadioListTile<SortType>(
-                                                    title: const Text(
-                                                        'Change (Descending)'),
-                                                    value: SortType.change,
-                                                    groupValue: _sortType,
-                                                    onChanged:
-                                                        (SortType? value) {
-                                                      Navigator.pop(context);
-                                                      setState(() {
-                                                        _sortType = value;
-                                                        _sortDirection =
-                                                            SortDirection.desc;
-                                                      });
-                                                    },
-                                                  ),
-                                                ],
-                                              )
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    }),
-                              ))),
-                      sliver: SliverToBoxAdapter(child: Container())),
-                      */
           if (watchlists != null) ...[
             for (var watchlist in watchlists!) ...[
               SliverStickyHeader(
                   header: Material(
-                      elevation: 2,
+                      //elevation: 2,
                       child: Container(
                           //height: 208.0, //60.0,
                           //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -346,9 +223,7 @@ class _ListWidgetState extends State<ListWidget>
                           child: ListTile(
                             title: Text(
                               watchlist.displayName,
-                              style: const TextStyle(
-                                  //color: Colors.white,
-                                  fontSize: 19.0),
+                              style: const TextStyle(fontSize: 19.0),
                             ),
                             subtitle: Text(
                                 "${formatCompactNumber.format(watchlist.items.length)} items"),
@@ -372,9 +247,7 @@ class _ListWidgetState extends State<ListWidget>
                                                 .primary,
                                             title: const Text(
                                               "Sort Watch List",
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 19.0),
+                                              style: TextStyle(fontSize: 19.0),
                                             ),
                                             //trailing: TextButton(
                                             //    child: const Text("APPLY"),

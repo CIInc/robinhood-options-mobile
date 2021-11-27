@@ -319,6 +319,21 @@ class _HistoryPageState extends State<HistoryPage>
     }
     balance = optionOrdersPremiumBalance + positionOrdersBalance;
 
+    if (optionEvents != null) {
+      filteredOptionEvents = optionEvents
+          .where((element) =>
+                  (orderFilters.isEmpty ||
+                      orderFilters.contains(element.state)) &&
+                  (days == 0 ||
+                      (element.createdAt!
+                              .add(Duration(days: days))
+                              .compareTo(DateTime.now()) >=
+                          0)) //&&
+              //(optionSymbolFilters.isEmpty || optionSymbolFilters.contains(element.chainSymbol))
+              )
+          .toList();
+    }
+
     if (widget.user.userName != null) {
       if (done == false) {
         slivers.add(const SliverToBoxAdapter(
@@ -349,7 +364,7 @@ class _HistoryPageState extends State<HistoryPage>
       if (optionOrders != null) {
         slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2,
+              //elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -385,8 +400,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     leading: const Icon(Icons.filter_list),
                                     title: const Text(
                                       "Filter Option Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
+                                      style: TextStyle(fontSize: 19.0),
                                     ),
                                     /*
                                   trailing: TextButton(
@@ -419,7 +433,7 @@ class _HistoryPageState extends State<HistoryPage>
                 if (optionOrder.optionEvents != null) {
                   var optionEvent = optionOrder.optionEvents!.first;
                   subtitle = Text(
-                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : optionEvent.type)} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
+                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
                 }
                 return Card(
                     child: Column(
@@ -506,10 +520,10 @@ class _HistoryPageState extends State<HistoryPage>
           height: 25.0,
         )));
       }
-      if (optionEvents != null) {
+      if (optionEvents != null && filteredOptionEvents != null) {
         slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2,
+              //elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -545,8 +559,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     leading: const Icon(Icons.filter_list),
                                     title: const Text(
                                       "Filter Option Events",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
+                                      style: TextStyle(fontSize: 19.0),
                                     ),
                                     /*
                                   trailing: TextButton(
@@ -584,7 +597,7 @@ class _HistoryPageState extends State<HistoryPage>
                               '${filteredOptionEvents![index].quantity!.round()}',
                               style: const TextStyle(fontSize: 17))),
                       title: Text(
-                          "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${formatCurrency.format(filteredOptionEvents![index].underlyingPrice)}"), // , style: TextStyle(fontSize: 18.0)),
+                          "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
                       subtitle: Text(
                           "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
                       trailing: Wrap(spacing: 8, children: [
@@ -637,7 +650,7 @@ class _HistoryPageState extends State<HistoryPage>
       if (positionOrders != null) {
         slivers.add(SliverStickyHeader(
           header: Material(
-              elevation: 2,
+              //elevation: 2,
               child: Container(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -673,8 +686,7 @@ class _HistoryPageState extends State<HistoryPage>
                                     leading: const Icon(Icons.filter_list),
                                     title: const Text(
                                       "Filter Stock Orders",
-                                      style: TextStyle(
-                                          color: Colors.white, fontSize: 19.0),
+                                      style: TextStyle(fontSize: 19.0),
                                     ),
                                     /*
                                   trailing: TextButton(
@@ -786,23 +798,8 @@ class _HistoryPageState extends State<HistoryPage>
         slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
       }
     }
-    /*
-    slivers.add(SliverPersistentHeader(
-      // pinned: true,
-      delegate: PersistentHeader("Disclaimer"),
-    ));
-    slivers.add(SliverToBoxAdapter(
-        child: Container(
-            color: Colors.white,
-            height: 420.0,
-            child: const Align(
-                alignment: Alignment.center,
-                child: Text(
-                    "Robinhood Options is not a registered investment, legal or tax advisor or a broker/dealer. All investment/financial opinions expressed by Robinhood Options are intended  as educational material.\n\n Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis sit amet lectus velit. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Nam eget dolor quis eros vulputate pharetra. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas porttitor augue ipsum, non mattis lorem commodo eu. Vivamus tellus lorem, rhoncus vel fermentum et, pharetra at sapien. Donec non auctor augue. Cras ante metus, commodo ornare augue at, commodo pellentesque risus. Donec laoreet iaculis orci, eu suscipit enim vehicula ut. Aliquam at erat sit amet diam fringilla fermentum vel eget massa. Duis nec mi dolor.\n\nMauris porta ac libero in vestibulum. Vivamus vestibulum, nibh ut dignissim aliquet, arcu elit tempor urna, in vehicula diam ante ut lacus. Donec vehicula ullamcorper orci, ac facilisis nibh fermentum id. Aliquam nec erat at mi tristique vestibulum ac quis sapien. Donec a auctor sem, sed sollicitudin nunc. Sed bibendum rhoncus nisl. Donec eu accumsan quam. Praesent iaculis fermentum tortor sit amet varius. Nam a dui et mauris commodo porta. Nam egestas molestie quam eu commodo. Proin nec justo neque.")))));
-                    */
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
-      // color: Colors.white,
       height: 25.0,
     )));
 
@@ -858,8 +855,7 @@ class _HistoryPageState extends State<HistoryPage>
                           leading: const Icon(Icons.filter_list),
                           title: const Text(
                             "Filter Orders",
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 19.0),
+                            style: TextStyle(fontSize: 19.0),
                           ),
                           /*
                                   trailing: TextButton(
@@ -1267,7 +1263,7 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
                 // leading: const Icon(Icons.share),
                 title: const Text(
                   "Sharing Options",
-                  style: TextStyle(color: Colors.white, fontSize: 19.0),
+                  style: TextStyle(fontSize: 19.0),
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.send),

@@ -6,7 +6,6 @@ class DisclaimerWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        //color: Colors.white,
         //height: 420.0,
         padding: const EdgeInsets.all(12.0),
         child: const Align(
