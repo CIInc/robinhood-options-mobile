@@ -98,9 +98,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           .where((element) => element.chainSymbol == widget.instrument.symbol)
           .toList();
       futureOptionOrders = Future.value(cachedOptionOrders);
-    } else {
+    } else if (widget.instrument.tradeableChainId != null) {
       futureOptionOrders = RobinhoodService.getOptionOrders(
           widget.user, widget.instrument.tradeableChainId!);
+    } else {
+      futureOptionOrders = Future.value([]);
     }
 
     if (RobinhoodService.optionPositions != null) {
@@ -907,16 +909,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
             const SizedBox(width: 8),
-            TextButton(
-              child: const Text('OPTION CHAIN'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentOptionChainWidget(
-                            widget.user, widget.account, instrument)));
-              },
-            ),
+            if (instrument.tradeableChainId != null) ...[
+              TextButton(
+                child: const Text('OPTION CHAIN'),
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => InstrumentOptionChainWidget(
+                              widget.user, widget.account, instrument)));
+                },
+              ),
+            ],
             const Expanded(child: SizedBox()),
             //const SizedBox(width: 8),
             TextButton(
@@ -1467,10 +1471,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildEarningsWidget(Instrument instrument) {
-    var futureEarning =
-        instrument.earningsObj![instrument.earningsObj!.length - 1];
-    var pastEarning =
-        instrument.earningsObj![instrument.earningsObj!.length - 2];
+    dynamic futureEarning;
+    dynamic pastEarning;
+    if (instrument.earningsObj!.isNotEmpty) {
+      futureEarning =
+          instrument.earningsObj![instrument.earningsObj!.length - 1];
+      pastEarning = instrument.earningsObj![instrument.earningsObj!.length - 2];
+    }
+
     return SliverStickyHeader(
         header: Material(
             //elevation: 2,
