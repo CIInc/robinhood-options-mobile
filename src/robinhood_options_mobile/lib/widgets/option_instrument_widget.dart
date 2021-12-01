@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
@@ -108,26 +109,76 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
-    final DateTime createdAt = DateTime(optionInstrument.createdAt!.year,
-        optionInstrument.createdAt!.month, optionInstrument.createdAt!.day);
-    final int originalDte =
-        optionInstrument.expirationDate!.difference(createdAt).inDays;
+    int originalDte = 0;
+    if (optionPosition != null) {
+      final DateTime createdAt = DateTime(optionPosition.createdAt!.year,
+          optionPosition.createdAt!.month, optionPosition.createdAt!.day);
+      originalDte =
+          optionInstrument.expirationDate!.difference(createdAt).inDays;
+    }
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
           SliverAppBar(
-              title: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.start,
-                  //runAlignment: WrapAlignment.end,
-                  //alignment: WrapAlignment.end,
-                  spacing: 10,
-                  //runSpacing: 5,
-                  children: [
-                    Text(optionInstrument.chainSymbol),
-                    Text("\$${optionInstrument.strikePrice}"),
-                    Text(optionInstrument.type.toUpperCase()),
-                    Text(formatDate.format(optionInstrument.expirationDate!))
-                  ]),
+              title: Wrap(spacing: 20, children: [
+                Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    //runAlignment: WrapAlignment.end,
+                    //alignment: WrapAlignment.end,
+                    spacing: 10,
+                    //runSpacing: 5,
+                    children: [
+                      Text(optionInstrument.chainSymbol),
+                      Text("\$${optionInstrument.strikePrice}"),
+                      Text(optionInstrument.type.toUpperCase()),
+                      Text(formatDate.format(optionInstrument.expirationDate!)),
+                    ]),
+                if (optionInstrument.optionMarketData != null) ...[
+                  Wrap(spacing: 10, children: [
+                    Text(
+                        formatCurrency.format(
+                            optionInstrument.optionMarketData!.lastTradePrice),
+                        //style: const TextStyle(fontSize: 15.0)
+                        style: const TextStyle(
+                            fontSize: 16.0, color: Colors.white70)),
+                    Wrap(children: [
+                      Icon(
+                          optionInstrument.optionMarketData!.changeToday > 0
+                              ? Icons.trending_up
+                              : (optionInstrument
+                                          .optionMarketData!.changeToday <
+                                      0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color:
+                              (optionInstrument.optionMarketData!.changeToday >
+                                      0
+                                  ? Colors.lightGreenAccent
+                                  : (optionInstrument
+                                              .optionMarketData!.changeToday <
+                                          0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                          size: 20.0),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(
+                          formatPercentage.format(optionInstrument
+                              .optionMarketData!.changePercentToday),
+                          //style: const TextStyle(fontSize: 15.0)
+                          style: const TextStyle(
+                              fontSize: 16.0, color: Colors.white70)),
+                    ]),
+                    Text(
+                        "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
+                        //style: const TextStyle(fontSize: 12.0),
+                        style: const TextStyle(
+                            fontSize: 16.0, color: Colors.white70),
+                        textAlign: TextAlign.right)
+                  ])
+                ],
+              ]),
               expandedHeight: optionPosition != null ? 240 : 160,
               floating: false,
               pinned: true,
@@ -964,14 +1015,19 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               ),
             ],
           ))),
-          if (optionPosition != null) ...[
+          if (optionPosition != null && optionPosition.legs.length > 1) ...[
             SliverToBoxAdapter(
                 child: Card(
                     child: Column(
               mainAxisSize: MainAxisSize.min,
               children: _buildLegs(optionPosition).toList(),
             ))),
-          ]
+          ],
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget())
         ]));
   }
 
