@@ -159,11 +159,11 @@ class OptionAggregatePosition {
   }
 
   double get changeToday {
-    return optionInstrument!.optionMarketData!.gainLossToday * quantity! * 100;
+    return optionInstrument!.optionMarketData!.changeToday * quantity! * 100;
   }
 
   double get changePercentToday {
-    return optionInstrument!.optionMarketData!.gainLossPercentToday;
+    return optionInstrument!.optionMarketData!.changePercentToday;
   }
 
   /* CSV Generation */

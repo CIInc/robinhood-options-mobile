@@ -446,7 +446,7 @@ class _InstrumentOptionChainWidgetState
                           optionInstruments[index].optionMarketData != null
                               ? formatPercentage.format(optionInstruments[index]
                                   .optionMarketData!
-                                  .gainLossPercentToday)
+                                  .changePercentToday)
                               : "-",
                           //style: TextStyle(fontSize: 16),
                         )

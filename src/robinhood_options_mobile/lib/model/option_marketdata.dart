@@ -154,11 +154,11 @@ class OptionMarketData {
             ? double.tryParse(json['low_fill_rate_sell_price'])
             : null;
 
-  double get gainLossToday {
+  double get changeToday {
     return adjustedMarkPrice! - previousClosePrice!;
   }
 
-  double get gainLossPercentToday {
-    return gainLossToday / previousClosePrice!;
+  double get changePercentToday {
+    return changeToday / previousClosePrice!;
   }
 }

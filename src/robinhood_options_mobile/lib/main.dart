@@ -50,9 +50,9 @@ class MyApp extends StatelessWidget {
       }
       */
       ThemeData lightTheme =
-          ThemeData(colorScheme: colorScheme, useMaterial3: true);
+          ThemeData(colorScheme: colorScheme); //, useMaterial3: true
       ThemeData darkTheme =
-          ThemeData(colorScheme: darkColorScheme, useMaterial3: true);
+          ThemeData(colorScheme: darkColorScheme); //, useMaterial3: true
       //lightTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
       //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
       return MaterialApp(
