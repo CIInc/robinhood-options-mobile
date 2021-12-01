@@ -402,21 +402,20 @@ class _SearchWidgetState extends State<SearchWidget>
                       overflow: TextOverflow.ellipsis)
                 ]),
               ]),
-              onTap: () {
+              onTap: () async {
+                var instrument = await RobinhoodService.getInstrument(
+                    widget.user, movers[index].instrumentUrl);
+
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
                     builder: (context) => InstrumentWidget(ru, widget.account,
                         watchLists[index].instrumentObj as Instrument)));
                         */
-                /*
                 Navigator.push(
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            widget.user,
-                            widget.account,
-                            watchLists[index].instrumentObj as Instrument)));
-                            */
+                            widget.user, widget.account, instrument)));
               },
             )));
   }
