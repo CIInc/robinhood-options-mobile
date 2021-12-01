@@ -465,6 +465,12 @@ class _HomePageState extends State<HomePage>
         positionEquity =
             positions.map((e) => e.marketValue).reduce((a, b) => a + b);
       }
+      positionSymbols = positions
+          .where((element) => element.instrumentObj != null)
+          .map((e) => e.instrumentObj!.symbol)
+          .toSet()
+          .toList();
+      positionSymbols.sort((a, b) => (a.compareTo(b)));
     }
     double nummusEquity = 0;
     if (nummusHoldings != null && nummusHoldings.isNotEmpty) {
@@ -870,8 +876,6 @@ class _HomePageState extends State<HomePage>
                 ? e.marketValue
                 : e.marketValue)
             .reduce((a, b) => a + b);
-        positionSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
-        positionSymbols.sort((a, b) => (a.compareTo(b)));
 
         slivers.add(SliverStickyHeader(
           header: Material(
@@ -894,46 +898,38 @@ class _HomePageState extends State<HomePage>
                             context: context,
                             //constraints: BoxConstraints(maxHeight: 260),
                             builder: (BuildContext context) {
-                              return BottomSheet(
-                                  onClosing: () {},
-                                  builder: (BuildContext context) {
-                                    return StatefulBuilder(builder:
-                                        (BuildContext context, setState) {
-                                      return Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.start,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          ListTile(
-                                            tileColor: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                            leading:
-                                                const Icon(Icons.filter_list),
-                                            title: const Text(
-                                              "Filter Options",
-                                              style: TextStyle(fontSize: 19.0),
-                                            ),
-                                            /*
+                              return StatefulBuilder(builder:
+                                  (BuildContext context,
+                                      StateSetter bottomState) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      tileColor:
+                                          Theme.of(context).colorScheme.primary,
+                                      leading: const Icon(Icons.filter_list),
+                                      title: const Text(
+                                        "Filter Options",
+                                        style: TextStyle(fontSize: 19.0),
+                                      ),
+                                      /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                          ),
-                                          const ListTile(
-                                            title:
-                                                Text("Position & Option Type"),
-                                          ),
-                                          openClosedFilterWidget,
-                                          optionTypeFilterWidget,
-                                          const ListTile(
-                                            title: Text("Symbols"),
-                                          ),
-                                          optionSymbolFilterWidget
-                                        ],
-                                      );
-                                    });
-                                  });
+                                    ),
+                                    const ListTile(
+                                      title: Text("Position & Option Type"),
+                                    ),
+                                    openClosedFilterWidget(bottomState),
+                                    optionTypeFilterWidget(bottomState),
+                                    const ListTile(
+                                      title: Text("Symbols"),
+                                    ),
+                                    optionSymbolFilterWidget(bottomState)
+                                  ],
+                                );
+                              });
                               /*
                               return Column(
                                 mainAxisAlignment: MainAxisAlignment.start,
@@ -1047,39 +1043,48 @@ class _HomePageState extends State<HomePage>
                           icon: const Icon(Icons.filter_list),
                           onPressed: () {
                             showModalBottomSheet<void>(
-                              context: context,
-                              //constraints: BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      tileColor:
-                                          Theme.of(context).colorScheme.primary,
-                                      leading: const Icon(Icons.filter_list),
-                                      title: const Text(
-                                        "Filter Stocks",
-                                        style: TextStyle(fontSize: 19.0),
-                                      ),
-                                      /*
+                                context: context,
+                                //constraints: BoxConstraints(maxHeight: 260),
+                                builder: (BuildContext context) {
+                                  return StatefulBuilder(builder:
+                                      (BuildContext context,
+                                          StateSetter bottomState) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          tileColor: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Stocks",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                    ),
-                                    const ListTile(
-                                      title: Text("Position Type"), // & Date
-                                    ),
-                                    positionTypeFilterWidget,
-                                    //orderDateFilterWidget,
-                                    const ListTile(
-                                      title: Text("Symbols"),
-                                    ),
-                                    stockOrderSymbolFilterWidget,
-                                  ],
-                                );
-                              },
-                            );
+                                        ),
+                                        const ListTile(
+                                          title:
+                                              Text("Position Type"), // & Date
+                                        ),
+                                        positionTypeFilterWidget(bottomState),
+                                        //orderDateFilterWidget,
+                                        const ListTile(
+                                          title: Text("Symbols"),
+                                        ),
+                                        stockOrderSymbolFilterWidget(
+                                            bottomState),
+                                      ],
+                                    );
+                                  });
+                                });
                           }),
                     ))),
             sliver: SliverList(
@@ -1137,39 +1142,47 @@ class _HomePageState extends State<HomePage>
                           icon: const Icon(Icons.filter_list),
                           onPressed: () {
                             showModalBottomSheet<void>(
-                              context: context,
-                              //constraints: BoxConstraints(maxHeight: 260),
-                              builder: (BuildContext context) {
-                                return Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      tileColor:
-                                          Theme.of(context).colorScheme.primary,
-                                      leading: const Icon(Icons.filter_list),
-                                      title: const Text(
-                                        "Filter Cryptos",
-                                        style: TextStyle(fontSize: 19.0),
-                                      ),
-                                      /*
+                                context: context,
+                                //constraints: BoxConstraints(maxHeight: 260),
+                                builder: (BuildContext context) {
+                                  return StatefulBuilder(builder:
+                                      (BuildContext context,
+                                          StateSetter bottomState) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          tileColor: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Cryptos",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                    ),
-                                    const ListTile(
-                                      title: Text("Position Type"), // & Date
-                                    ),
-                                    positionTypeFilterWidget,
-                                    //orderDateFilterWidget,
-                                    const ListTile(
-                                      title: Text("Symbols"),
-                                    ),
-                                    cryptoFilterWidget,
-                                  ],
-                                );
-                              },
-                            );
+                                        ),
+                                        const ListTile(
+                                          title:
+                                              Text("Position Type"), // & Date
+                                        ),
+                                        positionTypeFilterWidget(bottomState),
+                                        //orderDateFilterWidget,
+                                        const ListTile(
+                                          title: Text("Symbols"),
+                                        ),
+                                        cryptoFilterWidget(bottomState),
+                                      ],
+                                    );
+                                  });
+                                });
                           }),
                     ))),
             sliver: SliverList(
@@ -1610,9 +1623,10 @@ class _HomePageState extends State<HomePage>
             crossAxisAlignment: CrossAxisAlignment.start, children: rows));
   }
 
-  Widget get optionSymbolFilterWidget {
+  Widget optionSymbolFilterWidget(StateSetter bottomState) {
     var widgets =
-        optionSymbolFilterWidgets(chainSymbols, optionPositions).toList();
+        optionSymbolFilterWidgets(chainSymbols, optionPositions, bottomState)
+            .toList();
     /*
     if (widgets.length < 20) {
       return Padding(
@@ -1625,8 +1639,8 @@ class _HomePageState extends State<HomePage>
     return symbolWidgets(widgets);
   }
 
-  Iterable<Widget> optionSymbolFilterWidgets(
-      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
+  Iterable<Widget> optionSymbolFilterWidgets(List<String> chainSymbols,
+      List<OptionAggregatePosition> options, StateSetter bottomState) sync* {
     for (final String chainSymbol in chainSymbols) {
       yield Padding(
         padding: const EdgeInsets.all(4.0),
@@ -1635,7 +1649,7 @@ class _HomePageState extends State<HomePage>
           label: Text(chainSymbol),
           selected: optionSymbolFilters.contains(chainSymbol),
           onSelected: (bool value) {
-            setState(() {
+            bottomState(() {
               if (value) {
                 optionSymbolFilters.add(chainSymbol);
               } else {
@@ -1644,13 +1658,15 @@ class _HomePageState extends State<HomePage>
                 });
               }
             });
+            setState(() {});
+            //Navigator.pop(context);
           },
         ),
       );
     }
   }
 
-  Widget get openClosedFilterWidget {
+  Widget openClosedFilterWidget(StateSetter bottomState) {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -1666,13 +1682,14 @@ class _HomePageState extends State<HomePage>
                   label: const Text('Open'),
                   selected: hasQuantityFilters[0],
                   onSelected: (bool value) {
-                    setState(() {
+                    bottomState(() {
                       if (value) {
                         hasQuantityFilters[0] = true;
                       } else {
                         hasQuantityFilters[0] = false;
                       }
                     });
+                    setState(() {});
                   },
                 ),
               ),
@@ -1685,7 +1702,7 @@ class _HomePageState extends State<HomePage>
                   label: const Text('Closed'),
                   selected: hasQuantityFilters[1],
                   onSelected: (bool value) {
-                    setState(() {
+                    bottomState(() {
                       if (value) {
                         hasQuantityFilters[1] = true;
                       } else {
@@ -1693,6 +1710,7 @@ class _HomePageState extends State<HomePage>
                       }
                       optionPositionStream = null;
                     });
+                    setState(() {});
                   },
                 ),
               ),
@@ -1786,7 +1804,7 @@ class _HomePageState extends State<HomePage>
         ));
   }
 
-  Widget get optionTypeFilterWidget {
+  Widget optionTypeFilterWidget(StateSetter bottomState) {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -1803,7 +1821,7 @@ class _HomePageState extends State<HomePage>
                     label: const Text('Long'), // Positions
                     selected: positionFilters.contains("long"),
                     onSelected: (bool value) {
-                      setState(() {
+                      bottomState(() {
                         if (value) {
                           positionFilters.add("long");
                         } else {
@@ -1812,6 +1830,7 @@ class _HomePageState extends State<HomePage>
                           });
                         }
                       });
+                      setState(() {});
                     },
                   ),
                 ),
@@ -1823,7 +1842,7 @@ class _HomePageState extends State<HomePage>
                     label: const Text('Short'), // Positions
                     selected: positionFilters.contains("short"),
                     onSelected: (bool value) {
-                      setState(() {
+                      bottomState(() {
                         if (value) {
                           positionFilters.add("short");
                         } else {
@@ -1832,6 +1851,7 @@ class _HomePageState extends State<HomePage>
                           });
                         }
                       });
+                      setState(() {});
                     },
                   ),
                 ),
@@ -1843,7 +1863,7 @@ class _HomePageState extends State<HomePage>
                     label: const Text('Call'), // Options
                     selected: optionFilters.contains("call"),
                     onSelected: (bool value) {
-                      setState(() {
+                      bottomState(() {
                         if (value) {
                           optionFilters.add("call");
                         } else {
@@ -1852,6 +1872,7 @@ class _HomePageState extends State<HomePage>
                           });
                         }
                       });
+                      setState(() {});
                     },
                   ),
                 ),
@@ -1863,7 +1884,7 @@ class _HomePageState extends State<HomePage>
                     label: const Text('Put'), // Options
                     selected: optionFilters.contains("put"),
                     onSelected: (bool value) {
-                      setState(() {
+                      bottomState(() {
                         if (value) {
                           optionFilters.add("put");
                         } else {
@@ -1872,6 +1893,7 @@ class _HomePageState extends State<HomePage>
                           });
                         }
                       });
+                      setState(() {});
                     },
                   ),
                 )
@@ -1882,7 +1904,7 @@ class _HomePageState extends State<HomePage>
         ));
   }
 
-  Widget get positionTypeFilterWidget {
+  Widget positionTypeFilterWidget(StateSetter bottomState) {
     return SizedBox(
         height: 56,
         child: ListView.builder(
@@ -1898,13 +1920,14 @@ class _HomePageState extends State<HomePage>
                   label: const Text('Open'),
                   selected: hasQuantityFilters[0],
                   onSelected: (bool value) {
-                    setState(() {
+                    bottomState(() {
                       if (value) {
                         hasQuantityFilters[0] = true;
                       } else {
                         hasQuantityFilters[0] = false;
                       }
                     });
+                    setState(() {});
                   },
                 ),
               ),
@@ -1917,7 +1940,7 @@ class _HomePageState extends State<HomePage>
                   label: const Text('Closed'),
                   selected: hasQuantityFilters[1],
                   onSelected: (bool value) {
-                    setState(() {
+                    bottomState(() {
                       if (value) {
                         hasQuantityFilters[1] = true;
                       } else {
@@ -1925,6 +1948,7 @@ class _HomePageState extends State<HomePage>
                       }
                       positionStream = null;
                     });
+                    setState(() {});
                   },
                 ),
               ),
@@ -1934,19 +1958,21 @@ class _HomePageState extends State<HomePage>
         ));
   }
 
-  Widget get stockOrderSymbolFilterWidget {
+  Widget stockOrderSymbolFilterWidget(StateSetter bottomState) {
     var widgets =
-        symbolFilterWidgets(positionSymbols, stockSymbolFilters).toList();
+        symbolFilterWidgets(positionSymbols, stockSymbolFilters, bottomState)
+            .toList();
     return symbolWidgets(widgets);
   }
 
-  Widget get cryptoFilterWidget {
-    var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters).toList();
+  Widget cryptoFilterWidget(StateSetter bottomState) {
+    var widgets =
+        symbolFilterWidgets(cryptoSymbols, cryptoFilters, bottomState).toList();
     return symbolWidgets(widgets);
   }
 
-  Iterable<Widget> symbolFilterWidgets(
-      List<String> symbols, List<String> selectedSymbols) sync* {
+  Iterable<Widget> symbolFilterWidgets(List<String> symbols,
+      List<String> selectedSymbols, StateSetter bottomState) sync* {
     for (final String chainSymbol in symbols) {
       yield Padding(
         padding: const EdgeInsets.all(4.0),
@@ -1955,7 +1981,7 @@ class _HomePageState extends State<HomePage>
           label: Text(chainSymbol),
           selected: selectedSymbols.contains(chainSymbol),
           onSelected: (bool value) {
-            setState(() {
+            bottomState(() {
               if (value) {
                 selectedSymbols.add(chainSymbol);
               } else {
@@ -1964,6 +1990,7 @@ class _HomePageState extends State<HomePage>
                 });
               }
             });
+            setState(() {});
           },
         ),
       );
