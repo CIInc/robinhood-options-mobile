@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:robinhood_options_mobile/constants.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
+
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
@@ -10,6 +11,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
@@ -36,6 +38,9 @@ class OptionInstrumentWidget extends StatefulWidget {
 class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<Quote>? futureQuote;
   Future<Instrument>? futureInstrument;
+
+  BarChart? chart;
+  List<charts.Series<dynamic, String>> seriesList = [];
 
   _OptionInstrumentWidgetState();
 
@@ -115,6 +120,28 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           optionPosition.createdAt!.month, optionPosition.createdAt!.day);
       originalDte =
           optionInstrument.expirationDate!.difference(createdAt).inDays;
+    }
+    if (chart == null && optionPosition != null) {
+      seriesList = [
+        charts.Series<dynamic, String>(
+          id: 'Days to Expiration',
+          data: [
+            {'label': 'DTE', 'dte': dte}
+          ],
+          domainFn: (var d, _) => d['label'],
+          measureFn: (var d, _) => d['dte'],
+          labelAccessorFn: (d, _) => '${d['dte'].toString()} days',
+        ),
+        charts.Series<dynamic, String>(
+            id: 'Days to Expiration',
+            data: [
+              {'label': 'DTE', 'dte': originalDte}
+            ],
+            domainFn: (var d, _) => d['label'],
+            measureFn: (var d, _) => d['dte'])
+          ..setAttribute(charts.rendererIdKey, "customTargetLine")
+      ];
+      chart ??= BarChart(seriesList, onSelected: (_) {});
     }
     return RefreshIndicator(
         onRefresh: _pullRefresh,
@@ -203,12 +230,24 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 return FlexibleSpaceBar(
                     //background: const FlutterLogo(),
                     background: SizedBox(
-                      width: double.infinity,
-                      child: Image.network(
+                        width: double.infinity,
+                        child: instrument != null && instrument.logoUrl != null
+                            ? Image.network(
+                                instrument.logoUrl!,
+                                fit: BoxFit.none,
+                                errorBuilder: (BuildContext context,
+                                    Object exception, StackTrace? stackTrace) {
+                                  return const
+                                      //CircleAvatar(child: Text(""));
+                                      SizedBox(width: 56, height: 56);
+                                  //const Icon(Icons.error); //Text('Your error widget...');
+                                },
+                              )
+                            : const FlutterLogo() /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
-                      ),
-                    ),
+                      ),*/
+                        ),
                     title: Opacity(
                         //duration: Duration(milliseconds: 300),
                         opacity:
@@ -569,12 +608,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         widget.user, optionInstrument, instrument,
                         optionPosition: optionPosition))),
           ],
-          /*
-      SliverToBoxAdapter(
-        child: _buildStockView(instrument),
-      ),
-      */
-
           SliverToBoxAdapter(
             child: ListTile(
               title: Wrap(
@@ -746,6 +779,25 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   childCount: 5,
                 ),
               )),
+          SliverToBoxAdapter(
+              child: ListTile(
+                  title: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                const Text("Days to Expiration",
+                    style: TextStyle(fontSize: 20.0)),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    height: 75,
+                    child: Padding(
+                      padding: EdgeInsets.zero, // EdgeInsets.all(10.0),
+                      child: chart,
+                    ))
+
+                //Chart(seriesList, onSelected: onSelected)
+              ]))),
           SliverToBoxAdapter(
               child: Card(
                   child: Column(

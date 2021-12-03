@@ -183,7 +183,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           ),
           */
       bottomNavigationBar: robinhoodUser != null &&
-              robinhoodUser!.userName != null
+              robinhoodUser!.userName != null &&
+              accounts != null &&
+              accounts!.isNotEmpty
           ? BottomNavigationBar(
               items: const <BottomNavigationBarItem>[
                 BottomNavigationBarItem(

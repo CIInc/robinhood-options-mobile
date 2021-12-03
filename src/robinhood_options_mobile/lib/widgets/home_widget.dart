@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 //import 'package:flutter_echarts/flutter_echarts.dart';
 import 'dart:math' as math;
@@ -25,7 +24,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 //import 'package:robinhood_options_mobile/model/watchlist.dart';
 //import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
@@ -95,7 +94,7 @@ class _HomePageState extends State<HomePage>
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
   PortfolioHistoricals? portfolioHistoricals;
   //charts.TimeSeriesChart? chart;
-  Chart? chart;
+  TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
@@ -530,7 +529,7 @@ class _HomePageState extends State<HomePage>
             .equityHistoricals[
                 portfolioHistoricals.equityHistoricals.length - 1]
             .adjustedCloseEquity!;
-        chart = Chart(seriesList,
+        chart = TimeSeriesChart(seriesList,
             open: open,
             close: close,
             hiddenSeries: const ['Equity', 'Market Value'],
@@ -2119,12 +2118,14 @@ class _HomePageState extends State<HomePage>
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
             //background: const FlutterLogo(),
-            background: SizedBox(
+            background: const SizedBox(
               width: double.infinity,
-              child: Image.network(
+              child:
+                  FlutterLogo() /*Image.network(
                 Constants.flexibleSpaceBarBackground,
                 fit: BoxFit.cover,
-              ),
+              )*/
+              ,
             ),
             title: Opacity(
                 //duration: Duration(milliseconds: 300),
@@ -2661,10 +2662,9 @@ class _HomePageState extends State<HomePage>
                 foregroundColor:
                     Theme.of(context).colorScheme.primary, //.onBackground,
                 //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Text(positions[index]
-                    .instrumentObj!
-                    .name
-                    .substring(0, 1))), //const SizedBox(width: 40, height: 40),
+                child: Text(positions[index].instrumentObj != null
+                    ? positions[index].instrumentObj!.name.substring(0, 1)
+                    : "")), //const SizedBox(width: 40, height: 40),
         title: Text(positions[index].instrumentObj != null
             ? positions[index].instrumentObj!.symbol
             : ""),

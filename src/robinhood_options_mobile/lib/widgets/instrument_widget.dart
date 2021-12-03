@@ -2,12 +2,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
-import 'package:robinhood_options_mobile/widgets/chart_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
@@ -67,7 +66,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<List<OptionEvent>>? futureOptionEvents;
 
   //charts.TimeSeriesChart? chart;
-  Chart? chart;
+  TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.regular;
   InstrumentHistorical? selection;
@@ -367,7 +366,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             .historicals[
                 instrument.instrumentHistoricalsObj!.historicals.length - 1]
             .closePrice!;
-        chart = Chart(seriesList,
+        chart = TimeSeriesChart(seriesList,
             open: open,
             close: close,
             hiddenSeries: const ["Close", "Volume", "Low", "High"],
@@ -403,24 +402,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
               //background: const FlutterLogo(),
               background: SizedBox(
-                width: double.infinity,
-                child: instrument.logoUrl != null
-                    ? Image.network(
-                        instrument.logoUrl!,
-                        fit: BoxFit.none,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return const
-                              //CircleAvatar(child: Text(""));
-                              SizedBox(width: 56, height: 56);
-                          //const Icon(Icons.error); //Text('Your error widget...');
-                        },
-                      )
-                    : Image.network(
+                  width: double.infinity,
+                  child: instrument.logoUrl != null
+                      ? Image.network(
+                          instrument.logoUrl!,
+                          fit: BoxFit.none,
+                          errorBuilder: (BuildContext context, Object exception,
+                              StackTrace? stackTrace) {
+                            return const
+                                //CircleAvatar(child: Text(""));
+                                SizedBox(width: 56, height: 56);
+                            //const Icon(Icons.error); //Text('Your error widget...');
+                          },
+                        )
+                      : const FlutterLogo() /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
-                      ),
-              ),
+                      ),*/
+                  ),
               //const FlutterLogo(),
               title: Opacity(
                 //duration: Duration(milliseconds: 300),

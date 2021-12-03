@@ -2,62 +2,68 @@
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
 
-class Chart extends StatefulWidget {
-  final List<charts.Series<dynamic, DateTime>> seriesList;
+class BarChart extends StatefulWidget {
+  final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
-  final double? open;
-  final double? close;
+  //final List<charts.TickSpec<num>>? staticNumericTicks;
   final List<String>? hiddenSeries;
   final void Function(dynamic) onSelected;
 
-  const Chart(this.seriesList,
+  const BarChart(this.seriesList,
       {Key? key,
       this.animate = true,
       required this.onSelected,
-      this.open,
-      this.close,
+      //this.staticNumericTicks,
       this.hiddenSeries})
       : super(key: key);
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
   @override
-  State<StatefulWidget> createState() => _ChartState();
+  State<StatefulWidget> createState() => BarChartState();
 }
 
-class _ChartState extends State<Chart> {
+class BarChartState extends State<BarChart> {
   @override
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
-    var rangeAnnotationColor = charts.MaterialPalette.gray.shade800;
     var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
-      rangeAnnotationColor = charts.MaterialPalette.gray.shade100;
       axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
 
-    return charts.TimeSeriesChart(
+    return charts.BarChart(
       widget.seriesList,
-      defaultRenderer:
-          charts.LineRendererConfig(includeArea: true, stacked: false),
+      defaultRenderer: charts.BarRendererConfig(
+          barRendererDecorator: charts.BarLabelDecorator<String>(),
+          cornerStrategy: const charts.ConstCornerStrategy(10)),
       animate: widget.animate,
+      vertical: false,
+      barGroupingType: charts.BarGroupingType.grouped,
+      //barRendererDecorator: charts.BarLabelDecorator<String>(),
       primaryMeasureAxis: charts.NumericAxisSpec(
-          //showAxisLine: true,
-          //renderSpec: charts.GridlineRendererSpec(),
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          //renderSpec: charts.NoneRenderSpec(),
-          tickProviderSpec:
-              const charts.BasicNumericTickProviderSpec(zeroBound: false)),
-      domainAxis: charts.DateTimeAxisSpec(
-          //showAxisLine: true,
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor))
-          //tickProviderSpec:
-          //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
-          //tickProviderSpec: charts.DayTickProviderSpec()
-          //tickProviderSpec: charts.DateTimeEndPointsTickProviderSpec()
-          ),
+        //showAxisLine: true,
+        //renderSpec: charts.GridlineRendererSpec(),
+        renderSpec: charts.GridlineRendererSpec(
+            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+        //renderSpec: charts.NoneRenderSpec(),
+        //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+        //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+        //tickProviderSpec:
+        //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+        //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+      ),
+      domainAxis:
+          const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
+      customSeriesRenderers: [
+        charts.BarTargetLineRendererConfig<String>(
+            //overDrawOuterPx: 10,
+            //overDrawPx: 10,
+            strokeWidthPx: 5,
+            customRendererId: 'customTargetLine',
+            groupingType: charts.BarGroupingType.grouped)
+      ],
+      /*
       selectionModels: [
         charts.SelectionModelConfig(
             type: charts.SelectionModelType.info,
@@ -73,12 +79,10 @@ class _ChartState extends State<Chart> {
             showVerticalFollowLine:
                 charts.LinePointHighlighterFollowLineType.nearest,
             dashPattern: const []),
-        /*
-        charts.InitialSelection(selectedDataConfig: [
-          charts.SeriesDatumConfig<DateTime>(
-              'Adjusted Equity', widget.closeDate)
-        ]),
-        */
+        //charts.InitialSelection(selectedDataConfig: [
+        //  charts.SeriesDatumConfig<DateTime>(
+        //      'Adjusted Equity', widget.closeDate)
+        //]),
         charts.SeriesLegend(
           position: charts.BehaviorPosition.top,
           defaultHiddenSeries: widget.hiddenSeries,
@@ -96,17 +100,11 @@ class _ChartState extends State<Chart> {
           ])
         ]
       ],
+      */
     );
-    /*
-    return charts.TimeSeriesChart(
-      seriesList,
-      defaultRenderer: charts.BarRendererConfig<DateTime>(),
-      animate: animate,
-      behaviors: [new charts.SeriesLegend()],
-    );
-    */
   }
 
+  /*
   _onSelectionChanged(charts.SelectionModel model) {
     if (model.hasDatumSelection) {
       var selected = model.selectedDatum[0].datum;
@@ -115,4 +113,5 @@ class _ChartState extends State<Chart> {
       widget.onSelected(null);
     }
   }
+  */
 }
