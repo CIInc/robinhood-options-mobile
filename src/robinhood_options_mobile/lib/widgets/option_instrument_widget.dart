@@ -228,7 +228,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 const fadeEnd = 1.0;
                 final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
                 return FlexibleSpaceBar(
-                    //background: const FlutterLogo(),
                     background: SizedBox(
                         width: double.infinity,
                         child: instrument != null && instrument.logoUrl != null
@@ -243,7 +242,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   //const Icon(Icons.error); //Text('Your error widget...');
                                 },
                               )
-                            : const FlutterLogo() /*Image.network(
+                            : Container() //const FlutterLogo()
+                        /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
@@ -1182,8 +1182,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user, widget.account, instrument,
-                            optionPosition: optionPosition)));
+                              user, widget.account, instrument,
+                              //optionPosition: optionPosition
+                            )));
               },
             ),
             if (optionPosition != null) ...[

@@ -226,6 +226,10 @@ class _ListsWidgetState extends State<ListsWidget>
           ],
           if (watchlists != null) ...[
             for (var watchlist in watchlists!) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
               SliverStickyHeader(
                   header: Material(
                       //elevation: 2,
@@ -240,6 +244,7 @@ class _ListsWidgetState extends State<ListsWidget>
                             ),
                             subtitle: Text(
                                 "${formatCompactNumber.format(watchlist.items.length)} items"),
+                            /*
                             trailing: IconButton(
                                 icon: const Icon(Icons.sort),
                                 onPressed: () {
@@ -302,6 +307,7 @@ class _ListsWidgetState extends State<ListsWidget>
                                     },
                                   );
                                 }),
+                                */
                           ))),
                   sliver: watchListWidget(watchlist.items))
             ]

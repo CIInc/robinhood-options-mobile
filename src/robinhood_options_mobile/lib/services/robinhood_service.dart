@@ -43,6 +43,8 @@ class RobinhoodService {
   static List<Quote> quotes = [];
   static List<Instrument> instruments = [];
 
+  static List<dynamic> forexPairs = [];
+
   /*
   USERS & ACCOUNTS
   */
@@ -84,7 +86,6 @@ class RobinhoodService {
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/portfolios/");
     //debugPrint(results);
-    // https://phoenix.robinhood.com/accounts/unified
     List<Portfolio> portfolios = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -353,6 +354,18 @@ class RobinhoodService {
     return list;
   }
 
+  static Future<List<dynamic>> getFeed(RobinhoodUser user) async {
+    //https://dora.robinhood.com/feed/
+    var resultJson =
+        await getJson(user, "${Constants.robinhoodExploreEndpoint}/feed/");
+    List<dynamic> list = [];
+    for (var i = 0; i < resultJson["results"].length; i++) {
+      var result = resultJson["results"][i];
+      list.add(result);
+    }
+    return list;
+  }
+
   /* 
   INSTRUMENTS
   */
@@ -373,7 +386,7 @@ class RobinhoodService {
     return i;
   }
 
-  static Future<Instrument> getInstrumentBySymbol(
+  static Future<Instrument?> getInstrumentBySymbol(
       RobinhoodUser user, String symbol) async {
     var cached = instruments.where((element) => element.symbol == symbol);
     if (cached.isNotEmpty) {
@@ -384,11 +397,13 @@ class RobinhoodService {
     // https://api.robinhood.com/instruments/?active_instruments_only=false&symbol=GOOG
     var resultJson = await getJson(user,
         "${Constants.robinHoodEndpoint}/instruments/?active_instruments_only=false&symbol=$symbol");
-    var i = Instrument.fromJson(resultJson);
-
-    instruments.add(i);
-
-    return i;
+    if (resultJson["results"].length > 0) {
+      var i = Instrument.fromJson(resultJson["results"][0]);
+      instruments.add(i);
+      return i;
+    } else {
+      return Future.value(null);
+    }
   }
 
   static Future<List<Instrument>> getInstrumentsByIds(
@@ -454,6 +469,12 @@ class RobinhoodService {
     return list;
   }
 
+  // Collars
+  // https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/collars/
+
+  // Popularity
+  // https://api.robinhood.com/instruments/{0}/popularity/'.format(id_for_stock(symbol))
+
   static Future<Quote> getQuote(RobinhoodUser user, String symbol) async {
     var cachedQuotes = quotes.where((element) => element.symbol == symbol);
     if (cachedQuotes.isNotEmpty) {
@@ -467,6 +488,8 @@ class RobinhoodService {
 
     return quote;
   }
+
+  //https://api.robinhood.com/quotes/historicals/
 
   static Future<List<Quote>> getQuoteByInstrumentUrls(
       RobinhoodUser user, List<String> instrumentUrls) async {
@@ -559,11 +582,9 @@ class RobinhoodService {
     return list;
   }
 
-  // Collars
-  // https://api.robinhood.com/instruments/943c5009-a0bb-4665-8cf4-a95dab5874e4/collars/
-
   static Future<Fundamentals> getFundamentals(
       RobinhoodUser user, Instrument instrumentObj) async {
+    // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
     var resultJson = await getJson(user, instrumentObj.fundamentals);
 
@@ -575,6 +596,8 @@ class RobinhoodService {
   static Future<List<dynamic>> getSplits(
       RobinhoodUser user, Instrument instrumentObj) async {
     debugPrint(instrumentObj.splits);
+    // Splits
+    // https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol))
     //https://api.robinhood.com/corp_actions/v2/split_payments/?instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var results = await RobinhoodService.pagedGet(user, instrumentObj.splits);
     List<dynamic> list = [];
@@ -617,6 +640,7 @@ class RobinhoodService {
 
   static Future<List<dynamic>> getDividends(
       RobinhoodUser user, String instrumentId) async {
+    // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var results = await pagedGet(user,
         "${Constants.robinHoodEndpoint}/dividends/?instrument_id=$instrumentId");
@@ -731,13 +755,6 @@ class RobinhoodService {
     List<OptionAggregatePosition> ops =
         await getAggregateOptionPositions(user, nonzero: nonzero);
 
-    // Load logos from cache
-    ops.map((op) {
-      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
-        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
-      }
-    });
-
     /*
     // Load OptionAggregatePosition.instrumentObj
     var symbols = ops.map((e) => e.symbol);
@@ -793,6 +810,14 @@ class RobinhoodService {
         yield ops;
       }
     }
+
+    // Load logos from cache
+    for (var op in ops) {
+      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
+        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      }
+    }
+
     // Persist in static value
     optionPositions = ops;
   }
@@ -920,6 +945,13 @@ class RobinhoodService {
     */
   }
 
+  //https://api.robinhood.com/options/strategies/?strategy_codes=24234e97-250c-4b1a-be95-16dcb19a9679_L1
+
+  //https://api.robinhood.com/marketdata/options/strategy/quotes/?ids=24234e97-250c-4b1a-be95-16dcb19a9679&ratios=1&types=long
+
+  //https://api.robinhood.com/midlands/lists/items/?load_all_attributes=False&strategy_code=24234e97-250c-4b1a-be95-16dcb19a9679_L1
+
+  //https://bonfire.robinhood.com/options/simulated/today_total_return/?direction=debit&mark_price=%7B%22amount%22%3A%222.60%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&previous_close_price=%7B%22amount%22%3A%222.20%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&simulated_open_price=%7B%22amount%22%3A%22228.00%22%2C%22currency_code%22%3A%22USD%22%2C%22currency_id%22%3A%221072fc76-1862-41ab-82c2-485837590762%22%7D&trade_multiplier=100&watched_at=2021-12-07T18%3A09%3A09.029757Z
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
@@ -1114,14 +1146,14 @@ class RobinhoodService {
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var op = Holding.fromJson(result);
-      for (var j = 0; j < quotes['results'].length; j++) {
-        var quote = quotes['results'][j];
+      for (var j = 0; j < quotes.length; j++) {
+        var quote = quotes[j];
         var assetCurrencyId = quote['asset_currency']['id'];
         if (assetCurrencyId == op.currencyId) {
           //op.quote = quotes['results'][j];
 
-          op.quote = await getForexQuote(user, quote['id']);
-          op.value = double.tryParse(op.quote['mark_price']);
+          op.quoteObj = await getForexQuote(user, quote['id']);
+          op.value = double.tryParse(op.quoteObj['mark_price']);
           break;
         }
       }
@@ -1165,10 +1197,17 @@ class RobinhoodService {
     return resultJson;
   }
 
-  static Future<dynamic> getForexPairs(RobinhoodUser user) async {
+  static Future<List<dynamic>> getForexPairs(RobinhoodUser user) async {
     String url = '${Constants.robinHoodNummusEndpoint}/currency_pairs/';
     var resultJson = await getJson(user, url);
-    return resultJson;
+    List<dynamic> list = [];
+    for (var i = 0; i < resultJson['results'].length; i++) {
+      var result = resultJson['results'][i];
+      list.add(result);
+    }
+    forexPairs = list;
+
+    return list;
   }
 
   /*
@@ -1234,6 +1273,8 @@ WATCHLIST
 */
   static Stream<List<Watchlist>> streamLists(RobinhoodUser user) async* {
     List<Watchlist> list = [];
+    // https://api.robinhood.com/midlands/lists/default/
+    // https://api.robinhood.com/midlands/lists/items/ (not working)
     var watchlistsUrl =
         "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
     var userItemsJson = await getJson(user, watchlistsUrl);
@@ -1282,6 +1323,23 @@ WATCHLIST
           wl.items.add(watchlistItem);
           yield list;
         }
+      }
+
+      List<String> optionStrategies = List<String>.from(entry.value
+          .where((e) => e['object_type'] == "option_strategy")
+          .map((e) => e['object_id'].toString()));
+      if (optionStrategies.isNotEmpty) {
+        /*
+        var optionInstruments =
+            await getOptionInstrumentByIds(user, optionStrategies);
+        for (var optionInstrument in optionInstruments) {
+          var watchlistItem =
+              WatchlistItem(optionInstrument.id, DateTime.now(), entry.key, "");
+          watchlistItem.optionInstrumentObj = optionInstrument;
+          wl.items.add(watchlistItem);
+          yield list;
+        }
+        */
       }
     }
   }
@@ -1482,54 +1540,7 @@ WATCHLIST
 
 /*
 
-# Stocks
-
-
-def earnings_url():
-    return('https://api.robinhood.com/marketdata/earnings/')
-
-
-def events_url():
-    return('https://api.robinhood.com/options/events/')
-
-
-def fundamentals_url():
-    return('https://api.robinhood.com/fundamentals/')
-
-
-def historicals_url():
-    return('https://api.robinhood.com/quotes/historicals/')
-
-
-def instruments_url():
-    return('https://api.robinhood.com/instruments/')
-
-
-def news_url(symbol):
-    return('https://api.robinhood.com/midlands/news/{0}/?'.format(symbol))
-
-
-def popularity_url(symbol):
-    return('https://api.robinhood.com/instruments/{0}/popularity/'.format(id_for_stock(symbol)))
-
-def quotes_url():
-    return('https://api.robinhood.com/quotes/')
-
-
-def ratings_url(symbol):
-    return('https://api.robinhood.com/midlands/ratings/{0}/'.format(id_for_stock(symbol)))
-
-
-def splits_url(symbol):
-    return('https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol)))
-
 # account
-
-def phoenix_url():
-    return('https://phoenix.robinhood.com/accounts/unified')
-
-def positions_url():
-    return('https://api.robinhood.com/positions/')
 
 def banktransfers_url(direction=None):
     if direction == 'received':
@@ -1542,11 +1553,6 @@ def cardtransactions_url():
 
 def daytrades_url(account):
     return('https://api.robinhood.com/accounts/{0}/recent_day_trades/'.format(account))
-
-
-def dividends_url():
-    return('https://api.robinhood.com/dividends/')
-
 
 def documents_url():
     return('https://api.robinhood.com/documents/')
@@ -1593,20 +1599,7 @@ def subscription_url():
 def wiretransfers_url():
     return('https://api.robinhood.com/wire/transfers')
 
-
-// URLS DO NOT WORK
-def watchlists_url(name=None, add=False):
-    if name:
-        return('https://api.robinhood.com/midlands/lists/items/')
-    else:
-        return('https://api.robinhood.com/midlands/lists/default/')
-
-
 # markets
-
-
-def currency_url():
-    return('https://nummus.robinhood.com/currency_pairs/')
 
 def markets_url():
     return('https://api.robinhood.com/markets/')
@@ -1614,38 +1607,13 @@ def markets_url():
 def market_hours_url(market, date):
     return('https://api.robinhood.com/markets/{}/hours/{}/'.format(market, date))
 
-def movers_sp500_url():
-    return('https://api.robinhood.com/midlands/movers/sp500/')
-
-def get_100_most_popular_url():
-    return('https://api.robinhood.com/midlands/tags/tag/100-most-popular/')
-
-def movers_top_url():
-    return('https://api.robinhood.com/midlands/tags/tag/top-movers/')
-
 def market_category_url(category):
     return('https://api.robinhood.com/midlands/tags/tag/{}/'.format(category))
 
 # options
 
-
-def aggregate_url():
-    return('https://api.robinhood.com/options/aggregate_positions/')
-
-
-def chains_url(symbol):
-    return('https://api.robinhood.com/options/chains/{0}/'.format(id_for_chain(symbol)))
-
-
 def option_historicals_url(id):
     return('https://api.robinhood.com/marketdata/options/historicals/{0}/'.format(id))
-
-
-def option_instruments_url(id=None):
-    if id:
-        return('https://api.robinhood.com/options/instruments/{0}/'.format(id))
-    else:
-        return('https://api.robinhood.com/options/instruments/')
 
 
 def option_orders_url(orderID=None):
@@ -1658,9 +1626,6 @@ def option_orders_url(orderID=None):
 def option_positions_url():
     return('https://api.robinhood.com/options/positions/')
 
-
-def marketdata_options_url():
-    return('https://api.robinhood.com/marketdata/options/')
 
 # pricebook
 
@@ -1677,26 +1642,6 @@ def marketdata_pricebook_url(id):
 
 def order_crypto_url():
     return('https://nummus.robinhood.com/orders/')
-
-
-def crypto_account_url():
-    return('https://nummus.robinhood.com/accounts/')
-
-
-def crypto_currency_pairs_url():
-    return('https://nummus.robinhood.com/currency_pairs/')
-
-
-def crypto_quote_url(id):
-    return('https://api.robinhood.com/marketdata/forex/quotes/{0}/'.format(id))
-
-
-def crypto_holdings_url():
-    return('https://nummus.robinhood.com/holdings/')
-
-
-def crypto_historical_url(id):
-    return('https://api.robinhood.com/marketdata/forex/historicals/{0}/'.format(id))
 
 
 def crypto_orders_url(orderID=None):

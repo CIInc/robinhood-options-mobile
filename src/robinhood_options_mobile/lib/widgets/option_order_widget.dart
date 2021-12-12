@@ -102,7 +102,6 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
         //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 160.0,
         flexibleSpace: FlexibleSpaceBar(
-            //background: const FlutterLogo(),
             title: SingleChildScrollView(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

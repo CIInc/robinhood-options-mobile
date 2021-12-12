@@ -19,15 +19,6 @@ import 'package:robinhood_options_mobile/services/resource_owner_password_grant.
 class LoginWidget extends StatefulWidget {
   const LoginWidget({Key? key}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   @override
   _LoginWidgetState createState() => _LoginWidgetState();
 }
@@ -64,9 +55,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     deviceToken = generateDeviceToken();
     myFocusNode = FocusNode();
 
-    //StreamSubscription<String> streamSubscription =
     clipboardContentStream.stream.listen((value) {
-      //print('Value from controller: $value');
       if (clipboardInitialValue == null) {
         clipboardInitialValue = value;
       } else if (clipboardInitialValue != value) {
@@ -77,8 +66,6 @@ class _LoginWidgetState extends State<LoginWidget> {
       }
     });
   }
-
-  //Stream get clipboardText => clipboardController.stream;
 
   @override
   void dispose() {
@@ -91,64 +78,15 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _login() {
-    //async {
-    // Simulate some async work - like an HttpClientRequest
-    //await new Future.delayed(const Duration(milliseconds: 100));
-
-    //ScaffoldMessenger.of(context)..hideCurrentSnackBar();
-
-    authenticationResponse = oauth2_robinhood.login(
-        Constants.tokenEndpoint, userCtl.text, passCtl.text,
-        identifier: Constants.identifier,
-        basicAuth: false,
-        deviceToken: deviceToken,
-        challengeType: 'sms',
-        challengeId: challengeResponseId);
-
-    setState(() {});
-
-    /*
-    client = oauth2_robinhood
-        .resourceOwnerPasswordGrant(
-            Constants.tokenEndpoint, userCtl.text, passCtl.text,
-            identifier: Constants.identifier,
-            basicAuth: false,
-            deviceToken: this.deviceToken,
-            challengeType: 'sms',
-            challengeId: this.challengeResponseId)
-        //scopes: ['internal'],
-        //expiresIn: '86400')
-        .then((value) {
-      var user =
-          new RobinhoodUser(userCtl.text, value.credentials.toJson(), value);
-
-      Future.delayed(Duration.zero, () {
-        Navigator.pop(context, user);
-      });
-    }).catchError((e) {
-      print(e);
-      if (e.message != null) {
-        var errorResponse = jsonDecode(e.message);
-        if (errorResponse['challenge'] != null) {
-          this.challengeRequestId = errorResponse['challenge']['id'];
-          myFocusNode.requestFocus();
-
-          _startMonitoringClipboard();
-        } else {
-          // on FormatException AuthorizationException
-          // After the Selection Screen returns a result, hide any previous snackbars
-          // and show the new result.
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(
-                SnackBar(content: Text("Login failed: ${e.message}")));
-          // FormatException
-        }
-      }
-      setState(() {});
-      return null;
-    }) as Future<oauth2.Client>?;
-    */
+    setState(() {
+      authenticationResponse = oauth2_robinhood.login(
+          Constants.tokenEndpoint, userCtl.text, passCtl.text,
+          identifier: Constants.identifier,
+          basicAuth: false,
+          deviceToken: deviceToken,
+          challengeType: 'sms',
+          challengeId: challengeResponseId);
+    });
   }
 
   @override
@@ -161,26 +99,6 @@ class _LoginWidgetState extends State<LoginWidget> {
             future: authenticationResponse,
             builder:
                 (context, AsyncSnapshot<http.Response> authenticationSnapshot) {
-/*
-              if (authenticationSnapshot.hasError) {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                      content: Text(
-                          "Login failed: ${authenticationSnapshot.error}")));
-              }
-              else {
-                var httpResponse = authenticationSnapshot.data as http.Response;
-                print(httpResponse.statusCode);
-                if (httpResponse.statusCode != 200) {
-                  //return Future.error(response.body);
-                  ScaffoldMessenger.of(context)
-                    ..removeCurrentSnackBar()
-                    ..showSnackBar(SnackBar(
-                        content: Text("Login failed: ${httpResponse.body}")));
-                }
-              }
-                        */
               debugPrint(authenticationSnapshot.connectionState.toString());
               if (authenticationSnapshot.data != null) {
                 var authenticationResponse =
@@ -197,31 +115,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                       future: challengeResponse,
                       builder:
                           (context, AsyncSnapshot<http.Response> snapshot1) {
-                        /*
-                        if (snapshot1.hasData) {
-                          var responseJson = jsonDecode(snapshot1.data.body);
-                          this.challengeResponseId = responseJson['id'];
-                        }
-                        else if (snapshot1.hasError) {
-                          return Text('Error: ${snapshot1.error}');
-                        }*/
-                        return _buildForm(
-                            /*snapshot.connectionState ==
-                                ConnectionState.waiting ||
-                            (snapshot.connectionState == ConnectionState.done &&
-                                !snapshot.hasData) ||*/
-                            snapshot1.connectionState ==
-                                ConnectionState.waiting);
-                        //return _buildForm(snapshot);
-                        //return Text('Waiting for SMS challenge...');
+                        return _buildForm(snapshot1.connectionState ==
+                            ConnectionState.waiting);
                       });
                 } else if (authenticationResponse['access_token'] != null) {
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
                       Constants.tokenEndpoint,
-                      //null,
                       ' ',
-                      //null,
                       Constants.identifier,
                       null,
                       null,
@@ -266,8 +167,12 @@ class _LoginWidgetState extends State<LoginWidget> {
   Widget _buildForm(bool waiting) {
     var floatBtn = SizedBox(
         width: 340.0,
+        height: 60,
         child: ElevatedButton.icon(
-          label: const Text("Login"), // ${snapshot.connectionState}
+          label: const Text(
+            "Login",
+            style: TextStyle(fontSize: 22.0, height: 1.5),
+          ),
           icon: const Icon(Icons.login_outlined),
           onPressed: challengeRequestId == null ? _login : _handleChallenge,
         ));
@@ -276,61 +181,51 @@ class _LoginWidgetState extends State<LoginWidget> {
             alignment: FractionalOffset.center,
             children: <Widget>[
               floatBtn,
-              /*
-                  Center(
-                    child: CircularProgressIndicator(),
-                  )
-                  */
               const CircularProgressIndicator(
                 backgroundColor: Colors.red,
               )
             ],
           )
         : floatBtn;
-    return ListView(
-      padding: const EdgeInsets.all(15.0),
+    return Column(
       children: [
-        ListTile(
-          title: TextField(
-            controller: userCtl,
-            decoration: const InputDecoration(
-                hintText: 'Enter Robinhood username or email...'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+          child: TextField(
+              controller: userCtl,
+              decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.all(10),
+                  hintText: 'Robinhood username or email'),
+              style: const TextStyle(fontSize: 22.0, height: 1.5)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+          child: TextField(
+              controller: passCtl,
+              decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.all(10),
+                  hintText: 'Robinhood password'),
+              obscureText: true,
+              style: const TextStyle(fontSize: 22.0, height: 1.5)),
+        ),
+        if (challengeRequestId != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+            child: TextField(
+                controller: smsCtl,
+                focusNode: myFocusNode,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.all(10),
+                    hintText: 'Robinhood SMS code received'),
+                style: const TextStyle(fontSize: 22.0, height: 1.5)),
           ),
-          // subtitle: Text("Username"),
-        ),
-        ListTile(
-          title: TextField(
-            controller: passCtl,
-            decoration:
-                const InputDecoration(hintText: 'Enter Robinhood password...'),
-            obscureText: true,
-          ),
-          // subtitle: Text("Password"),
-        ),
-        /*
-        new ListTile(
-          title: new TextField(
-            controller: deviceCtl,
-          ),
-          subtitle: Text("Device Token"),
-        ),
-        */
-        challengeRequestId != null
-            ? ListTile(
-                title: TextField(
-                  controller: smsCtl,
-                  focusNode: myFocusNode,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                      hintText: 'Enter the Robinhood SMS code received...'),
-                ),
-                //subtitle: Text("SMS Code"),
-              )
-            : Container(),
-        Container(
-          height: 20,
-        ),
-        Center(child: action)
+        ],
+        Padding(
+            padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
       ],
     );
   }

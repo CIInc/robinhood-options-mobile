@@ -14,7 +14,7 @@
     - [x] Portfolio historical charts view
     - [x] Portfolio summary breakdown view
   - Options section
-    - [x] Options list with filters
+    - [x] Options list with filters and grouping
     - [x] Option detail view with market data (see Option view)
   - Stocks section
     - [x] Stock list with filters

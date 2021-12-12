@@ -132,17 +132,20 @@ class _SearchWidgetState extends State<SearchWidget>
                 slivers: [
                   SliverAppBar(
                     title: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
                         child: TextField(
                             controller: searchCtl,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Start typing to search by name or symbol.',
+                            decoration: InputDecoration(
+                              hintText: 'Search by name or symbol',
                               hintStyle: TextStyle(
-                                fontSize: 18,
-                                //fontStyle: FontStyle.italic,
-                              ),
+                                  fontSize: 18, color: Colors.grey.shade200
+                                  //fontStyle: FontStyle.italic,
+                                  ),
                             ),
+                            style: TextStyle(
+                                fontSize: 18, color: Colors.grey.shade200
+                                //fontStyle: FontStyle.italic,
+                                ),
                             onChanged: (text) {
                               setState(() {
                                 futureSearch =
@@ -167,6 +170,10 @@ class _SearchWidgetState extends State<SearchWidget>
                     ))
                   ],
                   if (search != null) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -201,6 +208,10 @@ class _SearchWidgetState extends State<SearchWidget>
                             )))
                   ],
                   if (movers != null && movers.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -235,6 +246,10 @@ class _SearchWidgetState extends State<SearchWidget>
                             )))
                   ],
                   if (losers != null && losers.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -269,6 +284,10 @@ class _SearchWidgetState extends State<SearchWidget>
                             )))
                   ],
                   if (listMovers != null && listMovers.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -303,6 +322,10 @@ class _SearchWidgetState extends State<SearchWidget>
                   ],
                   if (listMostPopular != null &&
                       listMostPopular.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,

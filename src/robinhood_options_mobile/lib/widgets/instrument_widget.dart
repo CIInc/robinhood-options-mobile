@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -40,10 +41,8 @@ class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Account account;
   final Instrument instrument;
-  final Position? position;
-  final OptionAggregatePosition? optionPosition;
   const InstrumentWidget(this.user, this.account, this.instrument,
-      {Key? key, this.position, this.optionPosition})
+      {Key? key}) //, this.optionPosition})
       : super(key: key);
 
   @override
@@ -78,6 +77,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   final List<String> orderFilters = <String>["confirmed", "filled"];
 
+  Position? position;
   List<OptionAggregatePosition> optionPositions = [];
   List<OptionOrder> optionOrders = [];
   double optionOrdersPremiumBalance = 0;
@@ -92,6 +92,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void initState() {
     super.initState();
 
+    if (RobinhoodService.optionPositions != null) {
+      optionPositions = RobinhoodService.optionPositions!
+          .where((e) => e.symbol == widget.instrument.symbol)
+          .toList();
+    }
+
     if (RobinhoodService.optionOrders != null) {
       var cachedOptionOrders = RobinhoodService.optionOrders!
           .where((element) => element.chainSymbol == widget.instrument.symbol)
@@ -104,10 +110,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureOptionOrders = Future.value([]);
     }
 
-    if (RobinhoodService.optionPositions != null) {
-      optionPositions = RobinhoodService.optionPositions!
-          .where((e) => e.symbol == widget.instrument.symbol)
-          .toList();
+    if (RobinhoodService.stockPositions != null) {
+      position = RobinhoodService.stockPositions!
+          .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
     }
 
     if (RobinhoodService.positionOrders != null) {
@@ -293,7 +298,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       historicalsSnapshot.data!;
                 }
                 return buildScrollView(instrument,
-                    position: widget.position,
+                    position: position,
                     done: historicalsSnapshot.connectionState ==
                         ConnectionState.done);
               });
@@ -303,7 +308,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           return Text("${snapshot.error}");
         }*/
         return buildScrollView(instrument,
-            position: widget.position,
+            position: position,
             done: snapshot.connectionState == ConnectionState.done);
       },
     ));
@@ -415,12 +420,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             //const Icon(Icons.error); //Text('Your error widget...');
                           },
                         )
-                      : const FlutterLogo() /*Image.network(
+                      : Container() //const FlutterLogo()
+                  /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
                   ),
-              //const FlutterLogo(),
               title: Opacity(
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
@@ -473,6 +478,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           .closePrice!;
       double changeToday = close - open;
       double changePercentToday = changeToday / close;
+
+      slivers.add(const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )));
 
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -538,7 +548,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ])))));
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 420,
+              height: 400,
               child: Padding(
                 //padding: EdgeInsets.symmetric(horizontal: 12.0),
                 padding: const EdgeInsets.all(10.0),
@@ -1047,8 +1057,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ListTile(
             title: const Text("Last Extended Hours Trade Price"),
             trailing: Text(
-                formatCurrency
-                    .format(instrument.quoteObj!.lastExtendedHoursTradePrice),
+                instrument.quoteObj!.lastExtendedHoursTradePrice != null
+                    ? formatCurrency.format(
+                        instrument.quoteObj!.lastExtendedHoursTradePrice)
+                    : "",
                 style: const TextStyle(fontSize: 18)),
           ),
           Container(
@@ -2026,7 +2038,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions - value: ${formatCurrency.format(optionEquity)}"),
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions, ${formatCurrency.format(optionEquity)} market value"),
                 trailing: IconButton(
                     icon: const Icon(Icons.filter_list),
                     onPressed: () {

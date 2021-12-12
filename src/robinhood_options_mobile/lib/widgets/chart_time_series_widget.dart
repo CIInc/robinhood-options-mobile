@@ -30,10 +30,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
     var rangeAnnotationColor = charts.MaterialPalette.gray.shade800;
-    var axisLabelColor = charts.MaterialPalette.gray.shade500;
+    var axisLabelColor = charts.MaterialPalette.gray.shade200;
     if (brightness == Brightness.light) {
-      rangeAnnotationColor = charts.MaterialPalette.gray.shade100;
-      axisLabelColor = charts.MaterialPalette.gray.shade700;
+      rangeAnnotationColor = charts.MaterialPalette.gray.shade200;
+      axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
 
     return charts.TimeSeriesChart(
@@ -91,6 +91,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 charts.RangeAnnotationAxisType.measure,
                 startLabel: widget.open! <= widget.close! ? 'Open' : 'Close',
                 endLabel: widget.open! <= widget.close! ? 'Close' : 'Open',
+                labelStyleSpec: charts.TextStyleSpec(color: axisLabelColor),
                 color: rangeAnnotationColor // gray.shade200
                 ),
           ])

@@ -39,11 +39,21 @@ class Holding {
   final String currencyName;
   final double? quantity;
   final double? directCostBasis;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   double? value;
-  dynamic quote;
+  dynamic quoteObj;
 
-  Holding(this.id, this.currencyId, this.currencyCode, this.currencyName,
-      this.quantity, this.directCostBasis);
+  Holding(
+    this.id,
+    this.currencyId,
+    this.currencyCode,
+    this.currencyName,
+    this.quantity,
+    this.directCostBasis,
+    this.createdAt,
+    this.updatedAt,
+  );
 
   Holding.fromJson(dynamic json)
       : id = json['id'],
@@ -52,14 +62,24 @@ class Holding {
         currencyName = json['currency']['name'],
         quantity = double.tryParse(json['quantity']),
         directCostBasis =
-            double.tryParse(json['cost_bases'][0]['direct_cost_basis']);
+            double.tryParse(json['cost_bases'][0]['direct_cost_basis']),
+        createdAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
+            DateTime.tryParse(json['created_at']),
+        updatedAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
+            DateTime.tryParse(json['updated_at']);
 
   double get marketValue {
     return value! * quantity!;
   }
 
+  double get averageCost {
+    return directCostBasis! / quantity!;
+  }
+
   double get totalCost {
-    return directCostBasis! * quantity!;
+    return directCostBasis!;
   }
 
   double get gainLoss {

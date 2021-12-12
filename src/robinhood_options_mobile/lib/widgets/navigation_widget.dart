@@ -83,13 +83,16 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     setState(() {
       _pageIndex = index;
     });
-    //_pageController!.jumpToPage(index);
+    _pageController!.jumpToPage(index);
+    /* Cause in between pages to init.
     _pageController!.animateToPage(index,
         duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
+        */
   }
 
-  void _handleUserChanged(RobinhoodUser user) {
+  void _handleUserChanged(RobinhoodUser? user) {
     setState(() {
+      //robinhoodUser = user;
       futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
     });
   }
@@ -114,7 +117,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   onUserChanged: _handleUserChanged,
                   onAccountsChanged: _handleAccountChanged),
               //const HomePage(title: 'Orders'),
-              if (accounts != null && accounts!.isNotEmpty) ...[
+              if (robinhoodUser != null &&
+                  robinhoodUser!.userName != null &&
+                  accounts != null &&
+                  accounts!.isNotEmpty) ...[
                 SearchWidget(robinhoodUser!, accounts!.first,
                     navigatorKey: navigatorKeys[1]),
                 ListsWidget(robinhoodUser!, accounts!.first,

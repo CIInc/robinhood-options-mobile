@@ -5,22 +5,40 @@ import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum View { grouped, list }
+
 //@immutable
 class RobinhoodUser {
   final String? userName;
   final String? credentials;
   oauth2.Client? oauth2Client;
+  bool refreshEnabled = true;
+  View optionsView = View.list;
 
   RobinhoodUser(this.userName, this.credentials, this.oauth2Client);
 
   RobinhoodUser.fromJson(Map<String, dynamic> json)
       : userName = json['userName'],
-        credentials = json['credentials'];
+        credentials = json['credentials'],
+        refreshEnabled = json['refreshEnabled'] ?? true,
+        optionsView =
+            json['optionsView'] == null || json['optionsView'] == 'View.list'
+                ? View.list
+                : View.grouped;
 
   Map<String, dynamic> toJson() => {
         'userName': userName,
         'credentials': credentials,
+        'refreshEnabled': refreshEnabled,
+        'optionsView': optionsView.toString()
       };
+
+  Future save() async {
+    var contents = jsonEncode(this);
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(Constants.preferencesUserKey, contents);
+    //await Store.writeFile(Constants.cacheFilename, contents);
+  }
 
   static Future<RobinhoodUser> loadUserFromStore() async {
     // await Store.deleteFile(Constants.cacheFilename);

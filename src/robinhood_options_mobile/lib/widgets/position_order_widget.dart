@@ -87,7 +87,6 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 160.0,
         flexibleSpace: FlexibleSpaceBar(
-            //background: const FlutterLogo(),
             title: SingleChildScrollView(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
