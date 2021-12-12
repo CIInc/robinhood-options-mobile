@@ -35,6 +35,7 @@ final formatCompactDate = DateFormat("MMMd");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
@@ -84,6 +85,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   List<PositionOrder> positionOrders = [];
   double positionOrdersBalance = 0;
 
+  bool showGreeks = true;
   //final dataKey = GlobalKey();
 
   _InstrumentWidgetState();
@@ -722,7 +724,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Container(
                 width: 2,
               ),
-              Text(formatCurrency.format(position.gainLoss.abs()),
+              Text(formatCurrency.format(position.gainLoss), //.abs()
                   style: const TextStyle(fontSize: 18)),
             ])
 
@@ -734,6 +736,27 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           title: const Text("Return %"),
           trailing: Text(formatPercentage.format(position.gainLossPercent),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+            title: const Text("Return Today"),
+            trailing: Wrap(children: [
+              position.trendingIcon,
+              Container(
+                width: 2,
+              ),
+              Text(formatCurrency.format(position.gainLossToday), //.abs()
+                  style: const TextStyle(fontSize: 18)),
+            ])
+
+            /*
+          trailing: Text(formatCurrency.format(position!.gainLoss),
+              style: const TextStyle(fontSize: 18)),
+              */
+            ),
+        ListTile(
+          title: const Text("Return Today %"),
+          trailing: Text(formatPercentage.format(position.gainLossPercentToday),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
@@ -2025,6 +2048,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget optionPositionsWidget(
       List<OptionAggregatePosition> filteredOptionPositions,
       double optionEquity) {
+    var contracts = filteredOptionPositions
+        .map((e) => e.quantity!.toInt())
+        .reduce((a, b) => a + b);
+    /*
+    var totalDelta = filteredOptionPositions
+        .map((e) => e.quantity! * e.marketData!.delta!)
+        .reduce((a, b) => a + b);
+    */
     return SliverStickyHeader(
       header: Material(
           //elevation: 2,
@@ -2038,7 +2069,110 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions, ${formatCurrency.format(optionEquity)} market value"),
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCurrency.format(optionEquity)} market value"),
+                trailing: Wrap(children: [
+                  //Text('${formatCurrency.format(optionEquity)}',
+                  //    style: TextStyle(fontSize: 19.0),
+                  //    textAlign: TextAlign.right),
+                  IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          /*
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            */
+                          isScrollControlled: true,
+                          //useRootNavigator: true,
+                          //constraints: const BoxConstraints(maxHeight: 200),
+                          builder: (BuildContext context) {
+                            return StatefulBuilder(builder:
+                                (BuildContext context,
+                                    StateSetter bottomState) {
+                              return Padding(
+                                  padding: EdgeInsets.only(
+                                      top: MediaQueryData.fromWindow(
+                                              WidgetsBinding.instance!.window)
+                                          .padding
+                                          .top),
+                                  //MediaQuery.of(context).padding.top),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .background,
+                                        //leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Options Settings",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                                      ),
+                                      const ListTile(
+                                        leading: Icon(Icons.functions),
+                                        title: Text("Options Greeks"),
+                                      ),
+                                      RadioListTile<bool>(
+                                          //leading: const Icon(Icons.account_circle),
+                                          title: const Text("Show Greeks"),
+                                          value: showGreeks,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              showGreeks = true;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                        //leading: const Icon(Icons.account_circle),
+                                        title: const Text("Hide Greeks"),
+                                        value: !showGreeks,
+                                        groupValue: true, //"refresh-setting",
+                                        onChanged: (val) {
+                                          setState(() {
+                                            showGreeks = false;
+                                          });
+                                          widget.user.save();
+                                          Navigator.pop(context, 'dialog');
+                                        },
+                                      ),
+                                      const Divider(
+                                        height: 10,
+                                      ),
+                                      const ListTile(
+                                        leading: Icon(Icons.filter_list),
+                                        title: Text("Options Filters"),
+                                      ),
+                                      const ListTile(
+                                        //leading: Icon(Icons.filter_list),
+                                        title: Text("Position Type"),
+                                      ),
+                                      openClosedFilterWidget,
+                                      //openClosedFilterWidget(bottomState),
+                                      const ListTile(
+                                        //leading: Icon(Icons.filter_list),
+                                        title: Text("Option Type"),
+                                      ),
+                                      optionTypeFilterWidget,
+                                      //optionTypeFilterWidget(bottomState),
+                                    ],
+                                  ));
+                            });
+                          },
+                        );
+                      })
+                ]),
+                /*
                 trailing: IconButton(
                     icon: const Icon(Icons.filter_list),
                     onPressed: () {
@@ -2073,6 +2207,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         },
                       );
                     }),
+                    */
               ))),
       sliver: SliverList(
         // delegate: SliverChildListDelegate(widgets),
@@ -2335,23 +2470,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
+          /*
           leading: CircleAvatar(
-              //backgroundImage: AssetImage(user.profilePicture),
-              /*
-              backgroundColor:
-                  optionsPositions[index].optionInstrument!.type == 'call'
-                      ? Colors.green
-                      : Colors.amber,
-              child: optionsPositions[index].optionInstrument!.type == 'call'
-                  ? const Text('Call')
-                  : const Text('Put')),
-                      */
               child: Text('${op.quantity!.round()}',
                   style: const TextStyle(fontSize: 18))),
+                  */
+          title: Text(
+              '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
+          subtitle: Text(
+              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
+          /*
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
           subtitle: Text(
               '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${formatDate.format(op.legs.first.expirationDate!)}'),
+              */
           trailing: Wrap(spacing: 8, children: [
             Icon(
                 op.gainLossPerContract > 0
@@ -2410,6 +2543,109 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         optionPosition: op)));
           },
         ),
+        if (showGreeks) ...[
+          Column(
+            children: [
+              Row(children: [
+                Expanded(
+                  flex: 2,
+                  child: Card(
+                      elevation: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(
+                            6), //.symmetric(horizontal: 6),
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Text(formatNumber.format(op.marketData!.delta),
+                                  style: const TextStyle(fontSize: 15.0)),
+                              //Container(height: 5),
+                              const Text("Δ", style: TextStyle(fontSize: 17.0)),
+                              const Text("Delta",
+                                  style: TextStyle(fontSize: 10.0)),
+                            ]),
+                      )),
+                ),
+                Expanded(
+                    flex: 2,
+                    child: Card(
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(formatNumber.format(op.marketData!.gamma!),
+                                    style: const TextStyle(fontSize: 15.0)),
+                                //Container(height: 5),
+                                const Text("Γ",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Gamma",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ))),
+                Expanded(
+                    flex: 2,
+                    child: Card(
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(formatNumber.format(op.marketData!.theta!),
+                                    style: const TextStyle(fontSize: 15.0)),
+                                //Container(height: 5),
+                                const Text("Θ",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Theta",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ))),
+                Expanded(
+                    flex: 2,
+                    child: Card(
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(formatNumber.format(op.marketData!.vega!),
+                                    style: const TextStyle(fontSize: 15.0)),
+                                //Container(height: 5),
+                                const Text("v",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Vega",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ))),
+                Expanded(
+                    flex: 2,
+                    child: Card(
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(formatNumber.format(op.marketData!.rho!),
+                                    style: const TextStyle(fontSize: 15.0)),
+                                //Container(height: 5),
+                                const Text("p",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Rho",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        )))
+              ])
+            ],
+          ),
+        ]
       ],
     ));
   }

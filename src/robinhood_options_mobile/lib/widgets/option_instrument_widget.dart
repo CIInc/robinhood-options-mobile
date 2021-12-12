@@ -628,6 +628,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                     child: Column(children: const [
                                   Text(
                                       "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
+                                  //Another way of thinking about the metric is that it can give an idea of whether an option will end up in the money at the expiration date. As an option moves further into the money, the delta value will head away from 0. For a call option, it will head toward a value of 1, while a put option will head toward a value of -1. As the option moves further out of the money, the delta value will head towards 0.
                                   Text(
                                       "Gamma, Γ, measures the rate of change in the delta with respect to changes in the underlying price.\n"),
                                   Text(
