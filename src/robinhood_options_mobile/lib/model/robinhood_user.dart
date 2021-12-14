@@ -6,6 +6,14 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
+enum DisplayValue {
+  marketValue,
+  lastPrice,
+  todayReturnPercent,
+  todayReturn,
+  totalReturnPercent,
+  totalReturn
+}
 
 //@immutable
 class RobinhoodUser {
@@ -14,6 +22,7 @@ class RobinhoodUser {
   oauth2.Client? oauth2Client;
   bool refreshEnabled = true;
   View optionsView = View.list;
+  DisplayValue? displayValue = DisplayValue.marketValue;
 
   RobinhoodUser(this.userName, this.credentials, this.oauth2Client);
 
@@ -24,13 +33,15 @@ class RobinhoodUser {
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
                 ? View.list
-                : View.grouped;
+                : View.grouped,
+        displayValue = parseDisplayValue(json['optionsView']);
 
   Map<String, dynamic> toJson() => {
         'userName': userName,
         'credentials': credentials,
         'refreshEnabled': refreshEnabled,
-        'optionsView': optionsView.toString()
+        'optionsView': optionsView.toString(),
+        'displayValue': displayValue.toString()
       };
 
   Future save() async {
@@ -78,5 +89,27 @@ class RobinhoodUser {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(Constants.preferencesUserKey);
     //await Store.deleteFile(Constants.cacheFilename);
+  }
+
+  static DisplayValue parseDisplayValue(String? optionsView) {
+    if (optionsView == null) {
+      return DisplayValue.marketValue;
+    }
+    switch (optionsView) {
+      case 'DisplayValue.lastPrice':
+        return DisplayValue.lastPrice;
+      case 'DisplayValue.marketValue':
+        return DisplayValue.marketValue;
+      case 'DisplayValue.todayReturn':
+        return DisplayValue.todayReturn;
+      case 'DisplayValue.todayReturnPercent':
+        return DisplayValue.todayReturnPercent;
+      case 'DisplayValue.totalReturn':
+        return DisplayValue.totalReturn;
+      case 'DisplayValue.totalReturnPercent':
+        return DisplayValue.totalReturnPercent;
+      default:
+        return DisplayValue.marketValue;
+    }
   }
 }

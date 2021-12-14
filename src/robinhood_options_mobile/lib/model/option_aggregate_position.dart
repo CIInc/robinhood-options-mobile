@@ -152,11 +152,13 @@ class OptionAggregatePosition {
     return totalCost / shortCollateral;
   }
 
+  /* See marketValue
   double get equity {
     return optionInstrument!.optionMarketData!.adjustedMarkPrice! *
         quantity! *
         100;
   }
+  */
 
   double get changeToday {
     return optionInstrument!.optionMarketData!.changeToday * quantity! * 100;

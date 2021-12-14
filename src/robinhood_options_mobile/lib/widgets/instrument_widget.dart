@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -32,6 +33,7 @@ import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatExpirationDate = DateFormat('yyyy-MM-dd');
 final formatCompactDate = DateFormat("MMMd");
+final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -472,14 +474,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       } else {
         textColor = Colors.grey.shade700;
       }
-      var open = instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
-      var close = instrument
-          .instrumentHistoricalsObj!
-          .historicals[
-              instrument.instrumentHistoricalsObj!.historicals.length - 1]
-          .closePrice!;
-      double changeToday = close - open;
-      double changePercentToday = changeToday / close;
+      var firstHistorical = instrument.instrumentHistoricalsObj!.historicals[0];
+      var lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
+          instrument.instrumentHistoricalsObj!.historicals.length - 1];
+      var open = firstHistorical.openPrice!;
+      var close = lastHistorical.closePrice!;
+      double changeInPeriod = close - open;
+      double changePercentToday = changeInPeriod / close;
+
+      double changeSelection = 0;
+      double changePercentSelection = 0;
+      if (selection != null) {
+        changeSelection = selection!.closePrice! -
+            open; // portfolios![0].equityPreviousClose!;
+        changePercentSelection = changeSelection / selection!.closePrice!;
+      }
 
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -491,6 +500,85 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               height: 36,
               child: Center(
                   child: Column(children: [
+                Wrap(
+                  children: [
+                    if (selection != null) ...[
+                      Text(formatCurrency.format(selection!.closePrice),
+                          style: TextStyle(fontSize: 20, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Icon(
+                        changePercentSelection > 0
+                            ? Icons.trending_up
+                            : (changePercentSelection < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (changePercentSelection > 0
+                            ? Colors.green
+                            : (changePercentSelection < 0
+                                ? Colors.red
+                                : Colors.grey)),
+                        //size: 16.0
+                      ),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(
+                          formatPercentage
+                              //.format(selection!.netReturn!.abs()),
+                              .format(changePercentSelection.abs()),
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Text(
+                          "${changeSelection > 0 ? "+" : changeSelection < 0 ? "-" : ""}${formatCurrency.format(changeSelection.abs())}",
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                    ] else ...[
+                      Text(
+                          formatCurrency.format(
+                              close), //(portfolios![0].equity ?? 0) + nummusEquity
+                          style: TextStyle(fontSize: 20, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Icon(
+                        changeInPeriod > 0
+                            ? Icons.trending_up
+                            : (changeInPeriod < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (changeInPeriod > 0
+                            ? Colors.green
+                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
+                        //size: 16.0
+                      ),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(formatPercentage.format(changePercentToday.abs()),
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Text(
+                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                    ]
+                  ],
+                ),
+                if (selection != null) ...[
+                  Text(
+                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
+                      style: TextStyle(fontSize: 10, color: textColor)),
+                ] else ...[
+                  Text(
+                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
+                      style: TextStyle(fontSize: 10, color: textColor)),
+                ]
+
+                /*                 
                 if (selection != null) ...[
                   Wrap(
                     //spacing: 8,
@@ -505,8 +593,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 */
                     ],
                   ),
-                  Text(formatLongDate.format(selection!.beginsAt!.toLocal()),
-                      style: TextStyle(fontSize: 10, color: textColor)),
                 ] else ...[
                   Wrap(children: [
                     Text(formatCurrency.format(close),
@@ -537,16 +623,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
                         style: TextStyle(fontSize: 20.0, color: textColor)),
                   ]),
-                  Text(
-                      formatLongDate.format(instrument
-                          .instrumentHistoricalsObj!
-                          .historicals[instrument.instrumentHistoricalsObj!
-                                  .historicals.length -
-                              1]
-                          .beginsAt!
-                          .toLocal()),
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ]
+                ],
+                */
               ])))));
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -779,6 +857,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               (!hasQuantityFilters[0] || e.quantity! > 0) &&
                   (!hasQuantityFilters[1] || e.quantity! <= 0))
           .toList();
+      filteredOptionPositions.sort((a, b) {
+        int comp = a.legs.first.expirationDate!
+            .compareTo(b.legs.first.expirationDate!);
+        if (comp != 0) return comp;
+        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+      });
+
       double optionEquity = 0;
       if (filteredOptionPositions.isNotEmpty) {
         optionEquity = filteredOptionPositions
@@ -882,7 +967,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(optionOrdersWidget);
+      slivers.add(OptionOrdersWidget(
+          widget.user, widget.account, optionOrders, ["confirmed", "filled"]));
     }
 
     slivers.add(const SliverToBoxAdapter(
@@ -2098,10 +2184,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           .padding
                                           .top),
                                   //MediaQuery.of(context).padding.top),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  child: ListView(
+                                    //Column(
+                                    //mainAxisAlignment:
+                                    //    MainAxisAlignment.start,
+                                    //crossAxisAlignment:
+                                    //    CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
                                         tileColor: Theme.of(context)
@@ -2146,6 +2234,93 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           Navigator.pop(context, 'dialog');
                                         },
                                       ),
+                                      const Divider(
+                                        height: 10,
+                                      ),
+                                      const ListTile(
+                                        leading: Icon(Icons.calculate),
+                                        title: Text("Display Value"),
+                                      ),
+                                      RadioListTile<bool>(
+                                          title: const Text("Last Price"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.lastPrice,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue.lastPrice;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                          title: const Text("Market Value"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.marketValue,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue.marketValue;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                          title: const Text("Return Today"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.todayReturn,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue.todayReturn;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                          title: const Text("Return % Today"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.todayReturnPercent,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue
+                                                      .todayReturnPercent;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                          title: const Text("Total Return"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.totalReturn,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue.totalReturn;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
+                                      RadioListTile<bool>(
+                                          title: const Text("Total Return %"),
+                                          value: widget.user.displayValue ==
+                                              DisplayValue.totalReturnPercent,
+                                          groupValue: true, //"refresh-setting"
+                                          onChanged: (val) {
+                                            setState(() {
+                                              widget.user.displayValue =
+                                                  DisplayValue
+                                                      .totalReturnPercent;
+                                            });
+                                            widget.user.save();
+                                            Navigator.pop(context, 'dialog');
+                                          }),
                                       const Divider(
                                         height: 10,
                                       ),
@@ -2464,6 +2639,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       return Container();
     }
     */
+    double value = getDisplayValue(op);
+    String trailingText = getDisplayText(value);
+    Icon? icon = getDisplayIcon(value);
 
     return Card(
         child: Column(
@@ -2486,17 +2664,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${formatDate.format(op.legs.first.expirationDate!)}'),
               */
           trailing: Wrap(spacing: 8, children: [
-            Icon(
-                op.gainLossPerContract > 0
-                    ? Icons.trending_up
-                    : (op.gainLossPerContract < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (op.gainLossPerContract > 0
-                    ? Colors.green
-                    : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
+            if (icon != null) ...[
+              icon,
+            ],
             Text(
-              formatCurrency.format(op.marketValue),
+              trailingText,
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             )
@@ -2650,151 +2822,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
-  Widget get optionOrdersWidget {
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ListTile(
-                title: const Text(
-                  "Option Orders",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                subtitle: Text(
-                    "${formatCompactNumber.format(optionOrders.length)} orders - balance: ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                trailing: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        constraints: const BoxConstraints(maxHeight: 260),
-                        builder: (BuildContext context) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                tileColor:
-                                    Theme.of(context).colorScheme.primary,
-                                leading: const Icon(Icons.filter_list),
-                                title: const Text(
-                                  "Filter Option Orders",
-                                  style: TextStyle(fontSize: 19.0),
-                                ),
-                                /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                              ),
-                              orderFilterWidget,
-                            ],
-                          );
-                        },
-                      );
-                    }),
-              ))),
-      sliver: SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          if ( //optionOrders[index] == null ||
-              (orderFilters.isNotEmpty &&
-                  !orderFilters.contains(optionOrders[index].state))) {
-            return Container();
-          }
-          var optionOrder = optionOrders[index];
-          var subtitle =
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}"),
-            if (optionOrder.optionEvents != null) ...[
-              Text(
-                "${optionOrder.optionEvents!.first.type == "expiration" ? "Expired" : (optionOrder.optionEvents!.first.type == "assignment" ? "Assigned" : (optionOrder.optionEvents!.first.type == "exercise" ? "Exercised" : optionOrder.optionEvents!.first.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}",
-                //style: TextStyle(fontSize: 16.0)
-              )
-            ]
-          ]);
-
-          return Card(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              ListTile(
-                leading: CircleAvatar(
-                    //backgroundImage: AssetImage(user.profilePicture),
-                    /*
-                    backgroundColor: optionOrder.optionEvents != null
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.secondary,
-                        */
-                    child: optionOrder.optionEvents != null
-                        ? const Icon(Icons.check)
-                        : Text('${optionOrder.quantity!.round()}',
-                            style: const TextStyle(fontSize: 17))),
-                title: Text(
-                    "${optionOrders[index].chainSymbol} \$${formatCompactNumber.format(optionOrders[index].legs.first.strikePrice)} ${optionOrders[index].strategy} ${formatCompactDate.format(optionOrders[index].legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                subtitle: subtitle,
-                trailing: Wrap(spacing: 8, children: [
-                  Text(
-                    (optionOrders[index].direction == "credit" ? "+" : "-") +
-                        (optionOrders[index].processedPremium != null
-                            ? formatCurrency
-                                .format(optionOrders[index].processedPremium)
-                            : ""),
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.right,
-                  )
-                ]),
-
-                /*Wrap(
-            spacing: 12,
-            children: [
-              Column(children: [
-                Text(
-                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-                  style: const TextStyle(fontSize: 15.0),
-                  textAlign: TextAlign.right,
-                ),
-                Icon(
-                    gainLossPerContract > 0
-                        ? Icons.trending_up
-                        : (gainLossPerContract < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (gainLossPerContract > 0
-                        ? Colors.green
-                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
-              ]),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "${formatCurrency.format(marketValue)}",
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.right,
-                  ),
-                ],
-              )
-            ],
-          ),*/
-                isThreeLine: optionOrder.optionEvents != null,
-                onTap: () {
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => OptionOrderWidget(widget.user,
-                              widget.account, optionOrders[index])));
-                },
-              ),
-            ],
-          ));
-        }, childCount: optionOrders.length),
-      ),
-    );
-  }
-
   Widget get orderFilterWidget {
     return SizedBox(
         height: 56,
@@ -2867,6 +2894,127 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           },
           itemCount: 1,
         ));
+  }
+
+  double getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
+    double value = 0;
+    switch (widget.user.displayValue) {
+      case DisplayValue.lastPrice:
+        value = ops
+            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.marketValue:
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.legs.first.positionType == "long"
+                    ? e.marketValue
+                    : e.marketValue)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.changeToday)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.marketValue)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLoss)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) =>
+                e.gainLossPercent * e.marketValue)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.marketValue)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  Icon? getDisplayIcon(double value) {
+    if (widget.user.displayValue == DisplayValue.lastPrice ||
+        widget.user.displayValue == DisplayValue.marketValue) {
+      return null;
+    }
+    var icon = Icon(
+        value > 0
+            ? Icons.trending_up
+            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
+        color: (value > 0
+            ? Colors.green
+            : (value < 0 ? Colors.red : Colors.grey)));
+    return icon;
+  }
+
+  String getDisplayText(double value) {
+    String opTrailingText = '';
+    switch (widget.user.displayValue) {
+      case DisplayValue.lastPrice:
+      case DisplayValue.marketValue:
+      case DisplayValue.todayReturn:
+      case DisplayValue.totalReturn:
+        opTrailingText = formatCurrency.format(value);
+        break;
+      case DisplayValue.todayReturnPercent:
+      case DisplayValue.totalReturnPercent:
+        opTrailingText = formatPercentage.format(value);
+        break;
+      default:
+    }
+    return opTrailingText;
+  }
+
+  double getDisplayValue(OptionAggregatePosition op) {
+    double value = 0;
+    switch (widget.user.displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.marketData!.lastTradePrice!;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.changeToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.changePercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
   }
 
   Widget headerTitle(Instrument instrument) {

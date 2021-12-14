@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
+final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -609,10 +610,10 @@ class _HomePageState extends State<HomePage>
         }
 
         //var interval = portfolioHistoricals.interval; // "15second"
-        var open =
-            portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
+        var firstHistorical = portfolioHistoricals.equityHistoricals[0];
         var lastHistorical = portfolioHistoricals.equityHistoricals[
             portfolioHistoricals.equityHistoricals.length - 1];
+        var open = firstHistorical.adjustedOpenEquity!;
         var close = lastHistorical.adjustedCloseEquity!;
         double changeInPeriod = close - open;
         double changePercentToday = changeInPeriod / close;
@@ -715,12 +716,11 @@ class _HomePageState extends State<HomePage>
                     ),
                     if (selection != null) ...[
                       Text(
-                          formatLongDate.format(selection!.beginsAt!.toLocal()),
+                          '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ] else ...[
                       Text(
-                          formatLongDate.format(lastHistorical.beginsAt!
-                              .toLocal()), //portfolios![0].updatedAt!.toLocal()
+                          '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ]
                     /*
@@ -948,26 +948,36 @@ class _HomePageState extends State<HomePage>
                               borderRadius: BorderRadius.circular(10.0),
                             ),
                             */
-                            isScrollControlled: true,
+                            //constraints: const BoxConstraints(maxHeight: 600),
+                            //isScrollControlled: true,
+                            //isDismissible: true,
+                            //backgroundColor: Colors.transparent,
                             //useRootNavigator: true,
-                            //constraints: const BoxConstraints(maxHeight: 200),
                             builder: (BuildContext context) {
                               return StatefulBuilder(builder:
                                   (BuildContext context,
                                       StateSetter bottomState) {
-                                return Padding(
+                                return Scaffold(
+                                    appBar: AppBar(
+                                        leading: CloseButton(),
+                                        title: Text('Options Settings')),
+                                    body:
+                                        /*Padding(
                                     padding: EdgeInsets.only(
                                         top: MediaQueryData.fromWindow(
                                                 WidgetsBinding.instance!.window)
                                             .padding
                                             .top),
                                     //MediaQuery.of(context).padding.top),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child:*/
+                                        ListView(
+                                      //Column(
+                                      //mainAxisAlignment:
+                                      //    MainAxisAlignment.start,
+                                      //crossAxisAlignment:
+                                      //    CrossAxisAlignment.start,
                                       children: [
+                                        /*
                                         ListTile(
                                           tileColor: Theme.of(context)
                                               .colorScheme
@@ -977,10 +987,9 @@ class _HomePageState extends State<HomePage>
                                             "Options Settings",
                                             style: TextStyle(fontSize: 19.0),
                                           ),
-                                          /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
+                                        ),*/
+                                        const Divider(
+                                          height: 10,
                                         ),
                                         const ListTile(
                                           leading: Icon(Icons.view_module),
@@ -1016,6 +1025,105 @@ class _HomePageState extends State<HomePage>
                                             Navigator.pop(context, 'dialog');
                                           },
                                         ),
+                                        const Divider(
+                                          height: 10,
+                                        ),
+                                        const ListTile(
+                                          leading: Icon(Icons.calculate),
+                                          title: Text("Display Value"),
+                                        ),
+                                        RadioListTile<bool>(
+                                            title: const Text("Last Price"),
+                                            value:
+                                                robinhoodUser!.displayValue ==
+                                                    DisplayValue.lastPrice,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue.lastPrice;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
+                                        RadioListTile<bool>(
+                                            title: const Text("Market Value"),
+                                            value:
+                                                robinhoodUser!.displayValue ==
+                                                    DisplayValue.marketValue,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue.marketValue;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
+                                        RadioListTile<bool>(
+                                            title: const Text("Return Today"),
+                                            value:
+                                                robinhoodUser!.displayValue ==
+                                                    DisplayValue.todayReturn,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue.todayReturn;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
+                                        RadioListTile<bool>(
+                                            title: const Text("Return % Today"),
+                                            value: robinhoodUser!
+                                                    .displayValue ==
+                                                DisplayValue.todayReturnPercent,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue
+                                                        .todayReturnPercent;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
+                                        RadioListTile<bool>(
+                                            title: const Text("Total Return"),
+                                            value:
+                                                robinhoodUser!.displayValue ==
+                                                    DisplayValue.totalReturn,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue.totalReturn;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
+                                        RadioListTile<bool>(
+                                            title: const Text("Total Return %"),
+                                            value: robinhoodUser!
+                                                    .displayValue ==
+                                                DisplayValue.totalReturnPercent,
+                                            groupValue:
+                                                true, //"refresh-setting"
+                                            onChanged: (val) {
+                                              setState(() {
+                                                robinhoodUser!.displayValue =
+                                                    DisplayValue
+                                                        .totalReturnPercent;
+                                              });
+                                              robinhoodUser!.save();
+                                              Navigator.pop(context, 'dialog');
+                                            }),
                                         const Divider(
                                           height: 10,
                                         ),
@@ -2287,15 +2395,20 @@ class _HomePageState extends State<HomePage>
               //useRootNavigator: true,
               //constraints: const BoxConstraints(maxHeight: 200),
               builder: (BuildContext context) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    /*
+                return Scaffold(
+                    appBar: AppBar(
+                        leading: CloseButton(),
+                        title: Text('Options Settings')),
+                    body: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        /*
                     new AppBar(
                       title: new Text("Menu"),
                     ),
                     */
+                        /*
                     Container(
                       height: 10,
                     ),
@@ -2309,119 +2422,120 @@ class _HomePageState extends State<HomePage>
                     const Divider(
                       height: 10,
                     ),
-                    if (ru != null && ru.userName != null) ...[
-                      ListTile(
-                          leading: const Icon(Icons.account_circle),
-                          title: const Text("Profile"),
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text('Alert'),
-                                  content: const Text(
-                                      'This feature is not implemented.'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, 'OK'),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
+                    */
+                        if (ru != null && ru.userName != null) ...[
+                          ListTile(
+                              leading: const Icon(Icons.account_circle),
+                              title: const Text("Profile"),
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Alert'),
+                                      content: const Text(
+                                          'This feature is not implemented.'),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, 'OK'),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 );
-                              },
-                            );
-                          }),
-                      const Divider(
-                        height: 10,
-                      ),
-                      RadioListTile<bool>(
-                          //leading: const Icon(Icons.account_circle),
-                          title: const Text("No Refresh"),
-                          value: robinhoodUser!.refreshEnabled == false,
-                          groupValue: true, //"refresh-setting"
-                          onChanged: (val) {
-                            robinhoodUser!.refreshEnabled = false;
-                            robinhoodUser!.save();
-                            Navigator.pop(context, 'dialog');
-                          }),
-                      RadioListTile<bool>(
-                        //leading: const Icon(Icons.account_circle),
-                        title: const Text("Automatic Refresh"),
-                        value: robinhoodUser!.refreshEnabled == true,
-                        groupValue: true, //"refresh-setting",
-                        onChanged: (val) {
-                          setState(() {
-                            portfolioHistoricals = null;
-                            futurePortfolioHistoricals = null;
-                          });
-                          robinhoodUser!.refreshEnabled = true;
-                          robinhoodUser!.save();
-                          Navigator.pop(context, 'dialog');
-                        },
-                      ),
-                      const Divider(
-                        height: 10,
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.logout),
-                        title: const Text("Logout"),
-                        onTap: () {
-                          var alert = AlertDialog(
-                            title: const Text('Logout process'),
-                            content: SingleChildScrollView(
-                              child: ListBody(
-                                children: const <Widget>[
-                                  Text(
-                                      'This action will require you to log in again.'),
-                                  Text('Are you sure you want to log out?'),
-                                ],
-                              ),
-                            ),
-                            actions: <Widget>[
-                              TextButton(
-                                child: const Text('Cancel'),
-                                onPressed: () {
-                                  Navigator.pop(context, 'dialog');
-                                },
-                              ),
-                              TextButton(
-                                child: const Text('OK'),
-                                onPressed: () {
-                                  Navigator.pop(context, 'dialog');
-                                  _logout();
-                                },
-                              ),
-                            ],
-                          );
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return alert;
+                              }),
+                          const Divider(
+                            height: 10,
+                          ),
+                          RadioListTile<bool>(
+                              //leading: const Icon(Icons.account_circle),
+                              title: const Text("No Refresh"),
+                              value: robinhoodUser!.refreshEnabled == false,
+                              groupValue: true, //"refresh-setting"
+                              onChanged: (val) {
+                                robinhoodUser!.refreshEnabled = false;
+                                robinhoodUser!.save();
+                                Navigator.pop(context, 'dialog');
+                              }),
+                          RadioListTile<bool>(
+                            //leading: const Icon(Icons.account_circle),
+                            title: const Text("Automatic Refresh"),
+                            value: robinhoodUser!.refreshEnabled == true,
+                            groupValue: true, //"refresh-setting",
+                            onChanged: (val) {
+                              setState(() {
+                                portfolioHistoricals = null;
+                                futurePortfolioHistoricals = null;
+                              });
+                              robinhoodUser!.refreshEnabled = true;
+                              robinhoodUser!.save();
+                              Navigator.pop(context, 'dialog');
                             },
-                          );
-                        },
-                      ),
-                      const Divider(
-                        height: 10,
-                      )
-                    ] else ...[
-                      ListTile(
-                        leading: const Icon(Icons.login),
-                        title: const Text("Login"),
-                        onTap: () {
-                          _openLogin();
-                        },
-                      ),
-                      const Divider(
-                        height: 10,
-                      )
-                    ],
-                    Container(
-                      height: 10,
-                    ),
-                  ],
-                );
+                          ),
+                          const Divider(
+                            height: 10,
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.logout),
+                            title: const Text("Logout"),
+                            onTap: () {
+                              var alert = AlertDialog(
+                                title: const Text('Logout process'),
+                                content: SingleChildScrollView(
+                                  child: ListBody(
+                                    children: const <Widget>[
+                                      Text(
+                                          'This action will require you to log in again.'),
+                                      Text('Are you sure you want to log out?'),
+                                    ],
+                                  ),
+                                ),
+                                actions: <Widget>[
+                                  TextButton(
+                                    child: const Text('Cancel'),
+                                    onPressed: () {
+                                      Navigator.pop(context, 'dialog');
+                                    },
+                                  ),
+                                  TextButton(
+                                    child: const Text('OK'),
+                                    onPressed: () {
+                                      Navigator.pop(context, 'dialog');
+                                      _logout();
+                                    },
+                                  ),
+                                ],
+                              );
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return alert;
+                                },
+                              );
+                            },
+                          ),
+                          const Divider(
+                            height: 10,
+                          )
+                        ] else ...[
+                          ListTile(
+                            leading: const Icon(Icons.login),
+                            title: const Text("Login"),
+                            onTap: () {
+                              _openLogin();
+                            },
+                          ),
+                          const Divider(
+                            height: 10,
+                          )
+                        ],
+                        Container(
+                          height: 10,
+                        ),
+                      ],
+                    ));
               },
             );
           },
@@ -2910,6 +3024,10 @@ class _HomePageState extends State<HomePage>
     */
     var instrument = op;
 
+    double value = getDisplayValue(op);
+    String opTrailingText = getDisplayText(value);
+    Icon? icon = getDisplayIcon(value);
+
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -2944,17 +3062,11 @@ class _HomePageState extends State<HomePage>
           subtitle: Text(
               '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
           trailing: Wrap(spacing: 8, children: [
-            Icon(
-                op.gainLossPerContract > 0
-                    ? Icons.trending_up
-                    : (op.gainLossPerContract < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (op.gainLossPerContract > 0
-                    ? Colors.green
-                    : (op.gainLossPerContract < 0 ? Colors.red : Colors.grey))),
+            if (icon != null) ...[
+              icon,
+            ],
             Text(
-              formatCurrency.format(op.marketValue),
+              opTrailingText,
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             )
@@ -3014,10 +3126,6 @@ class _HomePageState extends State<HomePage>
   Widget _buildOptionPositionSymbolRow(
       List<OptionAggregatePosition> ops, RobinhoodUser ru) {
     var contracts = ops.map((e) => e.quantity!.toInt()).reduce((a, b) => a + b);
-    var filteredOptionEquity = ops
-        .map((e) =>
-            e.legs.first.positionType == "long" ? e.marketValue : e.marketValue)
-        .reduce((a, b) => a + b);
     // var filteredOptionReturn = ops.map((e) => e.gainLoss).reduce((a, b) => a + b);
     ops.sort((a, b) {
       int comp =
@@ -3063,6 +3171,11 @@ class _HomePageState extends State<HomePage>
     ]);
     */
     List<Widget> cards = [];
+
+    double value = getAggregateDisplayValue(ops);
+    String trailingText = getDisplayText(value);
+    Icon? icon = getDisplayIcon(value);
+    //robinhoodUser!.displayValue == DisplayValue.marketValue
     cards.add(Column(children: [
       ListTile(
         leading: ops.first.logoUrl != null
@@ -3086,11 +3199,16 @@ class _HomePageState extends State<HomePage>
                     0, 1))), //const SizedBox(width: 40, height: 40),,
         title: Text(ops.first.symbol),
         subtitle: Text("${ops.length} positions, $contracts contracts"),
-        trailing: Text(
-          formatCurrency.format(filteredOptionEquity),
-          style: const TextStyle(fontSize: 18.0),
-          textAlign: TextAlign.right,
-        ),
+        trailing: Wrap(spacing: 8, children: [
+          if (icon != null) ...[
+            icon,
+          ],
+          Text(
+            trailingText,
+            style: const TextStyle(fontSize: 18.0),
+            textAlign: TextAlign.right,
+          )
+        ]),
         onTap: () async {
           /*
                 _navKey.currentState!.push(
@@ -3115,6 +3233,10 @@ class _HomePageState extends State<HomePage>
       ),
     );
     for (OptionAggregatePosition op in ops) {
+      double value = getDisplayValue(op);
+      String trailingText = getDisplayText(value);
+      Icon? icon = getDisplayIcon(value);
+
       cards.add(
           //Card(child:
           Column(
@@ -3131,19 +3253,11 @@ class _HomePageState extends State<HomePage>
             subtitle: Text(
                 '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
             trailing: Wrap(spacing: 8, children: [
-              Icon(
-                  op.gainLossPerContract > 0
-                      ? Icons.trending_up
-                      : (op.gainLossPerContract < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (op.gainLossPerContract > 0
-                      ? Colors.green
-                      : (op.gainLossPerContract < 0
-                          ? Colors.red
-                          : Colors.grey))),
+              if (icon != null) ...[
+                icon,
+              ],
               Text(
-                formatCurrency.format(op.marketValue),
+                trailingText,
                 style: const TextStyle(fontSize: 18.0),
                 textAlign: TextAlign.right,
               )
@@ -3203,6 +3317,127 @@ class _HomePageState extends State<HomePage>
         child: Column(
       children: cards,
     ));
+  }
+
+  double getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        value = ops
+            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.marketValue:
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.legs.first.positionType == "long"
+                    ? e.marketValue
+                    : e.marketValue)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.changeToday)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.marketValue)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLoss)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) =>
+                e.gainLossPercent * e.marketValue)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.marketValue)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  Icon? getDisplayIcon(double value) {
+    if (robinhoodUser!.displayValue == DisplayValue.lastPrice ||
+        robinhoodUser!.displayValue == DisplayValue.marketValue) {
+      return null;
+    }
+    var icon = Icon(
+        value > 0
+            ? Icons.trending_up
+            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
+        color: (value > 0
+            ? Colors.green
+            : (value < 0 ? Colors.red : Colors.grey)));
+    return icon;
+  }
+
+  String getDisplayText(double value) {
+    String opTrailingText = '';
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+      case DisplayValue.marketValue:
+      case DisplayValue.todayReturn:
+      case DisplayValue.totalReturn:
+        opTrailingText = formatCurrency.format(value);
+        break;
+      case DisplayValue.todayReturnPercent:
+      case DisplayValue.totalReturnPercent:
+        opTrailingText = formatPercentage.format(value);
+        break;
+      default:
+    }
+    return opTrailingText;
+  }
+
+  double getDisplayValue(OptionAggregatePosition op) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.marketData!.lastTradePrice!;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.changeToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.changePercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
   }
 
   Widget _buildCryptoRow(List<Holding> holdings, int index, RobinhoodUser ru) {

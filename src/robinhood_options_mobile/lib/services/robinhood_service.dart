@@ -45,6 +45,8 @@ class RobinhoodService {
 
   static List<dynamic> forexPairs = [];
 
+  static Map<String, List<OptionOrder>> optionOrdersMap = {};
+
   /*
   USERS & ACCOUNTS
   */
@@ -1019,6 +1021,9 @@ class RobinhoodService {
       var op = OptionOrder.fromJson(result);
       list.add(op);
     }
+
+    optionOrdersMap[list.first.chainSymbol] = list;
+
     return list;
   }
 

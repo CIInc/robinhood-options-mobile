@@ -5,6 +5,7 @@ import 'package:charts_flutter/flutter.dart' as charts;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_order.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_option_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -38,6 +40,7 @@ class OptionInstrumentWidget extends StatefulWidget {
 class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<Quote>? futureQuote;
   Future<Instrument>? futureInstrument;
+  Future<List<OptionOrder>>? futureOptionOrders;
 
   BarChart? chart;
   List<charts.Series<dynamic, String>> seriesList = [];
@@ -51,6 +54,24 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
     futureQuote ??= RobinhoodService.getQuote(
         widget.user, widget.optionInstrument.chainSymbol);
+
+    if (RobinhoodService.optionOrders != null) {
+      var cachedOptionOrders = RobinhoodService.optionOrders!
+          .where((element) =>
+              element.chainSymbol == widget.optionInstrument.chainSymbol)
+          .toList();
+      futureOptionOrders = Future.value(cachedOptionOrders);
+    } else if (RobinhoodService.optionOrdersMap
+        .containsKey(widget.optionInstrument.chainSymbol)) {
+      var chainSymbolOrders =
+          RobinhoodService.optionOrdersMap[widget.optionInstrument.chainSymbol];
+      futureOptionOrders = Future.value(chainSymbolOrders);
+    } else if (widget.optionInstrument.chainId != null) {
+      futureOptionOrders = RobinhoodService.getOptionOrders(
+          widget.user, widget.optionInstrument.chainId);
+    } else {
+      futureOptionOrders = Future.value([]);
+    }
   }
 
   @override
@@ -70,13 +91,30 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     if (instrumentSnapshot.hasData) {
                       var instrument = instrumentSnapshot.data! as Instrument;
                       instrument.quoteObj = quote;
-                      return _buildPage(widget.optionInstrument,
-                          instrument: instrument,
-                          optionPosition: widget.optionPosition,
-                          done: instrumentSnapshot.connectionState ==
-                                  ConnectionState.done &&
-                              quoteSnapshot.connectionState ==
-                                  ConnectionState.done);
+
+                      return FutureBuilder(
+                          future: futureOptionOrders,
+                          builder: (context2, ordersSnapshot) {
+                            if (ordersSnapshot.hasData) {
+                              return _buildPage(widget.optionInstrument,
+                                  instrument: instrument,
+                                  optionPosition: widget.optionPosition,
+                                  optionOrders:
+                                      ordersSnapshot.data! as List<OptionOrder>,
+                                  done: instrumentSnapshot.connectionState ==
+                                          ConnectionState.done &&
+                                      quoteSnapshot.connectionState ==
+                                          ConnectionState.done);
+                            } else {
+                              return _buildPage(widget.optionInstrument,
+                                  instrument: instrument,
+                                  optionPosition: widget.optionPosition,
+                                  done: instrumentSnapshot.connectionState ==
+                                          ConnectionState.done &&
+                                      quoteSnapshot.connectionState ==
+                                          ConnectionState.done);
+                            }
+                          });
                     } else {
                       return _buildPage(widget.optionInstrument,
                           done: instrumentSnapshot.connectionState ==
@@ -110,7 +148,16 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Widget _buildPage(OptionInstrument optionInstrument,
       {Instrument? instrument,
       OptionAggregatePosition? optionPosition,
+      List<OptionOrder>? optionOrders,
       bool done = false}) {
+    List<OptionOrder>? optionInstrumentOrders;
+    if (optionOrders != null) {
+      optionInstrumentOrders = optionOrders
+          .where((element) =>
+              element.legs.first.option == widget.optionInstrument.url)
+          .toList();
+    }
+
     final DateTime today =
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
@@ -1012,7 +1059,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 ],
                 ListTile(
                   title: const Text("Market Value"), //Equity
-                  trailing: Text(formatCurrency.format(optionPosition.equity),
+                  trailing: Text(
+                      formatCurrency.format(optionPosition.marketValue),
                       style: const TextStyle(fontSize: 18)),
                 ),
                 ListTile(
@@ -1075,6 +1123,15 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               mainAxisSize: MainAxisSize.min,
               children: _buildLegs(optionPosition).toList(),
             ))),
+          ],
+          if (optionInstrumentOrders != null &&
+              optionInstrumentOrders.isNotEmpty) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            OptionOrdersWidget(widget.user, widget.account,
+                optionInstrumentOrders, ["confirmed", "filled"])
           ],
           const SliverToBoxAdapter(
               child: SizedBox(
