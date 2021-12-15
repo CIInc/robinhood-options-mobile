@@ -3390,7 +3390,7 @@ class _HomePageState extends State<HomePage>
     double value = 0;
     switch (robinhoodUser!.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.marketData!.lastTradePrice!;
+        value = op.marketData!.markPrice!;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
@@ -3619,13 +3619,13 @@ class _HomePageState extends State<HomePage>
           if (icon != null) ...[
             icon,
           ],
-          if (trailingText != null) ...[
-            Text(
-              trailingText,
-              style: const TextStyle(fontSize: 18.0),
-              textAlign: TextAlign.right,
-            )
-          ]
+          //if (trailingText != null) ...[
+          Text(
+            trailingText,
+            style: const TextStyle(fontSize: 18.0),
+            textAlign: TextAlign.right,
+          )
+          //]
         ]),
         // isThreeLine: true,
         onTap: () {

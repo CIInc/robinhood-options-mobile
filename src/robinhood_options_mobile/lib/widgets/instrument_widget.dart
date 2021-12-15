@@ -2985,7 +2985,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     double value = 0;
     switch (widget.user.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.marketData!.lastTradePrice!;
+        value = op.marketData!.markPrice!;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
