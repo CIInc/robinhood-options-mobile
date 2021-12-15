@@ -62,16 +62,17 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           .toList();
       futureOptionOrders = Future.value(cachedOptionOrders);
     } else if (RobinhoodService.optionOrdersMap
-        .containsKey(widget.optionInstrument.chainSymbol)) {
+        .containsKey(widget.optionInstrument.chainId)) {
       var chainSymbolOrders =
-          RobinhoodService.optionOrdersMap[widget.optionInstrument.chainSymbol];
+          RobinhoodService.optionOrdersMap[widget.optionInstrument.chainId];
       futureOptionOrders = Future.value(chainSymbolOrders);
-    } else if (widget.optionInstrument.chainId != null) {
+    } else {
+      //if (widget.optionInstrument.chainId != null) {
       futureOptionOrders = RobinhoodService.getOptionOrders(
           widget.user, widget.optionInstrument.chainId);
-    } else {
+    } /*else {
       futureOptionOrders = Future.value([]);
-    }
+    }*/
   }
 
   @override
@@ -1131,7 +1132,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               height: 25.0,
             )),
             OptionOrdersWidget(widget.user, widget.account,
-                optionInstrumentOrders, ["confirmed", "filled"])
+                optionInstrumentOrders, const ["confirmed", "filled"])
           ],
           const SliverToBoxAdapter(
               child: SizedBox(

@@ -28,7 +28,6 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatExpirationDate = DateFormat('yyyy-MM-dd');
@@ -188,14 +187,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     futureRatingsOverview ??=
         RobinhoodService.getRatingsOverview(user, instrument.id);
 
+    futureOptionEvents ??= RobinhoodService.getOptionEventsByInstrumentUrl(
+        widget.user, instrument.url);
+
     futureEarnings ??= RobinhoodService.getEarnings(user, instrument.id);
 
     futureSimilar ??= RobinhoodService.getSimilar(user, instrument.id);
 
     futureSplits ??= RobinhoodService.getSplits(user, instrument);
-
-    futureOptionEvents ??= RobinhoodService.getOptionEventsByInstrumentUrl(
-        widget.user, instrument.url);
 
     return Scaffold(
         body: FutureBuilder(
@@ -306,11 +305,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     done: historicalsSnapshot.connectionState ==
                         ConnectionState.done);
               });
-        }
-        /* else if (snapshot.hasError) {
+        } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
-          return Text("${snapshot.error}");
-        }*/
+          return Center(child: Text("${snapshot.error}"));
+        }
         return buildScrollView(instrument,
             position: position,
             done: snapshot.connectionState == ConnectionState.done);
@@ -967,8 +965,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(OptionOrdersWidget(
-          widget.user, widget.account, optionOrders, ["confirmed", "filled"]));
+      slivers.add(OptionOrdersWidget(widget.user, widget.account, optionOrders,
+          const ["confirmed", "filled"]));
     }
 
     slivers.add(const SliverToBoxAdapter(
@@ -2155,7 +2153,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCurrency.format(optionEquity)} market value"),
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCurrency.format(optionEquity)} market value"), // of ${formatCompactNumber.format(optionPositions.length)}
                 trailing: Wrap(children: [
                   //Text('${formatCurrency.format(optionEquity)}',
                   //    style: TextStyle(fontSize: 19.0),
@@ -2170,41 +2168,34 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               borderRadius: BorderRadius.circular(10.0),
                             ),
                             */
-                          isScrollControlled: true,
+                          //isScrollControlled: true,
                           //useRootNavigator: true,
                           //constraints: const BoxConstraints(maxHeight: 200),
                           builder: (BuildContext context) {
                             return StatefulBuilder(builder:
                                 (BuildContext context,
                                     StateSetter bottomState) {
-                              return Padding(
+                              return Scaffold(
+                                  appBar: AppBar(
+                                      leading: const CloseButton(),
+                                      title: const Text('Options Settings')),
+                                  body:
+                                      /*
+                              Padding(
                                   padding: EdgeInsets.only(
                                       top: MediaQueryData.fromWindow(
                                               WidgetsBinding.instance!.window)
                                           .padding
                                           .top),
                                   //MediaQuery.of(context).padding.top),
-                                  child: ListView(
+                                  child: */
+                                      ListView(
                                     //Column(
                                     //mainAxisAlignment:
                                     //    MainAxisAlignment.start,
                                     //crossAxisAlignment:
                                     //    CrossAxisAlignment.start,
                                     children: [
-                                      ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .background,
-                                        //leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Options Settings",
-                                          style: TextStyle(fontSize: 19.0),
-                                        ),
-                                        /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                      ),
                                       const ListTile(
                                         leading: Icon(Icons.functions),
                                         title: Text("Options Greeks"),
@@ -2920,10 +2911,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       case DisplayValue.todayReturnPercent:
         var numerator = ops
             .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
+                e.changePercentToday * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
-            .map((OptionAggregatePosition e) => e.marketValue)
+            .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
@@ -2940,11 +2931,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.gainLossPercent * e.marketValue)
+            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
-            .map((OptionAggregatePosition e) => e.marketValue)
+            .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*

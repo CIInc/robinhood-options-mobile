@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
-import 'package:robinhood_options_mobile/model/holding.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
@@ -19,20 +20,19 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
-class CryptoInstrumentWidget extends StatefulWidget {
+class ForexInstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Account account;
-  final Holding holding;
+  final ForexHolding holding;
   //final OptionAggregatePosition? optionPosition;
-  const CryptoInstrumentWidget(this.user, this.account, this.holding,
-      {Key? key})
+  const ForexInstrumentWidget(this.user, this.account, this.holding, {Key? key})
       : super(key: key);
 
   @override
-  _CryptoInstrumentWidgetState createState() => _CryptoInstrumentWidgetState();
+  _ForexInstrumentWidgetState createState() => _ForexInstrumentWidgetState();
 }
 
-class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
+class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
   Future<dynamic>? futureQuote;
   Future<dynamic>? futureHistoricals;
 
@@ -44,7 +44,7 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
 
   //final dataKey = GlobalKey();
 
-  _CryptoInstrumentWidgetState();
+  _ForexInstrumentWidgetState();
 
   @override
   void initState() {
@@ -69,7 +69,8 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
       future: futureQuote,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          widget.holding.quoteObj = snapshot.data!;
+          //var quoteObj = CryptoQuote.fromJson(snapshot.data!);
+          widget.holding.quoteObj = snapshot.data! as ForexQuote;
           /*
           String? bounds;
           String? interval;
@@ -164,7 +165,7 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
     });
   }
 
-  buildScrollView(Holding holding, {bool done = false}) {
+  buildScrollView(ForexHolding holding, {bool done = false}) {
     /*
     if (holding.instrumentHistoricalsObj != null) {
       if (chart == null) {
@@ -576,7 +577,7 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
           child: SizedBox(
         height: 25.0,
       )));
-      //slivers.add(quoteWidget(holding));
+      slivers.add(quoteWidget(holding));
     }
 
     slivers.add(const SliverToBoxAdapter(
@@ -619,7 +620,7 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
   }
     */
 
-  Card buildOverview(Holding holding) {
+  Card buildOverview(ForexHolding holding) {
     if (holding.quoteObj == null) {
       return const Card();
     }
@@ -685,7 +686,7 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
     ));
   }
 
-  Widget quoteWidget(Holding holding) {
+  Widget quoteWidget(ForexHolding holding) {
     return SliverStickyHeader(
         header: Material(
             //elevation: 2,
@@ -718,15 +719,14 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
                             ? Colors.red
                             : Colors.grey))),
                 Text(
-                  formatCurrency.format(holding.quoteObj!.lastTradePrice),
+                  formatCurrency.format(holding.quoteObj!.markPrice),
                   style: const TextStyle(fontSize: 18.0),
                   textAlign: TextAlign.right,
                 ),
               ])),
           ListTile(
-            title: const Text("Adjusted Previous Close"),
-            trailing: Text(
-                formatCurrency.format(holding.quoteObj!.adjustedPreviousClose),
+            title: const Text("Open Price"),
+            trailing: Text(formatCurrency.format(holding.quoteObj!.openPrice),
                 style: const TextStyle(fontSize: 18)),
           ),
           ListTile(
@@ -746,19 +746,13 @@ class _CryptoInstrumentWidgetState extends State<CryptoInstrumentWidget> {
                 "${formatCurrency.format(holding.quoteObj!.bidPrice)} - ${formatCurrency.format(holding.quoteObj!.askPrice)}",
                 style: const TextStyle(fontSize: 18)),
           ),
-          ListTile(
-            title: const Text("Bid - Ask Size"),
-            trailing: Text(
-                "${formatCompactNumber.format(holding.quoteObj!.bidSize)} - ${formatCompactNumber.format(holding.quoteObj!.askSize)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
           Container(
             height: 25,
           )
         ]))));
   }
 
-  Widget headerTitle(Holding holding) {
+  Widget headerTitle(ForexHolding holding) {
     return Wrap(
         crossAxisAlignment: WrapCrossAlignment.end,
         //runAlignment: WrapAlignment.end,

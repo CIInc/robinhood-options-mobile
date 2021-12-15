@@ -9,7 +9,7 @@ import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
-import 'package:robinhood_options_mobile/model/holding.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -21,7 +21,7 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
-import 'package:robinhood_options_mobile/widgets/crypto_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
@@ -86,7 +86,7 @@ class _HomePageState extends State<HomePage>
 
   Future<List<Account>>? futureAccounts;
   List<Account>? accounts;
-  Future<List<Holding>>? futureNummusHoldings;
+  Future<List<ForexHolding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
@@ -99,6 +99,7 @@ class _HomePageState extends State<HomePage>
   EquityHistorical? selection;
 
   Stream<List<Position>>? positionStream;
+  List<Position> positions = [];
   Stream<List<PositionOrder>>? positionOrderStream;
 
   Stream<List<OptionAggregatePosition>>? optionPositionStream;
@@ -254,16 +255,21 @@ class _HomePageState extends State<HomePage>
                     if (dataSnapshot.hasData) {
                       List<dynamic> data = dataSnapshot.data as List<dynamic>;
                       var user = data.isNotEmpty ? data[0] as User : null;
-                      if (accounts == null) {
-                        accounts =
-                            data.length > 1 ? data[1] as List<Account> : null;
+                      var _accounts =
+                          data.length > 1 ? data[1] as List<Account> : null;
+
+                      // Special logic to refresh the parent widget when a new account is downloaded.
+                      if (accounts == null ||
+                          accounts!.length != _accounts!.length) {
+                        accounts = _accounts;
                         WidgetsBinding.instance!.addPostFrameCallback(
                             (_) => widget.onAccountsChanged(accounts!));
                       }
                       var portfolios =
                           data.length > 2 ? data[2] as List<Portfolio> : null;
-                      var nummusHoldings =
-                          data.length > 3 ? data[3] as List<Holding> : null;
+                      var nummusHoldings = data.length > 3
+                          ? data[3] as List<ForexHolding>
+                          : null;
 
                       futurePortfolioHistoricals ??=
                           RobinhoodService.getPortfolioHistoricals(
@@ -297,7 +303,7 @@ class _HomePageState extends State<HomePage>
                                   stream: positionStream,
                                   builder: (context2, positionSnapshot) {
                                     if (positionSnapshot.hasData) {
-                                      var positions = positionSnapshot.data
+                                      positions = positionSnapshot.data
                                           as List<Position>;
 
                                       optionPositionStream ??= RobinhoodService
@@ -424,13 +430,24 @@ class _HomePageState extends State<HomePage>
     // Start listening to clipboard
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
-      (timer) {
-        if (portfolioHistoricals != null) {
-          setState(() {
-            if (robinhoodUser!.refreshEnabled) {
+      (timer) async {
+        if (robinhoodUser!.refreshEnabled) {
+          if (portfolioHistoricals != null) {
+            setState(() {
               portfolioHistoricals = null;
               futurePortfolioHistoricals = null;
-            }
+            });
+          }
+          var refreshedOptionPositions =
+              await RobinhoodService.refreshOptionMarketData(
+                  robinhoodUser!, optionPositions);
+          setState(() {
+            optionPositions = refreshedOptionPositions;
+          });
+          var refreshPositions = await RobinhoodService.refreshPositionQuote(
+              robinhoodUser!, positions);
+          setState(() {
+            positions = refreshPositions;
           });
         }
       },
@@ -478,20 +495,33 @@ class _HomePageState extends State<HomePage>
       User? user,
       RobinhoodUser? ru,
       List<Account>? accounts,
-      List<Holding>? nummusHoldings,
+      List<ForexHolding>? nummusHoldings,
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
       List<OptionAggregatePosition>? optionPositions,
       List<Position>? positions,
       bool done = false}) {
+    double portfolioValue = 0.0;
+    double stockAndOptionsEquityPercent = 0.0;
+    double optionEquityPercent = 0.0;
+    double positionEquityPercent = 0.0;
+    double portfolioCash = 0.0;
+    double cashPercent = 0.0;
+    double cryptoPercent = 0.0;
+
+    EquityHistorical? firstHistorical;
+    EquityHistorical? lastHistorical;
+    double open = 0;
+    double close = 0;
+    double changeInPeriod = 0;
+
     double changeToday = 0;
     double changePercentToday = 0;
-    if (portfolios != null) {
-      changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
-      changePercentToday = changeToday / portfolios[0].equity!;
-    }
 
+    double optionEquity = 0;
     double positionEquity = 0;
+    double nummusEquity = 0;
+
     if (positions != null) {
       if (positions.isNotEmpty) {
         positionEquity =
@@ -504,13 +534,12 @@ class _HomePageState extends State<HomePage>
           .toList();
       positionSymbols.sort((a, b) => (a.compareTo(b)));
     }
-    double nummusEquity = 0;
+
     if (nummusHoldings != null && nummusHoldings.isNotEmpty) {
-      nummusEquity = nummusHoldings
-          .map((e) => e.value! * e.quantity!)
-          .reduce((a, b) => a + b);
+      nummusEquity =
+          nummusHoldings.map((e) => e.marketValue).reduce((a, b) => a + b);
     }
-    double optionEquity = 0;
+
     if (optionPositions != null) {
       optionEquity = optionPositions
           .map((e) => e.legs.first.positionType == "long"
@@ -520,7 +549,33 @@ class _HomePageState extends State<HomePage>
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
     }
+
+    if (portfolios != null) {
+      portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
+      stockAndOptionsEquityPercent =
+          portfolios[0].marketValue! / portfolioValue;
+      optionEquityPercent = optionEquity / portfolioValue;
+      positionEquityPercent = positionEquity / portfolioValue;
+      portfolioCash = accounts![0].portfolioCash ?? 0;
+      cashPercent = portfolioCash / portfolioValue;
+      cryptoPercent = nummusEquity / portfolioValue;
+
+      changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
+      changePercentToday = changeToday / portfolios[0].equity!;
+    }
+
     if (portfolioHistoricals != null) {
+      firstHistorical = portfolioHistoricals.equityHistoricals[0];
+      lastHistorical = portfolioHistoricals
+          .equityHistoricals[portfolioHistoricals.equityHistoricals.length - 1];
+      open = firstHistorical.adjustedOpenEquity!;
+      close = lastHistorical.adjustedCloseEquity!;
+      changeInPeriod = close - open;
+      //changePercentToday = changeInPeriod / close;
+
+      // Override the portfolio API with current historical data.
+      portfolioValue = close;
+
       if (chart == null) {
         List<charts.Series<dynamic, DateTime>> seriesList = [
           charts.Series<EquityHistorical, DateTime>(
@@ -575,9 +630,16 @@ class _HomePageState extends State<HomePage>
         portfolios,
         user,
         accounts,
+        portfolioValue,
+        stockAndOptionsEquityPercent,
         positionEquity,
+        positionEquityPercent,
         nummusEquity,
+        cryptoPercent,
         optionEquity,
+        optionEquityPercent,
+        portfolioCash,
+        cashPercent,
         changeToday,
         changePercentToday);
 
@@ -610,13 +672,6 @@ class _HomePageState extends State<HomePage>
         }
 
         //var interval = portfolioHistoricals.interval; // "15second"
-        var firstHistorical = portfolioHistoricals.equityHistoricals[0];
-        var lastHistorical = portfolioHistoricals.equityHistoricals[
-            portfolioHistoricals.equityHistoricals.length - 1];
-        var open = firstHistorical.adjustedOpenEquity!;
-        var close = lastHistorical.adjustedCloseEquity!;
-        double changeInPeriod = close - open;
-        double changePercentToday = changeInPeriod / close;
 
         double changeSelection = 0;
         double changePercentSelection = 0;
@@ -716,11 +771,11 @@ class _HomePageState extends State<HomePage>
                     ),
                     if (selection != null) ...[
                       Text(
-                          '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
+                          '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ] else ...[
                       Text(
-                          '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
+                          '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical!.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
                           style: TextStyle(fontSize: 10, color: textColor)),
                     ]
                     /*
@@ -918,11 +973,24 @@ class _HomePageState extends State<HomePage>
             .toList();
         var groupedOptionAggregatePositions = filteredOptionAggregatePositions
             .groupListsBy((element) => element.symbol);
+
+        var contracts = filteredOptionAggregatePositions
+            .map((e) => e.quantity!.toInt())
+            .reduce((a, b) => a + b);
+        /*
         var filteredOptionEquity = filteredOptionAggregatePositions
             .map((e) => e.legs.first.positionType == "long"
                 ? e.marketValue
                 : e.marketValue)
             .reduce((a, b) => a + b);
+            */
+        var value = getAggregateDisplayValue(filteredOptionAggregatePositions);
+        String? trailingText;
+        Icon? icon;
+        if (value != null) {
+          trailingText = getDisplayText(value);
+          icon = getDisplayIcon(value);
+        }
 
         slivers.add(SliverStickyHeader(
           header: Material(
@@ -937,256 +1005,122 @@ class _HomePageState extends State<HomePage>
                       style: TextStyle(fontSize: 19.0),
                     ),
                     subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} of ${formatCompactNumber.format(optionPositions.length)} positions, ${formatCurrency.format(filteredOptionEquity)} market value"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.more_vert),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            /*
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                            */
-                            //constraints: const BoxConstraints(maxHeight: 600),
-                            //isScrollControlled: true,
-                            //isDismissible: true,
-                            //backgroundColor: Colors.transparent,
-                            //useRootNavigator: true,
-                            builder: (BuildContext context) {
-                              return StatefulBuilder(builder:
-                                  (BuildContext context,
-                                      StateSetter bottomState) {
-                                return Scaffold(
-                                    appBar: AppBar(
-                                        leading: CloseButton(),
-                                        title: Text('Options Settings')),
-                                    body:
-                                        /*Padding(
-                                    padding: EdgeInsets.only(
-                                        top: MediaQueryData.fromWindow(
-                                                WidgetsBinding.instance!.window)
-                                            .padding
-                                            .top),
-                                    //MediaQuery.of(context).padding.top),
-                                    child:*/
-                                        ListView(
-                                      //Column(
-                                      //mainAxisAlignment:
-                                      //    MainAxisAlignment.start,
-                                      //crossAxisAlignment:
-                                      //    CrossAxisAlignment.start,
-                                      children: [
-                                        /*
-                                        ListTile(
-                                          tileColor: Theme.of(context)
-                                              .colorScheme
-                                              .background,
-                                          //leading: const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Options Settings",
-                                            style: TextStyle(fontSize: 19.0),
-                                          ),
-                                        ),*/
-                                        const Divider(
-                                          height: 10,
-                                        ),
-                                        const ListTile(
-                                          leading: Icon(Icons.view_module),
-                                          title: Text("Options View"),
-                                        ),
-                                        RadioListTile<bool>(
-                                            //leading: const Icon(Icons.account_circle),
-                                            title: const Text("Grouped View"),
-                                            value: robinhoodUser!.optionsView ==
-                                                View.grouped,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.optionsView =
-                                                    View.grouped;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                          //leading: const Icon(Icons.account_circle),
-                                          title: const Text("List View"),
-                                          value: robinhoodUser!.optionsView ==
-                                              View.list,
-                                          groupValue: true, //"refresh-setting",
-                                          onChanged: (val) {
-                                            setState(() {
-                                              robinhoodUser!.optionsView =
-                                                  View.list;
-                                            });
-                                            robinhoodUser!.save();
-                                            Navigator.pop(context, 'dialog');
-                                          },
-                                        ),
-                                        const Divider(
-                                          height: 10,
-                                        ),
-                                        const ListTile(
-                                          leading: Icon(Icons.calculate),
-                                          title: Text("Display Value"),
-                                        ),
-                                        RadioListTile<bool>(
-                                            title: const Text("Last Price"),
-                                            value:
-                                                robinhoodUser!.displayValue ==
-                                                    DisplayValue.lastPrice,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue.lastPrice;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                            title: const Text("Market Value"),
-                                            value:
-                                                robinhoodUser!.displayValue ==
-                                                    DisplayValue.marketValue,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue.marketValue;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                            title: const Text("Return Today"),
-                                            value:
-                                                robinhoodUser!.displayValue ==
-                                                    DisplayValue.todayReturn,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue.todayReturn;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                            title: const Text("Return % Today"),
-                                            value: robinhoodUser!
-                                                    .displayValue ==
-                                                DisplayValue.todayReturnPercent,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue
-                                                        .todayReturnPercent;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                            title: const Text("Total Return"),
-                                            value:
-                                                robinhoodUser!.displayValue ==
-                                                    DisplayValue.totalReturn,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue.totalReturn;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        RadioListTile<bool>(
-                                            title: const Text("Total Return %"),
-                                            value: robinhoodUser!
-                                                    .displayValue ==
-                                                DisplayValue.totalReturnPercent,
-                                            groupValue:
-                                                true, //"refresh-setting"
-                                            onChanged: (val) {
-                                              setState(() {
-                                                robinhoodUser!.displayValue =
-                                                    DisplayValue
-                                                        .totalReturnPercent;
-                                              });
-                                              robinhoodUser!.save();
-                                              Navigator.pop(context, 'dialog');
-                                            }),
-                                        const Divider(
-                                          height: 10,
-                                        ),
-                                        const ListTile(
-                                          leading: Icon(Icons.filter_list),
-                                          title: Text("Options Filters"),
-                                        ),
-                                        const ListTile(
-                                          //leading: Icon(Icons.filter_list),
-                                          title: Text("Position Type"),
-                                        ),
-                                        openClosedFilterWidget(bottomState),
-                                        const ListTile(
-                                          //leading: Icon(Icons.filter_list),
-                                          title: Text("Option Type"),
-                                        ),
-                                        optionTypeFilterWidget(bottomState),
-                                        /*
-                                        const Divider(
-                                          height: 10,
-                                        ),
-                                        */
-                                        const ListTile(
-                                          //leading: Icon(Icons.filter_list),
-                                          title: Text("Symbols"),
-                                        ),
-                                        optionSymbolFilterWidget(bottomState)
-                                      ],
-                                    ));
-                              });
-                              /*
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListTile(
-                                    tileColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    leading: const Icon(Icons.filter_list),
-                                    title: const Text(
-                                      "Filter Options",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Position & Option Type"),
-                                  ),
-                                  openClosedFilterWidget,
-                                  optionTypeFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  optionSymbolFilterWidget
-                                ],
-                              );
+                        "${formatCompactNumber.format(filteredOptionAggregatePositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts"), // , ${formatCurrency.format(filteredOptionEquity)} market value // of ${formatCompactNumber.format(optionPositions.length)} positions
+                    trailing: Wrap(spacing: 8, children: [
+                      if (icon != null) ...[
+                        icon,
+                      ],
+                      if (trailingText != null) ...[
+                        Text(
+                          trailingText,
+                          style: const TextStyle(fontSize: 18.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ]
+                    ]),
+                    /*
+                          IconButton(
+                              icon: const Icon(Icons.more_vert),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  //shape: RoundedRectangleBorder(
+                                  //  borderRadius: BorderRadius.circular(10.0),
+                                  //),
+                                  //constraints: const BoxConstraints(maxHeight: 600),
+                                  //isScrollControlled: true,
+                                  //isDismissible: true,
+                                  //backgroundColor: Colors.transparent,
+                                  //useRootNavigator: true,
+                                  builder: (BuildContext context) {
+                                    return StatefulBuilder(builder:
+                                        (BuildContext context,
+                                            StateSetter bottomState) {
+                                      return Scaffold(
+                                          appBar: AppBar(
+                                              leading: const CloseButton(),
+                                              title: const Text(
+                                                  'Options Settings')),
+                                          body:
+                                              ListView(
+                                            children: [
+                                              const Divider(
+                                                height: 10,
+                                              ),
+                                              const ListTile(
+                                                leading:
+                                                    Icon(Icons.view_module),
+                                                title: Text("Options View"),
+                                              ),
+                                              RadioListTile<bool>(
+                                                  //leading: const Icon(Icons.account_circle),
+                                                  title: const Text("Grouped"),
+                                                  value: robinhoodUser!
+                                                          .optionsView ==
+                                                      View.grouped,
+                                                  groupValue:
+                                                      true, //"refresh-setting"
+                                                  onChanged: (val) {
+                                                    setState(() {
+                                                      robinhoodUser!
+                                                              .optionsView =
+                                                          View.grouped;
+                                                    });
+                                                    robinhoodUser!.save();
+                                                    Navigator.pop(
+                                                        context, 'dialog');
+                                                  }),
+                                              RadioListTile<bool>(
+                                                //leading: const Icon(Icons.account_circle),
+                                                title: const Text("List"),
+                                                value: robinhoodUser!
+                                                        .optionsView ==
+                                                    View.list,
+                                                groupValue:
+                                                    true, //"refresh-setting",
+                                                onChanged: (val) {
+                                                  setState(() {
+                                                    robinhoodUser!.optionsView =
+                                                        View.list;
+                                                  });
+                                                  robinhoodUser!.save();
+                                                  Navigator.pop(
+                                                      context, 'dialog');
+                                                },
+                                              ),
+                                              const Divider(
+                                                height: 10,
+                                              ),
+                                              const ListTile(
+                                                leading:
+                                                    Icon(Icons.filter_list),
+                                                title: Text("Options Filters"),
+                                              ),
+                                              const ListTile(
+                                                //leading: Icon(Icons.filter_list),
+                                                title: Text("Position Type"),
+                                              ),
+                                              positionTypeFilterWidget(
+                                                  bottomState),
+                                              const ListTile(
+                                                //leading: Icon(Icons.filter_list),
+                                                title: Text("Option Type"),
+                                              ),
+                                              optionTypeFilterWidget(
+                                                  bottomState),
+                                              const ListTile(
+                                                //leading: Icon(Icons.filter_list),
+                                                title: Text("Symbols"),
+                                              ),
+                                              optionSymbolFilterWidget(
+                                                  bottomState)
+                                            ],
+                                          ));
+                                    });
+                                  },
+                                );
+                              })
                               */
-                            },
-                          );
-                        }),
                   ))),
           sliver: robinhoodUser!.optionsView == View.list
               ? SliverList(
@@ -1207,34 +1141,6 @@ class _HomePageState extends State<HomePage>
                   }, childCount: groupedOptionAggregatePositions.length),
                 ),
         ));
-        /*
-        slivers.add(
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: PersistentHeader(
-                "Options ${formatCurrency.format(optionEquity)}"),
-          ),
-        );
-        // Open/Closed Filters
-        slivers.add(SliverToBoxAdapter(child: openClosedFilterWidget));
-        // Option/Position Type Filters
-        slivers.add(SliverToBoxAdapter(child: optionTypeFilterWidget));
-        // Symbol Filters
-        slivers.add(SliverToBoxAdapter(child: symbolFilterWidget));
-        // Option Positions
-        slivers.add(SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              if (optionPositions.length > index) {
-                return _buildOptionPositionRow(
-                    optionPositions, index, ru);
-              }
-              return null;
-            },
-          ),
-        ));
-        */
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
           height: 25.0,
@@ -1259,6 +1165,14 @@ class _HomePageState extends State<HomePage>
                     stockSymbolFilters.contains(element.instrumentObj!.symbol)))
             .toList();
 
+        double? value = getPositionAggregateDisplayValue(filteredPositions);
+        String? trailingText;
+        Icon? icon;
+        if (value != null) {
+          trailingText = getDisplayText(value);
+          icon = getDisplayIcon(value);
+        }
+
         slivers.add(SliverStickyHeader(
             header: Material(
                 //elevation: 2,
@@ -1272,9 +1186,22 @@ class _HomePageState extends State<HomePage>
                         style: TextStyle(fontSize: 19.0),
                       ),
                       subtitle: Text(
-                          "${formatCompactNumber.format(filteredPositions.length)} of ${formatCompactNumber.format(positions.length)} positions, ${formatCurrency.format(positionEquity)} market value"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.filter_list),
+                          "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+                      trailing: Wrap(spacing: 8, children: [
+                        if (icon != null) ...[
+                          icon,
+                        ],
+                        if (trailingText != null) ...[
+                          Text(
+                            trailingText,
+                            style: const TextStyle(fontSize: 18.0),
+                            textAlign: TextAlign.right,
+                          )
+                        ]
+                      ]),
+                      /*
+                      IconButton(
+                          icon: const Icon(Icons.more_vert),
                           onPressed: () {
                             showModalBottomSheet<void>(
                                 context: context,
@@ -1319,7 +1246,7 @@ class _HomePageState extends State<HomePage>
                                     );
                                   });
                                 });
-                          }),
+                          }),*/
                     ))),
             sliver: SliverList(
               // delegate: SliverChildListDelegate(widgets),
@@ -1358,6 +1285,14 @@ class _HomePageState extends State<HomePage>
                     cryptoFilters.contains(element.currencyCode)))
             .toList();
 
+        double? value = getCryptoAggregateDisplayValue(filteredHoldings);
+        String? trailingText;
+        Icon? icon;
+        if (value != null) {
+          trailingText = getDisplayText(value);
+          icon = getDisplayIcon(value);
+        }
+
         slivers.add(SliverStickyHeader(
             header: Material(
                 //elevation: 2,
@@ -1371,9 +1306,22 @@ class _HomePageState extends State<HomePage>
                         style: TextStyle(fontSize: 19.0),
                       ),
                       subtitle: Text(
-                          "${formatCompactNumber.format(filteredHoldings.length)} of ${formatCompactNumber.format(nummusHoldings.length)} cryptos - value: ${formatCurrency.format(nummusEquity)}"),
-                      trailing: IconButton(
-                          icon: const Icon(Icons.filter_list),
+                          "${formatCompactNumber.format(filteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
+                      trailing: Wrap(spacing: 8, children: [
+                        if (icon != null) ...[
+                          icon,
+                        ],
+                        if (trailingText != null) ...[
+                          Text(
+                            trailingText,
+                            style: const TextStyle(fontSize: 18.0),
+                            textAlign: TextAlign.right,
+                          )
+                        ]
+                      ]),
+                      /*
+                      IconButton(
+                          icon: const Icon(Icons.more_vert),
                           onPressed: () {
                             showModalBottomSheet<void>(
                                 context: context,
@@ -1417,7 +1365,7 @@ class _HomePageState extends State<HomePage>
                                     );
                                   });
                                 });
-                          }),
+                          }),*/
                     ))),
             sliver: SliverList(
               // delegate: SliverChildListDelegate(widgets),
@@ -1902,144 +1850,6 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  Widget openClosedFilterWidget(StateSetter bottomState) {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.new_releases_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Open'),
-                  selected: hasQuantityFilters[0],
-                  onSelected: (bool value) {
-                    bottomState(() {
-                      if (value) {
-                        hasQuantityFilters[0] = true;
-                      } else {
-                        hasQuantityFilters[0] = false;
-                      }
-                    });
-                    setState(() {});
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: Container(),
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Closed'),
-                  selected: hasQuantityFilters[1],
-                  onSelected: (bool value) {
-                    bottomState(() {
-                      if (value) {
-                        hasQuantityFilters[1] = true;
-                      } else {
-                        hasQuantityFilters[1] = false;
-                      }
-                      optionPositionStream = null;
-                    });
-                    setState(() {});
-                  },
-                ),
-              ),
-              /*
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Long'),
-                  selected: positionFilters.contains("long"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        positionFilters.add("long");
-                      } else {
-                        positionFilters.removeWhere((String name) {
-                          return name == "long";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Short'),
-                  selected: positionFilters.contains("short"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        positionFilters.add("short");
-                      } else {
-                        positionFilters.removeWhere((String name) {
-                          return name == "short";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Call'),
-                  selected: optionFilters.contains("call"),
-                  //selected: optionFilters[0],
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        optionFilters.add("call");
-                      } else {
-                        optionFilters.removeWhere((String name) {
-                          return name == "call";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Put'),
-                  selected: optionFilters.contains("put"),
-                  //selected: optionFilters[1],
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        optionFilters.add("put");
-                      } else {
-                        optionFilters.removeWhere((String name) {
-                          return name == "put";
-                        });
-                      }
-                    });
-                  },
-                ),
-              )
-              */
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
-
   Widget optionTypeFilterWidget(StateSetter bottomState) {
     return SizedBox(
         height: 56,
@@ -2182,6 +1992,7 @@ class _HomePageState extends State<HomePage>
                       } else {
                         hasQuantityFilters[1] = false;
                       }
+                      optionPositionStream = null;
                       positionStream = null;
                     });
                     setState(() {});
@@ -2238,29 +2049,18 @@ class _HomePageState extends State<HomePage>
       List<Portfolio>? portfolios,
       User? user,
       List<Account>? accounts,
+      double portfolioValue,
+      double stockAndOptionsEquityPercent,
       double positionEquity,
+      double positionEquityPercent,
       double nummusEquity,
+      double cryptoPercent,
       double optionEquity,
+      double optionEquityPercent,
+      double portfolioCash,
+      double cashPercent,
       double changeToday,
       double changePercentToday) {
-    var portfolioValue = 0.0;
-    var stockAndOptionsEquityPercent = 0.0;
-    var optionEquityPercent = 0.0;
-    var positionEquityPercent = 0.0;
-    var portfolioCash = 0.0;
-    var cashPercent = 0.0;
-    var cryptoPercent = 0.0;
-    if (portfolios != null) {
-      portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
-      stockAndOptionsEquityPercent =
-          portfolios[0].marketValue! / portfolioValue;
-      optionEquityPercent = optionEquity / portfolioValue;
-      positionEquityPercent = positionEquity / portfolioValue;
-      portfolioCash = accounts![0].portfolioCash ?? 0;
-      cashPercent = portfolioCash / portfolioValue;
-      cryptoPercent = nummusEquity / portfolioValue;
-    }
-
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
                     leading: IconButton(
@@ -2395,20 +2195,23 @@ class _HomePageState extends State<HomePage>
               //useRootNavigator: true,
               //constraints: const BoxConstraints(maxHeight: 200),
               builder: (BuildContext context) {
-                return Scaffold(
-                    appBar: AppBar(
-                        leading: CloseButton(),
-                        title: Text('Options Settings')),
-                    body: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        /*
+                return StatefulBuilder(
+                    builder: (BuildContext context, StateSetter bottomState) {
+                  return Scaffold(
+                      appBar: AppBar(
+                          leading: const CloseButton(),
+                          title: const Text('Settings')),
+                      body: ListView(
+                        //Column(
+                        //mainAxisAlignment: MainAxisAlignment.start,
+                        //crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          /*
                     new AppBar(
                       title: new Text("Menu"),
                     ),
                     */
-                        /*
+                          /*
                     Container(
                       height: 10,
                     ),
@@ -2423,119 +2226,292 @@ class _HomePageState extends State<HomePage>
                       height: 10,
                     ),
                     */
-                        if (ru != null && ru.userName != null) ...[
-                          ListTile(
-                              leading: const Icon(Icons.account_circle),
-                              title: const Text("Profile"),
+                          if (ru != null && ru.userName != null) ...[
+                            const ListTile(
+                              leading: Icon(Icons.refresh),
+                              title: Text(
+                                "Refresh",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            RadioListTile<bool>(
+                                //leading: const Icon(Icons.account_circle),
+                                title: const Text("No Refresh"),
+                                value: robinhoodUser!.refreshEnabled == false,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  robinhoodUser!.refreshEnabled = false;
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                              //leading: const Icon(Icons.account_circle),
+                              title: const Text("Automatic Refresh"),
+                              value: robinhoodUser!.refreshEnabled == true,
+                              groupValue: true, //"refresh-setting",
+                              onChanged: (val) {
+                                setState(() {
+                                  portfolioHistoricals = null;
+                                  futurePortfolioHistoricals = null;
+                                });
+                                robinhoodUser!.refreshEnabled = true;
+                                robinhoodUser!.save();
+                                Navigator.pop(context, 'dialog');
+                              },
+                            ),
+                            const Divider(
+                              height: 10,
+                            ),
+                            const ListTile(
+                              leading: Icon(Icons.calculate),
+                              title: Text(
+                                "Display Value",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            RadioListTile<bool>(
+                                title: const Text("Last Price"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.lastPrice,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.lastPrice;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                                title: const Text("Market Value"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.marketValue,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.marketValue;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                                title: const Text("Return Today"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.todayReturn,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.todayReturn;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                                title: const Text("Return % Today"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.todayReturnPercent,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.todayReturnPercent;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                                title: const Text("Total Return"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.totalReturn,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.totalReturn;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                                title: const Text("Total Return %"),
+                                value: robinhoodUser!.displayValue ==
+                                    DisplayValue.totalReturnPercent,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.displayValue =
+                                        DisplayValue.totalReturnPercent;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            const Divider(
+                              height: 10,
+                            ),
+                            const ListTile(
+                              leading: Icon(Icons.view_module),
+                              title: Text(
+                                "Options View",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            RadioListTile<bool>(
+                                //leading: const Icon(Icons.account_circle),
+                                title: const Text("Grouped"),
+                                value:
+                                    robinhoodUser!.optionsView == View.grouped,
+                                groupValue: true, //"refresh-setting"
+                                onChanged: (val) {
+                                  setState(() {
+                                    robinhoodUser!.optionsView = View.grouped;
+                                  });
+                                  robinhoodUser!.save();
+                                  Navigator.pop(context, 'dialog');
+                                }),
+                            RadioListTile<bool>(
+                              //leading: const Icon(Icons.account_circle),
+                              title: const Text("List"),
+                              value: robinhoodUser!.optionsView == View.list,
+                              groupValue: true, //"refresh-setting",
+                              onChanged: (val) {
+                                setState(() {
+                                  robinhoodUser!.optionsView = View.list;
+                                });
+                                robinhoodUser!.save();
+                                Navigator.pop(context, 'dialog');
+                              },
+                            ),
+                            const Divider(
+                              height: 10,
+                            ),
+                            const ListTile(
+                              leading: Icon(Icons.filter_list),
+                              title: Text(
+                                "Filters",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const ListTile(
+                              //leading: Icon(Icons.filter_list),
+                              title: Text("Position Type"),
+                            ),
+                            positionTypeFilterWidget(bottomState),
+                            const ListTile(
+                              //leading: Icon(Icons.filter_list),
+                              title: Text("Option Type"),
+                            ),
+                            optionTypeFilterWidget(bottomState),
+                            const ListTile(
+                              //leading: Icon(Icons.filter_list),
+                              title: Text("Option Symbols"),
+                            ),
+                            optionSymbolFilterWidget(bottomState),
+                            const ListTile(
+                              //leading: Icon(Icons.filter_list),
+                              title: Text("Stock Symbols"),
+                            ),
+                            stockOrderSymbolFilterWidget(bottomState),
+                            const ListTile(
+                              title: Text("Crypto Symbols"),
+                            ),
+                            cryptoFilterWidget(bottomState),
+                            const Divider(
+                              height: 10,
+                            ),
+                            /*
+                            const ListTile(
+                              leading: Icon(Icons.manage_accounts),
+                              title: Text(
+                                "Account",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            */
+                            ListTile(
+                                leading: const Icon(Icons.account_circle),
+                                title: const Text("Profile"),
+                                onTap: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return AlertDialog(
+                                        title: const Text('Alert'),
+                                        content: const Text(
+                                            'This feature is not implemented.'),
+                                        actions: <Widget>[
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, 'OK'),
+                                            child: const Text('OK'),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  );
+                                }),
+                            ListTile(
+                              leading: const Icon(Icons.logout),
+                              title: const Text("Logout"),
                               onTap: () {
+                                var alert = AlertDialog(
+                                  title: const Text('Logout process'),
+                                  content: SingleChildScrollView(
+                                    child: ListBody(
+                                      children: const <Widget>[
+                                        Text(
+                                            'This action will require you to log in again.'),
+                                        Text(
+                                            'Are you sure you want to log out?'),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: const Text('Cancel'),
+                                      onPressed: () {
+                                        Navigator.pop(context, 'dialog');
+                                      },
+                                    ),
+                                    TextButton(
+                                      child: const Text('OK'),
+                                      onPressed: () {
+                                        Navigator.pop(context, 'dialog');
+                                        _logout();
+                                      },
+                                    ),
+                                  ],
+                                );
                                 showDialog(
                                   context: context,
                                   builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: const Text('Alert'),
-                                      content: const Text(
-                                          'This feature is not implemented.'),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, 'OK'),
-                                          child: const Text('OK'),
-                                        ),
-                                      ],
-                                    );
+                                    return alert;
                                   },
                                 );
-                              }),
-                          const Divider(
+                              },
+                            ),
+                            const Divider(
+                              height: 10,
+                            )
+                          ] else ...[
+                            ListTile(
+                              leading: const Icon(Icons.login),
+                              title: const Text("Login"),
+                              onTap: () {
+                                _openLogin();
+                              },
+                            ),
+                            const Divider(
+                              height: 10,
+                            )
+                          ],
+                          Container(
                             height: 10,
                           ),
-                          RadioListTile<bool>(
-                              //leading: const Icon(Icons.account_circle),
-                              title: const Text("No Refresh"),
-                              value: robinhoodUser!.refreshEnabled == false,
-                              groupValue: true, //"refresh-setting"
-                              onChanged: (val) {
-                                robinhoodUser!.refreshEnabled = false;
-                                robinhoodUser!.save();
-                                Navigator.pop(context, 'dialog');
-                              }),
-                          RadioListTile<bool>(
-                            //leading: const Icon(Icons.account_circle),
-                            title: const Text("Automatic Refresh"),
-                            value: robinhoodUser!.refreshEnabled == true,
-                            groupValue: true, //"refresh-setting",
-                            onChanged: (val) {
-                              setState(() {
-                                portfolioHistoricals = null;
-                                futurePortfolioHistoricals = null;
-                              });
-                              robinhoodUser!.refreshEnabled = true;
-                              robinhoodUser!.save();
-                              Navigator.pop(context, 'dialog');
-                            },
-                          ),
-                          const Divider(
-                            height: 10,
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.logout),
-                            title: const Text("Logout"),
-                            onTap: () {
-                              var alert = AlertDialog(
-                                title: const Text('Logout process'),
-                                content: SingleChildScrollView(
-                                  child: ListBody(
-                                    children: const <Widget>[
-                                      Text(
-                                          'This action will require you to log in again.'),
-                                      Text('Are you sure you want to log out?'),
-                                    ],
-                                  ),
-                                ),
-                                actions: <Widget>[
-                                  TextButton(
-                                    child: const Text('Cancel'),
-                                    onPressed: () {
-                                      Navigator.pop(context, 'dialog');
-                                    },
-                                  ),
-                                  TextButton(
-                                    child: const Text('OK'),
-                                    onPressed: () {
-                                      Navigator.pop(context, 'dialog');
-                                      _logout();
-                                    },
-                                  ),
-                                ],
-                              );
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return alert;
-                                },
-                              );
-                            },
-                          ),
-                          const Divider(
-                            height: 10,
-                          )
-                        ] else ...[
-                          ListTile(
-                            leading: const Icon(Icons.login),
-                            title: const Text("Login"),
-                            onTap: () {
-                              _openLogin();
-                            },
-                          ),
-                          const Divider(
-                            height: 10,
-                          )
                         ],
-                        Container(
-                          height: 10,
-                        ),
-                      ],
-                    ));
+                      ));
+                });
               },
             );
           },
@@ -2897,8 +2873,8 @@ class _HomePageState extends State<HomePage>
     setState(() {
       futureAccounts = null;
       futurePortfolios = null;
-      //futureOptionPositions = null;
 
+      //futureOptionPositions = null;
       optionPositionStream = null;
       optionOrderStream = null;
       positionStream = null;
@@ -2926,6 +2902,11 @@ class _HomePageState extends State<HomePage>
   Widget _buildPositionRow(
       List<Position> positions, int index, RobinhoodUser ru) {
     var instrument = positions[index].instrumentObj;
+
+    double value = getPositionDisplayValue(positions[index]);
+    String trailingText = getDisplayText(value);
+    Icon? icon = getDisplayIcon(value);
+
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
@@ -2963,33 +2944,16 @@ class _HomePageState extends State<HomePage>
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: Wrap(
-          spacing: 8,
-          children: [
-            Icon(
-                positions[index].gainLossPerShare > 0
-                    ? Icons.trending_up
-                    : (positions[index].gainLossPerShare < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (positions[index].gainLossPerShare > 0
-                    ? Colors.green
-                    : (positions[index].gainLossPerShare < 0
-                        ? Colors.red
-                        : Colors.grey))),
-            Text(
-              formatCurrency.format(positions[index].marketValue),
-              style: const TextStyle(fontSize: 16.0),
-              textAlign: TextAlign.right,
-            ),
-            /*
-            Text(
-              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-              style: const TextStyle(fontSize: 16.0),
-              textAlign: TextAlign.right,
-            ),*/
+        trailing: Wrap(spacing: 8, children: [
+          if (icon != null) ...[
+            icon,
           ],
-        ),
+          Text(
+            trailingText,
+            style: const TextStyle(fontSize: 18.0),
+            textAlign: TextAlign.right,
+          )
+        ]),
         // isThreeLine: true,
         onTap: () {
           /* For navigation within this tab, uncomment
@@ -3172,9 +3136,13 @@ class _HomePageState extends State<HomePage>
     */
     List<Widget> cards = [];
 
-    double value = getAggregateDisplayValue(ops);
-    String trailingText = getDisplayText(value);
-    Icon? icon = getDisplayIcon(value);
+    double? value = getAggregateDisplayValue(ops);
+    String? trailingText;
+    Icon? icon;
+    if (value != null) {
+      trailingText = getDisplayText(value);
+      icon = getDisplayIcon(value);
+    }
     //robinhoodUser!.displayValue == DisplayValue.marketValue
     cards.add(Column(children: [
       ListTile(
@@ -3203,11 +3171,13 @@ class _HomePageState extends State<HomePage>
           if (icon != null) ...[
             icon,
           ],
-          Text(
-            trailingText,
-            style: const TextStyle(fontSize: 18.0),
-            textAlign: TextAlign.right,
-          )
+          if (trailingText != null) ...[
+            Text(
+              trailingText,
+              style: const TextStyle(fontSize: 18.0),
+              textAlign: TextAlign.right,
+            )
+          ]
         ]),
         onTap: () async {
           /*
@@ -3319,14 +3289,17 @@ class _HomePageState extends State<HomePage>
     ));
   }
 
-  double getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
+  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
     double value = 0;
     switch (robinhoodUser!.displayValue) {
       case DisplayValue.lastPrice:
+        return null;
+      /*
         value = ops
             .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
             .reduce((a, b) => a + b);
         break;
+            */
       case DisplayValue.marketValue:
         value = ops
             .map((OptionAggregatePosition e) =>
@@ -3343,10 +3316,10 @@ class _HomePageState extends State<HomePage>
       case DisplayValue.todayReturnPercent:
         var numerator = ops
             .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
+                e.changePercentToday * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
-            .map((OptionAggregatePosition e) => e.marketValue)
+            .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
@@ -3363,11 +3336,10 @@ class _HomePageState extends State<HomePage>
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.gainLossPercent * e.marketValue)
+            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
-            .map((OptionAggregatePosition e) => e.marketValue)
+            .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
@@ -3440,7 +3412,177 @@ class _HomePageState extends State<HomePage>
     return value;
   }
 
-  Widget _buildCryptoRow(List<Holding> holdings, int index, RobinhoodUser ru) {
+  double? getPositionAggregateDisplayValue(List<Position> ops) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        return null;
+      /*
+        value = ops
+            .map((Position e) =>
+                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                e.instrumentObj!.quoteObj!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+        */
+      case DisplayValue.marketValue:
+        value = ops.map((Position e) => e.marketValue).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value =
+            ops.map((Position e) => e.gainLossToday).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((Position e) => e.gainLossPercentToday * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops.map((Position e) => e.gainLoss).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((Position e) => e.gainLossPercent * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        return null;
+      /*
+        value = ops
+            .map((Position e) =>
+                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                e.instrumentObj!.quoteObj!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+        */
+      case DisplayValue.marketValue:
+        value =
+            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value = ops
+            .map((ForexHolding e) => e.gainLossToday)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((ForexHolding e) => e.gainLossPercentToday * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops.map((ForexHolding e) => e.gainLoss).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((ForexHolding e) => e.gainLossPercent * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double getCryptoDisplayValue(ForexHolding op) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.quoteObj!.markPrice!;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.gainLossToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.gainLossPercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double getPositionDisplayValue(Position op) {
+    double value = 0;
+    switch (robinhoodUser!.displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+            op.instrumentObj!.quoteObj!.lastTradePrice!;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.gainLossToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.gainLossPercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
+  }
+
+  Widget _buildCryptoRow(
+      List<ForexHolding> holdings, int index, RobinhoodUser ru) {
+    double value = getCryptoDisplayValue(holdings[index]);
+    String trailingText = getDisplayText(value);
+    Icon? icon = getDisplayIcon(value);
+
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
@@ -3473,54 +3615,24 @@ class _HomePageState extends State<HomePage>
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: Wrap(
-          spacing: 8,
-          children: [
-            Icon(
-              holdings[index].gainLossPerShare > 0
-                  ? Icons.trending_up
-                  : (holdings[index].gainLossPerShare < 0
-                      ? Icons.trending_down
-                      : Icons.trending_flat),
-              color: (holdings[index].gainLossPerShare > 0
-                  ? Colors.green
-                  : (holdings[index].gainLossPerShare < 0
-                      ? Colors.red
-                      : Colors.grey)),
-              //size: 36.0
-            ),
-            /*Icon(
-                holdings[index].gainLossPerShare > 0
-                    ? Icons.trending_up
-                    : (holdings[index].gainLossPerShare < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (holdings[index].gainLossPerShare > 0
-                    ? Colors.green
-                    : (holdings[index].gainLossPerShare < 0
-                        ? Colors.red
-                        : Colors.grey))),
-                        */
-            Text(
-              formatCurrency
-                  .format(holdings[index].value! * holdings[index].quantity!),
-              style: const TextStyle(fontSize: 16.0),
-              textAlign: TextAlign.right,
-            ),
-            /*
-            Text(
-              "${formatCurrency.format(marketValue)}\n${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-              style: const TextStyle(fontSize: 16.0),
-              textAlign: TextAlign.right,
-            ),*/
+        trailing: Wrap(spacing: 8, children: [
+          if (icon != null) ...[
+            icon,
           ],
-        ),
+          if (trailingText != null) ...[
+            Text(
+              trailingText,
+              style: const TextStyle(fontSize: 18.0),
+              textAlign: TextAlign.right,
+            )
+          ]
+        ]),
         // isThreeLine: true,
         onTap: () {
           Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => CryptoInstrumentWidget(
+                  builder: (context) => ForexInstrumentWidget(
                       ru, accounts![0], holdings[index])));
           /*
           showDialog<String>(

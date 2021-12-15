@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -8,7 +9,7 @@ import 'package:collection/collection.dart';
 
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
-import 'package:robinhood_options_mobile/model/holding.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
@@ -251,6 +252,29 @@ class RobinhoodService {
     }
     // Persist in static value
     stockPositions = positions;
+  }
+
+  static Future<List<Position>> refreshPositionQuote(
+      RobinhoodUser user, List<Position> positions) async {
+    var ops = positions;
+    var len = ops.length;
+    var size = 25; //20; //15; //17;
+    List<List<Position>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(ops.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var symbols = chunk.map((e) => e.instrumentObj!.symbol).toList();
+
+      var quoteObjs = await getQuoteByIds(user, symbols);
+      for (var quoteObj in quoteObjs) {
+        var position = positions.firstWhere(
+            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+        position.instrumentObj!.quoteObj = quoteObj;
+      }
+    }
+    return ops;
   }
 
   static Stream<List<PositionOrder>> streamPositionOrders(
@@ -989,6 +1013,39 @@ class RobinhoodService {
     return list;
   }
 
+  static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
+      RobinhoodUser user, List<OptionAggregatePosition> optionPositions) async {
+    var ops = optionPositions;
+    var len = ops.length;
+    var size = 25; //20; //15; //17;
+    List<List<OptionAggregatePosition>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(ops.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var optionIds = chunk.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      })
+          //.toSet()
+          .toList();
+
+      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+
+      for (var optionMarketDatum in optionMarketData) {
+        var optionPosition = ops.singleWhere((element) {
+          var splits = element.legs.first.option.split("/");
+          return splits[splits.length - 2] == optionMarketDatum.instrumentId;
+        });
+
+        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+        optionPosition.marketData = optionMarketDatum;
+      }
+    }
+    return ops;
+  }
+
   static Stream<List<OptionOrder>> streamOptionOrders(
       RobinhoodUser user) async* {
     List<OptionOrder> list = [];
@@ -1022,7 +1079,7 @@ class RobinhoodService {
       list.add(op);
     }
 
-    optionOrdersMap[list.first.chainSymbol] = list;
+    optionOrdersMap[chainId] = list;
 
     return list;
   }
@@ -1117,48 +1174,23 @@ class RobinhoodService {
     */
   }
 
-  static Future<List<Holding>> getNummusHoldings(RobinhoodUser user,
+  static Future<List<ForexHolding>> getNummusHoldings(RobinhoodUser user,
       {bool nonzero = true}) async {
-    /*
-    var holdings = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodNummusEndpoint}/holdings/");
-
-    List<Holding> list = [];
-    for (var i = 0; i < holdings.length; i++) {
-      var result = holdings[i];
-      var op = Holding.fromJson(result);
-      list.add(op);
-    }
-
-    var pairs = await RobinhoodService.getForexPairs(user);
-    List<dynamic> pairResults = pairs['results'];
-    var pairHoldings = pairResults.where((element) => list.any(
-        (listitem) => element['asset_currency']['id'] == listitem.currencyId));
-    var pairHoldingIds = pairHoldings.map((e) => e['id'].toString()).toList();
-    var quotes = await getForexQuoteByIds(user, pairHoldingIds);
-    for (var quote in quotes['results']) {
-      var holding =
-          list.firstWhere((element) => element.currencyId == quote['id']);
-      holding.quote = quote;
-      holding.value = double.tryParse(holding.quote['mark_price']);
-    }
-    */
-
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodNummusEndpoint}/holdings/?nonzero=$nonzero");
     var quotes = await RobinhoodService.getForexPairs(user);
-    List<Holding> list = [];
+    List<ForexHolding> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = Holding.fromJson(result);
+      var op = ForexHolding.fromJson(result);
       for (var j = 0; j < quotes.length; j++) {
         var quote = quotes[j];
         var assetCurrencyId = quote['asset_currency']['id'];
         if (assetCurrencyId == op.currencyId) {
           //op.quote = quotes['results'][j];
 
-          op.quoteObj = await getForexQuote(user, quote['id']);
-          op.value = double.tryParse(op.quoteObj['mark_price']);
+          var quoteObj = await getForexQuote(user, quote['id']);
+          op.quoteObj = quoteObj;
           break;
         }
       }
@@ -1168,16 +1200,17 @@ class RobinhoodService {
     return list;
   }
 
-  static Future<dynamic> getForexQuote(RobinhoodUser user, String id) async {
+  static Future<ForexQuote> getForexQuote(RobinhoodUser user, String id) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
     String url = "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/";
     var resultJson = await getJson(user, url);
-    return resultJson;
+    var quoteObj = ForexQuote.fromJson(resultJson);
+    return quoteObj;
   }
 
-  static Future<List<dynamic>> getForexQuoteByIds(
+  static Future<List<ForexQuote>> getForexQuoteByIds(
       RobinhoodUser user, List<String> ids) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
@@ -1186,10 +1219,11 @@ class RobinhoodService {
         "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
 
-    List<dynamic> list = [];
+    List<ForexQuote> list = [];
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
-      list.add(result);
+      var quoteObj = ForexQuote.fromJson(result);
+      list.add(quoteObj);
     }
     return list;
   }
@@ -1323,7 +1357,7 @@ WATCHLIST
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
           var watchlistItem =
-              WatchlistItem(forexQuote['id'], DateTime.now(), entry.key, "");
+              WatchlistItem(forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;

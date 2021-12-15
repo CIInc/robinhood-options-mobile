@@ -31,8 +31,9 @@
 }
 */
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
 
-class Holding {
+class ForexHolding {
   final String id;
   final String currencyId;
   final String currencyCode;
@@ -41,10 +42,10 @@ class Holding {
   final double? directCostBasis;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  double? value;
-  dynamic quoteObj;
+  //double? value;
+  ForexQuote? quoteObj;
 
-  Holding(
+  ForexHolding(
     this.id,
     this.currencyId,
     this.currencyCode,
@@ -55,7 +56,7 @@ class Holding {
     this.updatedAt,
   );
 
-  Holding.fromJson(dynamic json)
+  ForexHolding.fromJson(dynamic json)
       : id = json['id'],
         currencyId = json['currency']['id'],
         currencyCode = json['currency']['code'],
@@ -71,7 +72,7 @@ class Holding {
             DateTime.tryParse(json['updated_at']);
 
   double get marketValue {
-    return value! * quantity!;
+    return quoteObj!.markPrice! * quantity!;
   }
 
   double get averageCost {
@@ -92,6 +93,14 @@ class Holding {
 
   double get gainLossPercent {
     return gainLoss / totalCost;
+  }
+
+  double get gainLossToday {
+    return quoteObj!.changeToday * quantity!;
+  }
+
+  double get gainLossPercentToday {
+    return quoteObj!.changePercentToday;
   }
   /*
   double get gainLossToday {
