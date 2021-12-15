@@ -35,6 +35,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   var userCtl = TextEditingController();
   var passCtl = TextEditingController();
   var smsCtl = TextEditingController();
+  var mfaCtl = TextEditingController();
 
   final clipboardContentStream = StreamController<String>.broadcast();
   Timer? clipboardTriggerTime;
@@ -43,6 +44,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? deviceToken;
   String? challengeRequestId;
   String? challengeResponseId;
+  String challengeType = 'sms';
 
   // Define the focus node. To manage the lifecycle, create the FocusNode in
   // the initState method, and clean it up in the dispose method.
@@ -61,6 +63,9 @@ class _LoginWidgetState extends State<LoginWidget> {
       } else if (clipboardInitialValue != value) {
         if (smsCtl.text == '') {
           smsCtl.text = value;
+          _stopMonitoringClipboard();
+        } else if (mfaCtl.text == '') {
+          mfaCtl.text = value;
           _stopMonitoringClipboard();
         }
       }
@@ -84,8 +89,9 @@ class _LoginWidgetState extends State<LoginWidget> {
           identifier: Constants.identifier,
           basicAuth: false,
           deviceToken: deviceToken,
-          challengeType: 'sms',
-          challengeId: challengeResponseId);
+          mfaCode: mfaCtl.text.isNotEmpty ? mfaCtl.text : null,
+          challengeType: challengeType,
+          challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
     });
   }
 
@@ -118,6 +124,15 @@ class _LoginWidgetState extends State<LoginWidget> {
                         return _buildForm(snapshot1.connectionState ==
                             ConnectionState.waiting);
                       });
+                } else if (authenticationResponse['mfa_required'] != null &&
+                    authenticationResponse['mfa_required'] == true) {
+                  challengeType = authenticationResponse['mfa_type'];
+
+                  /*
+                  if (authenticationResponse['mfa_type'] != null &&
+                      authenticationResponse['mfa_type'] == 'app') {
+                  }
+                  */
                 } else if (authenticationResponse['access_token'] != null) {
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
@@ -221,6 +236,19 @@ class _LoginWidgetState extends State<LoginWidget> {
                     isDense: true,
                     contentPadding: EdgeInsets.all(10),
                     hintText: 'Robinhood SMS code received'),
+                style: const TextStyle(fontSize: 22.0, height: 1.5)),
+          ),
+        ] else if (challengeType == 'app') ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+            child: TextField(
+                controller: mfaCtl,
+                focusNode: myFocusNode,
+                autofocus: true,
+                decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.all(10),
+                    hintText: 'MFA Authenticator App code'),
                 style: const TextStyle(fontSize: 22.0, height: 1.5)),
           ),
         ],

@@ -147,7 +147,7 @@ Future<http.Response> login(
     String? deviceToken,
     String? challengeType,
     String? challengeId,
-    // String mfaCode,
+    String? mfaCode,
     String? expiresIn,
     //Iterable<String>? scopes,
     bool basicAuth = true,
@@ -192,16 +192,16 @@ Future<http.Response> login(
   if (challengeId != null) {
     headers['X-ROBINHOOD-CHALLENGE-RESPONSE-ID'] = challengeId;
   }
-  /*
   if (mfaCode != null) {
     body['mfa_code'] = mfaCode;
   }
-  */
 
   httpClient ??= http.Client();
 
   var response = await httpClient.post(authorizationEndpoint,
       headers: headers, body: body);
+
+  //{"mfa_required":true,"mfa_type":"app"}
 
   return response;
 }
