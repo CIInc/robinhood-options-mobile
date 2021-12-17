@@ -43,6 +43,8 @@ class DrawerItem {
 */
 class HomePage extends StatefulWidget {
   final RobinhoodUser user;
+  final UserInfo userInfo;
+  //final Account account;
   /*
   final drawerItems = [
     new DrawerItem("Home", Icons.home),
@@ -52,7 +54,7 @@ class HomePage extends StatefulWidget {
   ];
   */
 
-  const HomePage(this.user,
+  const HomePage(this.user, this.userInfo, // this.account,
       {Key? key,
       this.title,
       this.navigatorKey,
@@ -83,11 +85,13 @@ class _HomePageState extends State<HomePage>
     with AutomaticKeepAliveClientMixin<HomePage> {
   Future<List<Account>>? futureAccounts;
   List<Account>? accounts;
+  Account? account;
   Future<List<ForexHolding>>? futureNummusHoldings;
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
   PortfolioHistoricals? portfolioHistoricals;
+
   //charts.TimeSeriesChart? chart;
   List<charts.Series<dynamic, DateTime>>? seriesList;
   TimeSeriesChart? chart;
@@ -116,24 +120,7 @@ class _HomePageState extends State<HomePage>
   List<String> cryptoFilters = <String>[];
   List<bool> hasQuantityFilters = [true, false];
 
-  /*
-  Stream<List<Watchlist>>? watchlistStream;
-
-  SortType? _sortType = SortType.alphabetical;
-  SortDirection? _sortDirection = SortDirection.desc;
-  */
-
-  Future<User>? futureUser;
-
   Timer? refreshTriggerTime;
-
-/*
-  late ScrollController _controller;
-  bool silverCollapsed = false;
-*/
-
-  // int _selectedDrawerIndex = 0;
-  // bool _showDrawerContents = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -142,27 +129,6 @@ class _HomePageState extends State<HomePage>
   void initState() {
     super.initState();
 
-    /*
-    _controller = ScrollController();
-    _controller.addListener(() {
-      if (_controller.offset > 220 && !_controller.position.outOfRange) {
-        if (!silverCollapsed) {
-          // do what ever you want when silver is collapsing !
-
-          silverCollapsed = true;
-          setState(() {});
-        }
-      }
-      if (_controller.offset <= 220 && !_controller.position.outOfRange) {
-        if (silverCollapsed) {
-          // do what ever you want when silver is expanding !
-
-          silverCollapsed = false;
-          setState(() {});
-        }
-      }
-    });
-    */
     _startRefreshTimer();
   }
 
@@ -197,7 +163,6 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildScaffold() {
-    futureUser ??= RobinhoodService.getUser(widget.user);
     futureAccounts ??= RobinhoodService.getAccounts(widget.user);
     futurePortfolios ??= RobinhoodService.getPortfolios(widget.user);
     //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
@@ -206,7 +171,6 @@ class _HomePageState extends State<HomePage>
 
     return FutureBuilder(
       future: Future.wait([
-        futureUser as Future,
         futureAccounts as Future,
         futurePortfolios as Future,
         futureNummusHoldings as Future,
@@ -214,23 +178,27 @@ class _HomePageState extends State<HomePage>
       builder: (context1, dataSnapshot) {
         if (dataSnapshot.hasData) {
           List<dynamic> data = dataSnapshot.data as List<dynamic>;
-          var user = data.isNotEmpty ? data[0] as User : null;
-          var _accounts = data.length > 1 ? data[1] as List<Account> : null;
+          accounts = data.isNotEmpty ? data[0] as List<Account> : null;
+          account = accounts!.first;
 
+          /*
+          var _accounts = data.isNotEmpty ? data[0] as List<Account> : null;
           // Special logic to refresh the parent widget when a new account is downloaded.
           if (accounts == null || accounts!.length != _accounts!.length) {
             accounts = _accounts;
             WidgetsBinding.instance!.addPostFrameCallback(
                 (_) => widget.onAccountsChanged(accounts!));
           }
-          var portfolios = data.length > 2 ? data[2] as List<Portfolio> : null;
+          */
+
+          var portfolios = data.length > 1 ? data[1] as List<Portfolio> : null;
           var nummusHoldings =
-              data.length > 3 ? data[3] as List<ForexHolding> : null;
+              data.length > 2 ? data[2] as List<ForexHolding> : null;
 
           futurePortfolioHistoricals ??=
               RobinhoodService.getPortfolioHistoricals(
                   widget.user,
-                  accounts![0].accountNumber,
+                  account!.accountNumber,
                   chartBoundsFilter,
                   chartDateSpanFilter);
 
@@ -275,8 +243,8 @@ class _HomePageState extends State<HomePage>
 
                                   return _buildPage(
                                       portfolios: portfolios,
-                                      user: user,
-                                      accounts: accounts,
+                                      userInfo: widget.userInfo,
+                                      account: account,
                                       nummusHoldings: nummusHoldings,
                                       portfolioHistoricals:
                                           portfolioHistoricals,
@@ -291,8 +259,8 @@ class _HomePageState extends State<HomePage>
                                   // No Options found.
                                   return _buildPage(
                                     portfolios: portfolios,
-                                    user: user,
-                                    accounts: accounts,
+                                    userInfo: widget.userInfo,
+                                    account: account,
                                     nummusHoldings: nummusHoldings,
                                     portfolioHistoricals: portfolioHistoricals,
                                     positions: positions,
@@ -303,8 +271,8 @@ class _HomePageState extends State<HomePage>
                           // No Positions found.
                           return _buildPage(
                             portfolios: portfolios,
-                            user: user,
-                            accounts: accounts,
+                            userInfo: widget.userInfo,
+                            account: account,
                             nummusHoldings: nummusHoldings,
                             portfolioHistoricals: portfolioHistoricals,
                           );
@@ -314,8 +282,8 @@ class _HomePageState extends State<HomePage>
                   // No PortfolioHistoricals found
                   return _buildPage(
                       portfolios: portfolios,
-                      user: user,
-                      accounts: accounts,
+                      userInfo: widget.userInfo,
+                      account: account,
                       nummusHoldings: nummusHoldings);
                 }
               });
@@ -414,8 +382,8 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildPage(
       {List<Portfolio>? portfolios,
-      User? user,
-      List<Account>? accounts,
+      UserInfo? userInfo,
+      Account? account,
       List<ForexHolding>? nummusHoldings,
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
@@ -477,7 +445,7 @@ class _HomePageState extends State<HomePage>
           portfolios[0].marketValue! / portfolioValue;
       optionEquityPercent = optionEquity / portfolioValue;
       positionEquityPercent = positionEquity / portfolioValue;
-      portfolioCash = accounts![0].portfolioCash ?? 0;
+      portfolioCash = account!.portfolioCash ?? 0;
       cashPercent = portfolioCash / portfolioValue;
       cryptoPercent = nummusEquity / portfolioValue;
 
@@ -548,8 +516,8 @@ class _HomePageState extends State<HomePage>
 
     SliverAppBar sliverAppBar = buildSliverAppBar(
         portfolios,
-        user,
-        accounts,
+        widget.userInfo,
+        account,
         portfolioValue,
         stockAndOptionsEquityPercent,
         positionEquity,
@@ -892,7 +860,7 @@ class _HomePageState extends State<HomePage>
           height: 25.0,
         )));
         slivers.add(OptionPositionsRowWidget(
-            widget.user, accounts!.first, filteredOptionAggregatePositions));
+            widget.user, account!, filteredOptionAggregatePositions));
       }
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -1136,7 +1104,7 @@ class _HomePageState extends State<HomePage>
       )));
     }
 
-    if (accounts != null) {
+    if (account != null) {
       slivers.add(SliverStickyHeader(
           header: Material(
               //elevation: 2,
@@ -1155,7 +1123,7 @@ class _HomePageState extends State<HomePage>
               child: Card(
                   child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: accountWidgets(accounts).toList())))));
+                      children: accountWidgets([account]).toList())))));
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1183,7 +1151,7 @@ class _HomePageState extends State<HomePage>
         height: 25.0,
       )));
     }
-    if (user != null) {
+    if (userInfo != null) {
       slivers.add(SliverStickyHeader(
           header: Material(
               //elevation: 2,
@@ -1198,7 +1166,7 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           )),
-          sliver: userWidget(user)));
+          sliver: userWidget(userInfo)));
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1452,7 +1420,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget userWidget(User user) {
+  Widget userWidget(UserInfo user) {
     return SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -1799,8 +1767,8 @@ class _HomePageState extends State<HomePage>
 
   SliverAppBar buildSliverAppBar(
       List<Portfolio>? portfolios,
-      User? user,
-      List<Account>? accounts,
+      UserInfo? userInfo,
+      Account? account,
       double portfolioValue,
       double stockAndOptionsEquityPercent,
       double positionEquity,
@@ -1845,8 +1813,9 @@ class _HomePageState extends State<HomePage>
           spacing: 20,
           //runSpacing: 5,
           children: [
-            if (user != null) ...[
-              Text(user.profileName, style: const TextStyle(fontSize: 22.0)),
+            if (userInfo != null) ...[
+              Text(userInfo.profileName,
+                  style: const TextStyle(fontSize: 22.0)),
               Wrap(spacing: 10, children: [
                 Text(formatCurrency.format(portfolioValue),
                     style:
@@ -1923,7 +1892,7 @@ class _HomePageState extends State<HomePage>
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
                 child: _buildExpandedSliverAppBarTitle(
-                    user,
+                    userInfo,
                     portfolioValue,
                     stockAndOptionsEquityPercent,
                     portfolios,
@@ -2331,7 +2300,7 @@ class _HomePageState extends State<HomePage>
   }
 
   SingleChildScrollView _buildExpandedSliverAppBarTitle(
-      User? user,
+      UserInfo? user,
       double portfolioValue,
       double stockAndOptionsEquityPercent,
       List<Portfolio> portfolios,
@@ -2633,7 +2602,6 @@ class _HomePageState extends State<HomePage>
 
   Future<void> _pullRefresh() async {
     setState(() {
-      futureAccounts = null;
       futurePortfolios = null;
 
       //futureOptionPositions = null;
@@ -2644,7 +2612,7 @@ class _HomePageState extends State<HomePage>
       //watchlistStream = null;
     });
 
-    var accounts = await RobinhoodService.getAccounts(widget.user);
+    //var accounts = await RobinhoodService.getAccounts(widget.user);
     var portfolios = await RobinhoodService.getPortfolios(widget.user);
 
     //var optionPositions = await RobinhoodService.downloadOptionPositions(snapshotUser);
@@ -2655,7 +2623,6 @@ class _HomePageState extends State<HomePage>
     //var user = await RobinhoodService.downloadUser(snapshotUser);
 
     setState(() {
-      futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
       //futureUser = Future.value(user);
     });
@@ -2751,9 +2718,7 @@ class _HomePageState extends State<HomePage>
           var futureFromInstrument = Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
-                      widget.user,
-                      accounts!.first,
+                  builder: (context) => InstrumentWidget(widget.user, account!,
                       positions[index].instrumentObj as Instrument)));
           // Refresh in case settings were updated.
           futureFromInstrument.then((value) => setState(() {}));
@@ -3114,7 +3079,7 @@ class _HomePageState extends State<HomePage>
               context,
               MaterialPageRoute(
                   builder: (context) => ForexInstrumentWidget(
-                      widget.user, accounts![0], holdings[index])));
+                      widget.user, account!, holdings[index])));
           /*
           showDialog<String>(
               context: context,

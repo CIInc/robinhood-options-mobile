@@ -1,4 +1,4 @@
-class User {
+class UserInfo {
   final String url;
   final String id;
   final String idInfo;
@@ -10,7 +10,7 @@ class User {
   final String profileName;
   final DateTime? createdAt;
 
-  User(
+  UserInfo(
       this.url,
       this.id,
       this.idInfo,
@@ -22,7 +22,7 @@ class User {
       this.profileName,
       this.createdAt);
 
-  User.fromJson(dynamic json)
+  UserInfo.fromJson(dynamic json)
       : url = json['url'],
         id = json['id'],
         idInfo = json['id_info'],

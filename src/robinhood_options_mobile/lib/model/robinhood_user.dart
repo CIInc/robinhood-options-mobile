@@ -23,7 +23,7 @@ class RobinhoodUser {
   bool refreshEnabled = true;
   View optionsView = View.list;
   DisplayValue? displayValue = DisplayValue.marketValue;
-  bool showGreeks = true;
+  bool showGreeks = false;
 
   RobinhoodUser(this.userName, this.credentials, this.oauth2Client);
 

@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
+import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
@@ -34,6 +36,9 @@ class NavigationStatefulWidget extends StatefulWidget {
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   Future<RobinhoodUser>? futureRobinhoodUser;
   RobinhoodUser? robinhoodUser;
+  Future<UserInfo>? futureUser;
+  UserInfo? userInfo;
+  Future<List<Account>>? futureAccounts;
   List<Account>? accounts;
 
   Map<int, GlobalKey<NavigatorState>> navigatorKeys = {
@@ -47,14 +52,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   PageController? _pageController;
   List<Widget> tabPages = [];
 
-  int _selectedDrawerIndex = 0;
+  //int _selectedDrawerIndex = 0;
   bool _showDrawerContents = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _pageIndex);
-    tabPages = [];
+    tabPages = [const InitialWidget()];
 
     futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
     RobinhoodService.loadLogos();
@@ -107,30 +112,42 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
           if (userSnapshot.hasData) {
             robinhoodUser = userSnapshot.data!;
-            tabPages = [
-              /*if (robinhoodUser != null &&
-                  robinhoodUser!.userName != null &&
-                  accounts != null &&
-                  accounts!.isNotEmpty) ...[
-                    */
-              HomePage(robinhoodUser!,
-                  title: 'Robinhood Options',
-                  navigatorKey: navigatorKeys[0],
-                  onUserChanged: _handleUserChanged,
-                  onAccountsChanged: _handleAccountChanged),
-              //const HomePage(title: 'Orders'),
-              SearchWidget(
-                  robinhoodUser!, accounts != null ? accounts!.first : null,
-                  navigatorKey: navigatorKeys[1]),
-              ListsWidget(
-                  robinhoodUser!, accounts != null ? accounts!.first : null,
-                  navigatorKey: navigatorKeys[2]),
-              HistoryPage(
-                  robinhoodUser!, accounts != null ? accounts!.first : null,
-                  navigatorKey: navigatorKeys[3]),
-              //const LoginWidget()
-              //],
-            ];
+
+            futureUser ??= RobinhoodService.getUser(robinhoodUser!);
+            futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
+
+            return FutureBuilder(
+                future: Future.wait(
+                    [futureUser as Future, futureAccounts as Future]),
+                builder: (context1, dataSnapshot) {
+                  if (dataSnapshot.hasData) {
+                    List<dynamic> data = dataSnapshot.data as List<dynamic>;
+                    userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
+                    accounts =
+                        data.length > 1 ? data[1] as List<Account> : null;
+
+                    tabPages = [
+                      HomePage(robinhoodUser!, userInfo!,
+                          title: 'Robinhood Options',
+                          navigatorKey: navigatorKeys[0],
+                          onUserChanged: _handleUserChanged,
+                          onAccountsChanged: _handleAccountChanged),
+                      //const HomePage(title: 'Orders'),
+                      SearchWidget(robinhoodUser!,
+                          accounts != null ? accounts!.first : null,
+                          navigatorKey: navigatorKeys[1]),
+                      ListsWidget(robinhoodUser!,
+                          accounts != null ? accounts!.first : null,
+                          navigatorKey: navigatorKeys[2]),
+                      HistoryPage(robinhoodUser!,
+                          accounts != null ? accounts!.first : null,
+                          navigatorKey: navigatorKeys[3]),
+                      //const LoginWidget()
+                      //],
+                    ];
+                  }
+                  return buildScaffold();
+                });
           } else if (userSnapshot.hasError) {
             debugPrint("${userSnapshot.error}");
           }
@@ -242,24 +259,35 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: robinhoodUser == null || robinhoodUser!.userName == null
+        children: robinhoodUser == null ||
+                robinhoodUser!.userName == null ||
+                userInfo == null
             ? <Widget>[
                 const DrawerHeader(
-                    child: Text('Robinhood Options',
-                        style: TextStyle(fontSize: 24.9)),
-                    decoration: BoxDecoration(color: Colors.green)),
+                  child:
+                      Text('Robinhood Options', style: TextStyle(fontSize: 30)),
+                  //decoration: BoxDecoration(color: Colors.green)
+                ),
                 ListTile(
                     leading: const Icon(Icons.verified_user),
                     title: const Text('Login'),
-                    onTap: () => _onSelectItem(0)),
+                    onTap: () {
+                      //_onSelectItem(0);
+                      _openLogin();
+                    }),
               ]
             : <Widget>[
                 UserAccountsDrawerHeader(
-                  accountName: Text(robinhoodUser!.userName!),
-                  accountEmail: Text(robinhoodUser!.userName!),
+                  accountName: Text(userInfo!.profileName),
+                  accountEmail: Text(userInfo!.email),
                   currentAccountPicture: CircleAvatar(
                       backgroundColor: Colors.amber,
-                      child: Text(robinhoodUser!.userName!)),
+                      child: Text(
+                        '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 32),
+                      )),
+                  /*
                   otherAccountsPictures: [
                     GestureDetector(
                       onTap: () => _onTapOtherAccounts(context),
@@ -267,21 +295,54 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         label: 'Switch Account',
                         child: const CircleAvatar(
                           backgroundColor: Colors.lightBlue,
-                          child: Text('SA'),
+                          child: Text('OT'),
                         ),
                       ),
                     )
                   ],
+                  */
                   onDetailsPressed: () {
                     _showDrawerContents = !_showDrawerContents;
                   },
                 ),
                 Column(children: [
                   ListTile(
+                      leading: const Icon(Icons.account_circle),
+                      title: const Text("Profile"),
+                      //selected: 0 == _selectedDrawerIndex,
+                      onTap: () {
+                        //_onSelectItem(0);
+                        _openLogin();
+                        /*                      
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Alert'),
+                              content: const Text(
+                                  'This feature is not implemented.'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, 'OK'),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                        */
+                      }),
+                  const Divider(
+                    height: 10,
+                  ),
+                  ListTile(
                     leading: const Icon(Icons.logout),
                     title: const Text("Logout"),
-                    selected: 0 == _selectedDrawerIndex,
-                    onTap: () => _onSelectItem(0),
+                    //selected: false,
+                    onTap: () {
+                      _onSelectItem(1);
+                      _logout();
+                    },
                   )
                 ]),
               ],
@@ -290,22 +351,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   _onSelectItem(int index) {
-    setState(() => {_selectedDrawerIndex = index});
+    //setState(() => {_selectedDrawerIndex = index});
     Navigator.pop(context); // close the drawer
   }
 
-  Widget _getDrawerItemWidget(int pos) {
-    switch (pos) {
-      case 0:
-        _logout();
-        return const Text("Logged out.");
-      // return _openLogin();
-      // return new Logout();
-      default:
-        return const Text("Widget not implemented.");
-    }
-  }
-
+  /*
   _onTapOtherAccounts(BuildContext context) async {
     await RobinhoodUser.clearUserFromStore();
 
@@ -326,7 +376,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           );
         });
   }
-
+  */
   _openLogin() async {
     final RobinhoodUser? result = await Navigator.push(
         context,
@@ -336,12 +386,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (result != null) {
       await RobinhoodUser.writeUserToStore(result);
 
-      /* TODO
+      /*
       widget.onUserChanged(result);
       */
 
       setState(() {
-        futureRobinhoodUser = null;
+        //futureRobinhoodUser = null;
+        futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
         //user = null;
       });
 
@@ -356,17 +407,47 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   _logout() async {
-    await RobinhoodUser.clearUserFromStore();
-    // Future.delayed(const Duration(milliseconds: 1), () async {
+    var alert = AlertDialog(
+      title: const Text('Logout process'),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: const <Widget>[
+            Text('This action will require you to log in again.'),
+            Text('Are you sure you want to log out?'),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: const Text('Cancel'),
+          onPressed: () {
+            Navigator.pop(context, 'dialog');
+          },
+        ),
+        TextButton(
+          child: const Text('OK'),
+          onPressed: () async {
+            Navigator.pop(context, 'dialog');
 
-    /* TODO
-    widget.onUserChanged(null);
+            await RobinhoodUser.clearUserFromStore();
+            // Future.delayed(const Duration(milliseconds: 1), () async {
 
-    */
-    setState(() {
-      futureRobinhoodUser = null;
-      // _selectedDrawerIndex = 0;
-    });
-    //});
+            /* 
+            widget.onUserChanged(null);
+            */
+            setState(() {
+              //futureRobinhoodUser = null;
+              futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+            });
+          },
+        ),
+      ],
+    );
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return alert;
+      },
+    );
   }
 }

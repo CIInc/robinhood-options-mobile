@@ -818,7 +818,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
                                     Text(
-                                        formatNumber.format(optionInstrument
+                                        formatPercentage.format(optionInstrument
                                             .optionMarketData!
                                             .impliedVolatility),
                                         style: const TextStyle(fontSize: 17.0)),

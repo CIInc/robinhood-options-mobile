@@ -106,7 +106,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             ),
             SwitchListTile(
               //leading: Icon(Icons.functions),
-              title: const Text("Display Options Greeks"),
+              title: const Text("Display Options Greeks in Lists"),
               value: widget.user.showGreeks,
               onChanged: (bool value) {
                 setState(() {
@@ -278,6 +278,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               cryptoFilterWidget,
               //cryptoFilterWidget(bottomState),
             ],
+
             const Divider(
               height: 10,
             ),
@@ -286,6 +287,8 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                   leading: const Icon(Icons.account_circle),
                   title: const Text("Profile"),
                   onTap: () {
+                    _openLogin();
+                    /*
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
@@ -302,6 +305,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                         );
                       },
                     );
+                    */
                   }),
               ListTile(
                 leading: const Icon(Icons.logout),
@@ -662,7 +666,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
     if (result != null) {
       await RobinhoodUser.writeUserToStore(result);
 
-      /* TODO
+      /*
       widget.onUserChanged(result);
 
       setState(() {
@@ -685,7 +689,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
     await RobinhoodUser.clearUserFromStore();
     // Future.delayed(const Duration(milliseconds: 1), () async {
 
-    /* TODO
+    /* 
     widget.onUserChanged(null);
 
     setState(() {

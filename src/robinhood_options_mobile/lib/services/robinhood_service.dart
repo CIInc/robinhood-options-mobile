@@ -52,7 +52,7 @@ class RobinhoodService {
   USERS & ACCOUNTS
   */
 
-  static Future<User> getUser(RobinhoodUser user) async {
+  static Future<UserInfo> getUser(RobinhoodUser user) async {
     var url = '${Constants.robinHoodEndpoint}/user/';
     // debugPrint(result);
     /*
@@ -63,7 +63,7 @@ class RobinhoodService {
 
     var resultJson = await getJson(user, url);
 
-    var usr = User.fromJson(resultJson);
+    var usr = UserInfo.fromJson(resultJson);
     return usr;
   }
 
@@ -831,6 +831,7 @@ class RobinhoodService {
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
         optionPosition.marketData = optionMarketDatum;
+
         // TODO: Get instrument and quote.
         //optionPosition.instrumentObj =
         //    await getInstrumentBySymbol(user, optionPosition.symbol);

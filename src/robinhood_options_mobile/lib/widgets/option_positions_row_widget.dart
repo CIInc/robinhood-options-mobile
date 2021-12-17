@@ -16,6 +16,7 @@ final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;
+const greekEgdeInset = 10.0;
 
 class OptionPositionsRowWidget extends StatelessWidget {
   final RobinhoodUser user;
@@ -54,7 +55,14 @@ class OptionPositionsRowWidget extends StatelessWidget {
       trailingText = getDisplayText(value);
       icon = getDisplayIcon(value);
     }
-    double? deltaAvg, gammaAvg, thetaAvg, vegaAvg, rhoAvg, ivAvg, chanceAvg;
+    double? deltaAvg,
+        gammaAvg,
+        thetaAvg,
+        vegaAvg,
+        rhoAvg,
+        ivAvg,
+        chanceAvg,
+        openInterestAvg;
     if (user.showGreeks && groupedOptionAggregatePositions.length == 1) {
       var results = _calculateGreekAggregates(filteredOptionPositions);
       deltaAvg = results[0];
@@ -64,6 +72,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
       rhoAvg = results[4];
       ivAvg = results[5];
       chanceAvg = results[6];
+      openInterestAvg = results[7];
     }
     return SliverStickyHeader(
       header: Material(
@@ -96,7 +105,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             if (user.showGreeks &&
                 groupedOptionAggregatePositions.length == 1) ...[
               _buildGreekScrollRow(deltaAvg!, gammaAvg!, thetaAvg!, vegaAvg!,
-                  rhoAvg!, ivAvg!, chanceAvg!)
+                  rhoAvg!, ivAvg!, chanceAvg!, openInterestAvg!.toInt())
             ]
           ])),
       sliver: user.optionsView == View.list
@@ -124,7 +133,14 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   _calculateGreekAggregates(
       List<OptionAggregatePosition> filteredOptionPositions) {
-    double? deltaAvg, gammaAvg, thetaAvg, vegaAvg, rhoAvg, ivAvg, chanceAvg;
+    double? deltaAvg,
+        gammaAvg,
+        thetaAvg,
+        vegaAvg,
+        rhoAvg,
+        ivAvg,
+        chanceAvg,
+        openInterestAvg;
     var denominator = filteredOptionPositions
         .map((OptionAggregatePosition e) => e.marketValue)
         .reduce((a, b) => a + b);
@@ -161,11 +177,25 @@ class OptionPositionsRowWidget extends StatelessWidget {
         denominator;
     chanceAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => (e.direction == 'debit'
-                ? e.marketData!.chanceOfProfitLong!
+                ? e.marketData!.chanceOfProfitLong! * e.marketValue
                 : e.marketData!.chanceOfProfitShort! * e.marketValue))
             .reduce((a, b) => a + b) /
         denominator;
-    return [deltaAvg, gammaAvg, thetaAvg, vegaAvg, rhoAvg, ivAvg, chanceAvg];
+    openInterestAvg = filteredOptionPositions
+            .map((OptionAggregatePosition e) =>
+                e.marketData!.openInterest * e.marketValue)
+            .reduce((a, b) => a + b) /
+        denominator;
+    return [
+      deltaAvg,
+      gammaAvg,
+      thetaAvg,
+      vegaAvg,
+      rhoAvg,
+      ivAvg,
+      chanceAvg,
+      openInterestAvg
+    ];
   }
 
   Widget _buildOptionPositionRow(
@@ -269,7 +299,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
               op.marketData!.impliedVolatility!,
               op.direction == 'debit'
                   ? op.marketData!.chanceOfProfitLong!
-                  : op.marketData!.chanceOfProfitShort!)
+                  : op.marketData!.chanceOfProfitShort!,
+              op.marketData!.openInterest)
         ]
       ],
     ));
@@ -282,7 +313,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
       double vega,
       double rho,
       double impliedVolatility,
-      double chanceOfProfit) {
+      double chanceOfProfit,
+      int openInterest) {
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
@@ -292,7 +324,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child:*/
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatNumber.format(delta),
@@ -309,7 +342,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatNumber.format(gamma),
@@ -326,7 +360,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatNumber.format(theta),
@@ -343,7 +378,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatNumber.format(vega),
@@ -360,7 +396,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatNumber.format(rho),
@@ -377,7 +414,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatPercentage.format(impliedVolatility),
@@ -394,7 +432,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   elevation: 0,
                   child: */
               Padding(
-                padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   Text(formatPercentage.format(chanceOfProfit),
@@ -402,6 +441,24 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   //Container(height: 5),
                   //const Text("%", style: TextStyle(fontSize: greekValueFontSize)),
                   const Text("Chance",
+                      style: TextStyle(fontSize: greekLabelFontSize)),
+                ]),
+              )
+              //)
+              ,
+              /*Card(
+                  elevation: 0,
+                  child: */
+              Padding(
+                padding: const EdgeInsets.all(
+                    greekEgdeInset), //.symmetric(horizontal: 6),
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Text(formatCompactNumber.format(openInterest),
+                      style: const TextStyle(fontSize: greekValueFontSize)),
+                  //Container(height: 5),
+                  //const Text("%", style: TextStyle(fontSize: greekValueFontSize)),
+                  const Text("Open Interest",
                       style: TextStyle(fontSize: greekLabelFontSize)),
                 ]),
               )
@@ -459,7 +516,14 @@ class OptionPositionsRowWidget extends StatelessWidget {
       icon = getDisplayIcon(value);
     }
 
-    double? deltaAvg, gammaAvg, thetaAvg, vegaAvg, rhoAvg, ivAvg, chanceAvg;
+    double? deltaAvg,
+        gammaAvg,
+        thetaAvg,
+        vegaAvg,
+        rhoAvg,
+        ivAvg,
+        chanceAvg,
+        openInterestAvg;
     if (user.showGreeks) {
       var results = _calculateGreekAggregates(ops);
       deltaAvg = results[0];
@@ -469,6 +533,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
       rhoAvg = results[4];
       ivAvg = results[5];
       chanceAvg = results[6];
+      openInterestAvg = results[7];
     }
 
     if (!excludeGroupRow) {
@@ -565,7 +630,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         ),
         if (user.showGreeks && ops.length > 1) ...[
           _buildGreekScrollRow(deltaAvg!, gammaAvg!, thetaAvg!, vegaAvg!,
-              rhoAvg!, ivAvg!, chanceAvg!)
+              rhoAvg!, ivAvg!, chanceAvg!, openInterestAvg!.toInt())
         ]
       ]));
       cards.add(
@@ -662,7 +727,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 op.marketData!.impliedVolatility!,
                 op.direction == 'debit'
                     ? op.marketData!.chanceOfProfitLong!
-                    : op.marketData!.chanceOfProfitShort!),
+                    : op.marketData!.chanceOfProfitShort!,
+                op.marketData!.openInterest),
             const Divider(
               height: 10,
             ),
