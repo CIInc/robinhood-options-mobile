@@ -23,6 +23,7 @@ class RobinhoodUser {
   bool refreshEnabled = true;
   View optionsView = View.list;
   DisplayValue? displayValue = DisplayValue.marketValue;
+  bool showGreeks = true;
 
   RobinhoodUser(this.userName, this.credentials, this.oauth2Client);
 
@@ -34,14 +35,16 @@ class RobinhoodUser {
             json['optionsView'] == null || json['optionsView'] == 'View.list'
                 ? View.list
                 : View.grouped,
-        displayValue = parseDisplayValue(json['optionsView']);
+        displayValue = parseDisplayValue(json['optionsView']),
+        showGreeks = json['showGreeks'] ?? true;
 
   Map<String, dynamic> toJson() => {
         'userName': userName,
         'credentials': credentials,
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
-        'displayValue': displayValue.toString()
+        'displayValue': displayValue.toString(),
+        'showGreeks': showGreeks,
       };
 
   Future save() async {

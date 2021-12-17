@@ -22,7 +22,7 @@ class ListsWidget extends StatefulWidget {
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
-  final Account account;
+  final Account? account;
 
   @override
   _ListsWidgetState createState() => _ListsWidgetState();
@@ -109,7 +109,7 @@ class _ListsWidgetState extends State<ListsWidget>
       totalItems =
           watchlists!.map((e) => e.items.length).reduce((a, b) => a + b);
     }
-    return Scaffold(
+    return /*Scaffold(
         appBar: AppBar(
           title: Wrap(
               crossAxisAlignment: WrapCrossAlignment.end,
@@ -209,42 +209,145 @@ class _ListsWidgetState extends State<ListsWidget>
                 })
           ],
         ),
-        body: CustomScrollView(slivers: [
-          if (done == false) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 3, //150.0,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Center(
-                      child: LinearProgressIndicator(
-                          //value: controller.value,
-                          //semanticsLabel: 'Linear progress indicator',
-                          ) //CircularProgressIndicator(),
-                      )),
-            ))
-          ],
-          if (watchlists != null) ...[
-            for (var watchlist in watchlists!) ...[
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 25.0,
-              )),
-              SliverStickyHeader(
-                  header: Material(
-                      //elevation: 2,
-                      child: Container(
-                          //height: 208.0, //60.0,
-                          //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            title: Text(
-                              watchlist.displayName,
-                              style: const TextStyle(fontSize: 19.0),
+        body: */
+        CustomScrollView(slivers: [
+      SliverAppBar(
+        floating: false,
+        pinned: true,
+        snap: false,
+        title: Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            //runAlignment: WrapAlignment.end,
+            //alignment: WrapAlignment.end,
+            spacing: 20,
+            //runSpacing: 5,
+            children: [
+              const Text('Lists', style: TextStyle(fontSize: 20.0)),
+              Text(
+                "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
+                style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+              )
+            ]),
+        actions: [
+          IconButton(
+              icon: const Icon(Icons.sort),
+              onPressed: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  //constraints: BoxConstraints(maxHeight: 260),
+                  builder: (BuildContext context) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          tileColor: Theme.of(context).colorScheme.primary,
+                          leading: const Icon(Icons.sort),
+                          title: const Text(
+                            "Sort Watch List",
+                            style: TextStyle(fontSize: 19.0),
+                          ),
+                          /*
+                                  trailing: TextButton(
+                                      child: const Text("APPLY"),
+                                      onPressed: () => Navigator.pop(context))*/
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RadioListTile<SortType>(
+                              title: const Text('Alphabetical (Ascending)'),
+                              value: SortType.alphabetical,
+                              groupValue: _sortType,
+                              onChanged: (SortType? value) {
+                                Navigator.pop(context);
+                                setState(() {
+                                  _sortType = value;
+                                  _sortDirection = SortDirection.asc;
+                                });
+                              },
                             ),
-                            subtitle: Text(
-                                "${formatCompactNumber.format(watchlist.items.length)} items"),
-                            /*
+                            RadioListTile<SortType>(
+                              title: const Text('Alphabetical (Descending)'),
+                              value: SortType.alphabetical,
+                              groupValue: _sortType,
+                              onChanged: (SortType? value) {
+                                Navigator.pop(context);
+                                setState(() {
+                                  _sortType = value;
+                                  _sortDirection = SortDirection.desc;
+                                });
+                              },
+                            ),
+                            RadioListTile<SortType>(
+                              title: const Text('Change (Ascending)'),
+                              value: SortType.change,
+                              groupValue: _sortType,
+                              onChanged: (SortType? value) {
+                                Navigator.pop(context);
+                                setState(() {
+                                  _sortType = value;
+                                  _sortDirection = SortDirection.asc;
+                                });
+                              },
+                            ),
+                            RadioListTile<SortType>(
+                              title: const Text('Change (Descending)'),
+                              value: SortType.change,
+                              groupValue: _sortType,
+                              onChanged: (SortType? value) {
+                                Navigator.pop(context);
+                                setState(() {
+                                  _sortType = value;
+                                  _sortDirection = SortDirection.desc;
+                                });
+                              },
+                            ),
+                          ],
+                        )
+                      ],
+                    );
+                  },
+                );
+              })
+        ],
+      ),
+      if (done == false) ...[
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 3, //150.0,
+          child: Align(
+              alignment: Alignment.center,
+              child: Center(
+                  child: LinearProgressIndicator(
+                      //value: controller.value,
+                      //semanticsLabel: 'Linear progress indicator',
+                      ) //CircularProgressIndicator(),
+                  )),
+        ))
+      ],
+      if (watchlists != null) ...[
+        for (var watchlist in watchlists!) ...[
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: Text(
+                          watchlist.displayName,
+                          style: const TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(watchlist.items.length)} items"),
+                        /*
                             trailing: IconButton(
                                 icon: const Icon(Icons.sort),
                                 onPressed: () {
@@ -308,16 +411,16 @@ class _ListsWidgetState extends State<ListsWidget>
                                   );
                                 }),
                                 */
-                          ))),
-                  sliver: watchListWidget(watchlist.items))
-            ]
-          ],
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-          const SliverToBoxAdapter(child: DisclaimerWidget())
-        ])
+                      ))),
+              sliver: watchListWidget(watchlist.items))
+        ]
+      ],
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
+      const SliverToBoxAdapter(child: DisclaimerWidget())
+    ])
 
         /*body: Builder(builder: (context) {
           return Text("Lists");
@@ -338,7 +441,7 @@ class _ListsWidgetState extends State<ListsWidget>
               );
             }));
             */
-        );
+        ;
   }
 
   Widget watchListWidget(List<WatchlistItem> watchLists) {
@@ -480,7 +583,7 @@ class _ListsWidgetState extends State<ListsWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                             ru,
-                            widget.account,
+                            widget.account!,
                             watchLists[index].instrumentObj as Instrument)));
               },
             )));

@@ -284,10 +284,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 fit: BoxFit.none,
                                 errorBuilder: (BuildContext context,
                                     Object exception, StackTrace? stackTrace) {
-                                  return const
-                                      //CircleAvatar(child: Text(""));
-                                      SizedBox(width: 56, height: 56);
-                                  //const Icon(Icons.error); //Text('Your error widget...');
+                                  return Text(instrument.symbol);
                                 },
                               )
                             : Container() //const FlutterLogo()
@@ -661,7 +658,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               title: Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Text("Greeks", style: TextStyle(fontSize: 20.0)),
+                    const Text("Greeks & Market Data",
+                        style: TextStyle(fontSize: 20.0)),
                     Container(
                       width: 5,
                     ),
@@ -704,6 +702,200 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   ]),
             ),
           ),
+          SliverToBoxAdapter(
+              child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!.delta),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("Δ",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Delta",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!.gamma!),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("Γ",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Gamma",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!.theta!),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("Θ",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Theta",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!.vega!),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("v",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Vega",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!.rho!),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("p",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Rho",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatNumber.format(optionInstrument
+                                            .optionMarketData!
+                                            .impliedVolatility),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("IV",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Impl. Vol.",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatPercentage.format(optionInstrument
+                                            .optionMarketData!
+                                            .chanceOfProfitLong),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("%",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Chance Long",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatPercentage.format(optionInstrument
+                                            .optionMarketData!
+                                            .chanceOfProfitShort),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("%",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Chance Short",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            )),
+                            Card(
+                                child: Padding(
+                              padding: const EdgeInsets.all(
+                                  6), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        formatCompactNumber.format(
+                                            optionInstrument.optionMarketData!
+                                                .openInterest),
+                                        style: const TextStyle(fontSize: 17.0)),
+                                    Container(
+                                      height: 5,
+                                    ),
+                                    const Text("#",
+                                        style: TextStyle(fontSize: 17.0)),
+                                    const Text("Open Interest",
+                                        style: TextStyle(fontSize: 10.0)),
+                                  ]),
+                            ))
+                          ])))),
+          /*
           SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               sliver: SliverGrid(
@@ -815,6 +1007,69 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             const Text("Rho", style: TextStyle(fontSize: 10.0)),
                           ]),
                         ));
+                      case 5:
+                        return Card(
+                            child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(
+                                    formatNumber.format(optionInstrument
+                                        .optionMarketData!.impliedVolatility),
+                                    style: const TextStyle(fontSize: 17.0)),
+                                Container(
+                                  height: 5,
+                                ),
+                                const Text("IV",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Implied Volatility",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ));
+                      case 6:
+                        return Card(
+                            child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(
+                                    formatPercentage.format(optionInstrument
+                                        .optionMarketData!.chanceOfProfitLong),
+                                    style: const TextStyle(fontSize: 17.0)),
+                                Container(
+                                  height: 5,
+                                ),
+                                const Text("p",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Change long",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ));
+                      case 7:
+                        return Card(
+                            child: Padding(
+                          padding: const EdgeInsets.all(
+                              6), //.symmetric(horizontal: 6),
+                          child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(
+                                    formatPercentage.format(optionInstrument
+                                        .optionMarketData!.chanceOfProfitShort),
+                                    style: const TextStyle(fontSize: 17.0)),
+                                Container(
+                                  height: 5,
+                                ),
+                                const Text("",
+                                    style: TextStyle(fontSize: 17.0)),
+                                const Text("Change short",
+                                    style: TextStyle(fontSize: 10.0)),
+                              ]),
+                        ));
                       default:
                     }
                     /*
@@ -825,9 +1080,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           );
           */
                   },
-                  childCount: 5,
+                  childCount: 8,
                 ),
               )),
+              */
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 10.0,
+          )),
           SliverToBoxAdapter(
               child: ListTile(
                   title: Wrap(
@@ -910,6 +1170,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         .format(optionInstrument.optionMarketData!.volume),
                     style: const TextStyle(fontSize: 18)),
               ),
+              /*
               ListTile(
                 title: const Text("Open Interest"),
                 trailing: Text(
@@ -938,6 +1199,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         optionInstrument.optionMarketData!.chanceOfProfitShort),
                     style: const TextStyle(fontSize: 18)),
               ),
+              */
               /*
           ListTile(
             title: const Text("Delta"),

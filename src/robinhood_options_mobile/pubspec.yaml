@@ -30,10 +30,10 @@ dependencies:
   cupertino_icons: ^1.0.2
 
   oauth2: ^2.0.0
-  shared_preferences: ^2.0.8
-  path_provider: ^2.0.5 # TODO: Remove dependency for shared_preferences
+  shared_preferences: ^2.0.11
+  #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
   intl: ^0.17.0
-  decimal: ^1.2.0
+  decimal: ^2.0.0
   csv: ^5.0.0
   permission_handler: ^8.1.6
   open_file: ^3.2.1
@@ -43,7 +43,7 @@ dependencies:
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
-  url_launcher: ^6.0.12
+  url_launcher: ^6.0.17
   # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
   share_plus: ^3.0.4

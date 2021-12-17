@@ -169,55 +169,6 @@ class _InstrumentOptionChainWidgetState
       floating: false,
       pinned: true,
       snap: false,
-      /*
-        flexibleSpace: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-          //var top = constraints.biggest.height;
-          //debugPrint(top.toString());
-          //debugPrint(kToolbarHeight.toString());
-
-          final settings = context
-              .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
-          final deltaExtent = settings!.maxExtent - settings.minExtent;
-          final t = (1.0 -
-                  (settings.currentExtent - settings.minExtent) / deltaExtent)
-              .clamp(0.0, 1.0);
-          final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-          const fadeEnd = 1.0;
-          final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-          return FlexibleSpaceBar(
-              //titlePadding:
-              //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-              //background: const FlutterLogo(),
-              background: SizedBox(
-                width: double.infinity,
-                child: instrument.logoUrl != null
-                    ? Image.network(
-                        instrument.logoUrl!,
-                        fit: BoxFit.none,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return const
-                              //CircleAvatar(child: Text(""));
-                              SizedBox(width: 56, height: 56);
-                          //const Icon(Icons.error); //Text('Your error widget...');
-                        },
-                      )
-                    : Image.network(
-                        Constants.flexibleSpaceBarBackground,
-                        fit: BoxFit.cover,
-                      ),
-              ),
-              //const FlutterLogo(),
-              title: Opacity(
-                //duration: Duration(milliseconds: 300),
-                opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                child: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: headerWidgets.toList())),
-              ));
-        })*/
     ));
 
     if (done == false) {

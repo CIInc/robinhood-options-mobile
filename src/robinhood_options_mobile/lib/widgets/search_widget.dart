@@ -16,7 +16,7 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  final Account? account;
 
   const SearchWidget(this.user, this.account, {Key? key, this.navigatorKey})
       : super(key: key);
@@ -438,7 +438,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            widget.user, widget.account, instrument)));
+                            widget.user, widget.account!, instrument)));
               },
             )));
   }
@@ -464,7 +464,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                              widget.user, widget.account, instrument)));
+                              widget.user, widget.account!, instrument)));
                 })));
     /*
     return ListTile(
@@ -552,7 +552,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user, widget.account, instrumentObj)));
+                            user, widget.account!, instrumentObj)));
               },
             )));
   }

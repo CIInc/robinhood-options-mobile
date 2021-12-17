@@ -152,7 +152,7 @@ class Position {
 
   double get gainLossToday {
     return instrumentObj!.quoteObj!.lastTradePrice! -
-        instrumentObj!.quoteObj!.adjustedPreviousClose!;
+        instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!;
   }
 
   double get gainLossPercentToday {

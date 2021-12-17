@@ -45,7 +45,7 @@ class HistoryPage extends StatefulWidget {
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
-  final Account account;
+  final Account? account;
 
   @override
   _HistoryPageState createState() => _HistoryPageState();
@@ -333,7 +333,130 @@ class _HistoryPageState extends State<HistoryPage>
               )
           .toList();
     }
-
+    slivers.add(SliverAppBar(
+      floating: false,
+      pinned: true,
+      snap: false,
+      title: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.end,
+          //runAlignment: WrapAlignment.end,
+          //alignment: WrapAlignment.end,
+          spacing: 20,
+          //runSpacing: 5,
+          children: [
+            const Text('History', style: TextStyle(fontSize: 20.0)),
+            Text(
+                "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : "0"} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                style: const TextStyle(fontSize: 16.0, color: Colors.white70)),
+          ]),
+      actions: [
+        IconButton(
+            icon: const Icon(Icons.more_vert_sharp),
+            onPressed: () {
+              showModalBottomSheet<void>(
+                context: context,
+                //constraints: BoxConstraints(maxHeight: 260),
+                builder: (BuildContext context) {
+                  return Scaffold(
+                      appBar: AppBar(
+                          leading: const CloseButton(),
+                          title: const Text('History Settings')),
+                      body: ListView(
+                        //Column(
+                        //mainAxisAlignment: MainAxisAlignment.start,
+                        //crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ListTile(
+                            title: const Text("Share"),
+                            trailing: IconButton(
+                              onPressed: _closeAndShowShareView,
+                              icon: showShareView
+                                  ? const Icon(Icons.preview)
+                                  : const Icon(Icons.share),
+                            ),
+                          ),
+                          const ListTile(
+                            leading: Icon(Icons.filter_list),
+                            title: Text(
+                              "Filters",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const ListTile(
+                            title: Text("Order State & Date"),
+                          ),
+                          orderFilterWidget,
+                          orderDateFilterWidget,
+                          const ListTile(
+                            title: Text("Symbols"),
+                          ),
+                          stockOrderSymbolFilterWidget,
+                          /*                         
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RadioListTile<SortType>(
+                                title: const Text('Alphabetical (Ascending)'),
+                                value: SortType.alphabetical,
+                                groupValue: _sortType,
+                                onChanged: (SortType? value) {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    _sortType = value;
+                                    _sortDirection = SortDirection.asc;
+                                  });
+                                },
+                              ),
+                              RadioListTile<SortType>(
+                                title: const Text('Alphabetical (Descending)'),
+                                value: SortType.alphabetical,
+                                groupValue: _sortType,
+                                onChanged: (SortType? value) {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    _sortType = value;
+                                    _sortDirection = SortDirection.desc;
+                                  });
+                                },
+                              ),
+                              RadioListTile<SortType>(
+                                title: const Text('Change (Ascending)'),
+                                value: SortType.change,
+                                groupValue: _sortType,
+                                onChanged: (SortType? value) {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    _sortType = value;
+                                    _sortDirection = SortDirection.asc;
+                                  });
+                                },
+                              ),
+                              RadioListTile<SortType>(
+                                title: const Text('Change (Descending)'),
+                                value: SortType.change,
+                                groupValue: _sortType,
+                                onChanged: (SortType? value) {
+                                  Navigator.pop(context);
+                                  setState(() {
+                                    _sortType = value;
+                                    _sortDirection = SortDirection.desc;
+                                  });
+                                },
+                              ),
+                            ],
+                          )
+                          */
+                          const SizedBox(
+                            height: 25.0,
+                          )
+                        ],
+                      ));
+                },
+              );
+            })
+      ],
+    ));
     if (widget.user.userName != null) {
       if (done == false) {
         slivers.add(const SliverToBoxAdapter(
@@ -504,7 +627,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
-                                          widget.account,
+                                          widget.account!,
                                           optionOrder)));
                             },
                           ),
@@ -780,7 +903,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
-                                          widget.account,
+                                          widget.account!,
                                           filteredPositionOrders![index])));
                             },
                           ),
@@ -804,136 +927,6 @@ class _HistoryPageState extends State<HistoryPage>
     )));
 
     return Scaffold(
-      /* Using SliverAppBar below
-        appBar: new AppBar(
-          title: new Text(widget.drawerItems[_selectedDrawerIndex].title),
-        ),
-        drawer: new FutureBuilder(
-          future: user,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return _buildDrawer(snapshot.data);
-            } else if (snapshot.hasError) {
-              debugPrint("${snapshot.error}");
-              return Text("${snapshot.error}");
-            }
-            // By default, show a loading spinner
-            return Center(
-              child: LinearProgressIndicator(),
-            );
-          },
-        ),
-        */
-      appBar: AppBar(
-        title: Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            //runAlignment: WrapAlignment.end,
-            //alignment: WrapAlignment.end,
-            spacing: 20,
-            //runSpacing: 5,
-            children: [
-              const Text('History', style: TextStyle(fontSize: 20.0)),
-              Text(
-                  "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : "0"} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                  style:
-                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
-            ]),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: () {
-                showModalBottomSheet<void>(
-                  context: context,
-                  //constraints: BoxConstraints(maxHeight: 260),
-                  builder: (BuildContext context) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ListTile(
-                          tileColor: Theme.of(context).colorScheme.primary,
-                          leading: const Icon(Icons.filter_list),
-                          title: const Text(
-                            "Filter Orders",
-                            style: TextStyle(fontSize: 19.0),
-                          ),
-                          /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                        ),
-                        const ListTile(
-                          title: Text("Order State & Date"),
-                        ),
-                        orderFilterWidget,
-                        orderDateFilterWidget,
-                        const ListTile(
-                          title: Text("Symbols"),
-                        ),
-                        stockOrderSymbolFilterWidget,
-                        /*                         
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Ascending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Descending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Ascending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Descending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                            ],
-                          )
-                          */
-                      ],
-                    );
-                  },
-                );
-              })
-        ],
-      ),
       body: RefreshIndicator(
         child: CustomScrollView(slivers: slivers), //controller: _controller,
         onRefresh: _pullRefresh,
@@ -1211,6 +1204,11 @@ class _HistoryPageState extends State<HistoryPage>
         ));
   }
 
+  _closeAndShowShareView() async {
+    Navigator.pop(context);
+    _showShareView();
+  }
+
   _showShareView() async {
     if (showShareView) {
       var optionOrdersToShare = optionOrders!
@@ -1254,32 +1252,25 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
         //useRootNavigator: true,
         //constraints: BoxConstraints(maxHeight: 260),
         builder: (BuildContext context) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ListTile(
-                tileColor: Theme.of(context).colorScheme.primary,
-                // leading: const Icon(Icons.share),
-                title: const Text(
-                  "Sharing Options",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Share.share(ordersText);
-                  },
-                ),
-                /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
+          return Scaffold(
+              appBar: AppBar(
+                leading: const CloseButton(),
+                title: const Text('Sharing Options'),
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Share.share(ordersText);
+                    },
+                  )
+                ],
               ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
+              body: ListView(
+                //Column(
+                //mainAxisAlignment: MainAxisAlignment.start,
+                //crossAxisAlignment: CrossAxisAlignment.center,
+
                 children: [
                   CheckboxListTile(
                     value: shareText,
@@ -1302,19 +1293,17 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
                     title: const Text(
                         "Share Link"), // , style: TextStyle(fontSize: 18.0)),
                     //subtitle: subtitle,
-                  )
-                ],
-              ),
-              ListTile(
-                subtitle: Text(ordersText,
-                    maxLines: 17, overflow: TextOverflow.ellipsis),
-                /*
+                  ),
+                  ListTile(
+                    subtitle: Text(ordersText,
+                        maxLines: 17, overflow: TextOverflow.ellipsis),
+                    /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-              ),
-            ],
-          );
+                  ),
+                ],
+              ));
         },
       );
     }

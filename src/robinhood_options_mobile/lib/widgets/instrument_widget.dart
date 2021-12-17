@@ -11,7 +11,9 @@ import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 
@@ -27,7 +29,6 @@ import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatExpirationDate = DateFormat('yyyy-MM-dd');
@@ -72,10 +73,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Bounds chartBoundsFilter = Bounds.regular;
   InstrumentHistorical? selection;
 
-  final List<String> optionFilters = <String>[];
-  final List<String> positionFilters = <String>[];
-
-  final List<bool> hasQuantityFilters = [true, false];
+  List<String> optionFilters = <String>[];
+  List<String> positionFilters = <String>[];
+  List<bool> hasQuantityFilters = [true, false];
 
   final List<String> orderFilters = <String>["confirmed", "filled"];
 
@@ -86,7 +86,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   List<PositionOrder> positionOrders = [];
   double positionOrdersBalance = 0;
 
-  bool showGreeks = true;
   //final dataKey = GlobalKey();
 
   _InstrumentWidgetState();
@@ -99,6 +98,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       optionPositions = RobinhoodService.optionPositions!
           .where((e) => e.symbol == widget.instrument.symbol)
           .toList();
+      optionPositions.sort((a, b) {
+        int comp = a.legs.first.expirationDate!
+            .compareTo(b.legs.first.expirationDate!);
+        if (comp != 0) return comp;
+        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+      });
     }
 
     if (RobinhoodService.optionOrders != null) {
@@ -383,65 +388,126 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
-        title: headerTitle(instrument),
-        //expandedHeight: 160,
-        expandedHeight: 240, // 280.0,
-        floating: false,
-        pinned: true,
-        snap: false,
-        flexibleSpace: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-          //var top = constraints.biggest.height;
-          //debugPrint(top.toString());
-          //debugPrint(kToolbarHeight.toString());
+      title: headerTitle(instrument),
+      //expandedHeight: 160,
+      expandedHeight: 240, // 280.0,
+      floating: false,
+      pinned: true,
+      snap: false,
+      flexibleSpace: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+        //var top = constraints.biggest.height;
+        //debugPrint(top.toString());
+        //debugPrint(kToolbarHeight.toString());
 
-          final settings = context
-              .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
-          final deltaExtent = settings!.maxExtent - settings.minExtent;
-          final t = (1.0 -
-                  (settings.currentExtent - settings.minExtent) / deltaExtent)
-              .clamp(0.0, 1.0);
-          final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-          const fadeEnd = 1.0;
-          final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-          return FlexibleSpaceBar(
-              //titlePadding:
-              //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-              //background: const FlutterLogo(),
-              background: SizedBox(
-                  width: double.infinity,
-                  child: instrument.logoUrl != null
-                      ? Image.network(
-                          instrument.logoUrl!,
-                          fit: BoxFit.none,
-                          errorBuilder: (BuildContext context, Object exception,
-                              StackTrace? stackTrace) {
-                            return const
-                                //CircleAvatar(child: Text(""));
-                                SizedBox(width: 56, height: 56);
-                            //const Icon(Icons.error); //Text('Your error widget...');
-                          },
-                        )
-                      : Container() //const FlutterLogo()
-                  /*Image.network(
+        final settings = context
+            .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+        final deltaExtent = settings!.maxExtent - settings.minExtent;
+        final t =
+            (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
+                .clamp(0.0, 1.0);
+        final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+        const fadeEnd = 1.0;
+        final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+        return FlexibleSpaceBar(
+            //titlePadding:
+            //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+            //background: const FlutterLogo(),
+            background: SizedBox(
+                width: double.infinity,
+                child: instrument.logoUrl != null
+                    ? Image.network(
+                        instrument.logoUrl!,
+                        fit: BoxFit.none,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          return Text(instrument.symbol);
+                        },
+                      )
+                    : Container() //const FlutterLogo()
+                /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
-                  ),
-              title: Opacity(
-                //duration: Duration(milliseconds: 300),
-                opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                child: SingleChildScrollView(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: headerWidgets.toList())),
-                /*
+                ),
+            title: Opacity(
+              //duration: Duration(milliseconds: 300),
+              opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+              child: SingleChildScrollView(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: headerWidgets.toList())),
+              /*
           ListTile(
             title: Text('${instrument.simpleName}'),
             subtitle: Text(instrument.name),
           )*/
-              ));
-        })));
+            ));
+      }),
+      actions: <Widget>[
+        IconButton(
+          icon: const Icon(Icons.more_vert),
+          // icon: const Icon(Icons.settings),
+          onPressed: () {
+            showModalBottomSheet<void>(
+              context: context,
+              //isScrollControlled: true,
+              //useRootNavigator: true,
+              //constraints: const BoxConstraints(maxHeight: 200),
+              builder: (_) => MoreMenuBottomSheet(widget.user,
+                  onSettingsChanged: _handleSettingsChanged),
+            );
+          },
+        ),
+        /*
+        IconButton(
+          icon: ru != null && ru.userName != null
+              ? const Icon(Icons.logout)
+              : const Icon(Icons.login),
+          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
+          onPressed: () {
+            if (ru != null && ru.userName != null) {
+              var alert = AlertDialog(
+                title: const Text('Logout process'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      const Text(
+                          'This action will require you to log in again.'),
+                      const Text('Are you sure you want to log out?'),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'),
+                    onPressed: () {
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      _logout();
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                ],
+              );
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return alert;
+                },
+              );
+            } else {
+              _openLogin();
+            }
+            /* ... */
+          },
+        ),*/
+      ],
+    ));
 
     if (done == false) {
       slivers.add(const SliverToBoxAdapter(
@@ -817,7 +883,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
             title: const Text("Return Today"),
             trailing: Wrap(children: [
-              position.trendingIcon,
+              position.trendingIconToday,
               Container(
                 width: 2,
               ),
@@ -862,20 +928,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
       });
 
-      double optionEquity = 0;
       if (filteredOptionPositions.isNotEmpty) {
-        optionEquity = filteredOptionPositions
-            .map((e) => e.legs.first.positionType == "long"
-                ? e.marketValue
-                : e.marketValue)
-            .reduce((a, b) => a + b);
-
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
           height: 25.0,
         )));
-        slivers
-            .add(optionPositionsWidget(filteredOptionPositions, optionEquity));
+        slivers.add(OptionPositionsRowWidget(
+            widget.user, widget.account, filteredOptionPositions));
       }
     }
 
@@ -1011,6 +1070,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       }
     }
     */
+  }
+
+  void _handleSettingsChanged(dynamic settings) {
+    setState(() {
+      hasQuantityFilters = settings['hasQuantityFilters'];
+      optionFilters = settings['optionFilters'];
+      positionFilters = settings['positionFilters'];
+    });
   }
 
   Card buildOverview(Instrument instrument) {
@@ -1622,7 +1689,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   //overflow: TextOverflow.visible
                 ),
                 subtitle: Text(
-                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                    earning!["report"] != null
+                        ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
+                        : "",
                     style: const TextStyle(fontSize: 14)),
                 trailing: (earning!["eps"]["estimate"] != null ||
                         earning!["eps"]["actual"] != null)
@@ -1833,10 +1902,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           height: 56,
                           errorBuilder: (BuildContext context, Object exception,
                               StackTrace? stackTrace) {
-                            return const
-                                //CircleAvatar(child: Text(""));
-                                SizedBox(width: 56, height: 56);
-                            //const Icon(Icons.error); //Text('Your error widget...');
+                            return Text(
+                                instrument.similarObj![index]["symbol"]);
                           },
                         )
                       : const SizedBox(width: 56, height: 56),
@@ -2129,262 +2196,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget optionPositionsWidget(
-      List<OptionAggregatePosition> filteredOptionPositions,
-      double optionEquity) {
-    var contracts = filteredOptionPositions
-        .map((e) => e.quantity!.toInt())
-        .reduce((a, b) => a + b);
-    /*
-    var totalDelta = filteredOptionPositions
-        .map((e) => e.quantity! * e.marketData!.delta!)
-        .reduce((a, b) => a + b);
-    */
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: ListTile(
-                title: const Text(
-                  "Options",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCurrency.format(optionEquity)} market value"), // of ${formatCompactNumber.format(optionPositions.length)}
-                trailing: Wrap(children: [
-                  //Text('${formatCurrency.format(optionEquity)}',
-                  //    style: TextStyle(fontSize: 19.0),
-                  //    textAlign: TextAlign.right),
-                  IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          /*
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                            ),
-                            */
-                          //isScrollControlled: true,
-                          //useRootNavigator: true,
-                          //constraints: const BoxConstraints(maxHeight: 200),
-                          builder: (BuildContext context) {
-                            return StatefulBuilder(builder:
-                                (BuildContext context,
-                                    StateSetter bottomState) {
-                              return Scaffold(
-                                  appBar: AppBar(
-                                      leading: const CloseButton(),
-                                      title: const Text('Options Settings')),
-                                  body:
-                                      /*
-                              Padding(
-                                  padding: EdgeInsets.only(
-                                      top: MediaQueryData.fromWindow(
-                                              WidgetsBinding.instance!.window)
-                                          .padding
-                                          .top),
-                                  //MediaQuery.of(context).padding.top),
-                                  child: */
-                                      ListView(
-                                    //Column(
-                                    //mainAxisAlignment:
-                                    //    MainAxisAlignment.start,
-                                    //crossAxisAlignment:
-                                    //    CrossAxisAlignment.start,
-                                    children: [
-                                      const ListTile(
-                                        leading: Icon(Icons.functions),
-                                        title: Text("Options Greeks"),
-                                      ),
-                                      RadioListTile<bool>(
-                                          //leading: const Icon(Icons.account_circle),
-                                          title: const Text("Show Greeks"),
-                                          value: showGreeks,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              showGreeks = true;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                        //leading: const Icon(Icons.account_circle),
-                                        title: const Text("Hide Greeks"),
-                                        value: !showGreeks,
-                                        groupValue: true, //"refresh-setting",
-                                        onChanged: (val) {
-                                          setState(() {
-                                            showGreeks = false;
-                                          });
-                                          widget.user.save();
-                                          Navigator.pop(context, 'dialog');
-                                        },
-                                      ),
-                                      const Divider(
-                                        height: 10,
-                                      ),
-                                      const ListTile(
-                                        leading: Icon(Icons.calculate),
-                                        title: Text("Display Value"),
-                                      ),
-                                      RadioListTile<bool>(
-                                          title: const Text("Last Price"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.lastPrice,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue.lastPrice;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                          title: const Text("Market Value"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.marketValue,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue.marketValue;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                          title: const Text("Return Today"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.todayReturn,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue.todayReturn;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                          title: const Text("Return % Today"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.todayReturnPercent,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue
-                                                      .todayReturnPercent;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                          title: const Text("Total Return"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.totalReturn,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue.totalReturn;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      RadioListTile<bool>(
-                                          title: const Text("Total Return %"),
-                                          value: widget.user.displayValue ==
-                                              DisplayValue.totalReturnPercent,
-                                          groupValue: true, //"refresh-setting"
-                                          onChanged: (val) {
-                                            setState(() {
-                                              widget.user.displayValue =
-                                                  DisplayValue
-                                                      .totalReturnPercent;
-                                            });
-                                            widget.user.save();
-                                            Navigator.pop(context, 'dialog');
-                                          }),
-                                      const Divider(
-                                        height: 10,
-                                      ),
-                                      const ListTile(
-                                        leading: Icon(Icons.filter_list),
-                                        title: Text("Options Filters"),
-                                      ),
-                                      const ListTile(
-                                        //leading: Icon(Icons.filter_list),
-                                        title: Text("Position Type"),
-                                      ),
-                                      openClosedFilterWidget,
-                                      //openClosedFilterWidget(bottomState),
-                                      const ListTile(
-                                        //leading: Icon(Icons.filter_list),
-                                        title: Text("Option Type"),
-                                      ),
-                                      optionTypeFilterWidget,
-                                      //optionTypeFilterWidget(bottomState),
-                                    ],
-                                  ));
-                            });
-                          },
-                        );
-                      })
-                ]),
-                /*
-                trailing: IconButton(
-                    icon: const Icon(Icons.filter_list),
-                    onPressed: () {
-                      showModalBottomSheet<void>(
-                        context: context,
-                        //constraints: BoxConstraints(maxHeight: 260),
-                        builder: (BuildContext context) {
-                          return Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                tileColor:
-                                    Theme.of(context).colorScheme.primary,
-                                leading: const Icon(Icons.filter_list),
-                                title: const Text(
-                                  "Filter Options",
-                                  style: TextStyle(fontSize: 19.0),
-                                ),
-                                /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                              ),
-                              const ListTile(
-                                title: Text("Position & Option Type"),
-                              ),
-                              openClosedFilterWidget,
-                              optionTypeFilterWidget,
-                            ],
-                          );
-                        },
-                      );
-                    }),
-                    */
-              ))),
-      sliver: SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
-          return _buildOptionPositionRow(
-              filteredOptionPositions[index], widget.user);
-        }, childCount: filteredOptionPositions.length),
-      ),
-    );
-  }
-
   Widget get openClosedFilterWidget {
     return SizedBox(
         height: 56,
@@ -2616,203 +2427,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ));
   }
 
-  Widget _buildOptionPositionRow(OptionAggregatePosition op, RobinhoodUser ru) {
-    /*
-    if (optionsPositions[index].optionInstrument == null ||
-        (chainSymbolFilters.isNotEmpty &&
-            !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
-        (positionFilters.isNotEmpty &&
-            !positionFilters
-                .contains(optionsPositions[index].strategy.split("_").first)) ||
-        (optionFilters.isNotEmpty &&
-            !optionFilters
-                .contains(optionsPositions[index].optionInstrument!.type))) {
-      return Container();
-    }
-    */
-    double value = getDisplayValue(op);
-    String trailingText = getDisplayText(value);
-    Icon? icon = getDisplayIcon(value);
-
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        ListTile(
-          /*
-          leading: CircleAvatar(
-              child: Text('${op.quantity!.round()}',
-                  style: const TextStyle(fontSize: 18))),
-                  */
-          title: Text(
-              '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
-          subtitle: Text(
-              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
-          /*
-          title: Text(
-              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType}'),
-          subtitle: Text(
-              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) > 0 ? "Expires" : "Expired"} ${formatDate.format(op.legs.first.expirationDate!)}'),
-              */
-          trailing: Wrap(spacing: 8, children: [
-            if (icon != null) ...[
-              icon,
-            ],
-            Text(
-              trailingText,
-              style: const TextStyle(fontSize: 18.0),
-              textAlign: TextAlign.right,
-            )
-          ]),
-
-          /*Wrap(
-            spacing: 12,
-            children: [
-              Column(children: [
-                Text(
-                  "${formatCurrency.format(gainLoss)}\n${formatPercentage.format(gainLossPercent)}",
-                  style: const TextStyle(fontSize: 15.0),
-                  textAlign: TextAlign.right,
-                ),
-                Icon(
-                    gainLossPerContract > 0
-                        ? Icons.trending_up
-                        : (gainLossPerContract < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (gainLossPerContract > 0
-                        ? Colors.green
-                        : (gainLossPerContract < 0 ? Colors.red : Colors.grey)))
-              ]),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "${formatCurrency.format(marketValue)}",
-                    style: const TextStyle(fontSize: 18.0),
-                    textAlign: TextAlign.right,
-                  ),
-                ],
-              )
-            ],
-          ),*/
-          //isThreeLine: true,
-          onTap: () {
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => OptionInstrumentWidget(
-                        ru, widget.account, op.optionInstrument!,
-                        optionPosition: op)));
-          },
-        ),
-        if (showGreeks) ...[
-          Column(
-            children: [
-              Row(children: [
-                Expanded(
-                  flex: 2,
-                  child: Card(
-                      elevation: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.all(
-                            6), //.symmetric(horizontal: 6),
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(formatNumber.format(op.marketData!.delta),
-                                  style: const TextStyle(fontSize: 15.0)),
-                              //Container(height: 5),
-                              const Text("Δ", style: TextStyle(fontSize: 17.0)),
-                              const Text("Delta",
-                                  style: TextStyle(fontSize: 10.0)),
-                            ]),
-                      )),
-                ),
-                Expanded(
-                    flex: 2,
-                    child: Card(
-                        elevation: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(formatNumber.format(op.marketData!.gamma!),
-                                    style: const TextStyle(fontSize: 15.0)),
-                                //Container(height: 5),
-                                const Text("Γ",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Gamma",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ))),
-                Expanded(
-                    flex: 2,
-                    child: Card(
-                        elevation: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(formatNumber.format(op.marketData!.theta!),
-                                    style: const TextStyle(fontSize: 15.0)),
-                                //Container(height: 5),
-                                const Text("Θ",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Theta",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ))),
-                Expanded(
-                    flex: 2,
-                    child: Card(
-                        elevation: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(formatNumber.format(op.marketData!.vega!),
-                                    style: const TextStyle(fontSize: 15.0)),
-                                //Container(height: 5),
-                                const Text("v",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Vega",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        ))),
-                Expanded(
-                    flex: 2,
-                    child: Card(
-                        elevation: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              6), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(formatNumber.format(op.marketData!.rho!),
-                                    style: const TextStyle(fontSize: 15.0)),
-                                //Container(height: 5),
-                                const Text("p",
-                                    style: TextStyle(fontSize: 17.0)),
-                                const Text("Rho",
-                                    style: TextStyle(fontSize: 10.0)),
-                              ]),
-                        )))
-              ])
-            ],
-          ),
-        ]
-      ],
-    ));
-  }
-
   Widget get orderFilterWidget {
     return SizedBox(
         height: 56,
@@ -2885,126 +2499,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           },
           itemCount: 1,
         ));
-  }
-
-  double getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = ops
-            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.marketValue:
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.legs.first.positionType == "long"
-                    ? e.marketValue
-                    : e.marketValue)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.changeToday)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      case DisplayValue.totalReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLoss)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      default:
-    }
-    return value;
-  }
-
-  Icon? getDisplayIcon(double value) {
-    if (widget.user.displayValue == DisplayValue.lastPrice ||
-        widget.user.displayValue == DisplayValue.marketValue) {
-      return null;
-    }
-    var icon = Icon(
-        value > 0
-            ? Icons.trending_up
-            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
-        color: (value > 0
-            ? Colors.green
-            : (value < 0 ? Colors.red : Colors.grey)));
-    return icon;
-  }
-
-  String getDisplayText(double value) {
-    String opTrailingText = '';
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-      case DisplayValue.marketValue:
-      case DisplayValue.todayReturn:
-      case DisplayValue.totalReturn:
-        opTrailingText = formatCurrency.format(value);
-        break;
-      case DisplayValue.todayReturnPercent:
-      case DisplayValue.totalReturnPercent:
-        opTrailingText = formatPercentage.format(value);
-        break;
-      default:
-    }
-    return opTrailingText;
-  }
-
-  double getDisplayValue(OptionAggregatePosition op) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = op.marketData!.markPrice!;
-        break;
-      case DisplayValue.marketValue:
-        value = op.marketValue;
-        break;
-      case DisplayValue.todayReturn:
-        value = op.changeToday;
-        break;
-      case DisplayValue.todayReturnPercent:
-        value = op.changePercentToday;
-        break;
-      case DisplayValue.totalReturn:
-        value = op.gainLoss;
-        break;
-      case DisplayValue.totalReturnPercent:
-        value = op.gainLossPercent;
-        break;
-      default:
-    }
-    return value;
   }
 
   Widget headerTitle(Instrument instrument) {

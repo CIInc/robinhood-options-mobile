@@ -711,6 +711,7 @@ class RobinhoodService {
     } on Exception catch (e) {
       // Format
       debugPrint('No rating overview found. Error: $e');
+      return Future.value();
     }
     return resultJson;
   }
@@ -830,9 +831,21 @@ class RobinhoodService {
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
         optionPosition.marketData = optionMarketDatum;
+        // TODO: Get instrument and quote.
+        //optionPosition.instrumentObj =
+        //    await getInstrumentBySymbol(user, optionPosition.symbol);
 
+        ops.sort((a, b) {
+          int comp = a.legs.first.expirationDate!
+              .compareTo(b.legs.first.expirationDate!);
+          if (comp != 0) return comp;
+          return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+        });
+
+        /*
         ops.sort((a, b) => (a.legs.first.expirationDate ?? DateTime.now())
             .compareTo((b.legs.first.expirationDate ?? DateTime.now())));
+            */
         yield ops;
       }
     }
@@ -1015,13 +1028,15 @@ class RobinhoodService {
 
   static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
       RobinhoodUser user, List<OptionAggregatePosition> optionPositions) async {
-    var ops = optionPositions;
-    var len = ops.length;
+    if (optionPositions.first.optionInstrument == null) {
+      return optionPositions;
+    }
+    var len = optionPositions.length;
     var size = 25; //20; //15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
-      chunks.add(ops.sublist(i, end));
+      chunks.add(optionPositions.sublist(i, end));
     }
     for (var chunk in chunks) {
       var optionIds = chunk.map((e) {
@@ -1034,7 +1049,7 @@ class RobinhoodService {
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
       for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = ops.singleWhere((element) {
+        var optionPosition = optionPositions.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
@@ -1043,7 +1058,7 @@ class RobinhoodService {
         optionPosition.marketData = optionMarketDatum;
       }
     }
-    return ops;
+    return optionPositions;
   }
 
   static Stream<List<OptionOrder>> streamOptionOrders(
