@@ -819,13 +819,15 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
           Column(mainAxisAlignment: MainAxisAlignment.start, children: [
             SizedBox(
                 width: 190,
-                child: Text(
-                  holding.currencyName,
-                  //instrument.simpleName ?? instrument.name,
-                  style: const TextStyle(fontSize: 16.0),
-                  textAlign: TextAlign.left,
-                  //overflow: TextOverflow.ellipsis
-                ))
+                child: Hero(
+                    tag: 'logo_crypto_${holding.currencyCode}',
+                    child: Text(
+                      holding.currencyName,
+                      //instrument.simpleName ?? instrument.name,
+                      style: const TextStyle(fontSize: 16.0),
+                      textAlign: TextAlign.left,
+                      //overflow: TextOverflow.ellipsis
+                    )))
           ]),
           Container(
             width: 10,

@@ -413,23 +413,27 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //titlePadding:
             //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //background: const FlutterLogo(),
-            background: SizedBox(
-                width: double.infinity,
-                child: instrument.logoUrl != null
-                    ? Image.network(
-                        instrument.logoUrl!,
-                        fit: BoxFit.none,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return Text(instrument.symbol);
-                        },
-                      )
-                    : Container() //const FlutterLogo()
-                /*Image.network(
+            background: Hero(
+                tag: 'logo_${instrument.symbol}',
+                child: SizedBox(
+                    //width: double.infinity,
+                    child: instrument.logoUrl != null
+                        ? Image.network(
+                            instrument.logoUrl!,
+                            fit: BoxFit.none,
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
+                              debugPrint(
+                                  'Error with ${instrument.symbol} ${instrument.logoUrl}');
+                              return Container(); // Text(instrument.symbol);
+                            },
+                          )
+                        : Container() //const FlutterLogo()
+                    /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
-                ),
+                    )),
             title: Opacity(
               //duration: Duration(milliseconds: 300),
               opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,

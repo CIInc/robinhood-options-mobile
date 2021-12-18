@@ -18,8 +18,7 @@ class InitialWidget extends StatelessWidget {
             spacing: 20,
             //runSpacing: 5,
             children: const [
-              Text('Robinhood Options Mobile',
-                  style: TextStyle(fontSize: 20.0)),
+              Text('Robinhood Options', style: TextStyle(fontSize: 20.0)),
               Text(
                 "",
                 style: TextStyle(fontSize: 16.0, color: Colors.white70),

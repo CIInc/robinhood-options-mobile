@@ -223,41 +223,31 @@ class OptionPositionsRowWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         ListTile(
-          leading: op.logoUrl != null
-              ? CircleAvatar(
-                  radius: 25,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.primary, //.onBackground,
-                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Image.network(
-                    op.logoUrl!,
-                    width: 40,
-                    height: 40,
-                    errorBuilder: (BuildContext context, Object exception,
-                        StackTrace? stackTrace) {
-                      return Text(op.symbol);
-                    },
-                  ))
-              : CircleAvatar(
-                  radius: 25,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.primary, //.onBackground,
-                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    op.symbol
-                    /*.substring(
-                          0,
-                          positions[index].instrumentObj!.symbol.length < 4
-                              ? positions[index].instrumentObj!.symbol.length
-                              : 4)*/
-                    ,
-                    //style: TextStyle(fontSize: 16.0),
-                  )), //const SizedBox(width: 40, height: 40),
-          /*
-          leading: CircleAvatar(
-              child: Text(formatCompactNumber.format(op.quantity!),
-                  style: const TextStyle(fontSize: 17))),
-                  */
+          leading: Hero(
+              tag: 'logo_${op.symbol}',
+              child: op.logoUrl != null
+                  ? CircleAvatar(
+                      radius: 25,
+                      foregroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary, //.onBackground,
+                      //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      child: Image.network(
+                        op.logoUrl!,
+                        width: 40,
+                        height: 40,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          return Text(op.symbol);
+                        },
+                      ),
+                    )
+                  : CircleAvatar(
+                      radius: 25,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        op.symbol,
+                      ))),
           title: Text(
               '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
           subtitle: Text(
@@ -472,40 +462,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
     var contracts = ops.map((e) => e.quantity!.toInt()).reduce((a, b) => a + b);
     // var filteredOptionReturn = ops.map((e) => e.gainLoss).reduce((a, b) => a + b);
 
-    /*
-    return ExpansionPanelList(children: [
-      ExpansionPanel(
-          headerBuilder: (BuildContext context, bool isExpanded) {
-            return ListTile(
-              leading: ops.first.logoUrl != null
-                  ? Image.network(
-                      ops.first.logoUrl!,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (BuildContext context, Object exception,
-                          StackTrace? stackTrace) {
-                        return Text(ops.first.symbol);
-                      },
-                    )
-                  : CircleAvatar(
-                      foregroundColor: Theme.of(context)
-                          .colorScheme
-                          .primary, //.onBackground,
-                      //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      child: Text(ops.first.symbol.substring(
-                          0, 1))), //const SizedBox(width: 40, height: 40),,
-              title: Text(ops.first.symbol),
-              subtitle: Text("${ops.length} positions, $contracts contracts"),
-              trailing: Text(
-                formatCurrency.format(filteredOptionEquity),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            );
-          },
-          body: new ListTile())
-    ]);
-    */
     List<Widget> cards = [];
 
     double? value = getAggregateDisplayValue(ops);
@@ -539,62 +495,28 @@ class OptionPositionsRowWidget extends StatelessWidget {
     if (!excludeGroupRow) {
       cards.add(Column(children: [
         ListTile(
-          leading: ops.first.logoUrl != null
-              ? CircleAvatar(
-                  radius: 25,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.primary, //.onBackground,
-                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Image.network(
-                    ops.first.logoUrl!,
-                    width: 40,
-                    height: 40,
-                    errorBuilder: (BuildContext context, Object exception,
-                        StackTrace? stackTrace) {
-                      return Text(ops.first.symbol);
-                    },
-                  ))
-              : CircleAvatar(
-                  radius: 25,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.primary, //.onBackground,
-                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    ops.first.symbol
-                    /*.substring(
-                          0,
-                          positions[index].instrumentObj!.symbol.length < 4
-                              ? positions[index].instrumentObj!.symbol.length
-                              : 4)*/
-                    ,
-                    //style: TextStyle(fontSize: 16.0),
-                  )), //const SizedBox(width: 40, height: 40),
-          /*
-          title: Text(positions[index].instrumentObj != null
-            ? positions[index].instrumentObj!.simpleName ??
-                positions[index].instrumentObj!.name
-            : ""),
-            */
+          leading: Hero(
+              tag: 'logo_${ops.first.symbol}',
+              child: ops.first.logoUrl != null
+                  ? CircleAvatar(
+                      radius: 25,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      child: Image.network(
+                        ops.first.logoUrl!,
+                        width: 40,
+                        height: 40,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          return Text(ops.first.symbol);
+                        },
+                      ))
+                  : CircleAvatar(
+                      radius: 25,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        ops.first.symbol,
+                      ))),
           title: Text(ops.first.symbol),
-          /*
-          leading: ops.first.logoUrl != null
-              ? Image.network(
-                  ops.first.logoUrl!,
-                  width: 40,
-                  height: 40,
-                  errorBuilder: (BuildContext context, Object exception,
-                      StackTrace? stackTrace) {
-                    return Text(ops.first.symbol);
-                  },
-                )
-              : CircleAvatar(
-                  foregroundColor:
-                      Theme.of(context).colorScheme.primary, //.onBackground,
-                  //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(ops.first.symbol.substring(
-                      0, 1))), //const SizedBox(width: 40, height: 40),,
-          title: Text(ops.first.symbol),
-          */
           subtitle: Text("${ops.length} positions, $contracts contracts"),
           trailing: Wrap(spacing: 8, children: [
             if (icon != null) ...[
@@ -650,11 +572,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           ListTile(
-            /*
-            leading: CircleAvatar(
-                child: Text(formatCompactNumber.format(op.quantity!),
-                    style: const TextStyle(fontSize: 17))),
-                    */
             title: Text(
                 '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
             subtitle: Text(
@@ -865,301 +782,3 @@ class OptionPositionsRowWidget extends StatelessWidget {
     return value;
   }
 }
-/*
-import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-
-class OptionOrderFilterBottomSheet extends StatefulWidget {
-  const OptionOrderFilterBottomSheet({
-    Key? key,
-    this.orderSymbols,
-    this.optionAggregatePositions,
-  }) : super(key: key);
-
-  final List<String>? orderSymbols;
-  final List<OptionAggregatePosition>? optionAggregatePositions;
-
-  @override
-  _OptionOrderFilterBottomSheetState createState() =>
-      _OptionOrderFilterBottomSheetState();
-}
-
-class _OptionOrderFilterBottomSheetState
-    extends State<OptionOrderFilterBottomSheet> {
-  final List<String> orderFilters = <String>["confirmed", "filled"];
-  int dateFilterSelected = 0;
-  final List<String> orderSymbolFilters = <String>[];
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ListTile(
-          tileColor: Theme.of(context).colorScheme.primary,
-          leading: const Icon(Icons.filter_list),
-          title: const Text(
-            "Filter Option Orders",
-            style: TextStyle(fontSize: 19.0),
-          ),
-          /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-        ),
-        orderFilterWidget,
-        orderDateFilterWidget,
-        orderSymbolFilterWidget,
-      ],
-    );
-  }
-
-  Widget get orderFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Confirmed'),
-                  selected: orderFilters.contains("confirmed"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("confirmed");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "confirmed";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Filled'),
-                  selected: orderFilters.contains("filled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("filled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "filled";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Cancelled'),
-                  selected: orderFilters.contains("cancelled"),
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        orderFilters.add("cancelled");
-                      } else {
-                        orderFilters.removeWhere((String name) {
-                          return name == "cancelled";
-                        });
-                      }
-                    });
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
-
-  Widget get orderSymbolFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-                children: orderSymbolFilterWidgets(
-                        widget.orderSymbols!, widget.optionAggregatePositions!)
-                    .toList());
-          },
-          itemCount: 1,
-        ));
-  }
-
-  Widget get orderDateFilterWidget {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Today'),
-                  selected: dateFilterSelected == 0,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        dateFilterSelected = 0;
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Week'),
-                  selected: dateFilterSelected == 1,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        dateFilterSelected = 1;
-                      } else {
-                        //dateFilterSelected = null;
-                      }
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Month'),
-                  selected: dateFilterSelected == 2,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        dateFilterSelected = 2;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Past Year'),
-                  selected: dateFilterSelected == 3,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        dateFilterSelected = 3;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: ChoiceChip(
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('All Time'),
-                  selected: dateFilterSelected == 4,
-                  onSelected: (bool value) {
-                    setState(() {
-                      if (value) {
-                        dateFilterSelected = 4;
-                      } else {}
-                    });
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
-
-  Iterable<Widget> orderSymbolFilterWidgets(
-      List<String> chainSymbols, List<OptionAggregatePosition> options) sync* {
-    for (final String chainSymbol in chainSymbols) {
-      yield Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
-          label: Text(chainSymbol),
-          selected: orderSymbolFilters.contains(chainSymbol),
-          onSelected: (bool value) {
-            setState(() {
-              if (value) {
-                orderSymbolFilters.add(chainSymbol);
-              } else {
-                orderSymbolFilters.removeWhere((String name) {
-                  return name == chainSymbol;
-                });
-              }
-            });
-          },
-        ),
-      );
-    }
-  }
-}
-
-
-class OptionOrderFilterWidget extends StatefulWidget {
-  const OptionOrderFilterWidget({
-    Key? key,
-    this.color = const Color(0xFFFFE306),
-    this.child,
-  }) : super(key: key);
-
-  final Color color;
-  final Widget? child;
-
-  @override
-  State<OptionOrderFilterWidget> createState() => _OptionOrderFilterState();
-}
-
-class _OptionOrderFilterState extends State<OptionOrderFilterWidget> {
-  double _size = 1.0;
-
-  void grow() {
-    setState(() {
-      _size += 0.1;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: widget.color,
-      transform: Matrix4.diagonal3Values(_size, _size, 1.0),
-      child: widget.child,
-    );
-  }
-}
-*/

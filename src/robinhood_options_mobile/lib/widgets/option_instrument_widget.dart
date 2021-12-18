@@ -279,19 +279,22 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     background: SizedBox(
                         width: double.infinity,
                         child: instrument != null && instrument.logoUrl != null
-                            ? Image.network(
-                                instrument.logoUrl!,
-                                fit: BoxFit.none,
-                                errorBuilder: (BuildContext context,
-                                    Object exception, StackTrace? stackTrace) {
-                                  return Text(instrument.symbol);
-                                },
-                              )
+                            ? Hero(
+                                tag: 'logo_${instrument.symbol}',
+                                child: Image.network(
+                                  instrument.logoUrl!,
+                                  fit: BoxFit.none,
+                                  errorBuilder: (BuildContext context,
+                                      Object exception,
+                                      StackTrace? stackTrace) {
+                                    return Text(instrument.symbol);
+                                  },
+                                ))
                             : Container() //const FlutterLogo()
                         /*Image.network(
-                        Constants.flexibleSpaceBarBackground,
-                        fit: BoxFit.cover,
-                      ),*/
+                                Constants.flexibleSpaceBarBackground,
+                                fit: BoxFit.cover,
+                              ),*/
                         ),
                     title: Opacity(
                         //duration: Duration(milliseconds: 300),

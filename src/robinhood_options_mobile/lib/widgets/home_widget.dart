@@ -2656,37 +2656,31 @@ class _HomePageState extends State<HomePage>
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 17))),
                 */
-        leading: instrument != null && instrument.logoUrl != null
-            ? CircleAvatar(
-                radius: 25,
-                foregroundColor:
-                    Theme.of(context).colorScheme.primary, //.onBackground,
-                //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Image.network(
-                  instrument.logoUrl!,
-                  width: 40,
-                  height: 40,
-                  errorBuilder: (BuildContext context, Object exception,
-                      StackTrace? stackTrace) {
-                    return Text(instrument.symbol);
-                  },
-                ))
-            : CircleAvatar(
-                radius: 25,
-                foregroundColor:
-                    Theme.of(context).colorScheme.primary, //.onBackground,
-                //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Text(
-                  positions[index].instrumentObj != null
-                      ? positions[index].instrumentObj!.symbol
-                      /*.substring(
-                          0,
-                          positions[index].instrumentObj!.symbol.length < 4
-                              ? positions[index].instrumentObj!.symbol.length
-                              : 4)*/
-                      : "",
-                  //style: TextStyle(fontSize: 16.0),
-                )), //const SizedBox(width: 40, height: 40),
+        leading: Hero(
+            tag: 'logo_${instrument!.symbol}',
+            child: instrument != null && instrument.logoUrl != null
+                ? CircleAvatar(
+                    radius: 25,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.primary, //.onBackground,
+                    //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    child: Image.network(
+                      instrument.logoUrl!,
+                      width: 40,
+                      height: 40,
+                      errorBuilder: (BuildContext context, Object exception,
+                          StackTrace? stackTrace) {
+                        return Text(instrument.symbol);
+                      },
+                    ))
+                : CircleAvatar(
+                    radius: 25,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    child: Text(
+                      positions[index].instrumentObj != null
+                          ? positions[index].instrumentObj!.symbol
+                          : "",
+                    ))),
         title: Text(positions[index].instrumentObj != null
             ? positions[index].instrumentObj!.simpleName ??
                 positions[index].instrumentObj!.name
@@ -3023,21 +3017,14 @@ class _HomePageState extends State<HomePage>
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
-        leading: CircleAvatar(
-            radius: 25,
-            foregroundColor:
-                Theme.of(context).colorScheme.primary, //.onBackground,
-            //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-            child: Text(
-              holdings[index].currencyCode
-              /*.substring(
-                          0,
-                          positions[index].instrumentObj!.symbol.length < 4
-                              ? positions[index].instrumentObj!.symbol.length
-                              : 4)*/
-              ,
-              //style: TextStyle(fontSize: 16.0),
-            )), //const SizedBox(width: 40, height: 40),
+        leading: Hero(
+            tag: 'logo_crypto_${holdings[index].currencyCode}',
+            child: CircleAvatar(
+                radius: 25,
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                child: Text(
+                  holdings[index].currencyCode,
+                ))),
 
         /*
         leading: CircleAvatar(
