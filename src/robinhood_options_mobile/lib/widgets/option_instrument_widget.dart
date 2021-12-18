@@ -29,8 +29,9 @@ class OptionInstrumentWidget extends StatefulWidget {
   final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
+  final String? heroTag;
   const OptionInstrumentWidget(this.user, this.account, this.optionInstrument,
-      {Key? key, this.optionPosition})
+      {Key? key, this.optionPosition, this.heroTag})
       : super(key: key);
 
   @override
@@ -276,21 +277,24 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 const fadeEnd = 1.0;
                 final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
                 return FlexibleSpaceBar(
-                    background: SizedBox(
-                        width: double.infinity,
-                        child: instrument != null && instrument.logoUrl != null
-                            ? Hero(
-                                tag: 'logo_${instrument.symbol}',
-                                child: Image.network(
-                                  instrument.logoUrl!,
-                                  fit: BoxFit.none,
-                                  errorBuilder: (BuildContext context,
-                                      Object exception,
-                                      StackTrace? stackTrace) {
-                                    return Text(instrument.symbol);
-                                  },
-                                ))
-                            : Container() //const FlutterLogo()
+                    background: Hero(
+                        tag: widget.heroTag != null
+                            ? '${widget.heroTag}'
+                            : 'logo_${widget.optionInstrument.chainSymbol}',
+                        child: SizedBox(
+                            width: double.infinity,
+                            child:
+                                instrument != null && instrument.logoUrl != null
+                                    ? Image.network(
+                                        instrument.logoUrl!,
+                                        fit: BoxFit.none,
+                                        errorBuilder: (BuildContext context,
+                                            Object exception,
+                                            StackTrace? stackTrace) {
+                                          return Text(instrument.symbol);
+                                        },
+                                      )
+                                    : Container()) //const FlutterLogo()
                         /*Image.network(
                                 Constants.flexibleSpaceBarBackground,
                                 fit: BoxFit.cover,

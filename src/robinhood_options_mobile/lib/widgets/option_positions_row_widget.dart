@@ -200,20 +200,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    /*
-    if (optionsPositions[index].optionInstrument == null ||
-        (chainSymbolFilters.isNotEmpty &&
-            !chainSymbolFilters.contains(optionsPositions[index].symbol)) ||
-        (positionFilters.isNotEmpty &&
-            !positionFilters
-                .contains(optionsPositions[index].strategy.split("_").first)) ||
-        (optionFilters.isNotEmpty &&
-            !optionFilters
-                .contains(optionsPositions[index].optionInstrument!.type))) {
-      return Container();
-    }
-    */
-
     double value = getDisplayValue(op);
     String opTrailingText = getDisplayText(value);
     Icon? icon = getDisplayIcon(value);
@@ -224,14 +210,11 @@ class OptionPositionsRowWidget extends StatelessWidget {
       children: <Widget>[
         ListTile(
           leading: Hero(
-              tag: 'logo_${op.symbol}',
+              tag: 'logo_${op.symbol}${op.id}',
               child: op.logoUrl != null
                   ? CircleAvatar(
                       radius: 25,
-                      foregroundColor: Theme.of(context)
-                          .colorScheme
-                          .primary, //.onBackground,
-                      //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor: Theme.of(context).colorScheme.primary,
                       child: Image.network(
                         op.logoUrl!,
                         width: 40,
@@ -276,7 +259,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
                         user, account, op.optionInstrument!,
-                        optionPosition: op)));
+                        optionPosition: op,
+                        heroTag: 'logo_${op.symbol}${op.id}')));
           },
         ),
         if (user.showGreeks) ...[

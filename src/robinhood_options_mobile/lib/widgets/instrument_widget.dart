@@ -44,8 +44,9 @@ class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Account account;
   final Instrument instrument;
+  final String? heroTag;
   const InstrumentWidget(this.user, this.account, this.instrument,
-      {Key? key}) //, this.optionPosition})
+      {Key? key, this.heroTag})
       : super(key: key);
 
   @override
@@ -414,7 +415,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //background: const FlutterLogo(),
             background: Hero(
-                tag: 'logo_${instrument.symbol}',
+                tag: widget.heroTag != null
+                    ? '${widget.heroTag}'
+                    : 'logo_${instrument.symbol}',
                 child: SizedBox(
                     //width: double.infinity,
                     child: instrument.logoUrl != null

@@ -2656,35 +2656,34 @@ class _HomePageState extends State<HomePage>
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 17))),
                 */
-        leading: Hero(
-            tag: 'logo_${instrument!.symbol}',
-            child: instrument.logoUrl != null
-                ? CircleAvatar(
-                    radius: 25,
-                    foregroundColor:
-                        Theme.of(context).colorScheme.primary, //.onBackground,
-                    //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                    child: Image.network(
-                      instrument.logoUrl!,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (BuildContext context, Object exception,
-                          StackTrace? stackTrace) {
-                        return Text(instrument.symbol);
-                      },
-                    ))
-                : CircleAvatar(
-                    radius: 25,
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                    child: Text(
-                      positions[index].instrumentObj != null
-                          ? positions[index].instrumentObj!.symbol
-                          : "",
-                    ))),
-        title: Text(positions[index].instrumentObj != null
-            ? positions[index].instrumentObj!.simpleName ??
-                positions[index].instrumentObj!.name
-            : ""),
+        leading: instrument != null
+            ? Hero(
+                tag: 'logo_${instrument.symbol}${instrument.id}',
+                child: instrument.logoUrl != null
+                    ? CircleAvatar(
+                        radius: 25,
+                        foregroundColor: Theme.of(context)
+                            .colorScheme
+                            .primary, //.onBackground,
+                        //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                        child: Image.network(
+                          instrument.logoUrl!,
+                          width: 40,
+                          height: 40,
+                          errorBuilder: (BuildContext context, Object exception,
+                              StackTrace? stackTrace) {
+                            return Text(instrument.symbol);
+                          },
+                        ))
+                    : CircleAvatar(
+                        radius: 25,
+                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        child: Text(
+                          instrument.symbol,
+                        )))
+            : null,
+        title: Text(
+            instrument != null ? instrument.simpleName ?? instrument.name : ""),
         subtitle: Text("${positions[index].quantity} shares"),
         //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
         /*
@@ -2712,8 +2711,9 @@ class _HomePageState extends State<HomePage>
           var futureFromInstrument = Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(widget.user, account!,
-                      positions[index].instrumentObj as Instrument)));
+                  builder: (context) => InstrumentWidget(
+                      widget.user, account!, instrument!,
+                      heroTag: 'logo_${instrument.symbol}${instrument.id}')));
           // Refresh in case settings were updated.
           futureFromInstrument.then((value) => setState(() {}));
         },
