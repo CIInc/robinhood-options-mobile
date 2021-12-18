@@ -2658,7 +2658,7 @@ class _HomePageState extends State<HomePage>
                 */
         leading: Hero(
             tag: 'logo_${instrument!.symbol}',
-            child: instrument != null && instrument.logoUrl != null
+            child: instrument.logoUrl != null
                 ? CircleAvatar(
                     radius: 25,
                     foregroundColor:
