@@ -1,10 +1,5 @@
-/// Example of a stacked area chart.
-import 'dart:math';
-
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
 class TimeSeriesChart extends StatefulWidget {
   final List<charts.Series<dynamic, DateTime>> seriesList;
@@ -147,9 +142,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       widget.onSelected(null);
     }
   }
-
+  /*
   _onSliderChange(Point<int> point, dynamic domain, String roleId,
       charts.SliderListenerDragState dragState) {
     //widget.onSelected(selected);
   }
+  */
 }
