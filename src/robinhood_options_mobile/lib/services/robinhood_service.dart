@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1244,12 +1245,42 @@ class RobinhoodService {
     return list;
   }
 
+  /*
   static Future<dynamic> getForexHistoricals(
       RobinhoodUser user, List<String> ids) async {
+        //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
     String url =
         "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
     return resultJson;
+  }
+  */
+  /*
+  // Bounds options     [regular, trading]
+  // Interval options   [15second, 5minute, 10minute, hour, day, week]
+  // Span options       [day, week, month, 3month, year, 5year]
+
+  // Day: bounds: trading, interval: 5minute, span: day
+  // Week: bounds: regular, interval: 10minute, span: week
+  // Month: bounds: regular, interval: hour, span: month
+  // 3 Months: bounds: regular, interval: day, span: 3month
+  // Year: bounds: regular, interval: day, span: year
+  // Year: bounds: regular, interval: day, span: 5year
+  */
+  static Future<List<ForexHistoricals>> getForexHistoricals(
+      RobinhoodUser user, List<String> ids,
+      {String? bounds = "24_7", String? interval, String? span}) async {
+    var resultJson = await RobinhoodService.getJson(
+        user,
+        //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
+        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}");
+    List<ForexHistoricals> list = [];
+    for (var i = 0; i < resultJson['results'].length; i++) {
+      var result = resultJson['results'][i];
+      var item = ForexHistoricals.fromJson(result);
+      list.add(item);
+    }
+    return list;
   }
 
   static Future<List<dynamic>> getForexPairs(RobinhoodUser user) async {

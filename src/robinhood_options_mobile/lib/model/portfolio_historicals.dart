@@ -10,7 +10,7 @@ class PortfolioHistoricals {
   final String span;
   final String bounds;
   final double? totalReturn;
-  final List<EquityHistorical> equityHistoricals;
+  List<EquityHistorical> equityHistoricals;
   final bool useNewHp;
 
   PortfolioHistoricals(

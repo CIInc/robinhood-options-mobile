@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -114,18 +115,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             robinhoodUser = userSnapshot.data!;
 
             futureUser ??= RobinhoodService.getUser(robinhoodUser!);
-            futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
+            //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
 
             return FutureBuilder(
-                future: Future.wait(
-                    [futureUser as Future, futureAccounts as Future]),
+                future:
+                    futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
                 builder: (context1, dataSnapshot) {
                   if (dataSnapshot.hasData) {
+                    userInfo = dataSnapshot.data! as UserInfo;
+                    /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
                     accounts =
                         data.length > 1 ? data[1] as List<Account> : null;
-
+                        */
                     tabPages = [
                       HomePage(robinhoodUser!, userInfo!,
                           title: 'Robinhood Options',
@@ -184,10 +187,37 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       drawer: _buildDrawer(),
       body: PageView.builder(
         itemBuilder: (context, index) {
+          /*
+          if (userInfo != null) {
+            switch (index) {
+              case 0:
+                return HomePage(robinhoodUser!, userInfo!,
+                    title: 'Robinhood Options',
+                    navigatorKey: navigatorKeys[0],
+                    onUserChanged: _handleUserChanged,
+                    onAccountsChanged: _handleAccountChanged);
+              case 1:
+                return SearchWidget(
+                    robinhoodUser!, accounts != null ? accounts!.first : null,
+                    navigatorKey: navigatorKeys[1]);
+              case 2:
+                return ListsWidget(
+                    robinhoodUser!, accounts != null ? accounts!.first : null,
+                    navigatorKey: navigatorKeys[2]);
+              case 3:
+                return HistoryPage(
+                    robinhoodUser!, accounts != null ? accounts!.first : null,
+                    navigatorKey: navigatorKeys[3]);
+            }
+          }
+          return const InitialWidget();
+          */
           return tabPages[index];
         },
-        itemCount: tabPages.length,
+        //itemCount: userInfo == null ? 1 : 4,
+        itemCount: 1, //tabPages.length,
         controller: _pageController,
+        allowImplicitScrolling: false,
         physics: const NeverScrollableScrollPhysics(),
       ),
       /*
@@ -307,31 +337,66 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 ),
                 Column(children: [
                   ListTile(
-                      leading: const Icon(Icons.account_circle),
-                      title: const Text("Profile"),
-                      //selected: 0 == _selectedDrawerIndex,
-                      onTap: () {
-                        //_onSelectItem(0);
-                        _openLogin();
-                        /*                      
-                        showDialog(
+                    leading: const Icon(Icons.account_balance),
+                    title: const Text("Portfolio"),
+                    selected: _pageIndex == 0,
+                    onTap: () {
+                      Navigator.pop(context); // close the drawer
+                      _onPageChanged(0);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.search),
+                    title: const Text("Search"),
+                    selected: _pageIndex == 1,
+                    onTap: () {
+                      Navigator.pop(context); // close the drawer
+                      _onPageChanged(1);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.collections_bookmark),
+                    title: const Text("Lists"),
+                    selected: _pageIndex == 2,
+                    onTap: () {
+                      Navigator.pop(context); // close the drawer
+                      _onPageChanged(2);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: const Text("History"),
+                    selected: _pageIndex == 3,
+                    onTap: () {
+                      Navigator.pop(context); // close the drawer
+                      _onPageChanged(3);
+                    },
+                  ),
+                  const Divider(
+                    height: 10,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.settings),
+                    title: const Text("Settings"),
+                    //selected: false,
+                    onTap: () {
+                      Navigator.pop(context); // close the drawer
+                      showModalBottomSheet<void>(
                           context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Alert'),
-                              content: const Text(
-                                  'This feature is not implemented.'),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, 'OK'),
-                                  child: const Text('OK'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                        */
-                      }),
+                          //isScrollControlled: true,
+                          //useRootNavigator: true,
+                          //constraints: const BoxConstraints(maxHeight: 200),
+                          builder: (_) => MoreMenuBottomSheet(robinhoodUser!,
+                              /*
+                    chainSymbols: chainSymbols,
+                    positionSymbols: positionSymbols,
+                    cryptoSymbols: cryptoSymbols,
+                    optionSymbolFilters: optionSymbolFilters,
+                    stockSymbolFilters: stockSymbolFilters,
+                    cryptoFilters: cryptoFilters,*/
+                              onSettingsChanged: (_) => {}));
+                    },
+                  ),
                   const Divider(
                     height: 10,
                   ),
@@ -343,7 +408,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                       _onSelectItem(1);
                       _logout();
                     },
-                  )
+                  ),
                 ]),
               ],
       ),

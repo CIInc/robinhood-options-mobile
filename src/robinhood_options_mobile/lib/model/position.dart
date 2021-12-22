@@ -151,12 +151,17 @@ class Position {
   }
 
   double get gainLossToday {
-    return instrumentObj!.quoteObj!.lastTradePrice! -
-        instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!;
+    return instrumentObj != null && instrumentObj!.quoteObj != null
+        ? (instrumentObj!.quoteObj!.lastTradePrice! -
+                instrumentObj!.quoteObj!.adjustedPreviousClose!) *
+            quantity!
+        : 0;
   }
 
   double get gainLossPercentToday {
-    return gainLossToday / instrumentObj!.quoteObj!.adjustedPreviousClose!;
+    return instrumentObj != null && instrumentObj!.quoteObj != null
+        ? gainLossToday / instrumentObj!.quoteObj!.adjustedPreviousClose!
+        : 0;
   }
 /*
   double get changeToday {    

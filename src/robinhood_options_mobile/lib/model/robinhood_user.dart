@@ -35,7 +35,7 @@ class RobinhoodUser {
             json['optionsView'] == null || json['optionsView'] == 'View.list'
                 ? View.list
                 : View.grouped,
-        displayValue = parseDisplayValue(json['optionsView']),
+        displayValue = parseDisplayValue(json['displayValue']),
         showGreeks = json['showGreeks'] ?? true;
 
   Map<String, dynamic> toJson() => {

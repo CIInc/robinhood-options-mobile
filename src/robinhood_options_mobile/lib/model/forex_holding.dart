@@ -31,6 +31,7 @@
 }
 */
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 
 class ForexHolding {
@@ -44,6 +45,7 @@ class ForexHolding {
   final DateTime? updatedAt;
   //double? value;
   ForexQuote? quoteObj;
+  ForexHistoricals? historicalsObj;
 
   ForexHolding(
     this.id,

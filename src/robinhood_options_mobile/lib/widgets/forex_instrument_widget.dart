@@ -2,8 +2,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -13,9 +15,9 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatExpirationDate = DateFormat('yyyy-MM-dd');
-final formatCompactDate = DateFormat("MMMd");
+final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
+final formatCompactDate = DateFormat("MMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
@@ -34,12 +36,12 @@ class ForexInstrumentWidget extends StatefulWidget {
 
 class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
   Future<dynamic>? futureQuote;
-  Future<dynamic>? futureHistoricals;
+  Future<List<ForexHistoricals>>? futureHistoricals;
 
   //charts.TimeSeriesChart? chart;
   TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
-  Bounds chartBoundsFilter = Bounds.regular;
+  Bounds chartBoundsFilter = Bounds.t24_7; //regular
   InstrumentHistorical? selection;
 
   //final dataKey = GlobalKey();
@@ -71,7 +73,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
         if (snapshot.hasData) {
           //var quoteObj = CryptoQuote.fromJson(snapshot.data!);
           widget.holding.quoteObj = snapshot.data! as ForexQuote;
-          /*
+
           String? bounds;
           String? interval;
           String? span;
@@ -82,8 +84,11 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
             case Bounds.trading:
               bounds = "trading";
               break;
+            case Bounds.t24_7:
+              bounds = "t24_7";
+              break;
             default:
-              bounds = "regular";
+              bounds = "t24_7";
               break;
           }
           switch (chartDateSpanFilter) {
@@ -121,31 +126,27 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
               break;
           }
           futureHistoricals ??= RobinhoodService.getForexHistoricals(
-              widget.user, widget.holding.quoteObj['id'],
-              //interval: interval, span: span, bounds: bounds
-          );
+              widget.user, [widget.holding.quoteObj!.id],
+              interval: interval, span: span, bounds: bounds);
 
-          return FutureBuilder<InstrumentHistoricals>(
+          return FutureBuilder<List<ForexHistoricals>>(
               future: futureHistoricals,
               builder: (context11, historicalsSnapshot) {
                 if (historicalsSnapshot.hasData) {
-                  if (instrument.instrumentHistoricalsObj == null ||
-                      historicalsSnapshot.data!.bounds !=
-                          instrument.instrumentHistoricalsObj!.bounds ||
-                      historicalsSnapshot.data!.span !=
-                          instrument.instrumentHistoricalsObj!.span) {
+                  var data = historicalsSnapshot.data![0];
+                  if (widget.holding.historicalsObj == null ||
+                      data.bounds != widget.holding.historicalsObj!.bounds ||
+                      data.span != widget.holding.historicalsObj!.span) {
                     chart = null;
-                  }
 
-                  instrument.instrumentHistoricalsObj =
-                      historicalsSnapshot.data!;
+                    widget.holding.historicalsObj = data;
+                  }
                 }
-                return buildScrollView(instrument,
-                    position: widget.position,
-                    done: historicalsSnapshot.connectionState ==
-                        ConnectionState.done);
+                return buildScrollView(widget.holding,
+                    done: snapshot.connectionState == ConnectionState.done &&
+                        historicalsSnapshot.connectionState ==
+                            ConnectionState.done);
               });
-          */
         }
         /* else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
@@ -166,8 +167,29 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
   }
 
   buildScrollView(ForexHolding holding, {bool done = false}) {
-    /*
-    if (holding.instrumentHistoricalsObj != null) {
+    InstrumentHistorical? firstHistorical;
+    InstrumentHistorical? lastHistorical;
+    double open = 0;
+    double close = 0;
+    double changeInPeriod = 0;
+    double changePercentInPeriod = 0;
+
+    if (holding.historicalsObj != null) {
+      firstHistorical = holding.historicalsObj!.historicals[0];
+      lastHistorical = holding.historicalsObj!
+          .historicals[holding.historicalsObj!.historicals.length - 1];
+      // TODO - Figure out what properties to use // portfolioHistoricals.adjustedOpenEquity
+      open = firstHistorical.openPrice!;
+      close = lastHistorical.closePrice!;
+      changeInPeriod = close - open;
+      changePercentInPeriod = changeInPeriod / close;
+
+      if (selection != null) {
+        changeInPeriod = selection!.closePrice! -
+            open; // portfolios![0].equityPreviousClose!;
+        changePercentInPeriod = changeInPeriod / selection!.closePrice!;
+      }
+
       if (chart == null) {
         List<charts.Series<dynamic, DateTime>> seriesList = [
           charts.Series<InstrumentHistorical, DateTime>(
@@ -175,42 +197,40 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
             colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
             domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
             measureFn: (InstrumentHistorical history, _) => history.openPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
+            data: holding.historicalsObj!.historicals,
           ),
           charts.Series<InstrumentHistorical, DateTime>(
             id: 'Close',
             colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
             domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
             measureFn: (InstrumentHistorical history, _) => history.closePrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
+            data: holding.historicalsObj!.historicals,
           ),
           charts.Series<InstrumentHistorical, DateTime>(
               id: 'Volume',
               colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
               domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
               measureFn: (InstrumentHistorical history, _) => history.volume,
-              data: instrument.instrumentHistoricalsObj!.historicals),
+              data: holding.historicalsObj!.historicals),
           charts.Series<InstrumentHistorical, DateTime>(
             id: 'Low',
             colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
             domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
             measureFn: (InstrumentHistorical history, _) => history.lowPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
+            data: holding.historicalsObj!.historicals,
           ),
           charts.Series<InstrumentHistorical, DateTime>(
             id: 'High',
             colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
             domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
             measureFn: (InstrumentHistorical history, _) => history.highPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
+            data: holding.historicalsObj!.historicals,
           ),
         ];
-        var open =
-            instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
-        var close = instrument
-            .instrumentHistoricalsObj!
-            .historicals[
-                instrument.instrumentHistoricalsObj!.historicals.length - 1]
+        var open = holding.historicalsObj!.historicals[0].openPrice!;
+        var close = holding
+            .historicalsObj!
+            .historicals[holding.historicalsObj!.historicals.length - 1]
             .closePrice!;
         chart = TimeSeriesChart(seriesList,
             open: open,
@@ -219,7 +239,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
             onSelected: _onChartSelection);
       }
     }
-    */
+
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
         title: headerTitle(holding),
@@ -282,23 +302,15 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
           child: Align(
               alignment: Alignment.center, child: buildOverview(holding))),
     );
-    /*
-    if (instrument.instrumentHistoricalsObj != null) {
+
+    if (holding.historicalsObj != null) {
       var brightness = MediaQuery.of(context).platformBrightness;
       var textColor = Theme.of(context).colorScheme.background;
       if (brightness == Brightness.dark) {
-        textColor = Colors.grey.shade500;
+        textColor = Colors.grey.shade200;
       } else {
-        textColor = Colors.grey.shade700;
+        textColor = Colors.grey.shade800;
       }
-      var open = instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
-      var close = instrument
-          .instrumentHistoricalsObj!
-          .historicals[
-              instrument.instrumentHistoricalsObj!.historicals.length - 1]
-          .closePrice!;
-      double changeToday = close - open;
-      double changePercentToday = changeToday / close;
 
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
@@ -309,64 +321,48 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
           child: SizedBox(
               height: 36,
               child: Center(
-                  child: Column(children: [
-                if (selection != null) ...[
+                  child: Column(
+                children: [
                   Wrap(
-                    //spacing: 8,
                     children: [
+                      Text(formatCurrency.format(close),
+                          style: TextStyle(fontSize: 20, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Icon(
+                        changeInPeriod > 0
+                            ? Icons.trending_up
+                            : (changeInPeriod < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (changeInPeriod > 0
+                            ? Colors.green
+                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
+                        //size: 16.0
+                      ),
+                      Container(
+                        width: 2,
+                      ),
                       Text(
-                          "O ${formatCurrency.format(selection!.openPrice)} H ${formatCurrency.format(selection!.highPrice)} L ${formatCurrency.format(selection!.lowPrice)} C ${formatCurrency.format(selection!.closePrice)}",
-                          style: const TextStyle(fontSize: 14)),
-                      /*
-                            Text(
-                                "Volume ${formatCompactNumber.format(selection!.volume)}",
-                                style: const TextStyle(fontSize: 11))
-                                */
+                          formatPercentage
+                              //.format(selection!.netReturn!.abs()),
+                              .format(changePercentInPeriod.abs()),
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Text(
+                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
                     ],
                   ),
-                  Text(formatLongDate.format(selection!.beginsAt!.toLocal()),
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ] else ...[
-                  Wrap(children: [
-                    Text(formatCurrency.format(close),
-                        style: TextStyle(fontSize: 20, color: textColor)),
-                    Container(
-                      width: 10,
-                    ),
-                    Icon(
-                      changeToday > 0
-                          ? Icons.trending_up
-                          : (changeToday < 0
-                              ? Icons.trending_down
-                              : Icons.trending_flat),
-                      color: (changeToday > 0
-                          ? Colors.green
-                          : (changeToday < 0 ? Colors.red : Colors.grey)),
-                      //size: 16.0
-                    ),
-                    Container(
-                      width: 2,
-                    ),
-                    Text(formatPercentage.format(changePercentToday.abs()),
-                        style: TextStyle(fontSize: 20.0, color: textColor)),
-                    Container(
-                      width: 10,
-                    ),
-                    Text(
-                        "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
-                        style: TextStyle(fontSize: 20.0, color: textColor)),
-                  ]),
                   Text(
-                      formatLongDate.format(instrument
-                          .instrumentHistoricalsObj!
-                          .historicals[instrument.instrumentHistoricalsObj!
-                                  .historicals.length -
-                              1]
-                          .beginsAt!
-                          .toLocal()),
+                      '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                       style: TextStyle(fontSize: 10, color: textColor)),
-                ]
-              ])))));
+                ],
+              )))));
+
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
               height: 400,
@@ -389,6 +385,22 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
                       child: ChoiceChip(
                         //avatar: const Icon(Icons.history_outlined),
                         //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        label: const Text('Hour'),
+                        selected: chartDateSpanFilter == ChartDateSpan.hour,
+                        onSelected: (bool value) {
+                          if (value) {
+                            resetChart(ChartDateSpan.hour, chartBoundsFilter);
+                          }
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        //avatar: const Icon(Icons.history_outlined),
+                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        //selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                        //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
                         label: const Text('Day'),
                         selected: chartDateSpanFilter == ChartDateSpan.day,
                         onSelected: (bool value) {
@@ -460,15 +472,16 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
                       child: ChoiceChip(
                         //avatar: const Icon(Icons.history_outlined),
                         //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('5 Years'),
-                        selected: chartDateSpanFilter == ChartDateSpan.year_5,
+                        label: const Text('All'),
+                        selected: chartDateSpanFilter == ChartDateSpan.all,
                         onSelected: (bool value) {
                           if (value) {
-                            resetChart(ChartDateSpan.year_5, chartBoundsFilter);
+                            resetChart(ChartDateSpan.all, chartBoundsFilter);
                           }
                         },
                       ),
                     ),
+                    /*
                     Container(
                       width: 10,
                     ),
@@ -491,21 +504,21 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
                       child: ChoiceChip(
                         //avatar: const Icon(Icons.history_outlined),
                         //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Trading Hours'),
-                        selected: chartBoundsFilter == Bounds.trading,
+                        label: const Text('24/7 Hours'),
+                        selected: chartBoundsFilter == Bounds.t24_7,
                         onSelected: (bool value) {
                           if (value) {
-                            resetChart(chartDateSpanFilter, Bounds.trading);
+                            resetChart(chartDateSpanFilter, Bounds.t24_7);
                           }
                         },
                       ),
                     ),
+                    */
                   ]);
                 },
                 itemCount: 1,
               ))));
     }
-    */
 
     //if (holding != null) {
     slivers.add(const SliverToBoxAdapter(
@@ -597,7 +610,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
     });
   }
 
-  /*
   _onChartSelection(dynamic historical) {
     if (selection != historical) {
       setState(() {
@@ -618,7 +630,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
       }
     }
   }
-    */
 
   Card buildOverview(ForexHolding holding) {
     if (holding.quoteObj == null) {

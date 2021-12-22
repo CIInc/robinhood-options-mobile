@@ -1,6 +1,10 @@
 /// Example of a stacked area chart.
+import 'dart:math';
+
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:robinhood_options_mobile/model/equity_historical.dart';
 
 class TimeSeriesChart extends StatefulWidget {
   final List<charts.Series<dynamic, DateTime>> seriesList;
@@ -26,6 +30,26 @@ class TimeSeriesChart extends StatefulWidget {
 }
 
 class _TimeSeriesChartState extends State<TimeSeriesChart> {
+  /*
+  num? _sliderDomainValue;
+  String? _sliderDragState;
+  Point<int>? _sliderPosition;
+  // Handles callbacks when the user drags the slider.
+  _onSliderChange(Point<int> point, dynamic domain, String roleId,
+      charts.SliderListenerDragState dragState) {
+    // Request a build.
+    void rebuild(_) {
+      setState(() {
+        _sliderDomainValue = (domain * 10).round() / 10;
+        _sliderDragState = dragState.toString();
+        _sliderPosition = point;
+      });
+    }
+
+    SchedulerBinding.instance!.addPostFrameCallback(rebuild);
+  }
+  */
+
   @override
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
@@ -64,15 +88,22 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             changedListener: _onSelectionChanged)
       ],
       behaviors: [
-        charts.SelectNearest(
+        /*
+        charts.Slider(
+            initialDomainValue:
+                (widget.seriesList[0].data[0] as EquityHistorical).beginsAt,
+            snapToDatum: true,
             eventTrigger: charts.SelectionTrigger.tapAndDrag,
-            selectAcrossAllDrawAreaComponents: true),
+            onChangeCallback: _onSliderChange),
+            */
+        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.pressHold),
         charts.LinePointHighlighter(
             showHorizontalFollowLine:
                 charts.LinePointHighlighterFollowLineType.none,
             showVerticalFollowLine:
-                charts.LinePointHighlighterFollowLineType.nearest,
-            dashPattern: const []),
+                charts.LinePointHighlighterFollowLineType.all,
+            dashPattern: const [10],
+            defaultRadiusPx: 5),
         /*
         charts.InitialSelection(selectedDataConfig: [
           charts.SeriesDatumConfig<DateTime>(
@@ -115,5 +146,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     } else {
       widget.onSelected(null);
     }
+  }
+
+  _onSliderChange(Point<int> point, dynamic domain, String roleId,
+      charts.SliderListenerDragState dragState) {
+    //widget.onSelected(selected);
   }
 }

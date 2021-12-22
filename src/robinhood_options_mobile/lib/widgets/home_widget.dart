@@ -213,9 +213,21 @@ class _HomePageState extends State<HomePage>
                     chart = null;
                     //selection = historicalsSnapshot
                     //    .data!.equityHistoricals.last;
+                    var portfolioHistoricals =
+                        historicalsSnapshot.data as PortfolioHistoricals;
+                    if (portfolioHistoricals.span == "day") {
+                      final DateTime now = DateTime.now();
+                      final DateTime today =
+                          DateTime(now.year, now.month, now.day);
+
+                      portfolioHistoricals.equityHistoricals =
+                          portfolioHistoricals.equityHistoricals
+                              .where((element) =>
+                                  element.beginsAt!.compareTo(today) >= 0)
+                              .toList();
+                    }
+                    this.portfolioHistoricals = portfolioHistoricals;
                   }
-                  portfolioHistoricals =
-                      historicalsSnapshot.data as PortfolioHistoricals;
 
                   positionStream ??= RobinhoodService.streamPositions(
                       widget.user,
@@ -402,9 +414,7 @@ class _HomePageState extends State<HomePage>
     double open = 0;
     double close = 0;
     double changeInPeriod = 0;
-
-    double changeToday = 0;
-    double changePercentToday = 0;
+    double changePercentInPeriod = 0;
 
     double optionEquity = 0;
     double positionEquity = 0;
@@ -447,19 +457,26 @@ class _HomePageState extends State<HomePage>
       portfolioCash = account!.portfolioCash ?? 0;
       cashPercent = portfolioCash / portfolioValue;
       cryptoPercent = nummusEquity / portfolioValue;
-
-      changeToday = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
-      changePercentToday = changeToday / portfolios[0].equity!;
+      changeInPeriod =
+          portfolios[0].equity! - portfolios[0].equityPreviousClose!;
+      changePercentInPeriod = changeInPeriod / portfolios[0].equity!;
     }
-
     if (portfolioHistoricals != null) {
       firstHistorical = portfolioHistoricals.equityHistoricals[0];
       lastHistorical = portfolioHistoricals
           .equityHistoricals[portfolioHistoricals.equityHistoricals.length - 1];
+      // TODO - Figure out what properties to use // portfolioHistoricals.adjustedOpenEquity
       open = firstHistorical.adjustedOpenEquity!;
       close = lastHistorical.adjustedCloseEquity!;
       changeInPeriod = close - open;
-      //changePercentToday = changeInPeriod / close;
+      changePercentInPeriod = changeInPeriod / close;
+
+      if (selection != null) {
+        changeInPeriod = selection!.adjustedCloseEquity! -
+            open; // portfolios![0].equityPreviousClose!;
+        changePercentInPeriod =
+            changeInPeriod / selection!.adjustedCloseEquity!;
+      }
 
       // Override the portfolio API with current historical data.
       portfolioValue = close;
@@ -499,12 +516,6 @@ class _HomePageState extends State<HomePage>
                   .equityHistoricals //filteredEquityHistoricals,
               ),
         ];
-        var open =
-            portfolioHistoricals.equityHistoricals[0].adjustedOpenEquity!;
-        var close = portfolioHistoricals
-            .equityHistoricals[
-                portfolioHistoricals.equityHistoricals.length - 1]
-            .adjustedCloseEquity!;
         chart = TimeSeriesChart(seriesList,
             open: open,
             close: close,
@@ -527,8 +538,8 @@ class _HomePageState extends State<HomePage>
         optionEquityPercent,
         portfolioCash,
         cashPercent,
-        changeToday,
-        changePercentToday);
+        changeInPeriod,
+        changePercentInPeriod);
 
     var slivers = <Widget>[];
 
@@ -557,16 +568,6 @@ class _HomePageState extends State<HomePage>
         textColor = Colors.grey.shade800;
       }
 
-      //var interval = portfolioHistoricals.interval; // "15second"
-
-      double changeSelection = 0;
-      double changePercentSelection = 0;
-      if (selection != null) {
-        changeSelection = selection!.adjustedCloseEquity! -
-            open; // portfolios![0].equityPreviousClose!;
-        changePercentSelection =
-            changeSelection / selection!.adjustedCloseEquity!;
-      }
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -580,93 +581,41 @@ class _HomePageState extends State<HomePage>
                 children: [
                   Wrap(
                     children: [
-                      if (selection != null) ...[
-                        Text(
-                            formatCurrency
-                                .format(selection!.adjustedCloseEquity),
-                            style: TextStyle(fontSize: 20, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Icon(
-                          changePercentSelection > 0
-                              ? Icons.trending_up
-                              : (changePercentSelection < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (changePercentSelection > 0
-                              ? Colors.green
-                              : (changePercentSelection < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          //size: 16.0
-                        ),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            formatPercentage
-                                //.format(selection!.netReturn!.abs()),
-                                .format(changePercentSelection.abs()),
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Text(
-                            "${changeSelection > 0 ? "+" : changeSelection < 0 ? "-" : ""}${formatCurrency.format(changeSelection.abs())}",
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                      ] else ...[
-                        Text(
-                            formatCurrency.format(
-                                close), //(portfolios![0].equity ?? 0) + nummusEquity
-                            style: TextStyle(fontSize: 20, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Icon(
-                          changeInPeriod > 0
-                              ? Icons.trending_up
-                              : (changeInPeriod < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (changeInPeriod > 0
-                              ? Colors.green
-                              : (changeInPeriod < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          //size: 16.0
-                        ),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(formatPercentage.format(changePercentToday.abs()),
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Text(
-                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                            style: TextStyle(fontSize: 20.0, color: textColor)),
-                      ]
+                      Text(formatCurrency.format(close),
+                          style: TextStyle(fontSize: 20, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Icon(
+                        changeInPeriod > 0
+                            ? Icons.trending_up
+                            : (changeInPeriod < 0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (changeInPeriod > 0
+                            ? Colors.green
+                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
+                        //size: 16.0
+                      ),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(
+                          formatPercentage
+                              //.format(selection!.netReturn!.abs()),
+                              .format(changePercentInPeriod.abs()),
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
+                      Container(
+                        width: 10,
+                      ),
+                      Text(
+                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                          style: TextStyle(fontSize: 20.0, color: textColor)),
                     ],
                   ),
-                  if (selection != null) ...[
-                    Text(
-                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
-                        style: TextStyle(fontSize: 10, color: textColor)),
-                  ] else ...[
-                    Text(
-                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical!.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
-                        style: TextStyle(fontSize: 10, color: textColor)),
-                  ]
-                  /*
-                      Text(
-                          "Equity ${formatCurrency.format(selection!.openEquity)}, ${formatCurrency.format(selection!.closeEquity)}",
-                          style: const TextStyle(fontSize: 11)),
-                      Text(
-                          "Value ${formatCurrency.format(selection!.openMarketValue)}, ${formatCurrency.format(selection!.closeMarketValue)}",
-                          style: const TextStyle(fontSize: 11))
-                          */
+                  Text(
+                      '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                      style: TextStyle(fontSize: 10, color: textColor)),
                 ],
               )))));
 
@@ -1778,8 +1727,8 @@ class _HomePageState extends State<HomePage>
       double optionEquityPercent,
       double portfolioCash,
       double cashPercent,
-      double changeToday,
-      double changePercentToday) {
+      double changeInPeriod,
+      double changePercentInPeriod) {
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
                     leading: IconButton(
@@ -1823,31 +1772,26 @@ class _HomePageState extends State<HomePage>
                 //textAlign: TextAlign.right
                 Wrap(alignment: WrapAlignment.center, children: [
                   Icon(
-                      changeToday > 0
+                      changeInPeriod > 0
                           ? Icons.trending_up
-                          : (changeToday < 0
+                          : (changeInPeriod < 0
                               ? Icons.trending_down
                               : Icons.trending_flat),
-                      color: (changeToday > 0
+                      color: (changeInPeriod > 0
                           ? Colors.green
-                          : (changeToday < 0 ? Colors.red : Colors.grey)),
+                          : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
                       size: 20.0),
-                  Text(formatPercentage.format(changePercentToday.abs()),
+                  Text(formatPercentage.format(changePercentInPeriod.abs()),
                       style: const TextStyle(
                           fontSize: 17.0, color: Colors.white70)),
                 ]),
                 Text(
-                    "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
+                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
                     style:
                         const TextStyle(fontSize: 17.0, color: Colors.white70)),
               ]),
             ]
           ]),
-      /*
-      silverCollapsed && user != null && portfolios != null
-          ? getAppBarTitle(user, changeToday, changePercentToday)
-          : Container(),
-          */
       flexibleSpace: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
         if (portfolios == null) {
@@ -1921,329 +1865,7 @@ class _HomePageState extends State<HomePage>
                     optionSymbolFilters: optionSymbolFilters,
                     stockSymbolFilters: stockSymbolFilters,
                     cryptoFilters: cryptoFilters,
-                    onSettingsChanged: _onSettingsChanged)
-                /*
-              (BuildContext context) {
-                return StatefulBuilder(
-                    builder: (BuildContext context, StateSetter bottomState) {
-                  return Scaffold(
-                      appBar: AppBar(
-                          leading: const CloseButton(),
-                          title: const Text('Settings')),
-                      body: ListView(
-                        //Column(
-                        //mainAxisAlignment: MainAxisAlignment.start,
-                        //crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          /*
-                    new AppBar(
-                      title: new Text("Menu"),
-                    ),
-                    */
-                          /*
-                    Container(
-                      height: 10,
-                    ),
-                    const Text(
-                      "Menu",
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    Container(
-                      height: 10,
-                    ),
-                    const Divider(
-                      height: 10,
-                    ),
-                    */
-                          if (ru != null && ru.userName != null) ...[
-                            const ListTile(
-                              leading: Icon(Icons.refresh),
-                              title: Text(
-                                "Refresh",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            RadioListTile<bool>(
-                                //leading: const Icon(Icons.account_circle),
-                                title: const Text("No Refresh"),
-                                value: widget.user.refreshEnabled == false,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  widget.user.refreshEnabled = false;
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                              //leading: const Icon(Icons.account_circle),
-                              title: const Text("Automatic Refresh"),
-                              value: widget.user.refreshEnabled == true,
-                              groupValue: true, //"refresh-setting",
-                              onChanged: (val) {
-                                setState(() {
-                                  portfolioHistoricals = null;
-                                  futurePortfolioHistoricals = null;
-                                });
-                                widget.user.refreshEnabled = true;
-                                widget.user.save();
-                                Navigator.pop(context, 'dialog');
-                              },
-                            ),
-                            const Divider(
-                              height: 10,
-                            ),
-                            const ListTile(
-                              leading: Icon(Icons.calculate),
-                              title: Text(
-                                "Display Value",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            RadioListTile<bool>(
-                                title: const Text("Last Price"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.lastPrice,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.lastPrice;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                                title: const Text("Market Value"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.marketValue,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.marketValue;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                                title: const Text("Return Today"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.todayReturn,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.todayReturn;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                                title: const Text("Return % Today"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.todayReturnPercent,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.todayReturnPercent;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                                title: const Text("Total Return"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.totalReturn,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.totalReturn;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                                title: const Text("Total Return %"),
-                                value: widget.user.displayValue ==
-                                    DisplayValue.totalReturnPercent,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.displayValue =
-                                        DisplayValue.totalReturnPercent;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            const Divider(
-                              height: 10,
-                            ),
-                            const ListTile(
-                              leading: Icon(Icons.view_module),
-                              title: Text(
-                                "Options View",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            RadioListTile<bool>(
-                                //leading: const Icon(Icons.account_circle),
-                                title: const Text("Grouped"),
-                                value:
-                                    widget.user.optionsView == View.grouped,
-                                groupValue: true, //"refresh-setting"
-                                onChanged: (val) {
-                                  setState(() {
-                                    widget.user.optionsView = View.grouped;
-                                  });
-                                  widget.user.save();
-                                  Navigator.pop(context, 'dialog');
-                                }),
-                            RadioListTile<bool>(
-                              //leading: const Icon(Icons.account_circle),
-                              title: const Text("List"),
-                              value: widget.user.optionsView == View.list,
-                              groupValue: true, //"refresh-setting",
-                              onChanged: (val) {
-                                setState(() {
-                                  widget.user.optionsView = View.list;
-                                });
-                                widget.user.save();
-                                Navigator.pop(context, 'dialog');
-                              },
-                            ),
-                            const Divider(
-                              height: 10,
-                            ),
-                            const ListTile(
-                              leading: Icon(Icons.filter_list),
-                              title: Text(
-                                "Filters",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const ListTile(
-                              //leading: Icon(Icons.filter_list),
-                              title: Text("Position Type"),
-                            ),
-                            positionTypeFilterWidget(bottomState),
-                            const ListTile(
-                              //leading: Icon(Icons.filter_list),
-                              title: Text("Option Type"),
-                            ),
-                            optionTypeFilterWidget(bottomState),
-                            const ListTile(
-                              //leading: Icon(Icons.filter_list),
-                              title: Text("Option Symbols"),
-                            ),
-                            optionSymbolFilterWidget(bottomState),
-                            const ListTile(
-                              //leading: Icon(Icons.filter_list),
-                              title: Text("Stock Symbols"),
-                            ),
-                            stockOrderSymbolFilterWidget(bottomState),
-                            const ListTile(
-                              title: Text("Crypto Symbols"),
-                            ),
-                            cryptoFilterWidget(bottomState),
-                            const Divider(
-                              height: 10,
-                            ),
-                            /*
-                            const ListTile(
-                              leading: Icon(Icons.manage_accounts),
-                              title: Text(
-                                "Account",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            */
-                            ListTile(
-                                leading: const Icon(Icons.account_circle),
-                                title: const Text("Profile"),
-                                onTap: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        title: const Text('Alert'),
-                                        content: const Text(
-                                            'This feature is not implemented.'),
-                                        actions: <Widget>[
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(context, 'OK'),
-                                            child: const Text('OK'),
-                                          ),
-                                        ],
-                                      );
-                                    },
-                                  );
-                                }),
-                            ListTile(
-                              leading: const Icon(Icons.logout),
-                              title: const Text("Logout"),
-                              onTap: () {
-                                var alert = AlertDialog(
-                                  title: const Text('Logout process'),
-                                  content: SingleChildScrollView(
-                                    child: ListBody(
-                                      children: const <Widget>[
-                                        Text(
-                                            'This action will require you to log in again.'),
-                                        Text(
-                                            'Are you sure you want to log out?'),
-                                      ],
-                                    ),
-                                  ),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      child: const Text('Cancel'),
-                                      onPressed: () {
-                                        Navigator.pop(context, 'dialog');
-                                      },
-                                    ),
-                                    TextButton(
-                                      child: const Text('OK'),
-                                      onPressed: () {
-                                        Navigator.pop(context, 'dialog');
-                                        _logout();
-                                      },
-                                    ),
-                                  ],
-                                );
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return alert;
-                                  },
-                                );
-                              },
-                            ),
-                            const Divider(
-                              height: 10,
-                            )
-                          ] else ...[
-                            ListTile(
-                              leading: const Icon(Icons.login),
-                              title: const Text("Login"),
-                              onTap: () {
-                                _openLogin();
-                              },
-                            ),
-                            const Divider(
-                              height: 10,
-                            )
-                          ],
-                          Container(
-                            height: 10,
-                          ),
-                        ],
-                      ));
-                });
-              },
-            */
-                );
+                    onSettingsChanged: _onSettingsChanged));
           },
         ),
         /*
@@ -2611,7 +2233,7 @@ class _HomePageState extends State<HomePage>
       //watchlistStream = null;
     });
 
-    //var accounts = await RobinhoodService.getAccounts(widget.user);
+    var accounts = await RobinhoodService.getAccounts(widget.user);
     var portfolios = await RobinhoodService.getPortfolios(widget.user);
 
     //var optionPositions = await RobinhoodService.downloadOptionPositions(snapshotUser);
@@ -2622,6 +2244,7 @@ class _HomePageState extends State<HomePage>
     //var user = await RobinhoodService.downloadUser(snapshotUser);
 
     setState(() {
+      futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
       //futureUser = Future.value(user);
     });
