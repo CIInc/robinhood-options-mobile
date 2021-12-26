@@ -148,6 +148,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                       //const LoginWidget()
                       //],
                     ];
+                  } else if (dataSnapshot.hasError) {
+                    debugPrint("${dataSnapshot.error}");
+                    return buildScaffold(widget: Text("${dataSnapshot.error}"));
                   }
                   return buildScaffold();
                 });
@@ -159,7 +162,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         });
   }
 
-  buildScaffold() {
+  buildScaffold({Widget? widget}) {
     /*
     return WillPopScope(
         onWillPop: () async =>
@@ -185,9 +188,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       ),
       */
       drawer: _buildDrawer(),
-      body: PageView.builder(
-        itemBuilder: (context, index) {
-          /*
+      body: widget ??
+          PageView.builder(
+            itemBuilder: (context, index) {
+              /*
           if (userInfo != null) {
             switch (index) {
               case 0:
@@ -212,14 +216,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           }
           return const InitialWidget();
           */
-          return tabPages[index];
-        },
-        //itemCount: userInfo == null ? 1 : 4,
-        itemCount: 1, //tabPages.length,
-        controller: _pageController,
-        allowImplicitScrolling: false,
-        physics: const NeverScrollableScrollPhysics(),
-      ),
+              return tabPages[index];
+            },
+            //itemCount: userInfo == null ? 1 : 4,
+            itemCount: 1, //tabPages.length,
+            controller: _pageController,
+            allowImplicitScrolling: false,
+            physics: const NeverScrollableScrollPhysics(),
+          ),
       /*
       body: PageView(
         children: tabPages,

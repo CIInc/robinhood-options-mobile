@@ -85,7 +85,10 @@ class _HomePageState extends State<HomePage>
   Future<List<Account>>? futureAccounts;
   List<Account>? accounts;
   Account? account;
+
   Future<List<ForexHolding>>? futureNummusHoldings;
+  List<ForexHolding>? nummusHoldings;
+
   Future<List<Portfolio>>? futurePortfolios;
 
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
@@ -191,7 +194,7 @@ class _HomePageState extends State<HomePage>
           */
 
           var portfolios = data.length > 1 ? data[1] as List<Portfolio> : null;
-          var nummusHoldings =
+          nummusHoldings =
               data.length > 2 ? data[2] as List<ForexHolding> : null;
 
           futurePortfolioHistoricals ??=
@@ -349,6 +352,12 @@ class _HomePageState extends State<HomePage>
               widget.user, positions);
           setState(() {
             positions = refreshPositions;
+          });
+
+          var refreshForex = await RobinhoodService.refreshNummusHoldings(
+              widget.user, nummusHoldings!);
+          setState(() {
+            nummusHoldings = refreshForex;
           });
         }
       },
@@ -2608,8 +2617,10 @@ class _HomePageState extends State<HomePage>
     double value = 0;
     switch (widget.user.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-            op.instrumentObj!.quoteObj!.lastTradePrice!;
+        value = op.instrumentObj != null && op.instrumentObj!.quoteObj != null
+            ? op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                op.instrumentObj!.quoteObj!.lastTradePrice!
+            : 0;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;

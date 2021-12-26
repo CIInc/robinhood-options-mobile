@@ -239,57 +239,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           optionOrders = instrument.optionOrders!;
           _calculateOptionOrderBalance();
 
-          String? bounds;
-          String? interval;
-          String? span;
-          switch (chartBoundsFilter) {
-            case Bounds.regular:
-              bounds = "regular";
-              break;
-            case Bounds.trading:
-              bounds = "trading";
-              break;
-            default:
-              bounds = "regular";
-              break;
-          }
-          switch (chartDateSpanFilter) {
-            case ChartDateSpan.day:
-              interval = "5minute";
-              span = "day";
-              bounds = "trading";
-              break;
-            case ChartDateSpan.week:
-              interval = "10minute";
-              span = "week";
-              // bounds = "24_7"; // Does not look good with regular?!
-              break;
-            case ChartDateSpan.month:
-              interval = "hour";
-              span = "month";
-              // bounds = "24_7"; // Does not look good with regular?!
-              break;
-            case ChartDateSpan.month_3:
-              interval = "day";
-              span = "3month";
-              break;
-            case ChartDateSpan.year:
-              interval = "day";
-              span = "year";
-              break;
-            case ChartDateSpan.year_5:
-              interval = "day";
-              span = "5year";
-              break;
-            default:
-              interval = "5minute";
-              span = "day";
-              bounds = "trading";
-              break;
-          }
           futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
               user, instrument.symbol,
-              interval: interval, span: span, bounds: bounds);
+              chartBoundsFilter: chartBoundsFilter,
+              chartDateSpanFilter: chartDateSpanFilter);
 
           return FutureBuilder<InstrumentHistoricals>(
               future: futureHistoricals,
@@ -538,27 +491,32 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
 
     if (instrument.instrumentHistoricalsObj != null) {
+      InstrumentHistorical? firstHistorical;
+      InstrumentHistorical? lastHistorical;
+      double open = 0;
+      double close = 0;
+      double changeInPeriod = 0;
+      double changePercentInPeriod = 0;
+
+      firstHistorical = instrument.instrumentHistoricalsObj!.historicals[0];
+      lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
+          instrument.instrumentHistoricalsObj!.historicals.length - 1];
+      open = firstHistorical.openPrice!;
+      close = lastHistorical.closePrice!;
+      changeInPeriod = close - open;
+      changePercentInPeriod = changeInPeriod / close;
+
+      if (selection != null) {
+        changeInPeriod = selection!.closePrice! - open;
+        changePercentInPeriod = changeInPeriod / selection!.closePrice!;
+      }
+
       var brightness = MediaQuery.of(context).platformBrightness;
       var textColor = Theme.of(context).colorScheme.background;
       if (brightness == Brightness.dark) {
-        textColor = Colors.grey.shade500;
+        textColor = Colors.grey.shade200;
       } else {
-        textColor = Colors.grey.shade700;
-      }
-      var firstHistorical = instrument.instrumentHistoricalsObj!.historicals[0];
-      var lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
-          instrument.instrumentHistoricalsObj!.historicals.length - 1];
-      var open = firstHistorical.openPrice!;
-      var close = lastHistorical.closePrice!;
-      double changeInPeriod = close - open;
-      double changePercentToday = changeInPeriod / close;
-
-      double changeSelection = 0;
-      double changePercentSelection = 0;
-      if (selection != null) {
-        changeSelection = selection!.closePrice! -
-            open; // portfolios![0].equityPreviousClose!;
-        changePercentSelection = changeSelection / selection!.closePrice!;
+        textColor = Colors.grey.shade800;
       }
 
       slivers.add(const SliverToBoxAdapter(
@@ -570,46 +528,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: SizedBox(
               height: 36,
               child: Center(
-                  child: Column(children: [
-                Wrap(
-                  children: [
-                    if (selection != null) ...[
-                      Text(formatCurrency.format(selection!.closePrice),
-                          style: TextStyle(fontSize: 20, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Icon(
-                        changePercentSelection > 0
-                            ? Icons.trending_up
-                            : (changePercentSelection < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (changePercentSelection > 0
-                            ? Colors.green
-                            : (changePercentSelection < 0
-                                ? Colors.red
-                                : Colors.grey)),
-                        //size: 16.0
-                      ),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              //.format(selection!.netReturn!.abs()),
-                              .format(changePercentSelection.abs()),
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          "${changeSelection > 0 ? "+" : changeSelection < 0 ? "-" : ""}${formatCurrency.format(changeSelection.abs())}",
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ] else ...[
-                      Text(
-                          formatCurrency.format(
-                              close), //(portfolios![0].equity ?? 0) + nummusEquity
+                  child: Column(
+                children: [
+                  Wrap(
+                    children: [
+                      Text(formatCurrency.format(close),
                           style: TextStyle(fontSize: 20, color: textColor)),
                       Container(
                         width: 10,
@@ -628,7 +551,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       Container(
                         width: 2,
                       ),
-                      Text(formatPercentage.format(changePercentToday.abs()),
+                      Text(
+                          formatPercentage
+                              //.format(selection!.netReturn!.abs()),
+                              .format(changePercentInPeriod.abs()),
                           style: TextStyle(fontSize: 20.0, color: textColor)),
                       Container(
                         width: 10,
@@ -636,67 +562,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       Text(
                           "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
                           style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ]
-                  ],
-                ),
-                if (selection != null) ...[
-                  Text(
-                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection!.beginsAt!.toLocal())}',
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ] else ...[
-                  Text(
-                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(lastHistorical.beginsAt!.toLocal())}', //portfolios![0].updatedAt!.toLocal()
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ]
-
-                /*                 
-                if (selection != null) ...[
-                  Wrap(
-                    //spacing: 8,
-                    children: [
-                      Text(
-                          "O ${formatCurrency.format(selection!.openPrice)} H ${formatCurrency.format(selection!.highPrice)} L ${formatCurrency.format(selection!.lowPrice)} C ${formatCurrency.format(selection!.closePrice)}",
-                          style: const TextStyle(fontSize: 14)),
-                      /*
-                            Text(
-                                "Volume ${formatCompactNumber.format(selection!.volume)}",
-                                style: const TextStyle(fontSize: 11))
-                                */
                     ],
                   ),
-                ] else ...[
-                  Wrap(children: [
-                    Text(formatCurrency.format(close),
-                        style: TextStyle(fontSize: 20, color: textColor)),
-                    Container(
-                      width: 10,
-                    ),
-                    Icon(
-                      changeToday > 0
-                          ? Icons.trending_up
-                          : (changeToday < 0
-                              ? Icons.trending_down
-                              : Icons.trending_flat),
-                      color: (changeToday > 0
-                          ? Colors.green
-                          : (changeToday < 0 ? Colors.red : Colors.grey)),
-                      //size: 16.0
-                    ),
-                    Container(
-                      width: 2,
-                    ),
-                    Text(formatPercentage.format(changePercentToday.abs()),
-                        style: TextStyle(fontSize: 20.0, color: textColor)),
-                    Container(
-                      width: 10,
-                    ),
-                    Text(
-                        "${changeToday > 0 ? "+" : changeToday < 0 ? "-" : ""}${formatCurrency.format(changeToday.abs())}",
-                        style: TextStyle(fontSize: 20.0, color: textColor)),
-                  ]),
+                  Text(
+                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal())}',
+                      style: TextStyle(fontSize: 10, color: textColor)),
                 ],
-                */
-              ])))));
+              )))));
+
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
               height: 400,
@@ -710,6 +583,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: SizedBox(
               height: 56,
               child: ListView.builder(
+                key: const PageStorageKey<String>('instrumentChartFilters'),
                 padding: const EdgeInsets.all(5.0),
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (context, index) {

@@ -11,7 +11,7 @@ class ForexHistoricals {
   final double? openPrice;
   final DateTime? openTime;
 
-  final List<InstrumentHistorical> historicals;
+  List<InstrumentHistorical> historicals;
 
   ForexHistoricals(
       this.bounds,

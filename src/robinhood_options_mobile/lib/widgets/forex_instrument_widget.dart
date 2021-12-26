@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -34,9 +35,10 @@ class ForexInstrumentWidget extends StatefulWidget {
   _ForexInstrumentWidgetState createState() => _ForexInstrumentWidgetState();
 }
 
-class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
+class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
+    with AutomaticKeepAliveClientMixin<ForexInstrumentWidget> {
   Future<dynamic>? futureQuote;
-  Future<List<ForexHistoricals>>? futureHistoricals;
+  Future<ForexHistoricals>? futureHistoricals;
 
   //charts.TimeSeriesChart? chart;
   TimeSeriesChart? chart;
@@ -46,17 +48,30 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
 
   //final dataKey = GlobalKey();
 
-  _ForexInstrumentWidgetState();
+  //_ForexInstrumentWidgetState();
+  Timer? refreshTriggerTime;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
 
+    _startRefreshTimer();
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
   }
 
   @override
+  void dispose() {
+    _stopRefreshTimer();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     if (widget.holding.quoteObj == null) {
       var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>
           element['asset_currency']['id'] == widget.holding.currencyId);
@@ -71,74 +86,33 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
       future: futureQuote,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          //var quoteObj = CryptoQuote.fromJson(snapshot.data!);
           widget.holding.quoteObj = snapshot.data! as ForexQuote;
 
-          String? bounds;
-          String? interval;
-          String? span;
-          switch (chartBoundsFilter) {
-            case Bounds.regular:
-              bounds = "regular";
-              break;
-            case Bounds.trading:
-              bounds = "trading";
-              break;
-            case Bounds.t24_7:
-              bounds = "t24_7";
-              break;
-            default:
-              bounds = "t24_7";
-              break;
-          }
-          switch (chartDateSpanFilter) {
-            case ChartDateSpan.day:
-              interval = "5minute";
-              span = "day";
-              bounds = "trading";
-              break;
-            case ChartDateSpan.week:
-              interval = "10minute";
-              span = "week";
-              // bounds = "24_7"; // Does not look good with regular?!
-              break;
-            case ChartDateSpan.month:
-              interval = "hour";
-              span = "month";
-              // bounds = "24_7"; // Does not look good with regular?!
-              break;
-            case ChartDateSpan.month_3:
-              interval = "day";
-              span = "3month";
-              break;
-            case ChartDateSpan.year:
-              interval = "day";
-              span = "year";
-              break;
-            case ChartDateSpan.year_5:
-              interval = "day";
-              span = "5year";
-              break;
-            default:
-              interval = "5minute";
-              span = "day";
-              bounds = "trading";
-              break;
-          }
           futureHistoricals ??= RobinhoodService.getForexHistoricals(
-              widget.user, [widget.holding.quoteObj!.id],
-              interval: interval, span: span, bounds: bounds);
+              widget.user, widget.holding.quoteObj!.id,
+              chartBoundsFilter: chartBoundsFilter,
+              chartDateSpanFilter: chartDateSpanFilter);
 
-          return FutureBuilder<List<ForexHistoricals>>(
+          return FutureBuilder<ForexHistoricals>(
               future: futureHistoricals,
               builder: (context11, historicalsSnapshot) {
                 if (historicalsSnapshot.hasData) {
-                  var data = historicalsSnapshot.data![0];
+                  var data = historicalsSnapshot.data!;
                   if (widget.holding.historicalsObj == null ||
                       data.bounds != widget.holding.historicalsObj!.bounds ||
                       data.span != widget.holding.historicalsObj!.span) {
                     chart = null;
 
+                    if (data.span == "day") {
+                      final DateTime now = DateTime.now();
+                      final DateTime today =
+                          DateTime(now.year, now.month, now.day);
+
+                      data.historicals = data.historicals
+                          .where((element) =>
+                              element.beginsAt!.compareTo(today) >= 0)
+                          .toList();
+                    }
                     widget.holding.historicalsObj = data;
                   }
                 }
@@ -178,7 +152,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
       firstHistorical = holding.historicalsObj!.historicals[0];
       lastHistorical = holding.historicalsObj!
           .historicals[holding.historicalsObj!.historicals.length - 1];
-      // TODO - Figure out what properties to use // portfolioHistoricals.adjustedOpenEquity
       open = firstHistorical.openPrice!;
       close = lastHistorical.closePrice!;
       changeInPeriod = close - open;
@@ -376,6 +349,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
           child: SizedBox(
               height: 56,
               child: ListView.builder(
+                key: const PageStorageKey<String>('forexChartFilters'),
                 padding: const EdgeInsets.all(5.0),
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (context, index) {
@@ -472,11 +446,11 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
                       child: ChoiceChip(
                         //avatar: const Icon(Icons.history_outlined),
                         //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('All'),
-                        selected: chartDateSpanFilter == ChartDateSpan.all,
+                        label: const Text('5 Year'),
+                        selected: chartDateSpanFilter == ChartDateSpan.year_5,
                         onSelected: (bool value) {
                           if (value) {
-                            resetChart(ChartDateSpan.all, chartBoundsFilter);
+                            resetChart(ChartDateSpan.year_5, chartBoundsFilter);
                           }
                         },
                       ),
@@ -519,7 +493,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
                 itemCount: 1,
               ))));
     }
-
     //if (holding != null) {
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
@@ -608,6 +581,36 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget> {
       futureQuote = null;
       futureHistoricals = null;
     });
+  }
+
+  void _startRefreshTimer() {
+    // Start listening to clipboard
+    refreshTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 15000),
+      (timer) async {
+        if (widget.user.refreshEnabled) {
+          if (widget.holding.historicalsObj != null) {
+            setState(() {
+              widget.holding.historicalsObj = null;
+              futureHistoricals = null;
+            });
+          }
+          /*
+          var refreshForex = await RobinhoodService.refreshNummusHoldings(
+              widget.user, nummusHoldings!);
+          setState(() {
+            nummusHoldings = refreshForex;
+          });
+          */
+        }
+      },
+    );
+  }
+
+  void _stopRefreshTimer() {
+    if (refreshTriggerTime != null) {
+      refreshTriggerTime!.cancel();
+    }
   }
 
   _onChartSelection(dynamic historical) {

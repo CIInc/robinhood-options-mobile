@@ -117,9 +117,20 @@ class RobinhoodService {
       String account,
       Bounds chartBoundsFilter,
       ChartDateSpan chartDateSpanFilter) async {
-    String? bounds;
-    String? interval;
-    String? span;
+    String? bounds = convertChartBoundsFilter(chartBoundsFilter);
+    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    String? span = rtn[0];
+    String? interval = rtn[1];
+
+    // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
+    // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=e4e27a2e-4621-4ccb-8922-860a99fe0cd2&interval=10minute&ratios=1&span=week&types=long
+    var result = await RobinhoodService.getJson(user,
+        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
+    return PortfolioHistoricals.fromJson(result);
+  }
+
+  static String convertChartBoundsFilter(Bounds chartBoundsFilter) {
+    String bounds = "regular";
     switch (chartBoundsFilter) {
       case Bounds.regular:
         bounds = "regular";
@@ -127,15 +138,25 @@ class RobinhoodService {
       case Bounds.t24_7:
         bounds = "24_7";
         break;
+      case Bounds.trading:
+        bounds = "trading";
+        break;
       default:
         bounds = "regular";
         break;
     }
+    return bounds;
+  }
+
+  static List<String> convertChartSpanFilter(
+      ChartDateSpan chartDateSpanFilter) {
+    String interval = "5minute";
+    String span = "day";
     switch (chartDateSpanFilter) {
       case ChartDateSpan.hour:
         interval = "15second";
         span = "hour";
-        bounds = "24_7"; // Does not work with regular?!
+        //bounds = "24_7"; // Does not work with regular?!
         break;
       case ChartDateSpan.day:
         interval = "5minute";
@@ -159,20 +180,19 @@ class RobinhoodService {
         interval = "day";
         span = "year";
         break;
+      case ChartDateSpan.year_5:
+        interval = "week";
+        span = "5year";
+        break;
       case ChartDateSpan.all:
         // interval = "week";
         span = "all";
         break;
-      default:
-        interval = "5minute";
-        span = "day";
+      //default:
+      //  interval = "5minute";
+      //  span = "day";
     }
-
-    // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
-    // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=e4e27a2e-4621-4ccb-8922-860a99fe0cd2&interval=10minute&ratios=1&span=week&types=long
-    var result = await RobinhoodService.getJson(user,
-        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?&bounds=$bounds&span=$span${interval != null ? "&interval=$interval" : ""}"); //${account}/
-    return PortfolioHistoricals.fromJson(result);
+    return [span, interval];
   }
 
   /*
@@ -582,15 +602,68 @@ class RobinhoodService {
   static Future<InstrumentHistoricals> getInstrumentHistoricals(
       RobinhoodUser user, String symbolOrInstrumentId,
       {bool includeInactive = true,
-      String? bounds = "regular",
-      String? interval,
-      String? span}) async {
+      Bounds chartBoundsFilter = Bounds.trading,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    String? bounds = convertChartBoundsFilter(chartBoundsFilter);
+    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    String? span = rtn[0];
+    String? interval = rtn[1];
+    /*
+        String? bounds;
+        String? interval;
+        String? span;
+        switch (chartBoundsFilter) {
+          case Bounds.regular:
+            bounds = "regular";
+            break;
+          case Bounds.trading:
+            bounds = "trading";
+            break;
+          default:
+            bounds = "regular";
+            break;
+        }
+        switch (chartDateSpanFilter) {
+          case ChartDateSpan.day:
+            interval = "5minute";
+            span = "day";
+            bounds = "trading";
+            break;
+          case ChartDateSpan.week:
+            interval = "10minute";
+            span = "week";
+            // bounds = "24_7"; // Does not look good with regular?!
+            break;
+          case ChartDateSpan.month:
+            interval = "hour";
+            span = "month";
+            // bounds = "24_7"; // Does not look good with regular?!
+            break;
+          case ChartDateSpan.month_3:
+            interval = "day";
+            span = "3month";
+            break;
+          case ChartDateSpan.year:
+            interval = "day";
+            span = "year";
+            break;
+          case ChartDateSpan.year_5:
+            interval = "day";
+            span = "5year";
+            break;
+          default:
+            interval = "5minute";
+            span = "day";
+            bounds = "trading";
+            break;
+        }
+      */
     var result = await RobinhoodService.getJson(
         user,
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
-        "${Constants.robinHoodEndpoint}/marketdata/historicals/$symbolOrInstrumentId/?${bounds != null ? "&bounds=$bounds" : ""}&include_inactive=$includeInactive${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}"); //${account}/
+        "${Constants.robinHoodEndpoint}/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
     return InstrumentHistoricals.fromJson(result);
   }
 
@@ -1217,6 +1290,27 @@ class RobinhoodService {
     return list;
   }
 
+  static Future<List<ForexHolding>> refreshNummusHoldings(
+      RobinhoodUser user, List<ForexHolding> forexHolding) async {
+    var len = forexHolding.length;
+    var size = 25; //20; //15; //17;
+    List<List<ForexHolding>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(forexHolding.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var symbols = chunk.map((e) => e.quoteObj!.id).toList();
+      var quoteObjs = await getForexQuoteByIds(user, symbols);
+      for (var quoteObj in quoteObjs) {
+        var forex = forexHolding
+            .firstWhere((element) => element.quoteObj!.id == quoteObj.id);
+        forex.quoteObj = quoteObj;
+      }
+    }
+    return forexHolding;
+  }
+
   static Future<ForexQuote> getForexQuote(RobinhoodUser user, String id) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
@@ -1246,17 +1340,7 @@ class RobinhoodService {
   }
 
   /*
-  static Future<dynamic> getForexHistoricals(
-      RobinhoodUser user, List<String> ids) async {
-        //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
-    String url =
-        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?ids=${Uri.encodeComponent(ids.join(","))}";
-    var resultJson = await getJson(user, url);
-    return resultJson;
-  }
-  */
-  /*
-  // Bounds options     [regular, trading]
+  // Bounds options     [trading, 24_7]
   // Interval options   [15second, 5minute, 10minute, hour, day, week]
   // Span options       [day, week, month, 3month, year, 5year]
 
@@ -1267,20 +1351,23 @@ class RobinhoodService {
   // Year: bounds: regular, interval: day, span: year
   // Year: bounds: regular, interval: day, span: 5year
   */
-  static Future<List<ForexHistoricals>> getForexHistoricals(
-      RobinhoodUser user, List<String> ids,
-      {String? bounds = "24_7", String? interval, String? span}) async {
-    var resultJson = await RobinhoodService.getJson(
-        user,
-        //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
-        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}");
-    List<ForexHistoricals> list = [];
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
-      var item = ForexHistoricals.fromJson(result);
-      list.add(item);
-    }
-    return list;
+  static Future<ForexHistoricals> getForexHistoricals(
+      RobinhoodUser user, String id,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+    //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
+    //https://api.robinhood.com/marketdata/forex/historicals/3d961844-d360-45fc-989b-f6fca761d511/?bounds=24_7&interval=hour&span=week
+    // var url = "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}";
+    String bounds = convertChartBoundsFilter(chartBoundsFilter);
+    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    String span = rtn[0];
+    String interval = rtn[1];
+
+    var url =
+        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/$id/?bounds=$bounds&interval=$interval&span=$span";
+    var resultJson = await RobinhoodService.getJson(user, url);
+    var item = ForexHistoricals.fromJson(resultJson);
+    return item;
   }
 
   static Future<List<dynamic>> getForexPairs(RobinhoodUser user) async {

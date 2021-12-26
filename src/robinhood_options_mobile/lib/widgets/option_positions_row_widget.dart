@@ -744,7 +744,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
     double value = 0;
     switch (user.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.marketData!.markPrice!;
+        value = op.marketData != null ? op.marketData!.markPrice! : 0;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
