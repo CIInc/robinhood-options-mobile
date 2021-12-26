@@ -807,10 +807,7 @@ class _HomePageState extends State<HomePage>
               (optionSymbolFilters.isEmpty ||
                   optionSymbolFilters.contains(element.symbol)))
           .toList();
-      /*
-      var groupedOptionAggregatePositions = filteredOptionAggregatePositions
-          .groupListsBy((element) => element.symbol);
-      */
+
       if (filteredOptionAggregatePositions.isNotEmpty) {
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
@@ -852,6 +849,7 @@ class _HomePageState extends State<HomePage>
       }
 
       slivers.add(SliverStickyHeader(
+          sticky: false,
           header: Material(
               //elevation: 2,
               child: Container(
@@ -972,6 +970,7 @@ class _HomePageState extends State<HomePage>
       }
 
       slivers.add(SliverStickyHeader(
+          sticky: false,
           header: Material(
               //elevation: 2,
               child: Container(
@@ -1063,6 +1062,7 @@ class _HomePageState extends State<HomePage>
 
     if (account != null) {
       slivers.add(SliverStickyHeader(
+          sticky: false,
           header: Material(
               //elevation: 2,
               child: Container(
@@ -1089,6 +1089,7 @@ class _HomePageState extends State<HomePage>
 
     if (portfolios != null) {
       slivers.add(SliverStickyHeader(
+          sticky: false,
           header: Material(
               //elevation: 2,
               child: Container(
@@ -1110,6 +1111,7 @@ class _HomePageState extends State<HomePage>
     }
     if (userInfo != null) {
       slivers.add(SliverStickyHeader(
+          sticky: false,
           header: Material(
               //elevation: 2,
               child: Container(
@@ -1130,6 +1132,7 @@ class _HomePageState extends State<HomePage>
       )));
     }
     slivers.add(SliverStickyHeader(
+        sticky: false,
         header: Material(
             //elevation: 2.0,
             child: Container(

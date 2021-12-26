@@ -190,7 +190,31 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             measureFn: (var d, _) => d['dte'])
           ..setAttribute(charts.rendererIdKey, "customTargetLine")
       ];
-      chart ??= BarChart(seriesList, onSelected: (_) {});
+      var brightness = MediaQuery.of(context).platformBrightness;
+      var axisLabelColor = charts.MaterialPalette.gray.shade500;
+      if (brightness == Brightness.light) {
+        axisLabelColor = charts.MaterialPalette.gray.shade700;
+      }
+      chart ??= BarChart(seriesList,
+          renderer: charts.BarRendererConfig(
+              barRendererDecorator: charts.BarLabelDecorator<String>(),
+              cornerStrategy: const charts.ConstCornerStrategy(10)),
+          domainAxis:
+              const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
+          primaryMeasureAxis: charts.NumericAxisSpec(
+            //showAxisLine: true,
+            //renderSpec: charts.GridlineRendererSpec(),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            //renderSpec: charts.NoneRenderSpec(),
+            //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+            //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+            //tickProviderSpec:
+            //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+            //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+          ),
+          customRendererId: 'customTargetLine',
+          onSelected: (_) {});
     }
     return RefreshIndicator(
         onRefresh: _pullRefresh,

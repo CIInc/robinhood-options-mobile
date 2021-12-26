@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 
@@ -48,12 +50,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
         .map((e) => e.quantity! * e.marketData!.delta!)
         .reduce((a, b) => a + b);
     */
-    double? value = getAggregateDisplayValue(filteredOptionPositions);
+    double? value = user.getAggregateDisplayValue(filteredOptionPositions);
     String? trailingText;
     Icon? icon;
     if (value != null) {
-      trailingText = getDisplayText(value);
-      icon = getDisplayIcon(value);
+      trailingText = user.getDisplayText(value);
+      icon = user.getDisplayIcon(value);
     }
     double? deltaAvg,
         gammaAvg,
@@ -74,7 +76,73 @@ class OptionPositionsRowWidget extends StatelessWidget {
       chanceAvg = results[6];
       openInterestAvg = results[7];
     }
+
+    //if (positionChart == null) {
+    List<charts.Series<dynamic, String>> barChartSeriesList = [];
+    var data = [];
+    for (var position in groupedOptionAggregatePositions.values) {
+      double? value = user.getAggregateDisplayValue(position);
+      String? trailingText;
+      if (value != null) {
+        trailingText = user.getDisplayText(value);
+      }
+      data.add({
+        'domain': position.first.symbol,
+        'measure': value,
+        'label': trailingText
+      });
+    }
+    barChartSeriesList.add(charts.Series<dynamic, String>(
+      id: user.displayValue.toString(),
+      data: data,
+      domainFn: (var d, _) => d['domain'],
+      measureFn: (var d, _) => d['measure'],
+      labelAccessorFn: (d, _) => d['label'],
+    ));
+    var brightness = MediaQuery.of(context).platformBrightness;
+    var axisLabelColor = charts.MaterialPalette.gray.shade500;
+    if (brightness == Brightness.light) {
+      axisLabelColor = charts.MaterialPalette.gray.shade700;
+    }
+    /*
+        positionChart = charts.BarChart(
+          barChartSeriesList,
+          vertical: false,
+        );
+        */
+    var primaryMeasureAxis = charts.NumericAxisSpec(
+      //showAxisLine: true,
+      //renderSpec: charts.GridlineRendererSpec(),
+      renderSpec: charts.GridlineRendererSpec(
+          labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+      //renderSpec: charts.NoneRenderSpec(),
+      //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+      //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+      //tickProviderSpec:
+      //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+      //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+    );
+    if (user.displayValue == DisplayValue.todayReturnPercent ||
+        user.displayValue == DisplayValue.totalReturnPercent) {
+      primaryMeasureAxis = charts.PercentAxisSpec(
+          viewport: const charts.NumericExtents(-1, 1),
+          renderSpec: charts.GridlineRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
+    }
+    var positionChart = BarChart(barChartSeriesList,
+        renderer: charts.BarRendererConfig(
+            barRendererDecorator: charts.BarLabelDecorator<String>(),
+            cornerStrategy: const charts.ConstCornerStrategy(10)),
+        primaryMeasureAxis: primaryMeasureAxis,
+        barGroupingType: null,
+        domainAxis: charts.OrdinalAxisSpec(
+            renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
+        onSelected: (_) {});
+    //}
+
     return SliverStickyHeader(
+      sticky: false,
       header: Material(
           //elevation: 2,
           child: Column(
@@ -102,6 +170,15 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 ]
               ]),
             ),
+            if (user.displayValue != DisplayValue.lastPrice) ...[
+              SizedBox(
+                  height: 300, //275,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        10.0, 0, 10, 10), //EdgeInsets.zero
+                    child: positionChart,
+                  )),
+            ],
             if (user.showGreeks &&
                 groupedOptionAggregatePositions.length == 1) ...[
               _buildGreekScrollRow(deltaAvg!, gammaAvg!, thetaAvg!, vegaAvg!,
@@ -147,43 +224,49 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
     deltaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) =>
-                e.marketData!.delta! * e.marketValue)
+                e.marketData != null ? e.marketData!.delta! * e.marketValue : 0)
             .reduce((a, b) => a + b) /
         denominator;
     gammaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) =>
-                e.marketData!.gamma! * e.marketValue)
+                e.marketData != null ? e.marketData!.gamma! * e.marketValue : 0)
             .reduce((a, b) => a + b) /
         denominator;
     thetaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) =>
-                e.marketData!.theta! * e.marketValue)
+                e.marketData != null ? e.marketData!.theta! * e.marketValue : 0)
             .reduce((a, b) => a + b) /
         denominator;
     vegaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) =>
-                e.marketData!.vega! * e.marketValue)
+                e.marketData != null ? e.marketData!.vega! * e.marketValue : 0)
             .reduce((a, b) => a + b) /
         denominator;
     rhoAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) =>
-                e.marketData!.rho! * e.marketValue)
+                e.marketData != null ? e.marketData!.rho! * e.marketValue : 0)
             .reduce((a, b) => a + b) /
         denominator;
     ivAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData!.impliedVolatility! * e.marketValue)
+            .map((OptionAggregatePosition e) => e.marketData != null
+                ? e.marketData!.impliedVolatility! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     chanceAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => (e.direction == 'debit'
-                ? e.marketData!.chanceOfProfitLong! * e.marketValue
-                : e.marketData!.chanceOfProfitShort! * e.marketValue))
+                ? (e.marketData != null
+                    ? e.marketData!.chanceOfProfitLong! * e.marketValue
+                    : 0)
+                : (e.marketData != null
+                    ? e.marketData!.chanceOfProfitShort! * e.marketValue
+                    : 0)))
             .reduce((a, b) => a + b) /
         denominator;
     openInterestAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData!.openInterest * e.marketValue)
+            .map((OptionAggregatePosition e) => e.marketData != null
+                ? e.marketData!.openInterest * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     return [
@@ -200,9 +283,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = getDisplayValue(op);
-    String opTrailingText = getDisplayText(value);
-    Icon? icon = getDisplayIcon(value);
+    double value = user.getDisplayValue(op);
+    String opTrailingText = user.getDisplayText(value);
+    Icon? icon = user.getDisplayIcon(value);
 
     return Card(
         child: Column(
@@ -448,12 +531,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
     List<Widget> cards = [];
 
-    double? value = getAggregateDisplayValue(ops);
+    double? value = user.getAggregateDisplayValue(ops);
     String? trailingText;
     Icon? icon;
     if (value != null) {
-      trailingText = getDisplayText(value);
-      icon = getDisplayIcon(value);
+      trailingText = user.getDisplayText(value);
+      icon = user.getDisplayIcon(value);
     }
 
     double? deltaAvg,
@@ -546,9 +629,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
       );
     }
     for (OptionAggregatePosition op in ops) {
-      double value = getDisplayValue(op);
-      String trailingText = getDisplayText(value);
-      Icon? icon = getDisplayIcon(value);
+      double value = user.getDisplayValue(op);
+      String trailingText = user.getDisplayText(value);
+      Icon? icon = user.getDisplayIcon(value);
 
       cards.add(
           //Card(child:
@@ -641,128 +724,5 @@ class OptionPositionsRowWidget extends StatelessWidget {
         child: Column(
       children: cards,
     ));
-  }
-
-  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
-    double value = 0;
-    switch (user.displayValue) {
-      case DisplayValue.lastPrice:
-        return null;
-      /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
-            .reduce((a, b) => a + b);
-        break;
-            */
-      case DisplayValue.marketValue:
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.legs.first.positionType == "long"
-                    ? e.marketValue
-                    : e.marketValue)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.changeToday)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      case DisplayValue.totalReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLoss)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      default:
-    }
-    return value;
-  }
-
-  Icon? getDisplayIcon(double value) {
-    if (user.displayValue == DisplayValue.lastPrice ||
-        user.displayValue == DisplayValue.marketValue) {
-      return null;
-    }
-    var icon = Icon(
-        value > 0
-            ? Icons.trending_up
-            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
-        color: (value > 0
-            ? Colors.green
-            : (value < 0 ? Colors.red : Colors.grey)));
-    return icon;
-  }
-
-  String getDisplayText(double value) {
-    String opTrailingText = '';
-    switch (user.displayValue) {
-      case DisplayValue.lastPrice:
-      case DisplayValue.marketValue:
-      case DisplayValue.todayReturn:
-      case DisplayValue.totalReturn:
-        opTrailingText = formatCurrency.format(value);
-        break;
-      case DisplayValue.todayReturnPercent:
-      case DisplayValue.totalReturnPercent:
-        opTrailingText = formatPercentage.format(value);
-        break;
-      default:
-    }
-    return opTrailingText;
-  }
-
-  double getDisplayValue(OptionAggregatePosition op) {
-    double value = 0;
-    switch (user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = op.marketData != null ? op.marketData!.markPrice! : 0;
-        break;
-      case DisplayValue.marketValue:
-        value = op.marketValue;
-        break;
-      case DisplayValue.todayReturn:
-        value = op.changeToday;
-        break;
-      case DisplayValue.todayReturnPercent:
-        value = op.changePercentToday;
-        break;
-      case DisplayValue.totalReturn:
-        value = op.gainLoss;
-        break;
-      case DisplayValue.totalReturnPercent:
-        value = op.gainLossPercent;
-        break;
-      default:
-    }
-    return value;
   }
 }

@@ -5,6 +5,12 @@ import 'package:flutter/material.dart';
 class BarChart extends StatefulWidget {
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
+  final bool vertical;
+  final charts.BarGroupingType? barGroupingType;
+  final String? customRendererId;
+  final charts.BarRendererConfig<String>? renderer;
+  final charts.AxisSpec<dynamic>? domainAxis;
+  final charts.NumericAxisSpec? primaryMeasureAxis;
   //final List<charts.TickSpec<num>>? staticNumericTicks;
   final List<String>? hiddenSeries;
   final void Function(dynamic) onSelected;
@@ -12,6 +18,12 @@ class BarChart extends StatefulWidget {
   const BarChart(this.seriesList,
       {Key? key,
       this.animate = true,
+      this.vertical = false,
+      this.barGroupingType = charts.BarGroupingType.grouped,
+      this.renderer,
+      this.domainAxis,
+      this.primaryMeasureAxis,
+      this.customRendererId,
       required this.onSelected,
       //this.staticNumericTicks,
       this.hiddenSeries})
@@ -26,42 +38,24 @@ class BarChart extends StatefulWidget {
 class BarChartState extends State<BarChart> {
   @override
   Widget build(BuildContext context) {
-    var brightness = MediaQuery.of(context).platformBrightness;
-    var axisLabelColor = charts.MaterialPalette.gray.shade500;
-    if (brightness == Brightness.light) {
-      axisLabelColor = charts.MaterialPalette.gray.shade700;
-    }
-
     return charts.BarChart(
       widget.seriesList,
-      defaultRenderer: charts.BarRendererConfig(
-          barRendererDecorator: charts.BarLabelDecorator<String>(),
-          cornerStrategy: const charts.ConstCornerStrategy(10)),
+      defaultRenderer: widget.renderer,
       animate: widget.animate,
-      vertical: false,
-      barGroupingType: charts.BarGroupingType.grouped,
+      vertical: widget.vertical,
+      barGroupingType: widget.barGroupingType,
       //barRendererDecorator: charts.BarLabelDecorator<String>(),
-      primaryMeasureAxis: charts.NumericAxisSpec(
-        //showAxisLine: true,
-        //renderSpec: charts.GridlineRendererSpec(),
-        renderSpec: charts.GridlineRendererSpec(
-            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-        //renderSpec: charts.NoneRenderSpec(),
-        //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-        //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-        //tickProviderSpec:
-        //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-        //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-      ),
-      domainAxis:
-          const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
+      primaryMeasureAxis: widget.primaryMeasureAxis,
+      domainAxis: widget.domainAxis,
       customSeriesRenderers: [
-        charts.BarTargetLineRendererConfig<String>(
-            //overDrawOuterPx: 10,
-            //overDrawPx: 10,
-            strokeWidthPx: 5,
-            customRendererId: 'customTargetLine',
-            groupingType: charts.BarGroupingType.grouped)
+        if (widget.customRendererId != null) ...[
+          charts.BarTargetLineRendererConfig<String>(
+              //overDrawOuterPx: 10,
+              //overDrawPx: 10,
+              strokeWidthPx: 5,
+              customRendererId: widget.customRendererId,
+              groupingType: charts.BarGroupingType.grouped)
+        ]
       ],
       /*
       selectionModels: [

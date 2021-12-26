@@ -1,8 +1,10 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
@@ -14,6 +16,8 @@ enum DisplayValue {
   totalReturnPercent,
   totalReturn
 }
+final formatCurrency = NumberFormat.simpleCurrency();
+final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
 class RobinhoodUser {
@@ -114,5 +118,128 @@ class RobinhoodUser {
       default:
         return DisplayValue.marketValue;
     }
+  }
+
+  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        return null;
+      /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+            */
+      case DisplayValue.marketValue:
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.legs.first.positionType == "long"
+                    ? e.marketValue
+                    : e.marketValue)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.changeToday)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLoss)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  Icon? getDisplayIcon(double value) {
+    if (displayValue == DisplayValue.lastPrice ||
+        displayValue == DisplayValue.marketValue) {
+      return null;
+    }
+    var icon = Icon(
+        value > 0
+            ? Icons.trending_up
+            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
+        color: (value > 0
+            ? Colors.green
+            : (value < 0 ? Colors.red : Colors.grey)));
+    return icon;
+  }
+
+  String getDisplayText(double value) {
+    String opTrailingText = '';
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+      case DisplayValue.marketValue:
+      case DisplayValue.todayReturn:
+      case DisplayValue.totalReturn:
+        opTrailingText = formatCurrency.format(value);
+        break;
+      case DisplayValue.todayReturnPercent:
+      case DisplayValue.totalReturnPercent:
+        opTrailingText = formatPercentage.format(value);
+        break;
+      default:
+    }
+    return opTrailingText;
+  }
+
+  double getDisplayValue(OptionAggregatePosition op) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.marketData != null ? op.marketData!.markPrice! : 0;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.changeToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.changePercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
   }
 }
