@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/position.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
@@ -178,6 +180,173 @@ class RobinhoodUser {
             .map((OptionAggregatePosition e) => e.gainLossPercent)
             .reduce((a, b) => a + b);
             */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double? getPositionAggregateDisplayValue(List<Position> ops) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        return null;
+      /*
+        value = ops
+            .map((Position e) =>
+                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                e.instrumentObj!.quoteObj!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+        */
+      case DisplayValue.marketValue:
+        value = ops.map((Position e) => e.marketValue).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value =
+            ops.map((Position e) => e.gainLossToday).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((Position e) => e.gainLossPercentToday * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops.map((Position e) => e.gainLoss).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((Position e) => e.gainLossPercent * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        return null;
+      /*
+        value = ops
+            .map((Position e) =>
+                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                e.instrumentObj!.quoteObj!.lastTradePrice!)
+            .reduce((a, b) => a + b);
+        break;
+        */
+      case DisplayValue.marketValue:
+        value =
+            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturn:
+        value = ops
+            .map((ForexHolding e) => e.gainLossToday)
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.todayReturnPercent:
+        var numerator = ops
+            .map((ForexHolding e) => e.gainLossPercentToday * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) =>
+                e.changePercentToday * e.marketValue)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      case DisplayValue.totalReturn:
+        value = ops.map((ForexHolding e) => e.gainLoss).reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalReturnPercent:
+        var numerator = ops
+            .map((ForexHolding e) => e.gainLossPercent * e.totalCost)
+            .reduce((a, b) => a + b);
+        var denominator =
+            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        value = numerator / denominator;
+        /*
+        value = ops
+            .map((OptionAggregatePosition e) => e.gainLossPercent)
+            .reduce((a, b) => a + b);
+            */
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double getPositionDisplayValue(Position op) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.instrumentObj != null && op.instrumentObj!.quoteObj != null
+            ? op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                op.instrumentObj!.quoteObj!.lastTradePrice!
+            : 0;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.gainLossToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.gainLossPercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
+        break;
+      default:
+    }
+    return value;
+  }
+
+  double getCryptoDisplayValue(ForexHolding op) {
+    double value = 0;
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        value = op.quoteObj!.markPrice!;
+        break;
+      case DisplayValue.marketValue:
+        value = op.marketValue;
+        break;
+      case DisplayValue.todayReturn:
+        value = op.gainLossToday;
+        break;
+      case DisplayValue.todayReturnPercent:
+        value = op.gainLossPercentToday;
+        break;
+      case DisplayValue.totalReturn:
+        value = op.gainLoss;
+        break;
+      case DisplayValue.totalReturnPercent:
+        value = op.gainLossPercent;
         break;
       default:
     }

@@ -18,6 +18,7 @@ import 'package:robinhood_options_mobile/model/position_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -576,18 +577,114 @@ class _HomePageState extends State<HomePage>
       } else {
         textColor = Colors.grey.shade800;
       }
-
+      /*
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
-
+*/
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 36,
-              child: Center(
-                  child: Column(
+              height: 72,
+              child: Column(
                 children: [
+                  ListTile(
+                    title: /*const Text(
+                      "Portfolio",
+                      style: TextStyle(fontSize: 19.0),)
+                      */
+                        Wrap(
+                      children: [
+                        const Text(
+                          "Portfolio",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        Container(
+                          width: 10,
+                        ),
+                        Text(
+                            formatCurrency.format(selection != null
+                                ? selection!.adjustedCloseEquity
+                                : close),
+                            style: TextStyle(fontSize: 19, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Icon(
+                          changeInPeriod > 0
+                              ? Icons.trending_up
+                              : (changeInPeriod < 0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color: (changeInPeriod > 0
+                              ? Colors.green
+                              : (changeInPeriod < 0
+                                  ? Colors.red
+                                  : Colors.grey)),
+                          //size: 16.0
+                        ),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            formatPercentage
+                                //.format(selection!.netReturn!.abs()),
+                                .format(changePercentInPeriod.abs()),
+                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Text(
+                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                      ],
+                    ),
+                    subtitle: Text(
+                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                        style: const TextStyle(fontSize: 12.0)),
+                    /*
+                    trailing: Wrap(
+                      children: [
+                        Text(
+                            formatCurrency.format(selection != null
+                                ? selection!.adjustedCloseEquity
+                                : close),
+                            style: TextStyle(fontSize: 19, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Icon(
+                          changeInPeriod > 0
+                              ? Icons.trending_up
+                              : (changeInPeriod < 0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color: (changeInPeriod > 0
+                              ? Colors.green
+                              : (changeInPeriod < 0
+                                  ? Colors.red
+                                  : Colors.grey)),
+                          //size: 16.0
+                        ),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            formatPercentage
+                                //.format(selection!.netReturn!.abs()),
+                                .format(changePercentInPeriod.abs()),
+                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Text(
+                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                      ],
+                    ),
+                    */
+                  ),
+                  /*
                   Wrap(
                     children: [
                       Text(formatCurrency.format(close),
@@ -625,8 +722,9 @@ class _HomePageState extends State<HomePage>
                   Text(
                       '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                       style: TextStyle(fontSize: 10, color: textColor)),
+                      */
                 ],
-              )))));
+              ))));
 
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
@@ -840,42 +938,98 @@ class _HomePageState extends State<HomePage>
                   stockSymbolFilters.contains(element.instrumentObj!.symbol)))
           .toList();
 
-      double? value = getPositionAggregateDisplayValue(filteredPositions);
+      double? value =
+          widget.user.getPositionAggregateDisplayValue(filteredPositions);
       String? trailingText;
       Icon? icon;
       if (value != null) {
-        trailingText = getDisplayText(value);
-        icon = getDisplayIcon(value);
+        trailingText = widget.user.getDisplayText(value);
+        icon = widget.user.getDisplayIcon(value);
       }
+
+      List<charts.Series<dynamic, String>> barChartSeriesList = [];
+      var data = [];
+      for (var position in filteredPositions) {
+        double? value = widget.user.getPositionDisplayValue(position);
+        String? trailingText = widget.user.getDisplayText(value);
+        data.add({
+          'domain': position.instrumentObj!.symbol,
+          'measure': value,
+          'label': trailingText
+        });
+      }
+      barChartSeriesList.add(charts.Series<dynamic, String>(
+        id: widget.user.displayValue.toString(),
+        data: data,
+        domainFn: (var d, _) => d['domain'],
+        measureFn: (var d, _) => d['measure'],
+        labelAccessorFn: (d, _) => d['label'],
+      ));
+      var brightness = MediaQuery.of(context).platformBrightness;
+      var axisLabelColor = charts.MaterialPalette.gray.shade500;
+      if (brightness == Brightness.light) {
+        axisLabelColor = charts.MaterialPalette.gray.shade700;
+      }
+      var primaryMeasureAxis = charts.NumericAxisSpec(
+        //showAxisLine: true,
+        //renderSpec: charts.GridlineRendererSpec(),
+        renderSpec: charts.GridlineRendererSpec(
+            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+        //renderSpec: charts.NoneRenderSpec(),
+        //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+        //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+        //tickProviderSpec:
+        //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+        //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+      );
+      if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
+          widget.user.displayValue == DisplayValue.totalReturnPercent) {
+        primaryMeasureAxis = charts.PercentAxisSpec(
+            viewport: const charts.NumericExtents(-1, 1),
+            renderSpec: charts.GridlineRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
+      }
+      var positionChart = BarChart(barChartSeriesList,
+          renderer: charts.BarRendererConfig(
+              barRendererDecorator: charts.BarLabelDecorator<String>(),
+              cornerStrategy: const charts.ConstCornerStrategy(10)),
+          primaryMeasureAxis: primaryMeasureAxis,
+          barGroupingType: null,
+          domainAxis: charts.OrdinalAxisSpec(
+              renderSpec: charts.SmallTickRendererSpec(
+                  labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
+          onSelected: (_) {});
+      //}
 
       slivers.add(SliverStickyHeader(
           sticky: false,
           header: Material(
               //elevation: 2,
-              child: Container(
+              child: Column(
                   //height: 208.0, //60.0,
                   //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Stocks",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
-                    trailing: Wrap(spacing: 8, children: [
-                      if (icon != null) ...[
-                        icon,
-                      ],
-                      if (trailingText != null) ...[
-                        Text(
-                          trailingText,
-                          style: const TextStyle(fontSize: 21.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]
-                    ]),
-                    /*
+                  //alignment: Alignment.centerLeft,
+                  children: [
+                ListTile(
+                  title: const Text(
+                    "Stocks",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                  subtitle: Text(
+                      "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+                  trailing: Wrap(spacing: 8, children: [
+                    if (icon != null) ...[
+                      icon,
+                    ],
+                    if (trailingText != null) ...[
+                      Text(
+                        trailingText,
+                        style: const TextStyle(fontSize: 21.0),
+                        textAlign: TextAlign.right,
+                      )
+                    ]
+                  ]),
+                  /*
                       IconButton(
                           icon: const Icon(Icons.more_vert),
                           onPressed: () {
@@ -923,7 +1077,17 @@ class _HomePageState extends State<HomePage>
                                   });
                                 });
                           }),*/
-                  ))),
+                ),
+                if (widget.user.displayValue != DisplayValue.lastPrice) ...[
+                  SizedBox(
+                      height: 300, //275,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                            10.0, 0, 10, 10), //EdgeInsets.zero
+                        child: positionChart,
+                      )),
+                ],
+              ])),
           sliver: SliverList(
             // delegate: SliverChildListDelegate(widgets),
             delegate: SliverChildBuilderDelegate(
@@ -961,12 +1125,13 @@ class _HomePageState extends State<HomePage>
                   cryptoFilters.contains(element.currencyCode)))
           .toList();
 
-      double? value = getCryptoAggregateDisplayValue(filteredHoldings);
+      double? value =
+          widget.user.getCryptoAggregateDisplayValue(filteredHoldings);
       String? trailingText;
       Icon? icon;
       if (value != null) {
-        trailingText = getDisplayText(value);
-        icon = getDisplayIcon(value);
+        trailingText = widget.user.getDisplayText(value);
+        icon = widget.user.getDisplayIcon(value);
       }
 
       slivers.add(SliverStickyHeader(
@@ -2278,9 +2443,9 @@ class _HomePageState extends State<HomePage>
   Widget _buildPositionRow(List<Position> positions, int index) {
     var instrument = positions[index].instrumentObj;
 
-    double value = getPositionDisplayValue(positions[index]);
-    String trailingText = getDisplayText(value);
-    Icon? icon = getDisplayIcon(value);
+    double value = widget.user.getPositionDisplayValue(positions[index]);
+    String trailingText = widget.user.getDisplayText(value);
+    Icon? icon = widget.user.getDisplayIcon(value);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -2355,300 +2520,10 @@ class _HomePageState extends State<HomePage>
     ]));
   }
 
-  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        return null;
-      /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
-            .reduce((a, b) => a + b);
-        break;
-            */
-      case DisplayValue.marketValue:
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.legs.first.positionType == "long"
-                    ? e.marketValue
-                    : e.marketValue)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.changeToday)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      case DisplayValue.totalReturn:
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLoss)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      default:
-    }
-    return value;
-  }
-
-  Icon? getDisplayIcon(double value) {
-    if (widget.user.displayValue == DisplayValue.lastPrice ||
-        widget.user.displayValue == DisplayValue.marketValue) {
-      return null;
-    }
-    var icon = Icon(
-        value > 0
-            ? Icons.trending_up
-            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
-        color: (value > 0
-            ? Colors.green
-            : (value < 0 ? Colors.red : Colors.grey)));
-    return icon;
-  }
-
-  String getDisplayText(double value) {
-    String opTrailingText = '';
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-      case DisplayValue.marketValue:
-      case DisplayValue.todayReturn:
-      case DisplayValue.totalReturn:
-        opTrailingText = formatCurrency.format(value);
-        break;
-      case DisplayValue.todayReturnPercent:
-      case DisplayValue.totalReturnPercent:
-        opTrailingText = formatPercentage.format(value);
-        break;
-      default:
-    }
-    return opTrailingText;
-  }
-
-  double getDisplayValue(OptionAggregatePosition op) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = op.marketData!.markPrice!;
-        break;
-      case DisplayValue.marketValue:
-        value = op.marketValue;
-        break;
-      case DisplayValue.todayReturn:
-        value = op.changeToday;
-        break;
-      case DisplayValue.todayReturnPercent:
-        value = op.changePercentToday;
-        break;
-      case DisplayValue.totalReturn:
-        value = op.gainLoss;
-        break;
-      case DisplayValue.totalReturnPercent:
-        value = op.gainLossPercent;
-        break;
-      default:
-    }
-    return value;
-  }
-
-  double? getPositionAggregateDisplayValue(List<Position> ops) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        return null;
-      /*
-        value = ops
-            .map((Position e) =>
-                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-                e.instrumentObj!.quoteObj!.lastTradePrice!)
-            .reduce((a, b) => a + b);
-        break;
-        */
-      case DisplayValue.marketValue:
-        value = ops.map((Position e) => e.marketValue).reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturn:
-        value =
-            ops.map((Position e) => e.gainLossToday).reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((Position e) => e.gainLossPercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      case DisplayValue.totalReturn:
-        value = ops.map((Position e) => e.gainLoss).reduce((a, b) => a + b);
-        break;
-      case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((Position e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      default:
-    }
-    return value;
-  }
-
-  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        return null;
-      /*
-        value = ops
-            .map((Position e) =>
-                e.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-                e.instrumentObj!.quoteObj!.lastTradePrice!)
-            .reduce((a, b) => a + b);
-        break;
-        */
-      case DisplayValue.marketValue:
-        value =
-            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturn:
-        value = ops
-            .map((ForexHolding e) => e.gainLossToday)
-            .reduce((a, b) => a + b);
-        break;
-      case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((ForexHolding e) => e.gainLossPercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      case DisplayValue.totalReturn:
-        value = ops.map((ForexHolding e) => e.gainLoss).reduce((a, b) => a + b);
-        break;
-      case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((ForexHolding e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
-        break;
-      default:
-    }
-    return value;
-  }
-
-  double getCryptoDisplayValue(ForexHolding op) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = op.quoteObj!.markPrice!;
-        break;
-      case DisplayValue.marketValue:
-        value = op.marketValue;
-        break;
-      case DisplayValue.todayReturn:
-        value = op.gainLossToday;
-        break;
-      case DisplayValue.todayReturnPercent:
-        value = op.gainLossPercentToday;
-        break;
-      case DisplayValue.totalReturn:
-        value = op.gainLoss;
-        break;
-      case DisplayValue.totalReturnPercent:
-        value = op.gainLossPercent;
-        break;
-      default:
-    }
-    return value;
-  }
-
-  double getPositionDisplayValue(Position op) {
-    double value = 0;
-    switch (widget.user.displayValue) {
-      case DisplayValue.lastPrice:
-        value = op.instrumentObj != null && op.instrumentObj!.quoteObj != null
-            ? op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
-                op.instrumentObj!.quoteObj!.lastTradePrice!
-            : 0;
-        break;
-      case DisplayValue.marketValue:
-        value = op.marketValue;
-        break;
-      case DisplayValue.todayReturn:
-        value = op.gainLossToday;
-        break;
-      case DisplayValue.todayReturnPercent:
-        value = op.gainLossPercentToday;
-        break;
-      case DisplayValue.totalReturn:
-        value = op.gainLoss;
-        break;
-      case DisplayValue.totalReturnPercent:
-        value = op.gainLossPercent;
-        break;
-      default:
-    }
-    return value;
-  }
-
   Widget _buildCryptoRow(List<ForexHolding> holdings, int index) {
-    double value = getCryptoDisplayValue(holdings[index]);
-    String trailingText = getDisplayText(value);
-    Icon? icon = getDisplayIcon(value);
+    double value = widget.user.getCryptoDisplayValue(holdings[index]);
+    String trailingText = widget.user.getDisplayText(value);
+    Icon? icon = widget.user.getDisplayIcon(value);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
