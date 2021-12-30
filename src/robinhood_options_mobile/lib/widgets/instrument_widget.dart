@@ -1,12 +1,20 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
+import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/stock_order_store.dart';
+import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
@@ -24,8 +32,8 @@ import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/position.dart';
-import 'package:robinhood_options_mobile/model/position_order.dart';
+import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -64,7 +72,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<dynamic>? futureEarnings;
   Future<List<dynamic>>? futureSimilar;
   Future<List<dynamic>>? futureSplits;
-  Future<List<PositionOrder>>? futureInstrumentOrders;
+  Future<List<StockOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<List<OptionEvent>>? futureOptionEvents;
 
@@ -80,13 +88,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   final List<String> orderFilters = <String>["confirmed", "filled"];
 
-  Position? position;
+  StockPosition? position;
   List<OptionAggregatePosition> optionPositions = [];
   List<OptionOrder> optionOrders = [];
   double optionOrdersPremiumBalance = 0;
-  List<PositionOrder> positionOrders = [];
+  List<StockOrder> positionOrders = [];
   double positionOrdersBalance = 0;
 
+  Timer? refreshTriggerTime;
+  InstrumentStore? instrumentStore;
   //final dataKey = GlobalKey();
 
   _InstrumentWidgetState();
@@ -95,66 +105,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   void initState() {
     super.initState();
 
-    if (RobinhoodService.optionPositions != null) {
-      optionPositions = RobinhoodService.optionPositions!
-          .where((e) => e.symbol == widget.instrument.symbol)
-          .toList();
-      optionPositions.sort((a, b) {
-        int comp = a.legs.first.expirationDate!
-            .compareTo(b.legs.first.expirationDate!);
-        if (comp != 0) return comp;
-        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-      });
-    }
-
-    if (RobinhoodService.optionOrders != null) {
-      var cachedOptionOrders = RobinhoodService.optionOrders!
-          .where((element) => element.chainSymbol == widget.instrument.symbol)
-          .toList();
-      futureOptionOrders = Future.value(cachedOptionOrders);
-    } else if (widget.instrument.tradeableChainId != null) {
-      futureOptionOrders = RobinhoodService.getOptionOrders(
-          widget.user, widget.instrument.tradeableChainId!);
-    } else {
-      futureOptionOrders = Future.value([]);
-    }
-
-    if (RobinhoodService.stockPositions != null) {
-      position = RobinhoodService.stockPositions!
-          .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
-    }
-
-    if (RobinhoodService.positionOrders != null) {
-      var cachedPositionOrders = RobinhoodService.positionOrders!
-          .where((element) => element.instrumentId == widget.instrument.id)
-          .toList();
-      futureInstrumentOrders = Future.value(cachedPositionOrders);
-    } else {
-      futureInstrumentOrders = RobinhoodService.getInstrumentOrders(
-          widget.user, [widget.instrument.url]);
-    }
+    _startRefreshTimer();
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
   }
 
-  void _calculateOptionOrderBalance() {
-    optionOrdersPremiumBalance = optionOrders.isNotEmpty
-        ? optionOrders
-            .map((e) =>
-                (e.processedPremium != null ? e.processedPremium! : 0) *
-                (e.direction == "credit" ? 1 : -1))
-            .reduce((a, b) => a + b) as double
-        : 0;
-  }
-
-  void _calculatePositionOrderBalance() {
-    positionOrdersBalance = positionOrders.isNotEmpty
-        ? positionOrders
-            .map((e) =>
-                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
-                (e.side == "buy" ? 1 : -1))
-            .reduce((a, b) => a + b)
-        : 0.0;
+  @override
+  void dispose() {
+    _stopRefreshTimer();
+    super.dispose();
   }
 
 /*
@@ -167,14 +126,58 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var instrument = widget.instrument;
     var user = widget.user;
 
+    // This gets the current state of CartModel and also tells Flutter
+    // to rebuild this widget when CartModel notifies listeners (in other words,
+    // when it changes).
+    var store = context.watch<OptionPositionStore>();
+    optionPositions =
+        store.items.where((e) => e.symbol == widget.instrument.symbol).toList();
+    optionPositions.sort((a, b) {
+      int comp =
+          a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
+      if (comp != 0) return comp;
+      return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+    });
+
+    var optionOrderStore = context.watch<OptionOrderStore>();
+    var optionOrders = optionOrderStore.items
+        .where((element) => element.chainSymbol == widget.instrument.symbol)
+        .toList();
+    if (optionOrders.isNotEmpty) {
+      futureOptionOrders = Future.value(optionOrders);
+    } else if (widget.instrument.tradeableChainId != null) {
+      futureOptionOrders = RobinhoodService.getOptionOrders(
+          widget.user, optionOrderStore, widget.instrument.tradeableChainId!);
+    } else {
+      futureOptionOrders = Future.value([]);
+    }
+
+    var stockPositionStore = context.watch<StockPositionStore>();
+    position = stockPositionStore.items
+        .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
+
+    var stockPositionOrderStore = context.watch<StockOrderStore>();
+    var positionOrders = stockPositionOrderStore.items
+        .where((element) => element.instrumentId == widget.instrument.id)
+        .toList();
+    if (positionOrders.isNotEmpty) {
+      futureInstrumentOrders = Future.value(positionOrders);
+    } else {
+      futureInstrumentOrders = RobinhoodService.getInstrumentOrders(
+          widget.user, stockPositionOrderStore, [widget.instrument.url]);
+    }
     if (widget.instrument.logoUrl == null &&
         RobinhoodService.logoUrls.containsKey(widget.instrument.symbol)) {
       widget.instrument.logoUrl =
           RobinhoodService.logoUrls[widget.instrument.symbol];
     }
 
+    instrumentStore = context.watch<InstrumentStore>();
+
+    var quoteStore = context.watch<QuoteStore>();
     if (instrument.quoteObj == null) {
-      futureQuote ??= RobinhoodService.getQuote(user, instrument.symbol);
+      futureQuote ??=
+          RobinhoodService.getQuote(user, quoteStore, instrument.symbol);
     } else {
       futureQuote ??= Future.value(instrument.quoteObj);
     }
@@ -275,6 +278,48 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
+  void _calculateOptionOrderBalance() {
+    optionOrdersPremiumBalance = optionOrders.isNotEmpty
+        ? optionOrders
+            .map((e) =>
+                (e.processedPremium != null ? e.processedPremium! : 0) *
+                (e.direction == "credit" ? 1 : -1))
+            .reduce((a, b) => a + b) as double
+        : 0;
+  }
+
+  void _calculatePositionOrderBalance() {
+    positionOrdersBalance = positionOrders.isNotEmpty
+        ? positionOrders
+            .map((e) =>
+                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
+                (e.side == "buy" ? 1 : -1))
+            .reduce((a, b) => a + b)
+        : 0.0;
+  }
+
+  void _startRefreshTimer() {
+    // Start listening to clipboard
+    refreshTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 15000),
+      (timer) async {
+        if (widget.user.refreshEnabled) {
+          if (futureHistoricals != null) {
+            setState(() {
+              futureHistoricals = null;
+            });
+          }
+        }
+      },
+    );
+  }
+
+  void _stopRefreshTimer() {
+    if (refreshTriggerTime != null) {
+      refreshTriggerTime!.cancel();
+    }
+  }
+
   void resetChart(ChartDateSpan span, Bounds bounds) {
     setState(() {
       chartDateSpanFilter = span;
@@ -285,7 +330,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   buildScrollView(Instrument instrument,
       {List<OptionInstrument>? optionInstruments,
-      Position? position,
+      StockPosition? position,
       bool done = false}) {
     if (instrument.instrumentHistoricalsObj != null) {
       if (chart == null) {
@@ -1800,7 +1845,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   //isThreeLine: true,
                   onTap: () async {
                     var similarInstruments =
-                        await RobinhoodService.getInstrumentsByIds(widget.user,
+                        await RobinhoodService.getInstrumentsByIds(
+                            widget.user,
+                            instrumentStore!,
                             [instrument.similarObj![index]["instrument_id"]]);
                     similarInstruments[0].logoUrl = instrument
                         .similarObj![index]["logo_url"]

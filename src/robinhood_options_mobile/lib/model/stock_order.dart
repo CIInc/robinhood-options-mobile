@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
 //@immutable
-class PositionOrder {
+class StockOrder {
   final String id;
   final String? refId;
   final String url;
@@ -32,7 +32,7 @@ class PositionOrder {
 
   Instrument? instrumentObj;
 
-  PositionOrder(
+  StockOrder(
       this.id,
       this.refId,
       this.url,
@@ -57,7 +57,7 @@ class PositionOrder {
       this.createdAt,
       this.updatedAt);
 
-  PositionOrder.fromJson(dynamic json)
+  StockOrder.fromJson(dynamic json)
       : id = json['id'],
         refId = json['ref_id'],
         url = json['url'],
@@ -121,7 +121,7 @@ class PositionOrder {
     return row;
   }
 
-  static Future<File> generateCsv(List<PositionOrder> optionOrders) async {
+  static Future<File> generateCsv(List<StockOrder> optionOrders) async {
     List<List<dynamic>> rows = [];
     List<dynamic> row = [];
     row.add("id");

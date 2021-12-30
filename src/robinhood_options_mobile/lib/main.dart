@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/option_event_store.dart';
+import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/stock_order_store.dart';
+import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
@@ -55,13 +63,37 @@ class MyApp extends StatelessWidget {
           ThemeData(colorScheme: darkColorScheme); //, useMaterial3: true
       //lightTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
       //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
-      return MaterialApp(
-        title: 'Robinhood Options',
-        debugShowCheckedModeBanner: false,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: ThemeMode.system,
-        /*
+      return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (context) => OptionPositionStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionEventStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => StockPositionStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => StockOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InstrumentStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => QuoteStore(),
+            )
+          ],
+          child: MaterialApp(
+            title: 'Robinhood Options',
+            debugShowCheckedModeBanner: false,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: ThemeMode.system,
+            /*
         theme: ThemeData(
           // This is the theme of your application.
           //
@@ -74,10 +106,10 @@ class MyApp extends StatelessWidget {
           // is not restarted.
           primarySwatch: Colors.blue,
         ), */
-        // home: OptionPositionsWidget()
-        home: const NavigationStatefulWidget(),
-        //HomePage(title: 'Robinhood Options'),
-      );
+            // home: OptionPositionsWidget()
+            home: const NavigationStatefulWidget(),
+            //HomePage(title: 'Robinhood Options'),
+          ));
     });
   }
 }

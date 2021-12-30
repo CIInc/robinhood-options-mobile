@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -37,6 +39,8 @@ class _SearchWidgetState extends State<SearchWidget>
   Future<List<Instrument>>? futureListMovers;
   Future<List<Instrument>>? futureListMostPopular;
 
+  InstrumentStore? instrumentStore;
+
   _SearchWidgetState();
 
   @override
@@ -69,10 +73,14 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildScaffold() {
+    instrumentStore = context.watch<InstrumentStore>();
+
     futureMovers ??= RobinhoodService.getMovers(widget.user, direction: "up");
     futureLosers ??= RobinhoodService.getMovers(widget.user, direction: "down");
-    futureListMovers ??= RobinhoodService.getListMovers(widget.user);
-    futureListMostPopular ??= RobinhoodService.getListMostPopular(widget.user);
+    futureListMovers ??=
+        RobinhoodService.getListMovers(widget.user, instrumentStore!);
+    futureListMostPopular ??=
+        RobinhoodService.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
     return FutureBuilder(
@@ -423,7 +431,7 @@ class _SearchWidgetState extends State<SearchWidget>
               ]),
               onTap: () async {
                 var instrument = await RobinhoodService.getInstrument(
-                    widget.user, movers[index].instrumentUrl);
+                    widget.user, instrumentStore!, movers[index].instrumentUrl);
 
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(

@@ -2,10 +2,15 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
+import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -46,46 +51,52 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   BarChart? chart;
   List<charts.Series<dynamic, String>> seriesList = [];
 
+  QuoteStore? quoteStore;
+
   _OptionInstrumentWidgetState();
 
   @override
   void initState() {
     super.initState();
-
-    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
-    futureQuote ??= RobinhoodService.getQuote(
-        widget.user, widget.optionInstrument.chainSymbol);
-
-    if (RobinhoodService.optionOrders != null) {
-      var cachedOptionOrders = RobinhoodService.optionOrders!
-          .where((element) =>
-              element.chainSymbol == widget.optionInstrument.chainSymbol)
-          .toList();
-      futureOptionOrders = Future.value(cachedOptionOrders);
-    } else if (RobinhoodService.optionOrdersMap
-        .containsKey(widget.optionInstrument.chainId)) {
-      var chainSymbolOrders =
-          RobinhoodService.optionOrdersMap[widget.optionInstrument.chainId];
-      futureOptionOrders = Future.value(chainSymbolOrders);
-    } else {
-      //if (widget.optionInstrument.chainId != null) {
-      futureOptionOrders = RobinhoodService.getOptionOrders(
-          widget.user, widget.optionInstrument.chainId);
-    } /*else {
-      futureOptionOrders = Future.value([]);
-    }*/
   }
 
   @override
   Widget build(BuildContext context) {
+    // This gets the current state of PortfolioStore and also tells Flutter
+    // to rebuild this widget when PortfolioStore notifies listeners (in other words,
+    // when it changes).
+    context.watch<OptionPositionStore>();
+
+    var optionOrderStore = context.watch<OptionOrderStore>();
+    var optionOrders = optionOrderStore.items
+        .where((element) => element.chainId == widget.optionInstrument.chainId)
+        .toList();
+    if (optionOrders.isNotEmpty) {
+      futureOptionOrders = Future.value(optionOrders);
+    } else {
+      futureOptionOrders = RobinhoodService.getOptionOrders(
+          widget.user, optionOrderStore, widget.optionInstrument.chainId);
+    }
+    var instrumentStore = context.watch<InstrumentStore>();
+
+    quoteStore = context.watch<QuoteStore>();
+    var cachedQuotes = quoteStore!.items.where(
+        (element) => element.symbol == widget.optionInstrument.chainSymbol);
+    if (cachedQuotes.isNotEmpty) {
+      futureQuote = Future.value(cachedQuotes.first);
+    } else {
+      futureQuote ??= RobinhoodService.getQuote(
+          widget.user, quoteStore!, widget.optionInstrument.chainSymbol);
+    }
+
     return Scaffold(
       body: FutureBuilder(
           future: futureQuote,
           builder: (context, AsyncSnapshot<Quote> quoteSnapshot) {
             if (quoteSnapshot.hasData) {
               var quote = quoteSnapshot.data!;
-              futureInstrument ??=
-                  RobinhoodService.getInstrument(widget.user, quote.instrument);
+              futureInstrument ??= RobinhoodService.getInstrument(
+                  widget.user, instrumentStore, quote.instrument);
 
               return FutureBuilder(
                   future: futureInstrument,
@@ -1438,7 +1449,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
 
   Future<void> _pullRefresh() async {
     var quote = await RobinhoodService.getQuote(
-        widget.user, widget.optionInstrument.chainSymbol);
+        widget.user, quoteStore!, widget.optionInstrument.chainSymbol);
 
     setState(() {
       futureQuote = null;

@@ -2,19 +2,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
-import 'package:robinhood_options_mobile/model/position.dart';
-import 'package:robinhood_options_mobile/model/position_order.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
+import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -101,9 +106,9 @@ class _HomePageState extends State<HomePage>
   Bounds chartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
 
-  Stream<List<Position>>? positionStream;
-  List<Position> positions = [];
-  Stream<List<PositionOrder>>? positionOrderStream;
+  Stream<List<StockPosition>>? positionStream;
+  List<StockPosition> positions = [];
+  Stream<List<StockOrder>>? positionOrderStream;
 
   Stream<List<OptionAggregatePosition>>? optionPositionStream;
   Stream<List<OptionOrder>>? optionOrderStream;
@@ -123,6 +128,9 @@ class _HomePageState extends State<HomePage>
   List<bool> hasQuantityFilters = [true, false];
 
   Timer? refreshTriggerTime;
+  OptionPositionStore? optionPositionStore;
+  StockPositionStore? stockPositionStore;
+  QuoteStore? quoteStore;
 
   @override
   bool get wantKeepAlive => true;
@@ -170,6 +178,16 @@ class _HomePageState extends State<HomePage>
     //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
     futureNummusHoldings ??= RobinhoodService.getNummusHoldings(widget.user,
         nonzero: !hasQuantityFilters[1]);
+
+    // This gets the current state of CartModel and also tells Flutter
+    // to rebuild this widget when CartModel notifies listeners (in other words,
+    // when it changes).
+    optionPositionStore = context.watch<OptionPositionStore>();
+    //store = Provider.of<PortfolioStore>(context, listen: true);
+
+    stockPositionStore = context.watch<StockPositionStore>();
+    var instrumentStore = context.watch<InstrumentStore>();
+    quoteStore = context.watch<QuoteStore>();
 
     return FutureBuilder(
       future: Future.wait([
@@ -239,16 +257,21 @@ class _HomePageState extends State<HomePage>
 
                   positionStream ??= RobinhoodService.streamPositions(
                       widget.user,
+                      stockPositionStore!,
+                      instrumentStore,
+                      quoteStore!,
                       nonzero: !hasQuantityFilters[1]);
 
                   return StreamBuilder(
                       stream: positionStream,
                       builder: (context2, positionSnapshot) {
                         if (positionSnapshot.hasData) {
-                          positions = positionSnapshot.data as List<Position>;
+                          positions =
+                              positionSnapshot.data as List<StockPosition>;
 
                           optionPositionStream ??= RobinhoodService
                               .streamOptionAggregatePositionList(widget.user,
+                                  optionPositionStore!, instrumentStore,
                                   nonzero: !hasQuantityFilters[1]);
 
                           return StreamBuilder<List<OptionAggregatePosition>>(
@@ -349,12 +372,12 @@ class _HomePageState extends State<HomePage>
           }
           var refreshedOptionPositions =
               await RobinhoodService.refreshOptionMarketData(
-                  widget.user, optionPositions);
+                  widget.user, optionPositionStore!, optionPositions);
           setState(() {
             optionPositions = refreshedOptionPositions;
           });
           var refreshPositions = await RobinhoodService.refreshPositionQuote(
-              widget.user, positions);
+              widget.user, stockPositionStore!, quoteStore!, positions);
           setState(() {
             positions = refreshPositions;
           });
@@ -413,7 +436,7 @@ class _HomePageState extends State<HomePage>
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
       List<OptionAggregatePosition>? optionPositions,
-      List<Position>? positions,
+      List<StockPosition>? positions,
       bool done = false}) {
     double portfolioValue = 0.0;
     double stockAndOptionsEquityPercent = 0.0;
@@ -1148,93 +1171,6 @@ class _HomePageState extends State<HomePage>
           childCount: filteredHoldings.length,
         ),
       ));
-      /*
-      slivers.add(SliverStickyHeader(
-          sticky: false,
-          header: Material(
-              //elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Cryptos",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
-                    trailing: Wrap(spacing: 8, children: [
-                      if (icon != null) ...[
-                        icon,
-                      ],
-                      if (trailingText != null) ...[
-                        Text(
-                          trailingText,
-                          style: const TextStyle(fontSize: 21.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]
-                    ]),
-                    /*
-                      IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                                context: context,
-                                //constraints: BoxConstraints(maxHeight: 260),
-                                builder: (BuildContext context) {
-                                  return StatefulBuilder(builder:
-                                      (BuildContext context,
-                                          StateSetter bottomState) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          tileColor: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Cryptos",
-                                            style: TextStyle(fontSize: 19.0),
-                                          ),
-                                          /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        const ListTile(
-                                          title:
-                                              Text("Position Type"), // & Date
-                                        ),
-                                        positionTypeFilterWidget(bottomState),
-                                        //orderDateFilterWidget,
-                                        const ListTile(
-                                          title: Text("Symbols"),
-                                        ),
-                                        cryptoFilterWidget(bottomState),
-                                      ],
-                                    );
-                                  });
-                                });
-                          }),*/
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return _buildCryptoRow(filteredHoldings, index);
-              },
-              // Or, uncomment the following line:
-              childCount: filteredHoldings.length,
-            ),
-          )));
-          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1252,24 +1188,6 @@ class _HomePageState extends State<HomePage>
         )
       ])));
       slivers.add(portfoliosWidget(portfolios));
-      /*
-      slivers.add(SliverStickyHeader(
-          sticky: false,
-          header: Material(
-              //elevation: 2,
-              child: Container(
-            //height: 208.0, //60.0,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: const ListTile(
-              title: Text(
-                "Portfolios",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            ),
-          )),
-          sliver: portfoliosWidget(portfolios)));
-          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1287,24 +1205,6 @@ class _HomePageState extends State<HomePage>
         )
       ])));
       slivers.add(userWidget(userInfo));
-      /*
-      slivers.add(SliverStickyHeader(
-          sticky: false,
-          header: Material(
-              //elevation: 2,
-              child: Container(
-            //height: 208.0, //60.0,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: const ListTile(
-              title: Text(
-                "User",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            ),
-          )),
-          sliver: userWidget(userInfo)));
-          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1312,18 +1212,6 @@ class _HomePageState extends State<HomePage>
     }
     */
     slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
-    /*
-    slivers.add(SliverStickyHeader(
-        sticky: false,
-        header: Material(
-            //elevation: 2.0,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: null)),
-        sliver: const SliverToBoxAdapter(child: DisclaimerWidget())));
-        */
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
       height: 25.0,
@@ -2354,7 +2242,7 @@ class _HomePageState extends State<HomePage>
     });
   }
 
-  Widget _buildPositionRow(List<Position> positions, int index) {
+  Widget _buildPositionRow(List<StockPosition> positions, int index) {
     var instrument = positions[index].instrumentObj;
 
     double value = widget.user.getPositionDisplayValue(positions[index]);

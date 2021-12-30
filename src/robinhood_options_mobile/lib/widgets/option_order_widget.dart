@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
@@ -39,14 +42,21 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   @override
   void initState() {
     super.initState();
-
-    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionOrder);
-    futureQuote =
-        RobinhoodService.getQuote(widget.user, widget.optionOrder.chainSymbol);
   }
 
   @override
   Widget build(BuildContext context) {
+    var instrumentStore = context.watch<InstrumentStore>();
+    var quoteStore = context.watch<QuoteStore>();
+    var cachedQuotes = quoteStore.items
+        .where((element) => element.symbol == widget.optionOrder.chainSymbol);
+    if (cachedQuotes.isNotEmpty) {
+      futureQuote = Future.value(cachedQuotes.first);
+    } else {
+      futureQuote = RobinhoodService.getQuote(
+          widget.user, quoteStore, widget.optionOrder.chainSymbol);
+    }
+
     return Scaffold(
       body: FutureBuilder(
           future: futureQuote,
@@ -54,7 +64,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
               futureInstrument = RobinhoodService.getInstrument(
-                  widget.user, snapshot.data!.instrument);
+                  widget.user, instrumentStore, snapshot.data!.instrument);
               return FutureBuilder(
                   future: futureInstrument,
                   builder:

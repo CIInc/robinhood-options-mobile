@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 
-import 'package:robinhood_options_mobile/model/position_order.dart';
+import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -19,7 +22,7 @@ final formatCompactNumber = NumberFormat.compact();
 class PositionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Account account;
-  final PositionOrder positionOrder;
+  final StockOrder positionOrder;
   const PositionOrderWidget(this.user, this.account, this.positionOrder,
       {Key? key})
       : super(key: key);
@@ -40,20 +43,29 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   @override
   void initState() {
     super.initState();
-
-    futureInstrument = RobinhoodService.getInstrument(
-        widget.user, widget.positionOrder.instrument);
   }
 
   @override
   Widget build(BuildContext context) {
+    var instrumentStore = context.watch<InstrumentStore>();
+    var instruments = instrumentStore.items
+        .where((element) => element.url == widget.positionOrder.instrument);
+    if (instruments.isNotEmpty) {
+      futureInstrument = Future.value(instruments.first);
+    } else {
+      futureInstrument = RobinhoodService.getInstrument(
+          widget.user, instrumentStore, widget.positionOrder.instrument);
+    }
+
+    var quoteStore = context.watch<QuoteStore>();
+
     return FutureBuilder(
         future: futureInstrument,
         builder: (context, AsyncSnapshot<Instrument> snapshot) {
           if (snapshot.hasData) {
             widget.positionOrder.instrumentObj = snapshot.data!;
-            futureQuote = RobinhoodService.getQuote(
-                widget.user, widget.positionOrder.instrumentObj!.symbol);
+            futureQuote = RobinhoodService.getQuote(widget.user, quoteStore,
+                widget.positionOrder.instrumentObj!.symbol);
             return FutureBuilder(
                 future: futureQuote,
                 builder: (context, AsyncSnapshot<Quote> quoteSnapshot) {
@@ -81,7 +93,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
             : null*/
   }
 
-  Widget _buildPage(PositionOrder positionOrder) {
+  Widget _buildPage(StockOrder positionOrder) {
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')

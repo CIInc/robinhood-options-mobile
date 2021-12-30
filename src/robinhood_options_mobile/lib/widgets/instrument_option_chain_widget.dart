@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
@@ -60,12 +62,6 @@ class _InstrumentOptionChainWidgetState
   void initState() {
     super.initState();
 
-    if (RobinhoodService.optionPositions != null) {
-      optionPositions = RobinhoodService.optionPositions!
-          .where((e) => e.symbol == widget.instrument.symbol)
-          .toList();
-    }
-
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
   }
 
@@ -75,6 +71,13 @@ class _InstrumentOptionChainWidgetState
     var user = widget.user;
 
     futureOptionChain ??= RobinhoodService.getOptionChains(user, instrument.id);
+
+    // This gets the current state of CartModel and also tells Flutter
+    // to rebuild this widget when CartModel notifies listeners (in other words,
+    // when it changes).
+    var store = context.watch<OptionPositionStore>();
+    optionPositions =
+        store.items.where((e) => e.symbol == widget.instrument.symbol).toList();
 
     return Scaffold(
         body: FutureBuilder<OptionChain>(

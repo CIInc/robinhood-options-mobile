@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
@@ -61,7 +64,11 @@ class _ListsWidgetState extends State<ListsWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-    watchlistStream ??= RobinhoodService.streamLists(widget.user);
+    var instrumentStore = context.watch<InstrumentStore>();
+    var quoteStore = context.watch<QuoteStore>();
+
+    watchlistStream ??=
+        RobinhoodService.streamLists(widget.user, instrumentStore, quoteStore);
     return StreamBuilder(
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {

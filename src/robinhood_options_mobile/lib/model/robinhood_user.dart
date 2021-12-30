@@ -6,7 +6,7 @@ import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/position.dart';
+import 'package:robinhood_options_mobile/model/stock_position.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
@@ -186,7 +186,7 @@ class RobinhoodUser {
     return value;
   }
 
-  double? getPositionAggregateDisplayValue(List<Position> ops) {
+  double? getPositionAggregateDisplayValue(List<StockPosition> ops) {
     double value = 0;
     switch (displayValue) {
       case DisplayValue.lastPrice:
@@ -200,18 +200,20 @@ class RobinhoodUser {
         break;
         */
       case DisplayValue.marketValue:
-        value = ops.map((Position e) => e.marketValue).reduce((a, b) => a + b);
+        value =
+            ops.map((StockPosition e) => e.marketValue).reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturn:
-        value =
-            ops.map((Position e) => e.gainLossToday).reduce((a, b) => a + b);
+        value = ops
+            .map((StockPosition e) => e.gainLossToday)
+            .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturnPercent:
         var numerator = ops
-            .map((Position e) => e.gainLossPercentToday * e.totalCost)
+            .map((StockPosition e) => e.gainLossPercentToday * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator =
-            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+            ops.map((StockPosition e) => e.totalCost).reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
         value = ops
@@ -221,14 +223,15 @@ class RobinhoodUser {
             */
         break;
       case DisplayValue.totalReturn:
-        value = ops.map((Position e) => e.gainLoss).reduce((a, b) => a + b);
+        value =
+            ops.map((StockPosition e) => e.gainLoss).reduce((a, b) => a + b);
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
-            .map((Position e) => e.gainLossPercent * e.totalCost)
+            .map((StockPosition e) => e.gainLossPercent * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator =
-            ops.map((Position e) => e.totalCost).reduce((a, b) => a + b);
+            ops.map((StockPosition e) => e.totalCost).reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
         value = ops
@@ -298,7 +301,7 @@ class RobinhoodUser {
     return value;
   }
 
-  double getPositionDisplayValue(Position op) {
+  double getPositionDisplayValue(StockPosition op) {
     double value = 0;
     switch (displayValue) {
       case DisplayValue.lastPrice:

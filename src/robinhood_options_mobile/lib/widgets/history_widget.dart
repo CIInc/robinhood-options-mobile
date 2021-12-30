@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/option_event_store.dart';
+import 'package:robinhood_options_mobile/model/option_order_store.dart';
+import 'package:robinhood_options_mobile/model/stock_order_store.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -11,11 +15,13 @@ import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/position_order.dart';
+import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
+
+import '../model/instrument_store.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
@@ -53,9 +59,9 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage>
     with AutomaticKeepAliveClientMixin<HistoryPage> {
-  Stream<List<PositionOrder>>? positionOrderStream;
-  List<PositionOrder>? positionOrders;
-  List<PositionOrder>? filteredPositionOrders;
+  Stream<List<StockOrder>>? positionOrderStream;
+  List<StockOrder>? positionOrders;
+  List<StockOrder>? filteredPositionOrders;
   Stream<List<OptionOrder>>? optionOrderStream;
   List<OptionOrder>? optionOrders;
   List<OptionOrder>? filteredOptionOrders;
@@ -119,7 +125,18 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    optionOrderStream ??= RobinhoodService.streamOptionOrders(widget.user);
+    // This gets the current state of CartModel and also tells Flutter
+    // to rebuild this widget when CartModel notifies listeners (in other words,
+    // when it changes).
+    var store = context.watch<OptionOrderStore>();
+    //store = Provider.of<PortfolioStore>(context, listen: true);
+
+    var stockOrderStore = context.watch<StockOrderStore>();
+    var optionEventStore = context.watch<OptionEventStore>();
+    var instrumentStore = context.watch<InstrumentStore>();
+
+    optionOrderStream ??=
+        RobinhoodService.streamOptionOrders(widget.user, store);
 
     return StreamBuilder(
         stream: optionOrderStream,
@@ -127,18 +144,18 @@ class _HistoryPageState extends State<HistoryPage>
           if (optionOrdersSnapshot.hasData) {
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
-            positionOrderStream ??=
-                RobinhoodService.streamPositionOrders(widget.user);
+            positionOrderStream ??= RobinhoodService.streamPositionOrders(
+                widget.user, stockOrderStore, instrumentStore);
 
             return StreamBuilder(
                 stream: positionOrderStream,
                 builder: (context6, positionOrdersSnapshot) {
                   if (positionOrdersSnapshot.hasData) {
                     positionOrders =
-                        positionOrdersSnapshot.data as List<PositionOrder>;
+                        positionOrdersSnapshot.data as List<StockOrder>;
 
-                    optionEventStream ??=
-                        RobinhoodService.streamOptionEvents(widget.user);
+                    optionEventStream ??= RobinhoodService.streamOptionEvents(
+                        widget.user, optionEventStore);
                     return StreamBuilder(
                         stream: optionEventStream,
                         builder: (context6, optionEventSnapshot) {
@@ -202,7 +219,7 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildPage(
       {Widget? welcomeWidget,
       List<OptionOrder>? optionOrders,
-      List<PositionOrder>? positionOrders,
+      List<StockOrder>? positionOrders,
       List<OptionEvent>? optionEvents,
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
@@ -1182,7 +1199,7 @@ class _HistoryPageState extends State<HistoryPage>
       var positionOrdersToShare = positionOrders!.where(
           (element) => selectedPositionOrdersToShare.contains(element.id));
       String ordersText = "";
-      var optionOrdersMap = optionOrdersToShare.map((e) =>
+      var optionOrdersTexts = optionOrdersToShare.map((e) =>
           "${e.chainSymbol} \$${formatCompactNumber.format(e.legs.first.strikePrice)} ${e.strategy} ${formatCompactDate.format(e.legs.first.expirationDate!)} for ${e.direction == "credit" ? "+" : "-"}${formatCurrency.format(e.processedPremium)} (${e.quantity!.round()} ${e.openingStrategy != null ? e.openingStrategy!.split("_")[0] : e.closingStrategy!.split("_")[0]} contract${e.quantity! > 1 ? "s" : ""} at ${formatCurrency.format(e.price)})");
       var optionOrdersIdMap = optionOrdersToShare.map((e) {
         var splits = e.legs.first.option.split("/");
@@ -1194,10 +1211,10 @@ class _HistoryPageState extends State<HistoryPage>
           positionOrdersToShare.map((e) => e.instrumentId);
       if (shareText) {
         ordersText += "Here are my";
-        if (optionOrdersMap.isNotEmpty) {
+        if (optionOrdersTexts.isNotEmpty) {
           ordersText += " option orders:\n";
         }
-        ordersText += optionOrdersMap.join("\n");
+        ordersText += optionOrdersTexts.join("\n");
 
         if (positionOrdersMap.isNotEmpty) {
           ordersText += " stock orders:\n";
