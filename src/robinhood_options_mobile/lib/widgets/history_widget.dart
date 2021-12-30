@@ -86,42 +86,12 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareText = true;
   bool shareLink = true;
 
-/*
-  late ScrollController _controller;
-  bool silverCollapsed = false;
-*/
-
-  // int _selectedDrawerIndex = 0;
-  // bool _showDrawerContents = true;
-
   @override
   bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-
-    /*
-    _controller = ScrollController();
-    _controller.addListener(() {
-      if (_controller.offset > 220 && !_controller.position.outOfRange) {
-        if (!silverCollapsed) {
-          // do what ever you want when silver is collapsing !
-
-          silverCollapsed = true;
-          setState(() {});
-        }
-      }
-      if (_controller.offset <= 220 && !_controller.position.outOfRange) {
-        if (silverCollapsed) {
-          // do what ever you want when silver is expanding !
-
-          silverCollapsed = false;
-          setState(() {});
-        }
-      }
-    });
-    */
   }
 
   @override
@@ -472,10 +442,6 @@ class _HistoryPageState extends State<HistoryPage>
                   )),
         )));
       }
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
       if (welcomeWidget != null) {
         slivers.add(SliverToBoxAdapter(
             child: SizedBox(

@@ -160,7 +160,8 @@ class Position {
 
   double get gainLossPercentToday {
     return instrumentObj != null && instrumentObj!.quoteObj != null
-        ? gainLossToday / instrumentObj!.quoteObj!.adjustedPreviousClose!
+        ? gainLossToday /
+            (instrumentObj!.quoteObj!.adjustedPreviousClose! * quantity!)
         : 0;
   }
 /*

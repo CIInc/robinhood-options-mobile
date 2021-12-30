@@ -3,6 +3,7 @@
 //@immutable
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
+import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
@@ -57,6 +58,7 @@ class Instrument {
   List<dynamic>? earningsObj;
   List<dynamic>? similarObj;
   List<dynamic>? splitsObj;
+  List<OptionAggregatePosition>? optionPositions;
   List<PositionOrder>? positionOrders;
   List<OptionOrder>? optionOrders;
   List<OptionEvent>? optionEvents;

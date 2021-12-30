@@ -372,9 +372,8 @@ class _ListWidgetState extends State<ListWidget>
     var forexObj = watchLists[index].forexObj;
     var changePercentToday = 0.0;
     if (forexObj != null) {
-      changePercentToday = (double.parse(forexObj["mark_price"]) -
-              double.parse(forexObj["open_price"])) /
-          double.parse(forexObj["open_price"]);
+      changePercentToday =
+          (forexObj.markPrice! - forexObj.openPrice!) / forexObj.openPrice!;
     }
     return Card(
         child: Padding(
@@ -386,8 +385,7 @@ class _ListWidgetState extends State<ListWidget>
                       style: const TextStyle(fontSize: 16.0)),
                 ],
                 if (forexObj != null) ...[
-                  Text(forexObj!["symbol"],
-                      style: const TextStyle(fontSize: 16.0))
+                  Text(forexObj.symbol, style: const TextStyle(fontSize: 16.0))
                 ],
                 Wrap(
                   children: [

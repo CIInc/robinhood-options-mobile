@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:robinhood_options_mobile/enums.dart';
 import 'dart:math' as math;
@@ -181,8 +180,13 @@ class _HomePageState extends State<HomePage>
       builder: (context1, dataSnapshot) {
         if (dataSnapshot.hasData) {
           List<dynamic> data = dataSnapshot.data as List<dynamic>;
-          accounts = data.isNotEmpty ? data[0] as List<Account> : null;
-          account = accounts!.first;
+          List<Account> accts = data[0] as List<Account>;
+          if (accounts != accts) {
+            accounts = accts;
+            account = accounts!.first;
+            WidgetsBinding.instance!.addPostFrameCallback(
+                (_) => widget.onAccountsChanged(accounts!));
+          }
 
           /*
           var _accounts = data.isNotEmpty ? data[0] as List<Account> : null;
@@ -950,13 +954,15 @@ class _HomePageState extends State<HomePage>
       List<charts.Series<dynamic, String>> barChartSeriesList = [];
       var data = [];
       for (var position in filteredPositions) {
-        double? value = widget.user.getPositionDisplayValue(position);
-        String? trailingText = widget.user.getDisplayText(value);
-        data.add({
-          'domain': position.instrumentObj!.symbol,
-          'measure': value,
-          'label': trailingText
-        });
+        if (position.instrumentObj != null) {
+          double? value = widget.user.getPositionDisplayValue(position);
+          String? trailingText = widget.user.getDisplayText(value);
+          data.add({
+            'domain': position.instrumentObj!.symbol,
+            'measure': value,
+            'label': trailingText
+          });
+        }
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
         id: widget.user.displayValue.toString(),
@@ -984,8 +990,23 @@ class _HomePageState extends State<HomePage>
       );
       if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
           widget.user.displayValue == DisplayValue.totalReturnPercent) {
+        var positionDisplayValues = filteredPositions
+            .map((e) => widget.user.getPositionDisplayValue(e));
+        var minimum = positionDisplayValues.reduce(math.min);
+        if (minimum < 0) {
+          minimum -= 0.05;
+        } else if (minimum > 0) {
+          minimum = 0;
+        }
+        var maximum = positionDisplayValues.reduce(math.max);
+        if (maximum > 0) {
+          maximum += 0.05;
+        } else if (maximum < 0) {
+          maximum = 0;
+        }
+
         primaryMeasureAxis = charts.PercentAxisSpec(
-            viewport: const charts.NumericExtents(-1, 1),
+            viewport: charts.NumericExtents(minimum, maximum),
             renderSpec: charts.GridlineRendererSpec(
                 labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
       }
@@ -1000,104 +1021,66 @@ class _HomePageState extends State<HomePage>
                   labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
           onSelected: (_) {});
       //}
-
-      slivers.add(SliverStickyHeader(
-          sticky: false,
-          header: Material(
-              //elevation: 2,
-              child: Column(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  //alignment: Alignment.centerLeft,
-                  children: [
-                ListTile(
-                  title: const Text(
-                    "Stocks",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                  subtitle: Text(
-                      "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
-                  trailing: Wrap(spacing: 8, children: [
-                    if (icon != null) ...[
-                      icon,
-                    ],
-                    if (trailingText != null) ...[
-                      Text(
-                        trailingText,
-                        style: const TextStyle(fontSize: 21.0),
-                        textAlign: TextAlign.right,
-                      )
-                    ]
-                  ]),
-                  /*
-                      IconButton(
-                          icon: const Icon(Icons.more_vert),
-                          onPressed: () {
-                            showModalBottomSheet<void>(
-                                context: context,
-                                //constraints: BoxConstraints(maxHeight: 260),
-                                builder: (BuildContext context) {
-                                  return StatefulBuilder(builder:
-                                      (BuildContext context,
-                                          StateSetter bottomState) {
-                                    return Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.start,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ListTile(
-                                          tileColor: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                          leading:
-                                              const Icon(Icons.filter_list),
-                                          title: const Text(
-                                            "Filter Stocks",
-                                            style: TextStyle(fontSize: 19.0),
-                                          ),
-                                          /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                        ),
-                                        const ListTile(
-                                          title:
-                                              Text("Position Type"), // & Date
-                                        ),
-                                        positionTypeFilterWidget(bottomState),
-                                        //orderDateFilterWidget,
-                                        const ListTile(
-                                          title: Text("Symbols"),
-                                        ),
-                                        stockOrderSymbolFilterWidget(
-                                            bottomState),
-                                      ],
-                                    );
-                                  });
-                                });
-                          }),*/
-                ),
-                if (widget.user.displayValue != DisplayValue.lastPrice) ...[
-                  SizedBox(
-                      height: 300, //275,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                            10.0, 0, 10, 10), //EdgeInsets.zero
-                        child: positionChart,
-                      )),
-                ],
-              ])),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return _buildPositionRow(filteredPositions, index);
-              },
-              // Or, uncomment the following line:
-              childCount: filteredPositions.length,
-            ),
-          )));
+      slivers.add(SliverToBoxAdapter(
+          child: Column(children: [
+        ListTile(
+          title: const Text(
+            "Stocks",
+            style: TextStyle(fontSize: 19.0),
+          ),
+          subtitle: Text(
+              "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+          trailing: Wrap(spacing: 8, children: [
+            if (icon != null) ...[
+              icon,
+            ],
+            if (trailingText != null) ...[
+              Text(
+                trailingText,
+                style: const TextStyle(fontSize: 21.0),
+                textAlign: TextAlign.right,
+              )
+            ]
+          ]),
+        ),
+        /*
+        if (widget.user.displayValue != DisplayValue.lastPrice) ...[
+          SizedBox(
+              height: barChartSeriesList.first.data.length == 1
+                  ? 75
+                  : barChartSeriesList.first.data.length * 50,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    10.0, 0, 10, 10), //EdgeInsets.zero
+                child: positionChart,
+              )),
+        ],
+        */
+      ])));
+      if (widget.user.displayValue != DisplayValue.lastPrice &&
+          barChartSeriesList.isNotEmpty &&
+          barChartSeriesList.first.data.isNotEmpty) {
+        slivers.add(SliverToBoxAdapter(
+            child: SizedBox(
+                height: barChartSeriesList.first.data.length == 1
+                    ? 75
+                    : barChartSeriesList.first.data.length * 50,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      10.0, 0, 10, 10), //EdgeInsets.zero
+                  child: positionChart,
+                ))));
+      }
+      slivers.add(SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return _buildPositionRow(filteredPositions, index);
+          },
+          // Or, uncomment the following line:
+          childCount: filteredPositions.length,
+        ),
+      ));
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1133,7 +1116,39 @@ class _HomePageState extends State<HomePage>
         trailingText = widget.user.getDisplayText(value);
         icon = widget.user.getDisplayIcon(value);
       }
-
+      slivers.add(SliverToBoxAdapter(
+          child: Column(children: [
+        ListTile(
+            title: const Text(
+              "Cryptos",
+              style: TextStyle(fontSize: 19.0),
+            ),
+            subtitle: Text(
+                "${formatCompactNumber.format(filteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
+            trailing: Wrap(spacing: 8, children: [
+              if (icon != null) ...[
+                icon,
+              ],
+              if (trailingText != null) ...[
+                Text(
+                  trailingText,
+                  style: const TextStyle(fontSize: 21.0),
+                  textAlign: TextAlign.right,
+                )
+              ]
+            ]))
+      ])));
+      slivers.add(SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate(
+          (BuildContext context, int index) {
+            return _buildCryptoRow(filteredHoldings, index);
+          },
+          // Or, uncomment the following line:
+          childCount: filteredHoldings.length,
+        ),
+      ));
+      /*
       slivers.add(SliverStickyHeader(
           sticky: false,
           header: Material(
@@ -1219,33 +1234,7 @@ class _HomePageState extends State<HomePage>
               childCount: filteredHoldings.length,
             ),
           )));
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-    }
-
-    if (account != null) {
-      slivers.add(SliverStickyHeader(
-          sticky: false,
-          header: Material(
-              //elevation: 2,
-              child: Container(
-            //height: 208.0, //60.0,
-            //padding: EdgeInsets.symmetric(horizontal: 16.0),
-            alignment: Alignment.centerLeft,
-            child: const ListTile(
-              title: Text(
-                "Accounts",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            ),
-          )),
-          sliver: SliverToBoxAdapter(
-              child: Card(
-                  child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: accountWidgets([account]).toList())))));
+          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
@@ -1253,6 +1242,17 @@ class _HomePageState extends State<HomePage>
     }
 
     if (portfolios != null) {
+      slivers.add(SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Portfolios",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])));
+      slivers.add(portfoliosWidget(portfolios));
+      /*
       slivers.add(SliverStickyHeader(
           sticky: false,
           header: Material(
@@ -1269,12 +1269,25 @@ class _HomePageState extends State<HomePage>
             ),
           )),
           sliver: portfoliosWidget(portfolios)));
+          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
     }
+    /*
     if (userInfo != null) {
+      slivers.add(SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "User",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])));
+      slivers.add(userWidget(userInfo));
+      /*
       slivers.add(SliverStickyHeader(
           sticky: false,
           header: Material(
@@ -1291,11 +1304,15 @@ class _HomePageState extends State<HomePage>
             ),
           )),
           sliver: userWidget(userInfo)));
+          */
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
     }
+    */
+    slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
+    /*
     slivers.add(SliverStickyHeader(
         sticky: false,
         header: Material(
@@ -1306,6 +1323,7 @@ class _HomePageState extends State<HomePage>
                 alignment: Alignment.centerLeft,
                 child: null)),
         sliver: const SliverToBoxAdapter(child: DisclaimerWidget())));
+        */
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
       height: 25.0,
@@ -1317,42 +1335,6 @@ class _HomePageState extends State<HomePage>
           slivers: slivers), //controller: _controller,
       onRefresh: _pullRefresh,
     );
-  }
-
-  Iterable<Widget> accountWidgets(List<Account> accounts) sync* {
-    for (Account account in accounts) {
-      yield ListTile(
-        title: const Text("Account", style: TextStyle(fontSize: 14)),
-        trailing:
-            Text(account.accountNumber, style: const TextStyle(fontSize: 16)),
-      );
-      yield ListTile(
-        title: const Text("Type", style: TextStyle(fontSize: 14)),
-        trailing: Text(account.type, style: const TextStyle(fontSize: 16)),
-      );
-      yield ListTile(
-        title: const Text("Portfolio Cash", style: TextStyle(fontSize: 14)),
-        trailing: Text(formatCurrency.format(account.portfolioCash),
-            style: const TextStyle(fontSize: 16)),
-      );
-      yield ListTile(
-        title: const Text("Buying Power", style: TextStyle(fontSize: 14)),
-        trailing: Text(formatCurrency.format(account.buyingPower),
-            style: const TextStyle(fontSize: 16)),
-      );
-      yield ListTile(
-        title: const Text("Cash Held For Options Collateral",
-            style: TextStyle(fontSize: 14)),
-        trailing: Text(
-            formatCurrency.format(account.cashHeldForOptionsCollateral),
-            style: const TextStyle(fontSize: 16)),
-      );
-      yield ListTile(
-        title: const Text("Option Level", style: TextStyle(fontSize: 14)),
-        trailing:
-            Text(account.optionLevel, style: const TextStyle(fontSize: 16)),
-      );
-    }
   }
 
   Widget portfoliosWidget(List<Portfolio> portfolios) {
@@ -1544,74 +1526,6 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
-
-  Widget userWidget(UserInfo user) {
-    return SliverToBoxAdapter(
-        child: Card(
-            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.profileName, style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Username", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Full Name", style: TextStyle(fontSize: 14)),
-        trailing: Text("${user.firstName} ${user.lastName}",
-            style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Email", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Joined", style: TextStyle(fontSize: 14)),
-        trailing: Text(formatDate.format(user.createdAt!),
-            style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Locality", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        title: const Text("Id", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
-      ),
-      /*
-        ListTile(
-          title: const Text("Id Info", style: const TextStyle(fontSize: 14)),
-          trailing: Text(user.idInfo, style: const TextStyle(fontSize: 12)),
-        ),
-        ListTile(
-          title: const Text("Url", style: const TextStyle(fontSize: 14)),
-          trailing: Text(user.url, style: const TextStyle(fontSize: 12)),
-        ),
-        */
-    ])));
-  }
-
-  /*
-  Widget watchListWidget(List<WatchlistItem> watchLists) {
-    return SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 150.0,
-            mainAxisSpacing: 6.0,
-            crossAxisSpacing: 2.0,
-            childAspectRatio: 1.3,
-          ),
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              return _buildWatchlistGridItem(watchLists, index, widget.user);
-            },
-            childCount: watchLists.length,
-          ),
-        ));
-  }
-  */
 
   Widget symbolWidgets(List<Widget> widgets) {
     var n = 3; // 4;
@@ -2654,127 +2568,6 @@ class _HomePageState extends State<HomePage>
       // _selectedDrawerIndex = 0;
     });
     //});
-  }
-  */
-
-/*
-  _buildDrawer(RobinhoodUser ru) {
-    var drawerOptions = <Widget>[];
-    for (var i = 0; i < widget.drawerItems.length; i++) {
-      var d = widget.drawerItems[i];
-      drawerOptions.add(new ListTile(
-        leading: new Icon(d.icon),
-        title: new Text(d.title),
-        selected: i == _selectedDrawerIndex,
-        onTap: () => _onSelectItem(i),
-      ));
-    }
-    return new Drawer(
-      child: new ListView(
-        padding: EdgeInsets.zero,
-        children: ru == null || ru.userName == null
-            ? <Widget>[
-                new DrawerHeader(
-                    child: new Text('Robinhood Options',
-                        style:
-                            new TextStyle(fontSize: 24.9)),
-                    decoration: new BoxDecoration(color: Colors.green)),
-                new ListTile(
-                    leading: new Icon(Icons.verified_user),
-                    title: new Text('Login'),
-                    onTap: () => _onSelectItem(0)),
-              ]
-            : <Widget>[
-                new UserAccountsDrawerHeader(
-                  accountName: new Text(ru.userName),
-                  accountEmail: new Text(ru.userName),
-                  currentAccountPicture: new CircleAvatar(
-                      backgroundColor: Colors.amber,
-                      child: new Text(ru.userName)),
-                  otherAccountsPictures: [
-                    new GestureDetector(
-                      onTap: () => _onTapOtherAccounts(context),
-                      child: new Semantics(
-                        label: 'Switch Account',
-                        child: CircleAvatar(
-                          backgroundColor: Colors.lightBlue,
-                          child: new Text('SA'),
-                        ),
-                      ),
-                    )
-                  ],
-                  onDetailsPressed: () {
-                    _showDrawerContents = !_showDrawerContents;
-                  },
-                ),
-                new Column(children: drawerOptions),
-              ],
-      ),
-    );
-  }
-
-  _onSelectItem(int index) {
-    setState(() => {_selectedDrawerIndex = index});
-    Navigator.pop(context); // close the drawer
-  }
-
-  Widget _getDrawerItemWidget(int pos, RobinhoodUser ru) {
-    debugPrint(pos);
-    switch (pos) {
-      case 0:
-        return SizedBox(height: 1000, child: _buildWelcomeWidget(ru));
-      case 1:
-        return SizedBox(
-          height: 2000,
-          child: new OptionPositionsWidget(ru),
-        );
-      //return SingleChildScrollView(child: new OptionPositionsWidget(ru));
-      // return Container(child: new OptionPositionsWidget(ru));
-      // return LayoutBuilder(
-      //  builder: (context, constraints) {
-      //    return new OptionPositionsWidget(ru);
-      //  },
-      //);
-      case 2:
-        Future.delayed(Duration(milliseconds: 100), () async {
-          await Store.deleteFile(Constants.cacheFilename);
-          setState(() {
-            user = RobinhoodUser.loadUserFromStore();
-            _selectedDrawerIndex = 0;
-          });
-        });
-        return new Text("Logged out.");
-      // return _openLogin();
-      // return new Logout();
-      default:
-        return new Text("Widget not implemented.");
-    }
-  }
-
-  _onTapOtherAccounts(BuildContext context) {
-    Store.deleteFile(Constants.cacheFilename);
-
-    setState(() {
-      user = RobinhoodUser.loadUserFromStore();
-      //user = null;
-    });
-
-    Navigator.pop(context);
-    showDialog(
-        context: context,
-        builder: (_) {
-          return new AlertDialog(
-            title: new Text("You are logged out."),
-            actions: <Widget>[
-              new TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: new Text("OK"),
-              )
-            ],
-          );
-        });
   }
   */
 

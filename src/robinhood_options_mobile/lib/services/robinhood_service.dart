@@ -695,7 +695,7 @@ class RobinhoodService {
 
   static Future<List<dynamic>> getSplits(
       RobinhoodUser user, Instrument instrumentObj) async {
-    debugPrint(instrumentObj.splits);
+    //debugPrint(instrumentObj.splits);
     // Splits
     // https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol))
     //https://api.robinhood.com/corp_actions/v2/split_payments/?instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
@@ -906,9 +906,16 @@ class RobinhoodService {
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
         optionPosition.marketData = optionMarketDatum;
 
-        // TODO: Get instrument and quote.
-        //optionPosition.instrumentObj =
-        //    await getInstrumentBySymbol(user, optionPosition.symbol);
+        // Link OptionPosition to Instrument and vice-versa.
+        var instrument =
+            await getInstrumentBySymbol(user, optionPosition.symbol);
+        optionPosition.instrumentObj = instrument;
+        /*
+        if (instrument!.optionPositions == null) {
+          instrument.optionPositions = [];
+        }
+        instrument.optionPositions!.add(optionPosition);
+        */
 
         ops.sort((a, b) {
           int comp = a.legs.first.expirationDate!
@@ -1102,16 +1109,16 @@ class RobinhoodService {
   }
 
   static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      RobinhoodUser user, List<OptionAggregatePosition> optionPositions) async {
-    if (optionPositions.first.optionInstrument == null) {
-      return optionPositions;
+      RobinhoodUser user, List<OptionAggregatePosition> options) async {
+    if (options.isEmpty || options.first.optionInstrument == null) {
+      return options;
     }
-    var len = optionPositions.length;
+    var len = options.length;
     var size = 25; //20; //15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
-      chunks.add(optionPositions.sublist(i, end));
+      chunks.add(options.sublist(i, end));
     }
     for (var chunk in chunks) {
       var optionIds = chunk.map((e) {
@@ -1124,16 +1131,23 @@ class RobinhoodService {
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
       for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = optionPositions.singleWhere((element) {
+        var optionPosition = options.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
         optionPosition.marketData = optionMarketDatum;
+
+        // Update cached option marketData
+        var optionPositionIndex = optionPositions!
+            .indexWhere((element) => element.id == optionPosition.id);
+        optionPositions![optionPositionIndex].marketData =
+            optionPosition.marketData;
       }
     }
-    return optionPositions;
+
+    return options;
   }
 
   static Stream<List<OptionOrder>> streamOptionOrders(

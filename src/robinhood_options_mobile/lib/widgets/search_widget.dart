@@ -170,10 +170,6 @@ class _SearchWidgetState extends State<SearchWidget>
                     ))
                   ],
                   if (search != null) ...[
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    )),
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -205,13 +201,13 @@ class _SearchWidgetState extends State<SearchWidget>
                                         ["data"]
                                     .length,
                               ),
-                            )))
-                  ],
-                  if (movers != null && movers.isNotEmpty) ...[
+                            ))),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
                     )),
+                  ],
+                  if (movers != null && movers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -243,13 +239,13 @@ class _SearchWidgetState extends State<SearchWidget>
                                 },
                                 childCount: movers.length,
                               ),
-                            )))
-                  ],
-                  if (losers != null && losers.isNotEmpty) ...[
+                            ))),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
                     )),
+                  ],
+                  if (losers != null && losers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -281,13 +277,13 @@ class _SearchWidgetState extends State<SearchWidget>
                                 },
                                 childCount: losers.length,
                               ),
-                            )))
-                  ],
-                  if (listMovers != null && listMovers.isNotEmpty) ...[
+                            ))),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
                     )),
+                  ],
+                  if (listMovers != null && listMovers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -318,14 +314,14 @@ class _SearchWidgetState extends State<SearchWidget>
                                 },
                                 childCount: listMovers.length,
                               ),
-                            )))
-                  ],
-                  if (listMostPopular != null &&
-                      listMostPopular.isNotEmpty) ...[
+                            ))),
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
                     )),
+                  ],
+                  if (listMostPopular != null &&
+                      listMostPopular.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
                             //elevation: 2,
@@ -356,12 +352,12 @@ class _SearchWidgetState extends State<SearchWidget>
                                 },
                                 childCount: listMostPopular.length,
                               ),
-                            )))
+                            ))),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
                   ],
-                  const SliverToBoxAdapter(
-                      child: SizedBox(
-                    height: 25.0,
-                  )),
                   const SliverToBoxAdapter(child: DisclaimerWidget())
                 ])));
   }

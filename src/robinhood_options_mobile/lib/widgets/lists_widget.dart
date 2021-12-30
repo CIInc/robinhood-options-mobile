@@ -329,10 +329,6 @@ class _ListsWidgetState extends State<ListsWidget>
       ],
       if (watchlists != null) ...[
         for (var watchlist in watchlists!) ...[
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
           SliverStickyHeader(
               header: Material(
                   //elevation: 2,
@@ -412,13 +408,13 @@ class _ListsWidgetState extends State<ListsWidget>
                                 }),
                                 */
                       ))),
-              sliver: watchListWidget(watchlist.items))
+              sliver: watchListWidget(watchlist.items)),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
         ]
       ],
-      const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )),
       const SliverToBoxAdapter(child: DisclaimerWidget())
     ])
 
@@ -494,9 +490,8 @@ class _ListsWidgetState extends State<ListsWidget>
     var forexObj = watchLists[index].forexObj;
     var changePercentToday = 0.0;
     if (forexObj != null) {
-      changePercentToday = (double.parse(forexObj["mark_price"]) -
-              double.parse(forexObj["open_price"])) /
-          double.parse(forexObj["open_price"]);
+      changePercentToday =
+          (forexObj.markPrice! - forexObj.openPrice!) / forexObj.openPrice!;
     }
     return Card(
         child: Padding(
@@ -508,8 +503,7 @@ class _ListsWidgetState extends State<ListsWidget>
                       style: const TextStyle(fontSize: 16.0)),
                 ],
                 if (forexObj != null) ...[
-                  Text(forexObj!["symbol"],
-                      style: const TextStyle(fontSize: 16.0))
+                  Text(forexObj.symbol, style: const TextStyle(fontSize: 16.0))
                 ],
                 Wrap(
                   children: [

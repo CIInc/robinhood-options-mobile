@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
+import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -47,6 +48,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     1: GlobalKey<NavigatorState>(),
     2: GlobalKey<NavigatorState>(),
     3: GlobalKey<NavigatorState>(),
+    4: GlobalKey<NavigatorState>(),
   };
 
   int _pageIndex = 0;
@@ -103,6 +105,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void _handleAccountChanged(List<Account> accts) {
     setState(() {
       accounts = accts;
+      _buildTabs();
     });
   }
 
@@ -129,25 +132,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     accounts =
                         data.length > 1 ? data[1] as List<Account> : null;
                         */
-                    tabPages = [
-                      HomePage(robinhoodUser!, userInfo!,
-                          title: 'Robinhood Options',
-                          navigatorKey: navigatorKeys[0],
-                          onUserChanged: _handleUserChanged,
-                          onAccountsChanged: _handleAccountChanged),
-                      //const HomePage(title: 'Orders'),
-                      SearchWidget(robinhoodUser!,
-                          accounts != null ? accounts!.first : null,
-                          navigatorKey: navigatorKeys[1]),
-                      ListsWidget(robinhoodUser!,
-                          accounts != null ? accounts!.first : null,
-                          navigatorKey: navigatorKeys[2]),
-                      HistoryPage(robinhoodUser!,
-                          accounts != null ? accounts!.first : null,
-                          navigatorKey: navigatorKeys[3]),
-                      //const LoginWidget()
-                      //],
-                    ];
+                    _buildTabs();
                   } else if (dataSnapshot.hasError) {
                     debugPrint("${dataSnapshot.error}");
                     return buildScaffold(widget: Text("${dataSnapshot.error}"));
@@ -160,6 +145,28 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           debugPrint("$userSnapshot");
           return buildScaffold();
         });
+  }
+
+  _buildTabs() {
+    tabPages = [
+      HomePage(robinhoodUser!, userInfo!,
+          title: 'Robinhood Options',
+          navigatorKey: navigatorKeys[0],
+          onUserChanged: _handleUserChanged,
+          onAccountsChanged: _handleAccountChanged),
+      //const HomePage(title: 'Orders'),
+      SearchWidget(robinhoodUser!, accounts != null ? accounts!.first : null,
+          navigatorKey: navigatorKeys[1]),
+      ListsWidget(robinhoodUser!, accounts != null ? accounts!.first : null,
+          navigatorKey: navigatorKeys[2]),
+      HistoryPage(robinhoodUser!, accounts != null ? accounts!.first : null,
+          navigatorKey: navigatorKeys[3]),
+      UserWidget(
+          robinhoodUser!, userInfo!, accounts != null ? accounts!.first : null,
+          navigatorKey: navigatorKeys[4]),
+      //const LoginWidget()
+      //],
+    ];
   }
 
   buildScaffold({Widget? widget}) {
@@ -219,7 +226,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               return tabPages[index];
             },
             //itemCount: userInfo == null ? 1 : 4,
-            itemCount: 1, //tabPages.length,
+            itemCount: tabPages.length,
             controller: _pageController,
             allowImplicitScrolling: false,
             physics: const NeverScrollableScrollPhysics(),
@@ -268,12 +275,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             label: 'History',
           ),
           //],
-          /*
           BottomNavigationBarItem(
             icon: Icon(Icons.account_circle), // manage_accounts //person
             label: 'Accounts',
           ),
-          */
         ],
         currentIndex: _pageIndex,
         //fixedColor: Colors.grey,
@@ -315,12 +320,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   accountName: Text(userInfo!.profileName),
                   accountEmail: Text(userInfo!.email),
                   currentAccountPicture: CircleAvatar(
-                      backgroundColor: Colors.amber,
+                      //backgroundColor: Colors.amber,
                       child: Text(
-                        '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 32),
-                      )),
+                    '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 32),
+                  )),
                   /*
                   otherAccountsPictures: [
                     GestureDetector(
@@ -336,10 +341,45 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   ],
                   */
                   onDetailsPressed: () {
-                    _showDrawerContents = !_showDrawerContents;
+                    setState(() {
+                      _showDrawerContents = !_showDrawerContents;
+                    });
                   },
                 ),
                 Column(children: [
+                  if (_showDrawerContents) ...[
+                    ListTile(
+                      leading: CircleAvatar(
+                          //backgroundColor: Colors.amber,
+                          child: Text(
+                        '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
+                      )),
+                      title: Text(userInfo!.profileName),
+                      //selected: userInfo!.profileName == userInfo!.profileName,
+                      onTap: () {
+                        _showDrawerContents = false;
+                        //Navigator.pop(context); // close the drawer
+                        _onPageChanged(4);
+                      },
+                    ),
+                    ListTile(
+                      leading: const CircleAvatar(
+                          //backgroundColor: Colors.amber,
+                          child: Text(
+                        'SA',
+                      )),
+                      title: const Text("Second Account"),
+                      //selected: userInfo!.profileName == 1,
+                      onTap: () {
+                        _showDrawerContents = false;
+                        //Navigator.pop(context); // close the drawer
+                        _onPageChanged(4);
+                      },
+                    ),
+                    const Divider(
+                      height: 10,
+                    ),
+                  ],
                   ListTile(
                     leading: const Icon(Icons.account_balance),
                     title: const Text("Portfolio"),

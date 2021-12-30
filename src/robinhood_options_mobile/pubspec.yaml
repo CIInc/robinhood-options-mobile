@@ -32,6 +32,7 @@ dependencies:
   oauth2: ^2.0.0
   shared_preferences: ^2.0.11
   #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
+  provider: ^6.0.2
   intl: ^0.17.0
   decimal: ^2.0.0
   csv: ^5.0.0
@@ -50,6 +51,7 @@ dependencies:
   uuid: ^3.0.5
   material_color_utilities: ^0.1.2
   dynamic_color: ^0.1.0
+#  scrollable_positioned_list: ^0.2.3
 
 dev_dependencies:
   flutter_test:

@@ -39,6 +39,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   @override
   void initState() {
     super.initState();
+
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionOrder);
     futureQuote =
         RobinhoodService.getQuote(widget.user, widget.optionOrder.chainSymbol);

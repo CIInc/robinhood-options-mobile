@@ -57,16 +57,14 @@ class BarChartState extends State<BarChart> {
               groupingType: charts.BarGroupingType.grouped)
         ]
       ],
-      /*
       selectionModels: [
         charts.SelectionModelConfig(
             type: charts.SelectionModelType.info,
             changedListener: _onSelectionChanged)
       ],
+      /*
       behaviors: [
-        charts.SelectNearest(
-            eventTrigger: charts.SelectionTrigger.tapAndDrag,
-            selectAcrossAllDrawAreaComponents: true),
+        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
         charts.LinePointHighlighter(
             showHorizontalFollowLine:
                 charts.LinePointHighlighterFollowLineType.none,
@@ -77,28 +75,15 @@ class BarChartState extends State<BarChart> {
         //  charts.SeriesDatumConfig<DateTime>(
         //      'Adjusted Equity', widget.closeDate)
         //]),
-        charts.SeriesLegend(
-          position: charts.BehaviorPosition.top,
-          defaultHiddenSeries: widget.hiddenSeries,
-        ),
-        if (widget.open != null && widget.close != null) ...[
-          charts.RangeAnnotation([
-            charts.RangeAnnotationSegment(
-                widget.open! <= widget.close! ? widget.open! : widget.close!,
-                widget.open! <= widget.close! ? widget.close! : widget.open!,
-                charts.RangeAnnotationAxisType.measure,
-                startLabel: widget.open! <= widget.close! ? 'Open' : 'Close',
-                endLabel: widget.open! <= widget.close! ? 'Close' : 'Open',
-                color: rangeAnnotationColor // gray.shade200
-                ),
-          ])
-        ]
+        //charts.SeriesLegend(
+        //  position: charts.BehaviorPosition.top,
+        //  defaultHiddenSeries: widget.hiddenSeries,
+        //),
       ],
-      */
+            */
     );
   }
 
-  /*
   _onSelectionChanged(charts.SelectionModel model) {
     if (model.hasDatumSelection) {
       var selected = model.selectedDatum[0].datum;
@@ -107,5 +92,4 @@ class BarChartState extends State<BarChart> {
       widget.onSelected(null);
     }
   }
-  */
 }

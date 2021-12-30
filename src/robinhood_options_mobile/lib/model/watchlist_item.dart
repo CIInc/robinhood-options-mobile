@@ -1,3 +1,4 @@
+import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
@@ -7,7 +8,7 @@ class WatchlistItem {
   final String watchlist;
   final String url;
   Instrument? instrumentObj;
-  dynamic forexObj;
+  ForexQuote? forexObj;
   OptionInstrument? optionInstrumentObj;
 
   WatchlistItem(this.instrument, this.createdAt, this.watchlist, this.url);

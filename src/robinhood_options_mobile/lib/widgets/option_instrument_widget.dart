@@ -164,13 +164,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final int dte = optionInstrument.expirationDate!.difference(today).inDays;
     int originalDte = 0;
+    DateTime createdAt = DateTime(optionInstrument.createdAt!.year,
+        optionInstrument.createdAt!.month, optionInstrument.createdAt!.day);
     if (optionPosition != null) {
-      final DateTime createdAt = DateTime(optionPosition.createdAt!.year,
+      createdAt = DateTime(optionPosition.createdAt!.year,
           optionPosition.createdAt!.month, optionPosition.createdAt!.day);
-      originalDte =
-          optionInstrument.expirationDate!.difference(createdAt).inDays;
     }
-    if (chart == null && optionPosition != null) {
+    originalDte = optionInstrument.expirationDate!.difference(createdAt).inDays;
+    if (chart == null) {
       seriesList = [
         charts.Series<dynamic, String>(
           id: 'Days to Expiration',
