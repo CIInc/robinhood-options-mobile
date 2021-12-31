@@ -10,19 +10,25 @@
 ### Tabs
 
 - Portfolio tab
-  - Summary section
-    - [x] Portfolio historical charts view
+  - Portfolio section
+    - [x] Portfolio historical chart with filters
     - [x] Portfolio summary breakdown view
   - Options section
+    - [x] Options summary with bar chart
     - [x] Options list with filters and grouping
     - [x] Option detail view with market data (see Option view)
   - Stocks section
+    - [x] Stock summary with bar chart
     - [x] Stock list with filters
     - [x] Stock detail view with market data (see Stock view)
   - Crypto section
     - [x] Crypto holdings
+    - [x] Crypto detail view with market data (see Crypto view)
 - Search tab
   - [x] Search companies by name or symbol
+  - [x] S&P movers, losers and gainers
+  - [x] Top 100 stocks
+  - [ ] Undervalued/Overvalued (Fair value evaluation)
 - Lists tab
   - [x] View your lists and its stocks
     - [ ] List sort order maintenance
@@ -42,9 +48,10 @@
 
 - Stock view
   - [x] Instrument (Stock) view
-    - [x] Positions, options, orders view
+    - [x] Position detail with orders
+    - [x] Options list with orders
     - [x] Fundamentals view
-    - [x] Historical charts view
+    - [x] Historical chart with filters
     - [x] Related lists view
     - [x] News view
     - [x] Ratings view
@@ -52,14 +59,12 @@
     - [x] Similar view
     - [ ] Splits & Corporate Actions view
   - [x] Option chain view
-    - [ ] Show current price list divider with scroll to function
-- [x] Stock Search/Research
-  - [x] Movers (gainers and losers)
-  - [x] Popular (based on average volume vs current volume)
-  - [ ] Undervalued/Overvalued (Fair value evaluation)
+    - [x] Show current price list divider with scroll to function
 - Option view
   - [x] Option greeks view
     - [ ] Risk analysis with charts
+- Crypto view
+  - [x] Crypto historical chart with filters
 - Trading view
   - [ ] Place stock order
   - [x] Place option order
