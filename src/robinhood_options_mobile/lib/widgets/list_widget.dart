@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
@@ -32,8 +35,8 @@ class ListWidget extends StatefulWidget {
 
 class _ListWidgetState extends State<ListWidget>
     with AutomaticKeepAliveClientMixin<ListWidget> {
-  Stream<List<Watchlist>>? watchlistStream;
-  List<Watchlist>? watchlists;
+  Stream<Watchlist>? watchlistStream;
+  Watchlist? watchlist;
   SortType? _sortType = SortType.alphabetical;
   SortDirection? _sortDirection = SortDirection.desc;
 
@@ -62,35 +65,37 @@ class _ListWidgetState extends State<ListWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-    watchlistStream ??= RobinhoodService.streamList(widget.listKey, widget.user,
+    var instrumentStore = context.watch<InstrumentStore>();
+    var quoteStore = context.watch<QuoteStore>();
+
+    watchlistStream ??= RobinhoodService.streamList(
+        widget.user, instrumentStore, quoteStore, widget.listKey,
         ownerType: "robinhood");
     return StreamBuilder(
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
           if (watchlistsSnapshot.hasData) {
-            watchlists = watchlistsSnapshot.data! as List<Watchlist>;
-            for (var watchList in watchlists!) {
-              if (_sortType == SortType.alphabetical) {
-                watchList.items.sort((a, b) =>
-                    a.instrumentObj != null && b.instrumentObj != null
-                        ? (_sortDirection == SortDirection.asc
-                            ? (a.instrumentObj!.symbol
-                                .compareTo(b.instrumentObj!.symbol))
-                            : (b.instrumentObj!.symbol
-                                .compareTo(a.instrumentObj!.symbol)))
-                        : 0);
-              } else if (_sortType == SortType.change) {
-                watchList.items.sort((a, b) => a.instrumentObj != null &&
-                        b.instrumentObj != null
-                    ? (_sortDirection == SortDirection.asc
-                        ? (b.instrumentObj!.quoteObj!.changePercentToday
-                            .compareTo(
-                                a.instrumentObj!.quoteObj!.changePercentToday))
-                        : (a.instrumentObj!.quoteObj!.changePercentToday
-                            .compareTo(
-                                b.instrumentObj!.quoteObj!.changePercentToday)))
-                    : 0);
-              }
+            watchlist = watchlistsSnapshot.data! as Watchlist;
+            if (_sortType == SortType.alphabetical) {
+              watchlist!.items.sort((a, b) =>
+                  a.instrumentObj != null && b.instrumentObj != null
+                      ? (_sortDirection == SortDirection.asc
+                          ? (a.instrumentObj!.symbol
+                              .compareTo(b.instrumentObj!.symbol))
+                          : (b.instrumentObj!.symbol
+                              .compareTo(a.instrumentObj!.symbol)))
+                      : 0);
+            } else if (_sortType == SortType.change) {
+              watchlist!.items.sort((a, b) => a.instrumentObj != null &&
+                      b.instrumentObj != null
+                  ? (_sortDirection == SortDirection.asc
+                      ? (b.instrumentObj!.quoteObj!.changePercentToday
+                          .compareTo(
+                              a.instrumentObj!.quoteObj!.changePercentToday))
+                      : (a.instrumentObj!.quoteObj!.changePercentToday
+                          .compareTo(
+                              b.instrumentObj!.quoteObj!.changePercentToday)))
+                  : 0);
             }
             //return _buildScaffold();
           } else if (watchlistsSnapshot.hasError) {
@@ -104,11 +109,8 @@ class _ListWidgetState extends State<ListWidget>
 
   Widget _buildScaffold() {
     var totalItems = 0;
-    var totalLists = 0;
-    if (watchlists != null) {
-      totalLists = watchlists!.length;
-      totalItems =
-          watchlists!.map((e) => e.items.length).reduce((a, b) => a + b);
+    if (watchlist != null) {
+      totalItems = watchlist!.items.length;
     }
     return Scaffold(
         appBar: AppBar(
@@ -121,7 +123,7 @@ class _ListWidgetState extends State<ListWidget>
               children: [
                 const Text('Lists', style: TextStyle(fontSize: 20.0)),
                 Text(
-                  "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
+                  "${formatCompactNumber.format(totalItems)} items",
                   style: const TextStyle(fontSize: 16.0, color: Colors.white70),
                 )
               ]),
@@ -211,88 +213,83 @@ class _ListWidgetState extends State<ListWidget>
           ],
         ),
         body: CustomScrollView(slivers: [
-          if (watchlists != null) ...[
-            for (var watchlist in watchlists!) ...[
-              SliverStickyHeader(
-                  header: Material(
-                      //elevation: 2,
-                      child: Container(
-                          //height: 208.0, //60.0,
-                          //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                          alignment: Alignment.centerLeft,
-                          child: ListTile(
-                            title: Text(
-                              watchlist.displayName,
-                              style: const TextStyle(fontSize: 19.0),
-                            ),
-                            subtitle: Text(
-                                "${formatCompactNumber.format(watchlist.items.length)} items"),
-                            trailing: IconButton(
-                                icon: const Icon(Icons.sort),
-                                onPressed: () {
-                                  showModalBottomSheet<void>(
-                                    context: context,
-                                    constraints:
-                                        const BoxConstraints(maxHeight: 260),
-                                    builder: (BuildContext context) {
-                                      return Column(
+          SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: Text(
+                          watchlist != null ? watchlist!.displayName : '',
+                          style: const TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(watchlist != null ? watchlist!.items.length : 0)} items"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.sort),
+                            onPressed: () {
+                              showModalBottomSheet<void>(
+                                context: context,
+                                constraints:
+                                    const BoxConstraints(maxHeight: 260),
+                                builder: (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        title: const Text(
+                                          "Sort Watch List",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        //trailing: TextButton(
+                                        //    child: const Text("APPLY"),
+                                        //    onPressed: () => Navigator.pop(context))
+                                      ),
+                                      Column(
                                         mainAxisAlignment:
                                             MainAxisAlignment.start,
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          ListTile(
-                                            tileColor: Theme.of(context)
-                                                .colorScheme
-                                                .primary,
-                                            title: const Text(
-                                              "Sort Watch List",
-                                              style: TextStyle(fontSize: 19.0),
-                                            ),
-                                            //trailing: TextButton(
-                                            //    child: const Text("APPLY"),
-                                            //    onPressed: () => Navigator.pop(context))
+                                          RadioListTile<SortType>(
+                                            title: const Text('Alphabetical'),
+                                            value: SortType.alphabetical,
+                                            groupValue: _sortType,
+                                            onChanged: (SortType? value) {
+                                              Navigator.pop(context);
+                                              setState(() {
+                                                _sortType = value;
+                                              });
+                                            },
                                           ),
-                                          Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.start,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              RadioListTile<SortType>(
-                                                title:
-                                                    const Text('Alphabetical'),
-                                                value: SortType.alphabetical,
-                                                groupValue: _sortType,
-                                                onChanged: (SortType? value) {
-                                                  Navigator.pop(context);
-                                                  setState(() {
-                                                    _sortType = value;
-                                                  });
-                                                },
-                                              ),
-                                              RadioListTile<SortType>(
-                                                title: const Text('Change'),
-                                                value: SortType.change,
-                                                groupValue: _sortType,
-                                                onChanged: (SortType? value) {
-                                                  Navigator.pop(context);
-                                                  setState(() {
-                                                    _sortType = value;
-                                                  });
-                                                },
-                                              ),
-                                            ],
-                                          )
+                                          RadioListTile<SortType>(
+                                            title: const Text('Change'),
+                                            value: SortType.change,
+                                            groupValue: _sortType,
+                                            onChanged: (SortType? value) {
+                                              Navigator.pop(context);
+                                              setState(() {
+                                                _sortType = value;
+                                              });
+                                            },
+                                          ),
                                         ],
-                                      );
-                                    },
+                                      )
+                                    ],
                                   );
-                                }),
-                          ))),
-                  sliver: watchListWidget(watchlist.items))
-            ]
-          ],
+                                },
+                              );
+                            }),
+                      ))),
+              sliver:
+                  watchlist != null ? watchListWidget(watchlist!.items) : null),
           const SliverToBoxAdapter(
               child: SizedBox(
             height: 25.0,

@@ -9,9 +9,11 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import 'package:oauth2/oauth2.dart' as oauth2;
+import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
     as oauth2_robinhood;
@@ -97,6 +99,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
+    var userStore = context.watch<UserStore>();
     return Scaffold(
         appBar: AppBar(
           title: const Text("Login"),
@@ -144,7 +147,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                       null);
                   var user = RobinhoodUser(
                       userCtl.text, client!.credentials.toJson(), client);
-
+                  user.save();
+                  userStore.add(user);
                   _stopMonitoringClipboard();
                   /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                   Future.delayed(Duration.zero, () {

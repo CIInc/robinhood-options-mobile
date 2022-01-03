@@ -41,14 +41,6 @@ class RobinhoodService {
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
-  //static List<OptionAggregatePosition>? optionPositions;
-  //static List<OptionOrder>? optionOrders;
-  //static List<Position>? stockPositions;
-  //static List<PositionOrder>? positionOrders;
-  //static List<OptionEvent>? optionEvents;
-  //static Map<String, List<OptionOrder>> optionOrdersMap = {};
-  //static List<Quote> quotes = [];
-  //static List<Instrument> instruments = [];
 
   static Map<String, dynamic> logoUrls = {};
 
@@ -280,6 +272,57 @@ class RobinhoodService {
             (element) => element.instrumentObj!.symbol == quoteObj.symbol);
         position.instrumentObj!.quoteObj = quoteObj;
         yield positions;
+      }
+    }
+    // Persist in static value
+    //stockPositions = positions;
+  }
+
+  static Stream<StockPositionStore> streamStockPositionStore(
+      RobinhoodUser user,
+      StockPositionStore store,
+      InstrumentStore instrumentStore,
+      QuoteStore quoteStore,
+      {bool nonzero = true}) async* {
+    var pageStream = RobinhoodService.streamedGet(
+        user, "${Constants.robinHoodEndpoint}/positions/?nonzero=$nonzero");
+    //debugPrint(results);
+    await for (final results in pageStream) {
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var op = StockPosition.fromJson(result);
+
+        //if ((withQuantity && op.quantity! > 0) ||
+        //    (!withQuantity && op.quantity == 0)) {
+        store.add(op);
+        yield store;
+        /*
+        var instrumentObj = await getInstrument(user, op.instrument);
+        //var quoteObj = await downloadQuote(user, instrumentObj);
+        op.instrumentObj = instrumentObj;
+        yield positions;
+
+        var quoteObj = await getQuote(user, instrumentObj.symbol);
+        op.instrumentObj!.quoteObj = quoteObj;
+        yield positions;
+        */
+      }
+      var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+      for (var instrumentObj in instrumentObjs) {
+        var position = store.items
+            .firstWhere((element) => element.instrumentId == instrumentObj.id);
+        position.instrumentObj = instrumentObj;
+        yield store;
+      }
+      var symbols = store.items.map((e) => e.instrumentObj!.symbol).toList();
+      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+      for (var quoteObj in quoteObjs) {
+        var position = store.items.firstWhere(
+            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+        position.instrumentObj!.quoteObj = quoteObj;
+        yield store;
       }
     }
     // Persist in static value
@@ -558,6 +601,7 @@ class RobinhoodService {
 
   //https://api.robinhood.com/quotes/historicals/
 
+  /*
   static Future<List<Quote>> getQuoteByInstrumentUrls(
       RobinhoodUser user, QuoteStore store, List<String> instrumentUrls) async {
     if (instrumentUrls.isEmpty) {
@@ -572,41 +616,74 @@ class RobinhoodService {
       return Future.value(cached.toList());
     }
 
-    var nonCached = instrumentUrls.where((element) =>
-        !cached.any((cachedQuote) => cachedQuote.symbol == element));
-    var url =
-        "${Constants.robinHoodEndpoint}/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=${Uri.encodeComponent(nonCached.join(","))}";
-    // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
-    var resultJson = await getJson(user, url);
+    var nonCached = instrumentUrls
+        .where((element) =>
+            !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .toSet()
+        .toList();
 
     List<Quote> list = cached.toList();
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
-      var op = Quote.fromJson(result);
-      list.add(op);
-      store.addOrUpdate(op);
+
+    var len = nonCached.length;
+    var size = 15; //17;
+    List<List<dynamic>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(nonCached.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var url =
+          "${Constants.robinHoodEndpoint}/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=${Uri.encodeComponent(chunk.join(","))}";
+      // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
+      var resultJson = await getJson(user, url);
+
+      List<Quote> list = cached.toList();
+      for (var i = 0; i < resultJson['results'].length; i++) {
+        var result = resultJson['results'][i];
+        var op = Quote.fromJson(result);
+        list.add(op);
+        store.addOrUpdate(op);
+      }
     }
     return list;
   }
+  */
 
   static Future<List<Quote>> getQuoteByIds(
       RobinhoodUser user, QuoteStore store, List<String> symbols) async {
     var cached =
         store.items.where((element) => symbols.contains(element.symbol));
-    var nonCachedSymbols = symbols.where((element) =>
-        !cached.any((cachedQuote) => cachedQuote.symbol == element));
-    var url =
-        "${Constants.robinHoodEndpoint}/quotes/?symbols=${Uri.encodeComponent(nonCachedSymbols.join(","))}";
-    // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
-    var resultJson = await getJson(user, url);
+    var nonCached = symbols
+        .where((element) =>
+            !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .toList();
+    if (nonCached.isEmpty) {
+      return cached.toList();
+    }
 
     List<Quote> list = cached.toList();
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
-      var op = Quote.fromJson(result);
-      list.add(op);
-      store.add(op);
+
+    var len = nonCached.length;
+    var size = 50;
+    List<List<dynamic>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(nonCached.sublist(i, end));
     }
+    for (var chunk in chunks) {
+      var url =
+          "${Constants.robinHoodEndpoint}/quotes/?symbols=${Uri.encodeComponent(chunk.join(","))}";
+      // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
+      var resultJson = await getJson(user, url);
+
+      for (var i = 0; i < resultJson['results'].length; i++) {
+        var result = resultJson['results'][i];
+        var op = Quote.fromJson(result);
+        list.add(op);
+        store.addOrUpdate(op);
+      }
+    }
+
     return list;
   }
 
@@ -852,11 +929,15 @@ class RobinhoodService {
       list.add(result);
     }
     if (savePrefs) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString("logoUrls", jsonEncode(logoUrls));
-      debugPrint("Cached ${logoUrls.keys.length} logos");
+      saveLogos();
     }
     return list;
+  }
+
+  static saveLogos() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString("logoUrls", jsonEncode(logoUrls));
+    debugPrint("Cached ${logoUrls.keys.length} logos");
   }
 
   static Future<void> loadLogos() async {
@@ -868,6 +949,11 @@ class RobinhoodService {
       logoUrls = {};
     }
     debugPrint("Loaded ${logoUrls.keys.length} logos");
+  }
+
+  static Future<void> removeLogo(String symbol) async {
+    logoUrls.remove(symbol);
+    saveLogos();
   }
 
   /* 
@@ -967,6 +1053,96 @@ class RobinhoodService {
 
     // Persist in static value
     //optionPositions = ops;
+  }
+
+  static Stream<OptionPositionStore> streamOptionPositionStore(
+      RobinhoodUser user,
+      OptionPositionStore store,
+      InstrumentStore instrumentStore,
+      {bool nonzero = true}) async* {
+    List<OptionAggregatePosition> ops =
+        await getAggregateOptionPositions(user, nonzero: nonzero);
+    for (var op in ops) {
+      store.addOrUpdate(op);
+      yield store;
+    }
+
+    /*
+    // Load OptionAggregatePosition.instrumentObj
+    var symbols = ops.map((e) => e.symbol);
+    var cachedInstruments =
+        instruments.where((element) => symbols.contains(element.symbol));
+    cachedInstruments.map((e) {
+      var op = ops.firstWhereOrNull((element) => element.symbol == e.symbol);
+      if (op != null) {
+        op.instrumentObj = e;
+      }
+    });
+    */
+
+    var len = ops.length;
+    var size = 25; //20; //15; //17;
+    List<List<OptionAggregatePosition>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(ops.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var optionIds = chunk.map((e) {
+        var splits = e.legs.first.option.split("/");
+        return splits[splits.length - 2];
+      })
+          //.toSet()
+          .toList();
+
+      var optionInstruments = await getOptionInstrumentByIds(user, optionIds);
+
+      for (var optionInstrument in optionInstruments) {
+        var optionPosition = ops.singleWhere((element) {
+          var splits = element.legs.first.option.split("/");
+          return splits[splits.length - 2] == optionInstrument.id;
+        });
+
+        optionPosition.optionInstrument = optionInstrument;
+      }
+
+      var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
+
+      for (var optionMarketDatum in optionMarketData) {
+        var optionPosition = ops.singleWhere((element) {
+          var splits = element.legs.first.option.split("/");
+          return splits[splits.length - 2] == optionMarketDatum.instrumentId;
+        });
+
+        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+        optionPosition.marketData = optionMarketDatum;
+
+        // Link OptionPosition to Instrument and vice-versa.
+        var instrument = await getInstrumentBySymbol(
+            user, instrumentStore, optionPosition.symbol);
+        optionPosition.instrumentObj = instrument;
+        /*
+        if (instrument!.optionPositions == null) {
+          instrument.optionPositions = [];
+        }
+        instrument.optionPositions!.add(optionPosition);
+        */
+
+        ops.sort((a, b) {
+          int comp = a.legs.first.expirationDate!
+              .compareTo(b.legs.first.expirationDate!);
+          if (comp != 0) return comp;
+          return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+        });
+      }
+    }
+
+    // Load logos from cache.
+    for (var op in ops) {
+      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
+        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      }
+    }
   }
 
   static Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
@@ -1168,7 +1344,7 @@ class RobinhoodService {
         optionPosition.marketData = optionMarketDatum;
 
         // Update store
-        store.update(optionPosition);
+        store.addOrUpdate(optionPosition);
         /*
         // Update cached option marketData
         var optionPositionIndex = optionPositions!
@@ -1513,24 +1689,21 @@ WATCHLIST
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var watchlistItem =
-            WatchlistItem(instrumentObj.id, DateTime.now(), entry.key, "");
+        var watchlistItem = WatchlistItem('instrument', instrumentObj.id,
+            instrumentObj.id, DateTime.now(), entry.key, "");
         watchlistItem.instrumentObj = instrumentObj;
         wl.items.add(watchlistItem);
         yield list;
       }
 
-      var instrumentUrls = wl.items
+      var instrumentSymbols = wl.items
           .where((e) => e.instrumentObj != null)
-          .map((e) => e.instrumentObj!.url)
+          .map((e) => e.instrumentObj!.symbol)
           .toList();
-      var quoteObjs =
-          await getQuoteByInstrumentUrls(user, quoteStore, instrumentUrls);
+      var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
       for (var quoteObj in quoteObjs) {
-        var watchlistItem = wl.items
-            .where(
-                (element) => element.instrumentObj!.symbol == quoteObj.symbol)
-            .first;
+        var watchlistItem = wl.items.firstWhere(
+            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
         watchlistItem.instrumentObj!.quoteObj = quoteObj;
         yield list;
       }
@@ -1541,8 +1714,8 @@ WATCHLIST
       if (forexIds.isNotEmpty) {
         var forexQuotes = await getForexQuoteByIds(user, forexIds);
         for (var forexQuote in forexQuotes) {
-          var watchlistItem =
-              WatchlistItem(forexQuote.id, DateTime.now(), entry.key, "");
+          var watchlistItem = WatchlistItem('currency_pair', forexQuote.id,
+              forexQuote.id, DateTime.now(), entry.key, "");
           watchlistItem.forexObj = forexQuote;
           wl.items.add(watchlistItem);
           yield list;
@@ -1568,40 +1741,42 @@ WATCHLIST
     }
   }
 
-  static Stream<List<Watchlist>> streamList(String key, RobinhoodUser user,
+  static Stream<Watchlist> streamList(RobinhoodUser user,
+      InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
       {String ownerType = "custom"}) async* {
-    List<Watchlist> list = [];
     Watchlist wl = await getList(key, user, ownerType: ownerType);
 
-    list.add(wl);
-    yield list;
-    /*
-      var instrumentIds = entry.value
-          .where((e) => e['object_type'] == "instrument")
-          .map((e) => e['object_id'].toString())
-          .toList();
-      var instrumentObjs = await getInstrumentsByIds(user, instrumentIds);
-      for (var instrumentObj in instrumentObjs) {
-        var watchlistItem =
-            WatchlistItem(instrumentObj.id, DateTime.now(), entry.key, "");
-        watchlistItem.instrumentObj = instrumentObj;
-        wl.items.add(watchlistItem);
-        yield list;
-      }
+    List<WatchlistItem> items = await getListItems(key, user);
+    //wl.items.addAll(items);
+    yield wl;
 
-      var instrumentUrls = wl.items
-          .where((e) => e.instrumentObj != null)
-          .map((e) => e.instrumentObj!.url)
-          .toList();
-      var quoteObjs = await getQuoteByInstrumentUrls(user, instrumentUrls);
-      for (var quoteObj in quoteObjs) {
-        var watchlistItem = wl.items
-            .where(
-                (element) => element.instrumentObj!.symbol == quoteObj.symbol)
-            .first;
-        watchlistItem.instrumentObj!.quoteObj = quoteObj;
-        yield list;
-      }
+    var instrumentIds = items.map((e) => e.objectId).toList();
+    var instrumentObjs =
+        await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+    for (var instrumentObj in instrumentObjs) {
+      var watchlistItem =
+          items.firstWhere((element) => element.objectId == instrumentObj.id);
+      watchlistItem.instrumentObj = instrumentObj;
+      wl.items.add(watchlistItem);
+      yield wl;
+    }
+
+    var instrumentSymbols = items
+        .where((e) => e.instrumentObj != null)
+        .map((e) => e.instrumentObj!.symbol)
+        .toList();
+    var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
+    for (var quoteObj in quoteObjs) {
+      var watchlistItem = wl.items.firstWhere(
+          (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+      watchlistItem.instrumentObj!.quoteObj = quoteObj;
+      //wl.items.add(watchlistItem);
+      yield wl;
+      //wl.items.add(watchlistItem);
+    }
+
+    /*
+
 
       List<String> forexIds = List<String>.from(entry.value
           .where((e) => e['object_type'] == "currency_pair")
@@ -1629,91 +1804,19 @@ WATCHLIST
     return wl;
   }
 
-  /*
-  static Stream<List<WatchlistItem>> streamWatchlists(
-      RobinhoodUser user) async* {
-    List<WatchlistItem> watchlistItems = [];
-
-    var pageStream = RobinhoodService.streamedGet(user,
-        "${Constants.robinHoodEndpoint}/watchlists/Default/"); // ?chain_id=${instrument.tradeableChainId}
-    //debugPrint(results);
-    await for (final results in pageStream) {
-      for (var i = 0; i < results.length; i++) {
-        var result = results[i];
-        var op = WatchlistItem.fromJson(result);
-
-        var instrumentObj = await getInstrument(user, op.instrument);
-        op.instrumentObj = instrumentObj;
-
-        var quoteObj = await getQuote(user, op.instrumentObj!.symbol);
-        op.instrumentObj!.quoteObj = quoteObj;
-
-        watchlistItems.add(op);
-        yield watchlistItems;
-      }
-      watchlistItems.sort((a, b) => b.watchlist.compareTo(a.watchlist));
-      yield watchlistItems;
+  static Future<List<WatchlistItem>> getListItems(
+      String key, RobinhoodUser user) async {
+    //https://api.robinhood.com/midlands/lists/items/?list_id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&local_midnight=2021-12-30T06%3A00%3A00.000Z
+    var watchlistUrl =
+        "${Constants.robinHoodEndpoint}/midlands/lists/items/?list_id=$key";
+    var entryJson = await getJson(user, watchlistUrl);
+    List<WatchlistItem> list = [];
+    for (var i = 0; i < entryJson['results'].length; i++) {
+      var item = WatchlistItem.fromJson(entryJson['results'][i]);
+      list.add(item);
     }
+    return list;
   }
-
-  static Future<List<WatchlistItem>> getWatchlists(RobinhoodUser user) async {
-    var results = [];
-    try {
-      results = await RobinhoodService.pagedGet(
-          user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
-    } on Exception catch (e) {
-      // Format
-      debugPrint('No watchlist found. Error: $e');
-    }
-    List<WatchlistItem> watchlistItems = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = WatchlistItem.fromJson(result);
-      watchlistItems.add(op);
-    }
-    var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
-    List<String> distinctInstrumentUrls = [
-      ...{...instrumentUrls}
-    ];
-    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
-      debugPrint(distinctInstrumentUrls[i]);
-      var instrumentJson = await getJson(user, distinctInstrumentUrls[i]);
-      var instrument = Instrument.fromJson(instrumentJson);
-      var itemsToUpdate = watchlistItems
-          .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      for (var element in itemsToUpdate) {
-        element.instrumentObj = instrument;
-      }
-    }
-    return watchlistItems;
-  }
-
-  static Future<List<dynamic>> getWatchlist(
-      RobinhoodUser user, String url) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/watchlists/Default/");
-    List<WatchlistItem> watchlistItems = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = WatchlistItem.fromJson(result);
-      watchlistItems.add(op);
-    }
-    var instrumentUrls = watchlistItems.map((e) => e.instrument).toList();
-    List<String> distinctInstrumentUrls = [
-      ...{...instrumentUrls}
-    ];
-    for (var i = 0; i < distinctInstrumentUrls.length; i++) {
-      var instrumentJson = await getJson(user, distinctInstrumentUrls[i]);
-      var instrument = Instrument.fromJson(instrumentJson);
-      var itemsToUpdate = watchlistItems
-          .where((element) => element.instrument == distinctInstrumentUrls[i]);
-      for (var element in itemsToUpdate) {
-        element.instrumentObj = instrument;
-      }
-    }
-    return watchlistItems;
-  }
-  */
 
   /* COMMON */
   // SocketException (SocketException: Failed host lookup: 'loadbalancer-brokeback.nginx.service.robinhood' (OS Error: No address associated with hostname, errno = 7))

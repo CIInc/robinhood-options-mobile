@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 class MoreMenuBottomSheet extends StatefulWidget {
@@ -37,8 +39,11 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   List<String> optionFilters = <String>[];
   List<String> positionFilters = <String>[];
 
+  UserStore? userStore;
+
   @override
   Widget build(BuildContext context) {
+    userStore = context.watch<UserStore>();
     return Scaffold(
         appBar:
             AppBar(leading: const CloseButton(), title: const Text('Settings')),
@@ -367,6 +372,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   void _onSettingsChanged({bool persistUser = true}) {
     if (persistUser) {
+      userStore!.addOrUpdate(widget.user);
       widget.user.save();
     }
     widget.onSettingsChanged({
@@ -664,17 +670,6 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
-      await RobinhoodUser.writeUserToStore(result);
-
-      /*
-      widget.onUserChanged(result);
-
-      setState(() {
-        futureRobinhoodUser = null;
-        //user = null;
-      });
-      */
-
       Navigator.pop(context); //, 'login'
 
       // After the Selection Screen returns a result, hide any previous snackbars

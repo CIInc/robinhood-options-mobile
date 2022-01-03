@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
@@ -60,7 +61,7 @@ class RobinhoodUser {
     //await Store.writeFile(Constants.cacheFilename, contents);
   }
 
-  static Future<RobinhoodUser> loadUserFromStore() async {
+  static Future<RobinhoodUser> loadUserFromStore(UserStore store) async {
     // await Store.deleteFile(Constants.cacheFilename);
     debugPrint('Loading cache.');
 
@@ -78,6 +79,7 @@ class RobinhoodUser {
       var client = oauth2.Client(credentials, identifier: Constants.identifier);
       user.oauth2Client = client;
       debugPrint('Loaded cache.');
+      store.add(user);
       return user;
     } on FormatException catch (e) {
       debugPrint(
@@ -85,13 +87,14 @@ class RobinhoodUser {
       return RobinhoodUser(null, null, null);
     }
   }
-
+  /* Deprecated for save()
   static Future writeUserToStore(RobinhoodUser user) async {
     var contents = jsonEncode(user);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
     //await Store.writeFile(Constants.cacheFilename, contents);
   }
+  */
 
   static Future clearUserFromStore() async {
     debugPrint("Cleared user from store.");
@@ -188,6 +191,9 @@ class RobinhoodUser {
 
   double? getPositionAggregateDisplayValue(List<StockPosition> ops) {
     double value = 0;
+    if (ops.isEmpty) {
+      return value;
+    }
     switch (displayValue) {
       case DisplayValue.lastPrice:
         return null;

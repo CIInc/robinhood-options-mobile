@@ -139,7 +139,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         labelAccessorFn: (d, _) => d['label'],
       ));
       var positionDisplayValues = groupedOptionAggregatePositions.values
-          .map((e) => user.getAggregateDisplayValue(e)!);
+          .map((e) => user.getAggregateDisplayValue(e) ?? 0);
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;

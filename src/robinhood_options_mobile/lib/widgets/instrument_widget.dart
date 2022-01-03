@@ -90,9 +90,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   StockPosition? position;
   List<OptionAggregatePosition> optionPositions = [];
-  List<OptionOrder> optionOrders = [];
   double optionOrdersPremiumBalance = 0;
-  List<StockOrder> positionOrders = [];
   double positionOrdersBalance = 0;
 
   Timer? refreshTriggerTime;
@@ -146,7 +144,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (optionOrders.isNotEmpty) {
       futureOptionOrders = Future.value(optionOrders);
     } else if (widget.instrument.tradeableChainId != null) {
-      futureOptionOrders = RobinhoodService.getOptionOrders(
+      futureOptionOrders ??= RobinhoodService.getOptionOrders(
           widget.user, optionOrderStore, widget.instrument.tradeableChainId!);
     } else {
       futureOptionOrders = Future.value([]);
@@ -163,7 +161,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (positionOrders.isNotEmpty) {
       futureInstrumentOrders = Future.value(positionOrders);
     } else {
-      futureInstrumentOrders = RobinhoodService.getInstrumentOrders(
+      futureInstrumentOrders ??= RobinhoodService.getInstrumentOrders(
           widget.user, stockPositionOrderStore, [widget.instrument.url]);
     }
     if (widget.instrument.logoUrl == null &&
@@ -179,7 +177,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureQuote ??=
           RobinhoodService.getQuote(user, quoteStore, instrument.symbol);
     } else {
-      futureQuote ??= Future.value(instrument.quoteObj);
+      futureQuote = Future.value(instrument.quoteObj);
     }
 
     if (instrument.fundamentalsObj == null) {
@@ -237,10 +235,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.similarObj = data.length > 10 ? data[10] : null;
           instrument.splitsObj = data.length > 11 ? data[11] : null;
 
-          positionOrders = instrument.positionOrders!;
-          _calculatePositionOrderBalance();
-          optionOrders = instrument.optionOrders!;
-          _calculateOptionOrderBalance();
+          _calculatePositionOrderBalance(instrument.positionOrders!);
+          _calculateOptionOrderBalance(instrument.optionOrders!);
 
           futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
               user, instrument.symbol,
@@ -278,7 +274,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
-  void _calculateOptionOrderBalance() {
+  void _calculateOptionOrderBalance(List<OptionOrder> optionOrders) {
     optionOrdersPremiumBalance = optionOrders.isNotEmpty
         ? optionOrders
             .map((e) =>
@@ -288,7 +284,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         : 0;
   }
 
-  void _calculatePositionOrderBalance() {
+  void _calculatePositionOrderBalance(List<StockOrder> positionOrders) {
     positionOrdersBalance = positionOrders.isNotEmpty
         ? positionOrders
             .map((e) =>
@@ -426,6 +422,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 Object exception, StackTrace? stackTrace) {
                               debugPrint(
                                   'Error with ${instrument.symbol} ${instrument.logoUrl}');
+                              //RobinhoodService.removeLogo(instrument.symbol);
                               return Container(); // Text(instrument.symbol);
                             },
                           )
@@ -577,7 +574,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 children: [
                   Wrap(
                     children: [
-                      Text(formatCurrency.format(close),
+                      Text(
+                          formatCurrency.format(selection != null
+                              ? selection!.closePrice
+                              : close),
                           style: TextStyle(fontSize: 20, color: textColor)),
                       Container(
                         width: 10,
@@ -937,21 +937,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       slivers.add(_buildListsWidget(instrument));
     }
 
-    if (positionOrders.isNotEmpty) {
+    if (instrument.positionOrders != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(positionOrdersWidget);
+      slivers.add(positionOrdersWidget(instrument.positionOrders!));
     }
 
-    if (optionOrders.isNotEmpty) {
+    if (instrument.optionOrders != null) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(OptionOrdersWidget(widget.user, widget.account, optionOrders,
-          const ["confirmed", "filled"]));
+      slivers.add(OptionOrdersWidget(widget.user, widget.account,
+          instrument.optionOrders!, const ["confirmed", "filled"]));
     }
 
     slivers.add(const SliverToBoxAdapter(
@@ -1819,20 +1819,35 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 ListTile(
-                  leading: instrument.similarObj![index]["logo_url"] != null
-                      ? Image.network(
-                          instrument.similarObj![index]["logo_url"]
-                              .toString()
-                              .replaceAll("https:////", "https://"),
-                          width: 56,
-                          height: 56,
-                          errorBuilder: (BuildContext context, Object exception,
-                              StackTrace? stackTrace) {
-                            return Text(
-                                instrument.similarObj![index]["symbol"]);
-                          },
-                        )
-                      : const SizedBox(width: 56, height: 56),
+                  leading: Hero(
+                      tag: 'logo_${instrument.similarObj![index]["symbol"]}',
+                      child: instrument.similarObj![index]["logo_url"] != null
+                          ? CircleAvatar(
+                              radius: 25,
+                              foregroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primary, //.onBackground,
+                              //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              child: Image.network(
+                                instrument.similarObj![index]["logo_url"]
+                                    .toString()
+                                    .replaceAll("https:////", "https://"),
+                                width: 40,
+                                height: 40,
+                                errorBuilder: (BuildContext context,
+                                    Object exception, StackTrace? stackTrace) {
+                                  //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
+                                  return Text(
+                                      instrument.similarObj![index]["symbol"]);
+                                },
+                              ))
+                          : CircleAvatar(
+                              radius: 25,
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.primary,
+                              child: Text(
+                                instrument.similarObj![index]["symbol"],
+                              ))),
                   title: Text(
                     "${instrument.similarObj![index]["symbol"]}",
                   ), //style: TextStyle(fontSize: 17.0)),
@@ -1984,7 +1999,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget get positionOrdersWidget {
+  Widget positionOrdersWidget(List<StockOrder> positionOrders) {
     return SliverStickyHeader(
       header: Material(
           //elevation: 2,

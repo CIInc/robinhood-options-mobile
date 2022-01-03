@@ -1,9 +1,11 @@
 //import 'dart:html';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
@@ -58,13 +60,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //int _selectedDrawerIndex = 0;
   bool _showDrawerContents = true;
 
+  UserStore? userStore;
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _pageIndex);
     tabPages = [const InitialWidget()];
 
-    futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
     RobinhoodService.loadLogos();
   }
 
@@ -98,7 +101,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void _handleUserChanged(RobinhoodUser? user) {
     setState(() {
       //robinhoodUser = user;
-      futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+      futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
     });
   }
 
@@ -111,6 +114,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   @override
   Widget build(BuildContext context) {
+    userStore = context.watch<UserStore>();
+    if (userStore!.items.isNotEmpty) {
+      futureRobinhoodUser = Future.value(userStore!.items.first);
+    } else {
+      futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
+    }
+
     return FutureBuilder(
         future: futureRobinhoodUser,
         builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
@@ -493,15 +503,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
-      await RobinhoodUser.writeUserToStore(result);
-
-      /*
-      widget.onUserChanged(result);
-      */
-
       setState(() {
         //futureRobinhoodUser = null;
-        futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+        futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
         //user = null;
       });
 
@@ -546,7 +550,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             */
             setState(() {
               //futureRobinhoodUser = null;
-              futureRobinhoodUser = RobinhoodUser.loadUserFromStore();
+              futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
             });
           },
         ),

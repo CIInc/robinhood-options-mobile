@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -183,11 +184,12 @@ class _HomePageState extends State<HomePage>
     // to rebuild this widget when CartModel notifies listeners (in other words,
     // when it changes).
     optionPositionStore = context.watch<OptionPositionStore>();
-    //store = Provider.of<PortfolioStore>(context, listen: true);
+    //optionPositionStore = Provider.of<OptionPositionStore>(context, listen: true);
 
     stockPositionStore = context.watch<StockPositionStore>();
     var instrumentStore = context.watch<InstrumentStore>();
     quoteStore = context.watch<QuoteStore>();
+    context.watch<UserStore>();
 
     return FutureBuilder(
       future: Future.wait([
@@ -254,7 +256,38 @@ class _HomePageState extends State<HomePage>
                     }
                     this.portfolioHistoricals = portfolioHistoricals;
                   }
-
+                  /*
+                  Stream<StockPositionStore> positionStoreStream =
+                      RobinhoodService.streamStockPositionStore(widget.user,
+                          StockPositionStore(), instrumentStore, quoteStore!,
+                          nonzero: !hasQuantityFilters[1]);
+                  Stream<OptionPositionStore> optionPositionStoreStream =
+                      RobinhoodService.streamOptionPositionStore(
+                          widget.user, OptionPositionStore(), instrumentStore,
+                          nonzero: !hasQuantityFilters[1]);
+                  return MultiProvider(
+                      providers: [
+                        StreamProvider<StockPositionStore>.value(
+                          value: positionStoreStream,
+                          initialData: StockPositionStore(),
+                        ),
+                        StreamProvider<OptionPositionStore>.value(
+                          value: optionPositionStoreStream,
+                          initialData: OptionPositionStore(),
+                        )
+                      ],
+                      builder: (BuildContext context, Widget? subwidget) {
+                        return _buildPage(
+                            portfolios: portfolios,
+                            userInfo: widget.userInfo,
+                            account: account,
+                            nummusHoldings: nummusHoldings,
+                            portfolioHistoricals: portfolioHistoricals,
+                            //optionPositions: optionPositions,
+                            //positions: positions,
+                            done: true);
+                      });
+                      */
                   positionStream ??= RobinhoodService.streamPositions(
                       widget.user,
                       stockPositionStore!,
@@ -370,12 +403,15 @@ class _HomePageState extends State<HomePage>
               futurePortfolioHistoricals = null;
             });
           }
+
+          //var optionPositionStore = Provider.of<OptionPositionStore>(context, listen: false);
           var refreshedOptionPositions =
               await RobinhoodService.refreshOptionMarketData(
                   widget.user, optionPositionStore!, optionPositions);
           setState(() {
             optionPositions = refreshedOptionPositions;
           });
+          //var stockPositionStore = Provider.of<StockPositionStore>(context, listen: false);
           var refreshPositions = await RobinhoodService.refreshPositionQuote(
               widget.user, stockPositionStore!, quoteStore!, positions);
           setState(() {
@@ -438,6 +474,14 @@ class _HomePageState extends State<HomePage>
       List<OptionAggregatePosition>? optionPositions,
       List<StockPosition>? positions,
       bool done = false}) {
+    /*
+    var stockPositionStore =
+        Provider.of<StockPositionStore>(context); //, listen: true
+    var optionPositionStore =
+        Provider.of<OptionPositionStore>(context); //, listen: true
+    List<OptionAggregatePosition>? optionPositions = optionPositionStore.items;
+    List<StockPosition>? positions = stockPositionStore.items;
+    */
     double portfolioValue = 0.0;
     double stockAndOptionsEquityPercent = 0.0;
     double optionEquityPercent = 0.0;
@@ -476,11 +520,13 @@ class _HomePageState extends State<HomePage>
     }
 
     if (optionPositions != null) {
-      optionEquity = optionPositions
-          .map((e) => e.legs.first.positionType == "long"
-              ? e.marketValue
-              : e.marketValue)
-          .reduce((a, b) => a + b);
+      if (optionPositions.isNotEmpty) {
+        optionEquity = optionPositions
+            .map((e) => e.legs.first.positionType == "long"
+                ? e.marketValue
+                : e.marketValue)
+            .reduce((a, b) => a + b);
+      }
       chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
       chainSymbols.sort((a, b) => (a.compareTo(b)));
     }
@@ -2273,6 +2319,7 @@ class _HomePageState extends State<HomePage>
                           height: 40,
                           errorBuilder: (BuildContext context, Object exception,
                               StackTrace? stackTrace) {
+                            //RobinhoodService.removeLogo(instrument.symbol);
                             return Text(instrument.symbol);
                           },
                         ))

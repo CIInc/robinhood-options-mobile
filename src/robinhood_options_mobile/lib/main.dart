@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/stock_order_store.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:material_color_utilities/material_color_utilities.dart';
@@ -65,6 +66,9 @@ class MyApp extends StatelessWidget {
       //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
       return MultiProvider(
           providers: [
+            ChangeNotifierProvider(
+              create: (context) => UserStore(),
+            ),
             ChangeNotifierProvider(
               create: (context) => OptionPositionStore(),
             ),
