@@ -137,6 +137,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   }
                   */
                 } else if (authenticationResponse['access_token'] != null) {
+                  _stopMonitoringClipboard();
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
                       Constants.tokenEndpoint,
@@ -147,17 +148,17 @@ class _LoginWidgetState extends State<LoginWidget> {
                       null);
                   var user = RobinhoodUser(
                       userCtl.text, client!.credentials.toJson(), client);
-                  user.save();
-                  userStore.add(user);
-                  _stopMonitoringClipboard();
+                  user.save(userStore).then((value) {
+                    Navigator.pop(context, user);
+                  });
                   /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                   Future.delayed(Duration.zero, () {
                     Navigator.pop(context, user);
                   });
-                  */
                   WidgetsBinding.instance!.addPostFrameCallback((_) {
                     Navigator.pop(context, user);
                   });
+                  */
                 } else {
                   if (authenticationSnapshot.connectionState ==
                       ConnectionState.done) {

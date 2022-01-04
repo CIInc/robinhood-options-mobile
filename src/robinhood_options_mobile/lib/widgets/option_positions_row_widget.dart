@@ -20,6 +20,10 @@ final formatCompactNumber = NumberFormat.compact();
 const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;
 const greekEgdeInset = 10.0;
+
+const summaryValueFontSize = 18.0;
+const summaryLabelFontSize = 10.0;
+const summaryEgdeInset = 10.0;
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
 final ItemPositionsListener itemPositionListener =
@@ -56,13 +60,34 @@ class OptionPositionsRowWidget extends StatelessWidget {
         .map((e) => e.quantity! * e.marketData!.delta!)
         .reduce((a, b) => a + b);
     */
-    double? value = user.getAggregateDisplayValue(filteredOptionPositions);
-    String? trailingText;
-    Icon? icon;
-    if (value != null) {
-      trailingText = user.getDisplayText(value);
-      icon = user.getDisplayIcon(value);
-    }
+
+    double? marketValue = user.getAggregateDisplayValue(filteredOptionPositions,
+        displayValue: DisplayValue.marketValue);
+    String? marketValueText = user.getDisplayText(marketValue!,
+        displayValue: DisplayValue.marketValue);
+
+    double? totalReturn = user.getAggregateDisplayValue(filteredOptionPositions,
+        displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = user.getDisplayText(totalReturn!,
+        displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = user.getAggregateDisplayValue(
+        filteredOptionPositions,
+        displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = user.getDisplayText(totalReturnPercent!,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = user.getAggregateDisplayValue(filteredOptionPositions,
+        displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = user.getDisplayText(todayReturn!,
+        displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = user.getAggregateDisplayValue(
+        filteredOptionPositions,
+        displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
     double? deltaAvg,
         gammaAvg,
         thetaAvg,
@@ -235,7 +260,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts"), // of ${formatCompactNumber.format(optionPositions.length)}
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying"), // of ${formatCompactNumber.format(optionPositions.length)}
+                /*
                 trailing: Wrap(spacing: 8, children: [
                   if (icon != null) ...[
                     icon,
@@ -248,7 +274,119 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     )
                   ]
                 ]),
+                */
               ),
+              SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                  summaryEgdeInset), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(marketValueText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    //Container(height: 5),
+                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                    const Text("Market Value",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                  summaryEgdeInset), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    /*
+                                    Wrap(spacing: 8, children: [
+                                      user.getDisplayIcon(todayReturn)!,
+                                      Text(todayReturnText,
+                                          style: const TextStyle(
+                                              fontSize: summaryValueFontSize))
+                                    ]),
+                                    */
+                                    Text(todayReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    /*
+                                    Text(todayReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+                                    const Text("Return Today",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                  summaryEgdeInset), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(todayReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    const Text("Return Today %",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                  summaryEgdeInset), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    /*
+                                    Wrap(spacing: 8, children: [
+                                      user.getDisplayIcon(todayReturn)!,
+                                      Text(totalReturnText,
+                                          style: const TextStyle(
+                                              fontSize: summaryValueFontSize))
+                                    ]),
+                                    */
+                                    Text(totalReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    /*
+                                    Text(totalReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+                                    //Container(height: 5),
+                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                    const Text("Total Return",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(
+                                  summaryEgdeInset), //.symmetric(horizontal: 6),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(totalReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+
+                                    //Container(height: 5),
+                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                    const Text("Total Return %",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                          ]))),
               if (user.displayValue != DisplayValue.lastPrice) ...[
                 SizedBox(
                     height: barChartSeriesList.first.data.length * 25 +

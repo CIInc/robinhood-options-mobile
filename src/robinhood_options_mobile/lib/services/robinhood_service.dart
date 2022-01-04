@@ -329,12 +329,13 @@ class RobinhoodService {
     //stockPositions = positions;
   }
 
-  static Future<List<StockPosition>> refreshPositionQuote(
-      RobinhoodUser user,
-      StockPositionStore store,
-      QuoteStore quoteStore,
-      List<StockPosition> positions) async {
-    var ops = positions;
+  static Future<List<StockPosition>> refreshPositionQuote(RobinhoodUser user,
+      StockPositionStore store, QuoteStore quoteStore) async {
+    if (store.items.isEmpty || store.items.first.instrumentObj == null) {
+      return store.items;
+    }
+
+    var ops = store.items;
     var len = ops.length;
     var size = 25; //20; //15; //17;
     List<List<StockPosition>> chunks = [];
@@ -347,11 +348,11 @@ class RobinhoodService {
 
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
-        var position = positions.firstWhere(
+        var position = store.items.firstWhere(
             (element) => element.instrumentObj!.symbol == quoteObj.symbol);
         position.instrumentObj!.quoteObj = quoteObj;
         // Update store
-        store.addOrUpdate(position);
+        store.update(position);
       }
     }
     return ops;
@@ -1311,18 +1312,16 @@ class RobinhoodService {
   }
 
   static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      RobinhoodUser user,
-      OptionPositionStore store,
-      List<OptionAggregatePosition> options) async {
-    if (options.isEmpty || options.first.optionInstrument == null) {
-      return options;
+      RobinhoodUser user, OptionPositionStore store) async {
+    if (store.items.isEmpty || store.items.first.optionInstrument == null) {
+      return store.items;
     }
-    var len = options.length;
+    var len = store.items.length;
     var size = 25; //20; //15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
-      chunks.add(options.sublist(i, end));
+      chunks.add(store.items.sublist(i, end));
     }
     for (var chunk in chunks) {
       var optionIds = chunk.map((e) {
@@ -1335,7 +1334,7 @@ class RobinhoodService {
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
       for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = options.singleWhere((element) {
+        var optionPosition = store.items.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
@@ -1345,17 +1344,10 @@ class RobinhoodService {
 
         // Update store
         store.addOrUpdate(optionPosition);
-        /*
-        // Update cached option marketData
-        var optionPositionIndex = optionPositions!
-            .indexWhere((element) => element.id == optionPosition.id);
-        optionPositions![optionPositionIndex].marketData =
-            optionPosition.marketData;
-            */
       }
     }
 
-    return options;
+    return store.items;
   }
 
   static Stream<List<OptionOrder>> streamOptionOrders(

@@ -41,4 +41,13 @@ class UserStore extends ChangeNotifier {
       add(item);
     }
   }
+
+  void remove(RobinhoodUser item) {
+    var index =
+        _items.indexWhere((element) => element.userName == item.userName);
+    if (index != -1) {
+      _items.removeAt(index);
+      notifyListeners();
+    }
+  }
 }

@@ -11,13 +11,11 @@ import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/stock_position.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -63,12 +61,12 @@ class HomePage extends StatefulWidget {
       {Key? key,
       this.title,
       this.navigatorKey,
-      required this.onUserChanged,
+      //required this.onUserChanged,
       required this.onAccountsChanged})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
-  final ValueChanged<RobinhoodUser?> onUserChanged;
+  //final ValueChanged<RobinhoodUser?> onUserChanged;
   final ValueChanged<List<Account>> onAccountsChanged;
 
   // This widget is the home page of your application. It is stateful, meaning
@@ -107,14 +105,18 @@ class _HomePageState extends State<HomePage>
   Bounds chartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
 
+  Stream<StockPositionStore>? positionStoreStream;
+  Stream<OptionPositionStore>? optionPositionStoreStream;
+
+  /*
   Stream<List<StockPosition>>? positionStream;
   List<StockPosition> positions = [];
   Stream<List<StockOrder>>? positionOrderStream;
 
   Stream<List<OptionAggregatePosition>>? optionPositionStream;
-  Stream<List<OptionOrder>>? optionOrderStream;
-
   List<OptionAggregatePosition> optionPositions = [];
+  Stream<List<OptionOrder>>? optionOrderStream;
+  */
 
   List<String> positionSymbols = [];
   List<String> chainSymbols = [];
@@ -174,22 +176,32 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildScaffold() {
+    // This gets the current state of StockPositionStore and also tells Flutter
+    // to rebuild this widget when StockPositionStore notifies listeners (in other words,
+    // when it changes).
+    //stockPositionStore = context.watch<StockPositionStore>();
+
+    stockPositionStore = Provider.of<StockPositionStore>(context,
+        listen: false); //, listen: true
+    optionPositionStore = Provider.of<OptionPositionStore>(context,
+        listen: false); //, listen: true
+
+    var instrumentStore = context.watch<InstrumentStore>();
+    quoteStore = context.watch<QuoteStore>();
+    context.watch<UserStore>();
+
     futureAccounts ??= RobinhoodService.getAccounts(widget.user);
     futurePortfolios ??= RobinhoodService.getPortfolios(widget.user);
     //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
     futureNummusHoldings ??= RobinhoodService.getNummusHoldings(widget.user,
         nonzero: !hasQuantityFilters[1]);
 
-    // This gets the current state of CartModel and also tells Flutter
-    // to rebuild this widget when CartModel notifies listeners (in other words,
-    // when it changes).
-    optionPositionStore = context.watch<OptionPositionStore>();
-    //optionPositionStore = Provider.of<OptionPositionStore>(context, listen: true);
-
-    stockPositionStore = context.watch<StockPositionStore>();
-    var instrumentStore = context.watch<InstrumentStore>();
-    quoteStore = context.watch<QuoteStore>();
-    context.watch<UserStore>();
+    positionStoreStream ??= RobinhoodService.streamStockPositionStore(
+        widget.user, stockPositionStore!, instrumentStore, quoteStore!,
+        nonzero: !hasQuantityFilters[1]);
+    optionPositionStoreStream ??= RobinhoodService.streamOptionPositionStore(
+        widget.user, optionPositionStore!, instrumentStore,
+        nonzero: !hasQuantityFilters[1]);
 
     return FutureBuilder(
       future: Future.wait([
@@ -256,15 +268,7 @@ class _HomePageState extends State<HomePage>
                     }
                     this.portfolioHistoricals = portfolioHistoricals;
                   }
-                  /*
-                  Stream<StockPositionStore> positionStoreStream =
-                      RobinhoodService.streamStockPositionStore(widget.user,
-                          StockPositionStore(), instrumentStore, quoteStore!,
-                          nonzero: !hasQuantityFilters[1]);
-                  Stream<OptionPositionStore> optionPositionStoreStream =
-                      RobinhoodService.streamOptionPositionStore(
-                          widget.user, OptionPositionStore(), instrumentStore,
-                          nonzero: !hasQuantityFilters[1]);
+
                   return MultiProvider(
                       providers: [
                         StreamProvider<StockPositionStore>.value(
@@ -277,17 +281,17 @@ class _HomePageState extends State<HomePage>
                         )
                       ],
                       builder: (BuildContext context, Widget? subwidget) {
-                        return _buildPage(
+                        return _buildPage(context,
                             portfolios: portfolios,
                             userInfo: widget.userInfo,
                             account: account,
                             nummusHoldings: nummusHoldings,
                             portfolioHistoricals: portfolioHistoricals,
-                            //optionPositions: optionPositions,
-                            //positions: positions,
+                            //optionPositions: optionPositionStore.items,
+                            //positions: stockPositionStore.items,
                             done: true);
                       });
-                      */
+                  /*
                   positionStream ??= RobinhoodService.streamPositions(
                       widget.user,
                       stockPositionStore!,
@@ -316,7 +320,7 @@ class _HomePageState extends State<HomePage>
                                   optionPositions =
                                       optionAggregatePositionSnapshot.data!;
 
-                                  return _buildPage(
+                                  return _buildPage(context,
                                       portfolios: portfolios,
                                       userInfo: widget.userInfo,
                                       account: account,
@@ -333,6 +337,7 @@ class _HomePageState extends State<HomePage>
                                 } else {
                                   // No Options found.
                                   return _buildPage(
+                                    context,
                                     portfolios: portfolios,
                                     userInfo: widget.userInfo,
                                     account: account,
@@ -345,6 +350,7 @@ class _HomePageState extends State<HomePage>
                         } else {
                           // No Positions found.
                           return _buildPage(
+                            context,
                             portfolios: portfolios,
                             userInfo: widget.userInfo,
                             account: account,
@@ -353,9 +359,10 @@ class _HomePageState extends State<HomePage>
                           );
                         }
                       });
+                      */
                 } else {
                   // No PortfolioHistoricals found
-                  return _buildPage(
+                  return _buildPage(context,
                       portfolios: portfolios,
                       userInfo: widget.userInfo,
                       account: account,
@@ -364,17 +371,19 @@ class _HomePageState extends State<HomePage>
               });
         } else if (dataSnapshot.hasError) {
           debugPrint("${dataSnapshot.error}");
+          /*
           if (dataSnapshot.error.toString() ==
               "OAuth authorization error (invalid_grant).") {
-            RobinhoodUser.clearUserFromStore();
+            RobinhoodUser.clearUserFromStore(userStore);
             // Causes: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4841 pos 12: '!_debugLocked': is not true.
             //_openLogin();
           }
-          return _buildPage(
+          */
+          return _buildPage(context,
               //ru: snapshotUser,
               welcomeWidget: Text("${dataSnapshot.error}"));
         } else {
-          return _buildPage();
+          return _buildPage(context);
         }
       },
     );
@@ -404,19 +413,11 @@ class _HomePageState extends State<HomePage>
             });
           }
 
-          //var optionPositionStore = Provider.of<OptionPositionStore>(context, listen: false);
-          var refreshedOptionPositions =
-              await RobinhoodService.refreshOptionMarketData(
-                  widget.user, optionPositionStore!, optionPositions);
-          setState(() {
-            optionPositions = refreshedOptionPositions;
-          });
-          //var stockPositionStore = Provider.of<StockPositionStore>(context, listen: false);
-          var refreshPositions = await RobinhoodService.refreshPositionQuote(
-              widget.user, stockPositionStore!, quoteStore!, positions);
-          setState(() {
-            positions = refreshPositions;
-          });
+          await RobinhoodService.refreshOptionMarketData(
+              widget.user, optionPositionStore!);
+
+          await RobinhoodService.refreshPositionQuote(
+              widget.user, stockPositionStore!, quoteStore!);
 
           var refreshForex = await RobinhoodService.refreshNummusHoldings(
               widget.user, nummusHoldings!);
@@ -464,24 +465,16 @@ class _HomePageState extends State<HomePage>
         chartDateSpanFilter);*/
   }
 
-  Widget _buildPage(
+  Widget _buildPage(BuildContext context,
       {List<Portfolio>? portfolios,
       UserInfo? userInfo,
       Account? account,
       List<ForexHolding>? nummusHoldings,
       Widget? welcomeWidget,
       PortfolioHistoricals? portfolioHistoricals,
-      List<OptionAggregatePosition>? optionPositions,
-      List<StockPosition>? positions,
+      //List<OptionAggregatePosition>? optionPositions,
+      //List<StockPosition>? positions,
       bool done = false}) {
-    /*
-    var stockPositionStore =
-        Provider.of<StockPositionStore>(context); //, listen: true
-    var optionPositionStore =
-        Provider.of<OptionPositionStore>(context); //, listen: true
-    List<OptionAggregatePosition>? optionPositions = optionPositionStore.items;
-    List<StockPosition>? positions = stockPositionStore.items;
-    */
     double portfolioValue = 0.0;
     double stockAndOptionsEquityPercent = 0.0;
     double optionEquityPercent = 0.0;
@@ -501,35 +494,42 @@ class _HomePageState extends State<HomePage>
     double positionEquity = 0;
     double nummusEquity = 0;
 
-    if (positions != null) {
-      if (positions.isNotEmpty) {
-        positionEquity =
-            positions.map((e) => e.marketValue).reduce((a, b) => a + b);
-      }
-      positionSymbols = positions
-          .where((element) => element.instrumentObj != null)
-          .map((e) => e.instrumentObj!.symbol)
-          .toSet()
-          .toList();
-      positionSymbols.sort((a, b) => (a.compareTo(b)));
+    var stockStore = Provider.of<StockPositionStore>(context); //, listen: true
+    var positions = stockStore.items;
+
+    var optionPositionStore =
+        Provider.of<OptionPositionStore>(context); //, listen: true
+    var optionPositions = optionPositionStore.items;
+
+    //if (positions != null) {
+    if (positions.isNotEmpty) {
+      positionEquity =
+          positions.map((e) => e.marketValue).reduce((a, b) => a + b);
     }
+    positionSymbols = positions
+        .where((element) => element.instrumentObj != null)
+        .map((e) => e.instrumentObj!.symbol)
+        .toSet()
+        .toList();
+    positionSymbols.sort((a, b) => (a.compareTo(b)));
+    //}
 
     if (nummusHoldings != null && nummusHoldings.isNotEmpty) {
       nummusEquity =
           nummusHoldings.map((e) => e.marketValue).reduce((a, b) => a + b);
     }
 
-    if (optionPositions != null) {
-      if (optionPositions.isNotEmpty) {
-        optionEquity = optionPositions
-            .map((e) => e.legs.first.positionType == "long"
-                ? e.marketValue
-                : e.marketValue)
-            .reduce((a, b) => a + b);
-      }
-      chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
-      chainSymbols.sort((a, b) => (a.compareTo(b)));
+    //if (optionPositions != null) {
+    if (optionPositions.isNotEmpty) {
+      optionEquity = optionPositions
+          .map((e) => e.legs.first.positionType == "long"
+              ? e.marketValue
+              : e.marketValue)
+          .reduce((a, b) => a + b);
     }
+    chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
+    chainSymbols.sort((a, b) => (a.compareTo(b)));
+    //}
 
     if (portfolios != null) {
       portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
@@ -965,154 +965,154 @@ class _HomePageState extends State<HomePage>
       )));
     }
 
-    if (optionPositions != null) {
-      var filteredOptionAggregatePositions = optionPositions
-          .where((element) =>
-              ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                  (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                      (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
-              (positionFilters.isEmpty ||
-                  positionFilters.contains(element.legs.first.positionType)) &&
-              (optionFilters.isEmpty ||
-                  optionFilters.contains(element.legs.first.positionType)) &&
-              (optionSymbolFilters.isEmpty ||
-                  optionSymbolFilters.contains(element.symbol)))
-          .toList();
+    //if (optionPositions != null) {
+    var filteredOptionAggregatePositions = optionPositions
+        .where((element) =>
+            ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                    (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
+            (positionFilters.isEmpty ||
+                positionFilters.contains(element.legs.first.positionType)) &&
+            (optionFilters.isEmpty ||
+                optionFilters.contains(element.legs.first.positionType)) &&
+            (optionSymbolFilters.isEmpty ||
+                optionSymbolFilters.contains(element.symbol)))
+        .toList();
 
-      if (filteredOptionAggregatePositions.isNotEmpty) {
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-        slivers.add(OptionPositionsRowWidget(
-            widget.user, account!, filteredOptionAggregatePositions));
-      }
+    if (filteredOptionAggregatePositions.isNotEmpty) {
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,
       )));
+      slivers.add(OptionPositionsRowWidget(
+          widget.user, account!, filteredOptionAggregatePositions));
     }
+    slivers.add(const SliverToBoxAdapter(
+        child: SizedBox(
+      height: 25.0,
+    )));
+    //}
 
-    if (positions != null) {
-      var filteredPositions = positions
-          .where((element) =>
-              ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                  //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
-                  (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                      (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
-              /*
+    //if (positions != null) {
+    var filteredPositions = positions
+        .where((element) =>
+            ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                //(!hasQuantityFilters[0] && !hasQuantityFilters[1]) ||
+                (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                    (!hasQuantityFilters[1] || element.quantity! <= 0)) &&
+            /*
                 (days == 0 ||
                     element.createdAt!
                             .add(Duration(days: days))
                             .compareTo(DateTime.now()) >=
                         0) &&
                         */
-              (stockSymbolFilters.isEmpty ||
-                  stockSymbolFilters.contains(element.instrumentObj!.symbol)))
-          .toList();
+            (stockSymbolFilters.isEmpty ||
+                stockSymbolFilters.contains(element.instrumentObj!.symbol)))
+        .toList();
 
-      double? value =
-          widget.user.getPositionAggregateDisplayValue(filteredPositions);
-      String? trailingText;
-      Icon? icon;
-      if (value != null) {
-        trailingText = widget.user.getDisplayText(value);
-        icon = widget.user.getDisplayIcon(value);
+    double? value =
+        widget.user.getPositionAggregateDisplayValue(filteredPositions);
+    String? trailingText;
+    Icon? icon;
+    if (value != null) {
+      trailingText = widget.user.getDisplayText(value);
+      icon = widget.user.getDisplayIcon(value);
+    }
+
+    List<charts.Series<dynamic, String>> barChartSeriesList = [];
+    var data = [];
+    for (var position in filteredPositions) {
+      if (position.instrumentObj != null) {
+        double? value = widget.user.getPositionDisplayValue(position);
+        String? trailingText = widget.user.getDisplayText(value);
+        data.add({
+          'domain': position.instrumentObj!.symbol,
+          'measure': value,
+          'label': trailingText
+        });
+      }
+    }
+    barChartSeriesList.add(charts.Series<dynamic, String>(
+      id: widget.user.displayValue.toString(),
+      data: data,
+      domainFn: (var d, _) => d['domain'],
+      measureFn: (var d, _) => d['measure'],
+      labelAccessorFn: (d, _) => d['label'],
+    ));
+    var brightness = MediaQuery.of(context).platformBrightness;
+    var axisLabelColor = charts.MaterialPalette.gray.shade500;
+    if (brightness == Brightness.light) {
+      axisLabelColor = charts.MaterialPalette.gray.shade700;
+    }
+    var primaryMeasureAxis = charts.NumericAxisSpec(
+      //showAxisLine: true,
+      //renderSpec: charts.GridlineRendererSpec(),
+      renderSpec: charts.GridlineRendererSpec(
+          labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+      //renderSpec: charts.NoneRenderSpec(),
+      //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+      //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+      //tickProviderSpec:
+      //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+      //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+    );
+    if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
+        widget.user.displayValue == DisplayValue.totalReturnPercent) {
+      var positionDisplayValues =
+          filteredPositions.map((e) => widget.user.getPositionDisplayValue(e));
+      var minimum = positionDisplayValues.reduce(math.min);
+      if (minimum < 0) {
+        minimum -= 0.05;
+      } else if (minimum > 0) {
+        minimum = 0;
+      }
+      var maximum = positionDisplayValues.reduce(math.max);
+      if (maximum > 0) {
+        maximum += 0.05;
+      } else if (maximum < 0) {
+        maximum = 0;
       }
 
-      List<charts.Series<dynamic, String>> barChartSeriesList = [];
-      var data = [];
-      for (var position in filteredPositions) {
-        if (position.instrumentObj != null) {
-          double? value = widget.user.getPositionDisplayValue(position);
-          String? trailingText = widget.user.getDisplayText(value);
-          data.add({
-            'domain': position.instrumentObj!.symbol,
-            'measure': value,
-            'label': trailingText
-          });
-        }
-      }
-      barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: widget.user.displayValue.toString(),
-        data: data,
-        domainFn: (var d, _) => d['domain'],
-        measureFn: (var d, _) => d['measure'],
-        labelAccessorFn: (d, _) => d['label'],
-      ));
-      var brightness = MediaQuery.of(context).platformBrightness;
-      var axisLabelColor = charts.MaterialPalette.gray.shade500;
-      if (brightness == Brightness.light) {
-        axisLabelColor = charts.MaterialPalette.gray.shade700;
-      }
-      var primaryMeasureAxis = charts.NumericAxisSpec(
-        //showAxisLine: true,
-        //renderSpec: charts.GridlineRendererSpec(),
-        renderSpec: charts.GridlineRendererSpec(
-            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-        //renderSpec: charts.NoneRenderSpec(),
-        //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-        //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-        //tickProviderSpec:
-        //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-        //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-      );
-      if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-          widget.user.displayValue == DisplayValue.totalReturnPercent) {
-        var positionDisplayValues = filteredPositions
-            .map((e) => widget.user.getPositionDisplayValue(e));
-        var minimum = positionDisplayValues.reduce(math.min);
-        if (minimum < 0) {
-          minimum -= 0.05;
-        } else if (minimum > 0) {
-          minimum = 0;
-        }
-        var maximum = positionDisplayValues.reduce(math.max);
-        if (maximum > 0) {
-          maximum += 0.05;
-        } else if (maximum < 0) {
-          maximum = 0;
-        }
-
-        primaryMeasureAxis = charts.PercentAxisSpec(
-            viewport: charts.NumericExtents(minimum, maximum),
-            renderSpec: charts.GridlineRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
-      }
-      var positionChart = BarChart(barChartSeriesList,
-          renderer: charts.BarRendererConfig(
-              barRendererDecorator: charts.BarLabelDecorator<String>(),
-              cornerStrategy: const charts.ConstCornerStrategy(10)),
-          primaryMeasureAxis: primaryMeasureAxis,
-          barGroupingType: null,
-          domainAxis: charts.OrdinalAxisSpec(
-              renderSpec: charts.SmallTickRendererSpec(
-                  labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
-          onSelected: (_) {});
-      //}
-      slivers.add(SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: const Text(
-            "Stocks",
-            style: TextStyle(fontSize: 19.0),
-          ),
-          subtitle: Text(
-              "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
-          trailing: Wrap(spacing: 8, children: [
-            if (icon != null) ...[
-              icon,
-            ],
-            if (trailingText != null) ...[
-              Text(
-                trailingText,
-                style: const TextStyle(fontSize: 21.0),
-                textAlign: TextAlign.right,
-              )
-            ]
-          ]),
+      primaryMeasureAxis = charts.PercentAxisSpec(
+          viewport: charts.NumericExtents(minimum, maximum),
+          renderSpec: charts.GridlineRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
+    }
+    var positionChart = BarChart(barChartSeriesList,
+        renderer: charts.BarRendererConfig(
+            barRendererDecorator: charts.BarLabelDecorator<String>(),
+            cornerStrategy: const charts.ConstCornerStrategy(10)),
+        primaryMeasureAxis: primaryMeasureAxis,
+        barGroupingType: null,
+        domainAxis: charts.OrdinalAxisSpec(
+            renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
+        onSelected: (_) {});
+    //}
+    slivers.add(SliverToBoxAdapter(
+        child: Column(children: [
+      ListTile(
+        title: const Text(
+          "Stocks",
+          style: TextStyle(fontSize: 19.0),
         ),
-        /*
+        subtitle: Text(
+            "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+        trailing: Wrap(spacing: 8, children: [
+          if (icon != null) ...[
+            icon,
+          ],
+          if (trailingText != null) ...[
+            Text(
+              trailingText,
+              style: const TextStyle(fontSize: 21.0),
+              textAlign: TextAlign.right,
+            )
+          ]
+        ]),
+      ),
+      /*
         if (widget.user.displayValue != DisplayValue.lastPrice) ...[
           SizedBox(
               height: barChartSeriesList.first.data.length == 1
@@ -1125,36 +1125,36 @@ class _HomePageState extends State<HomePage>
               )),
         ],
         */
-      ])));
-      if (widget.user.displayValue != DisplayValue.lastPrice &&
-          barChartSeriesList.isNotEmpty &&
-          barChartSeriesList.first.data.isNotEmpty) {
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-                height: barChartSeriesList.first.data.length == 1
-                    ? 75
-                    : barChartSeriesList.first.data.length * 50,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      10.0, 0, 10, 10), //EdgeInsets.zero
-                  child: positionChart,
-                ))));
-      }
-      slivers.add(SliverList(
-        // delegate: SliverChildListDelegate(widgets),
-        delegate: SliverChildBuilderDelegate(
-          (BuildContext context, int index) {
-            return _buildPositionRow(filteredPositions, index);
-          },
-          // Or, uncomment the following line:
-          childCount: filteredPositions.length,
-        ),
-      ));
-      slivers.add(const SliverToBoxAdapter(
+    ])));
+    if (widget.user.displayValue != DisplayValue.lastPrice &&
+        barChartSeriesList.isNotEmpty &&
+        barChartSeriesList.first.data.isNotEmpty) {
+      slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-        height: 25.0,
-      )));
+              height: barChartSeriesList.first.data.length == 1
+                  ? 75
+                  : barChartSeriesList.first.data.length * 50,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    10.0, 0, 10, 10), //EdgeInsets.zero
+                child: positionChart,
+              ))));
     }
+    slivers.add(SliverList(
+      // delegate: SliverChildListDelegate(widgets),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          return _buildPositionRow(filteredPositions, index);
+        },
+        // Or, uncomment the following line:
+        childCount: filteredPositions.length,
+      ),
+    ));
+    slivers.add(const SliverToBoxAdapter(
+        child: SizedBox(
+      height: 25.0,
+    )));
+    //}
 
     if (nummusHoldings != null) {
       cryptoSymbols =
@@ -1501,10 +1501,11 @@ class _HomePageState extends State<HomePage>
             crossAxisAlignment: CrossAxisAlignment.start, children: rows));
   }
 
-  Widget optionSymbolFilterWidget(StateSetter bottomState) {
-    var widgets =
-        optionSymbolFilterWidgets(chainSymbols, optionPositions, bottomState)
-            .toList();
+  Widget optionSymbolFilterWidget(
+      StateSetter bottomState, OptionPositionStore optionPositionStore) {
+    var widgets = optionSymbolFilterWidgets(
+            chainSymbols, optionPositionStore.items, bottomState)
+        .toList();
     /*
     if (widgets.length < 20) {
       return Padding(
@@ -1686,8 +1687,8 @@ class _HomePageState extends State<HomePage>
                       } else {
                         hasQuantityFilters[1] = false;
                       }
-                      optionPositionStream = null;
-                      positionStream = null;
+                      positionStoreStream = null;
+                      optionPositionStoreStream = null;
                     });
                     setState(() {});
                   },
@@ -2250,12 +2251,8 @@ class _HomePageState extends State<HomePage>
     setState(() {
       futurePortfolios = null;
 
-      //futureOptionPositions = null;
-      optionPositionStream = null;
-      optionOrderStream = null;
-      positionStream = null;
-      positionOrderStream = null;
-      //watchlistStream = null;
+      positionStoreStream = null;
+      optionPositionStoreStream = null;
     });
 
     var accounts = await RobinhoodService.getAccounts(widget.user);

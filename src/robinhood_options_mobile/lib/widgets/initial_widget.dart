@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 
 class InitialWidget extends StatelessWidget {
-  const InitialWidget({Key? key}) : super(key: key);
+  final Widget? child;
+  const InitialWidget({Key? key, this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +31,13 @@ class InitialWidget extends StatelessWidget {
           child: SizedBox(
         height: 25.0,
       )),
+      if (child != null) ...[
+        SliverToBoxAdapter(
+            child: Container(
+                //height: 420.0,
+                padding: const EdgeInsets.all(12.0),
+                child: Align(alignment: Alignment.center, child: child)))
+      ],
       const SliverToBoxAdapter(child: DisclaimerWidget())
     ]);
   }

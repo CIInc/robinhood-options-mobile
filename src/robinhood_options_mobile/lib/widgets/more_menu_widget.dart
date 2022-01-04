@@ -370,10 +370,9 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         ));
   }
 
-  void _onSettingsChanged({bool persistUser = true}) {
+  Future<void> _onSettingsChanged({bool persistUser = true}) async {
     if (persistUser) {
-      userStore!.addOrUpdate(widget.user);
-      widget.user.save();
+      await widget.user.save(userStore!);
     }
     widget.onSettingsChanged({
       'hasQuantityFilters': hasQuantityFilters,
@@ -681,7 +680,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   }
 
   _logout() async {
-    await RobinhoodUser.clearUserFromStore();
+    await RobinhoodUser.clearUserFromStore(widget.user, userStore!);
     // Future.delayed(const Duration(milliseconds: 1), () async {
 
     /* 

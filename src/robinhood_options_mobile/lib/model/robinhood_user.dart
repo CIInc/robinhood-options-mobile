@@ -54,11 +54,12 @@ class RobinhoodUser {
         'showGreeks': showGreeks,
       };
 
-  Future save() async {
+  Future save(UserStore store) async {
     var contents = jsonEncode(this);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
     //await Store.writeFile(Constants.cacheFilename, contents);
+    store.addOrUpdate(this);
   }
 
   static Future<RobinhoodUser> loadUserFromStore(UserStore store) async {
@@ -96,11 +97,31 @@ class RobinhoodUser {
   }
   */
 
-  static Future clearUserFromStore() async {
+  static Future clearUserFromStore(RobinhoodUser user, UserStore store) async {
     debugPrint("Cleared user from store.");
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(Constants.preferencesUserKey);
     //await Store.deleteFile(Constants.cacheFilename);
+    store.remove(user);
+  }
+
+  static String displayValueText(DisplayValue displayValue) {
+    switch (displayValue) {
+      case DisplayValue.lastPrice:
+        return 'Last Price';
+      case DisplayValue.marketValue:
+        return 'Market Value';
+      case DisplayValue.todayReturn:
+        return 'Return Today';
+      case DisplayValue.todayReturnPercent:
+        return 'Return % Today';
+      case DisplayValue.totalReturn:
+        return 'Total Return';
+      case DisplayValue.totalReturnPercent:
+        return 'Total Return %';
+      default:
+        throw Exception('Not a valid display value.');
+    }
   }
 
   static DisplayValue parseDisplayValue(String? optionsView) {
@@ -125,9 +146,10 @@ class RobinhoodUser {
     }
   }
 
-  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops) {
+  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops,
+      {DisplayValue? displayValue}) {
     double value = 0;
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         return null;
       /*
@@ -377,9 +399,9 @@ class RobinhoodUser {
     return icon;
   }
 
-  String getDisplayText(double value) {
+  String getDisplayText(double value, {DisplayValue? displayValue}) {
     String opTrailingText = '';
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
       case DisplayValue.marketValue:
       case DisplayValue.todayReturn:

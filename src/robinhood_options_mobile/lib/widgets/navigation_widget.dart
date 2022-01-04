@@ -98,13 +98,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         */
   }
 
+  /*
   void _handleUserChanged(RobinhoodUser? user) {
     setState(() {
       //robinhoodUser = user;
       futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
     });
   }
-
+  */
   void _handleAccountChanged(List<Account> accts) {
     setState(() {
       accounts = accts;
@@ -114,7 +115,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   @override
   Widget build(BuildContext context) {
-    userStore = context.watch<UserStore>();
+    //userStore = context.watch<UserStore>();
+    userStore = Provider.of<UserStore>(context, listen: false);
+
     if (userStore!.items.isNotEmpty) {
       futureRobinhoodUser = Future.value(userStore!.items.first);
     } else {
@@ -145,7 +148,22 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     _buildTabs();
                   } else if (dataSnapshot.hasError) {
                     debugPrint("${dataSnapshot.error}");
-                    return buildScaffold(widget: Text("${dataSnapshot.error}"));
+                    return buildScaffold(
+                        widget: InitialWidget(
+                            child: Column(children: [
+                      Text("${dataSnapshot.error}"),
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      ElevatedButton.icon(
+                        label: const Text(
+                          "Login",
+                          style: TextStyle(fontSize: 20.0),
+                        ),
+                        icon: const Icon(Icons.login),
+                        onPressed: () => _openLogin(),
+                      )
+                    ])));
                   }
                   return buildScaffold();
                 });
@@ -162,7 +180,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       HomePage(robinhoodUser!, userInfo!,
           title: 'Robinhood Options',
           navigatorKey: navigatorKeys[0],
-          onUserChanged: _handleUserChanged,
+          //onUserChanged: _handleUserChanged,
           onAccountsChanged: _handleAccountChanged),
       //const HomePage(title: 'Orders'),
       SearchWidget(robinhoodUser!, accounts != null ? accounts!.first : null,
@@ -208,60 +226,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       body: widget ??
           PageView.builder(
             itemBuilder: (context, index) {
-              /*
-          if (userInfo != null) {
-            switch (index) {
-              case 0:
-                return HomePage(robinhoodUser!, userInfo!,
-                    title: 'Robinhood Options',
-                    navigatorKey: navigatorKeys[0],
-                    onUserChanged: _handleUserChanged,
-                    onAccountsChanged: _handleAccountChanged);
-              case 1:
-                return SearchWidget(
-                    robinhoodUser!, accounts != null ? accounts!.first : null,
-                    navigatorKey: navigatorKeys[1]);
-              case 2:
-                return ListsWidget(
-                    robinhoodUser!, accounts != null ? accounts!.first : null,
-                    navigatorKey: navigatorKeys[2]);
-              case 3:
-                return HistoryPage(
-                    robinhoodUser!, accounts != null ? accounts!.first : null,
-                    navigatorKey: navigatorKeys[3]);
-            }
-          }
-          return const InitialWidget();
-          */
-              return tabPages[index];
+              debugPrint("PageView.itemBuilder index: $index");
+              if (_pageIndex == index) {
+                return tabPages[index];
+              }
+              return Container();
             },
-            //itemCount: userInfo == null ? 1 : 4,
             itemCount: tabPages.length,
             controller: _pageController,
-            allowImplicitScrolling: false,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      /*
-      body: PageView(
-        children: tabPages,
-        //onPageChanged: _onPageChanged,
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-      ),
-      */
-      /*
-          IndexedStack(
-            children: tabPages,
-            index: _pageIndex,
-          ),
-          */
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          /*if (robinhoodUser != null &&
-              robinhoodUser!.userName != null &&
-              accounts != null &&
-              accounts!.isNotEmpty) ...[
-                */
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance), //home
             label: 'Portfolio',
@@ -318,7 +294,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   //decoration: BoxDecoration(color: Colors.green)
                 ),
                 ListTile(
-                    leading: const Icon(Icons.verified_user),
+                    leading: const Icon(
+                        Icons.login), //const Icon(Icons.verified_user),
                     title: const Text('Login'),
                     onTap: () {
                       //_onSelectItem(0);
@@ -542,7 +519,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           onPressed: () async {
             Navigator.pop(context, 'dialog');
 
-            await RobinhoodUser.clearUserFromStore();
+            await RobinhoodUser.clearUserFromStore(robinhoodUser!, userStore!);
             // Future.delayed(const Duration(milliseconds: 1), () async {
 
             /* 
