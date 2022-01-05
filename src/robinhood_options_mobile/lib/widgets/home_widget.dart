@@ -571,6 +571,9 @@ class _HomePageState extends State<HomePage>
                           open; // portfolios![0].equityPreviousClose!;
                       changePercentInPeriod =
                           changeInPeriod / selection!.adjustedCloseEquity!;
+                    } else {
+                      changeInPeriod = close - open;
+                      changePercentInPeriod = changeInPeriod / close;
                     }
 
                     //return Text(value.selection!.beginsAt.toString());

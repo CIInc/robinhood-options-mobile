@@ -270,7 +270,7 @@ class RobinhoodService {
         var position = store.items.firstWhere(
             (element) => element.instrumentObj!.symbol == quoteObj.symbol);
         position.instrumentObj!.quoteObj = quoteObj;
-        //store.update(position);
+        store.update(position);
       }
     }
     return store;
