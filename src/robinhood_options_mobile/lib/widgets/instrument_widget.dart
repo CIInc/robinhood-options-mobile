@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
@@ -29,10 +28,8 @@ import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/stock_position.dart';
 import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -935,15 +932,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             _buildListsWidget(instrument)
           ],
           Consumer<StockOrderStore>(builder: (context, stockOrderStore, child) {
-            var positionOrders = stockOrderStore.items.where(
-                (element) => element.instrumentId == widget.instrument.id);
+            //var positionOrders = stockOrderStore.items.where(
+            //    (element) => element.instrumentId == widget.instrument.id);
 
             if (instrument.positionOrders != null) {
               return SliverToBoxAdapter(
                   child: ShrinkWrappingViewport(
                       offset: ViewportOffset.zero(),
                       slivers: [
-                    SliverToBoxAdapter(
+                    const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
                     )),
@@ -954,8 +951,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           }),
           Consumer<OptionOrderStore>(
               builder: (context, optionOrderStore, child) {
-            var optionOrders = optionOrderStore.items.where(
-                (element) => element.chainSymbol == widget.instrument.symbol);
+            //var optionOrders = optionOrderStore.items.where(
+            //    (element) => element.chainSymbol == widget.instrument.symbol);
             if (instrument.optionOrders != null) {
               return SliverToBoxAdapter(
                   child: ShrinkWrappingViewport(

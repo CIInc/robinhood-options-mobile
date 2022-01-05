@@ -6,7 +6,6 @@ import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals.dart';

@@ -143,8 +143,10 @@ class _HomePageState extends State<HomePage>
 
   _HomePageState();
 
+  /*
   @override
   bool get wantKeepAlive => true;
+  */
 
   @override
   void initState() {
@@ -1862,7 +1864,7 @@ class _HomePageState extends State<HomePage>
     positionSymbols.sort((a, b) => (a.compareTo(b)));
     //}
 
-    if (nummusHoldings != null && nummusHoldings.isNotEmpty) {
+    if (nummusHoldings.isNotEmpty) {
       nummusEquity =
           nummusHoldings.map((e) => e.marketValue).reduce((a, b) => a + b);
     }
@@ -1897,7 +1899,7 @@ class _HomePageState extends State<HomePage>
 
     double changeInPeriod = 0;
     double changePercentInPeriod = 0;
-    if (portfolios != null && portfolios.isNotEmpty) {
+    if (portfolios.isNotEmpty) {
       changeInPeriod =
           portfolios[0].equity! - portfolios[0].equityPreviousClose!;
       changePercentInPeriod = (changeInPeriod) / portfolios[0].equity!;
@@ -1967,9 +1969,6 @@ class _HomePageState extends State<HomePage>
           ]),
       flexibleSpace: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-        if (portfolios == null) {
-          return const FlexibleSpaceBar(title: Text('Robinhood Options'));
-        }
         //var top = constraints.biggest.height;
         //debugPrint(top.toString());
         //debugPrint(kToolbarHeight.toString());

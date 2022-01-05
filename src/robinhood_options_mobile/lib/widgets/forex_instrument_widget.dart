@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:robinhood_options_mobile/enums.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';

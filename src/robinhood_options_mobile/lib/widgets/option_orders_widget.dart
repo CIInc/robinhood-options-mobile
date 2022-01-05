@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
