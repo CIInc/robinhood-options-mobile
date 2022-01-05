@@ -20,13 +20,17 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListWidget extends StatefulWidget {
-  const ListWidget(this.user, this.account, this.listKey,
-      {Key? key, this.navigatorKey})
+  const ListWidget(
+      this.user,
+      //this.account,
+      this.listKey,
+      {Key? key,
+      this.navigatorKey})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final String listKey;
 
   @override
@@ -65,11 +69,12 @@ class _ListWidgetState extends State<ListWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-    var instrumentStore = context.watch<InstrumentStore>();
-    var quoteStore = context.watch<QuoteStore>();
 
     watchlistStream ??= RobinhoodService.streamList(
-        widget.user, instrumentStore, quoteStore, widget.listKey,
+        widget.user,
+        Provider.of<InstrumentStore>(context, listen: false),
+        Provider.of<QuoteStore>(context, listen: false),
+        widget.listKey,
         ownerType: "robinhood");
     return StreamBuilder(
         stream: watchlistStream,
@@ -456,7 +461,7 @@ class _ListWidgetState extends State<ListWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                             ru,
-                            widget.account,
+                            //widget.account,
                             watchLists[index].instrumentObj as Instrument)));
               },
             )));

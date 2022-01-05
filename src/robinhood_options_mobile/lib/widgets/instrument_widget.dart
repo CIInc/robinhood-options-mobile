@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
@@ -50,11 +50,15 @@ final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final Instrument instrument;
   final String? heroTag;
-  const InstrumentWidget(this.user, this.account, this.instrument,
-      {Key? key, this.heroTag})
+  const InstrumentWidget(
+      this.user,
+      //this.account,
+      this.instrument,
+      {Key? key,
+      this.heroTag})
       : super(key: key);
 
   @override
@@ -88,13 +92,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   final List<String> orderFilters = <String>["confirmed", "filled"];
 
-  StockPosition? position;
-  List<OptionAggregatePosition> optionPositions = [];
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
 
   Timer? refreshTriggerTime;
-  InstrumentStore? instrumentStore;
   //final dataKey = GlobalKey();
 
   _InstrumentWidgetState();
@@ -124,20 +125,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     var instrument = widget.instrument;
     var user = widget.user;
 
-    // This gets the current state of CartModel and also tells Flutter
-    // to rebuild this widget when CartModel notifies listeners (in other words,
-    // when it changes).
-    var store = context.watch<OptionPositionStore>();
-    optionPositions =
-        store.items.where((e) => e.symbol == widget.instrument.symbol).toList();
-    optionPositions.sort((a, b) {
-      int comp =
-          a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
-      if (comp != 0) return comp;
-      return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-    });
-
-    var optionOrderStore = context.watch<OptionOrderStore>();
+    var optionOrderStore =
+        Provider.of<OptionOrderStore>(context, listen: false);
     var optionOrders = optionOrderStore.items
         .where((element) => element.chainSymbol == widget.instrument.symbol)
         .toList();
@@ -150,11 +139,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureOptionOrders = Future.value([]);
     }
 
-    var stockPositionStore = context.watch<StockPositionStore>();
-    position = stockPositionStore.items
-        .firstWhereOrNull((e) => e.instrument == widget.instrument.url);
-
-    var stockPositionOrderStore = context.watch<StockOrderStore>();
+    var stockPositionOrderStore =
+        Provider.of<StockOrderStore>(context, listen: false);
     var positionOrders = stockPositionOrderStore.items
         .where((element) => element.instrumentId == widget.instrument.id)
         .toList();
@@ -164,18 +150,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       futureInstrumentOrders ??= RobinhoodService.getInstrumentOrders(
           widget.user, stockPositionOrderStore, [widget.instrument.url]);
     }
+
     if (widget.instrument.logoUrl == null &&
         RobinhoodService.logoUrls.containsKey(widget.instrument.symbol)) {
       widget.instrument.logoUrl =
           RobinhoodService.logoUrls[widget.instrument.symbol];
     }
 
-    instrumentStore = context.watch<InstrumentStore>();
-
-    var quoteStore = context.watch<QuoteStore>();
     if (instrument.quoteObj == null) {
-      futureQuote ??=
-          RobinhoodService.getQuote(user, quoteStore, instrument.symbol);
+      futureQuote ??= RobinhoodService.getQuote(user,
+          Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
     } else {
       futureQuote = Future.value(instrument.quoteObj);
     }
@@ -259,7 +243,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       historicalsSnapshot.data!;
                 }
                 return buildScrollView(instrument,
-                    position: position,
                     done: historicalsSnapshot.connectionState ==
                         ConnectionState.done);
               });
@@ -268,7 +251,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           return Center(child: Text("${snapshot.error}"));
         }
         return buildScrollView(instrument,
-            position: position,
             done: snapshot.connectionState == ConnectionState.done);
       },
     ));
@@ -325,9 +307,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   buildScrollView(Instrument instrument,
-      {List<OptionInstrument>? optionInstruments,
-      StockPosition? position,
-      bool done = false}) {
+      {List<OptionInstrument>? optionInstruments, bool done = false}) {
+    var slivers = <Widget>[];
+
     if (instrument.instrumentHistoricalsObj != null) {
       if (chart == null) {
         List<charts.Series<dynamic, DateTime>> seriesList = [
@@ -379,160 +361,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             hiddenSeries: const ["Close", "Volume", "Low", "High"],
             onSelected: _onChartSelection);
       }
-    }
 
-    var slivers = <Widget>[];
-    slivers.add(SliverAppBar(
-      title: headerTitle(instrument),
-      //expandedHeight: 160,
-      expandedHeight: 240, // 280.0,
-      floating: false,
-      pinned: true,
-      snap: false,
-      flexibleSpace: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-        //var top = constraints.biggest.height;
-        //debugPrint(top.toString());
-        //debugPrint(kToolbarHeight.toString());
-
-        final settings = context
-            .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
-        final deltaExtent = settings!.maxExtent - settings.minExtent;
-        final t =
-            (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
-                .clamp(0.0, 1.0);
-        final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-        const fadeEnd = 1.0;
-        final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-        return FlexibleSpaceBar(
-            //titlePadding:
-            //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-            //background: const FlutterLogo(),
-            background: Hero(
-                tag: widget.heroTag != null
-                    ? '${widget.heroTag}'
-                    : 'logo_${instrument.symbol}',
-                child: SizedBox(
-                    //width: double.infinity,
-                    child: instrument.logoUrl != null
-                        ? Image.network(
-                            instrument.logoUrl!,
-                            fit: BoxFit.none,
-                            errorBuilder: (BuildContext context,
-                                Object exception, StackTrace? stackTrace) {
-                              debugPrint(
-                                  'Error with ${instrument.symbol} ${instrument.logoUrl}');
-                              //RobinhoodService.removeLogo(instrument.symbol);
-                              return Container(); // Text(instrument.symbol);
-                            },
-                          )
-                        : Container() //const FlutterLogo()
-                    /*Image.network(
-                        Constants.flexibleSpaceBarBackground,
-                        fit: BoxFit.cover,
-                      ),*/
-                    )),
-            title: Opacity(
-              //duration: Duration(milliseconds: 300),
-              opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-              child: SingleChildScrollView(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: headerWidgets.toList())),
-              /*
-          ListTile(
-            title: Text('${instrument.simpleName}'),
-            subtitle: Text(instrument.name),
-          )*/
-            ));
-      }),
-      actions: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.more_vert),
-          // icon: const Icon(Icons.settings),
-          onPressed: () {
-            showModalBottomSheet<void>(
-              context: context,
-              //isScrollControlled: true,
-              //useRootNavigator: true,
-              //constraints: const BoxConstraints(maxHeight: 200),
-              builder: (_) => MoreMenuBottomSheet(widget.user,
-                  onSettingsChanged: _handleSettingsChanged),
-            );
-          },
-        ),
-        /*
-        IconButton(
-          icon: ru != null && ru.userName != null
-              ? const Icon(Icons.logout)
-              : const Icon(Icons.login),
-          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
-          onPressed: () {
-            if (ru != null && ru.userName != null) {
-              var alert = AlertDialog(
-                title: const Text('Logout process'),
-                content: SingleChildScrollView(
-                  child: ListBody(
-                    children: <Widget>[
-                      const Text(
-                          'This action will require you to log in again.'),
-                      const Text('Are you sure you want to log out?'),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Cancel'),
-                    onPressed: () {
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                  TextButton(
-                    child: const Text('OK'),
-                    onPressed: () {
-                      _logout();
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                ],
-              );
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return alert;
-                },
-              );
-            } else {
-              _openLogin();
-            }
-            /* ... */
-          },
-        ),*/
-      ],
-    ));
-
-    if (done == false) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 3, //150.0,
-        child: Align(
-            alignment: Alignment.center,
-            child: Center(
-                child: LinearProgressIndicator(
-                    //value: controller.value,
-                    //semanticsLabel: 'Linear progress indicator',
-                    ) //CircularProgressIndicator(),
-                )),
-      )));
-    }
-
-    slivers.add(
-      SliverToBoxAdapter(
-          child: Align(
-              alignment: Alignment.center, child: buildOverview(instrument))),
-    );
-
-    if (instrument.instrumentHistoricalsObj != null) {
       InstrumentHistorical? firstHistorical;
       InstrumentHistorical? lastHistorical;
       double open = 0;
@@ -755,213 +584,402 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ))));
     }
 
-    if (position != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        const ListTile(
-            title: Text("Stock Position", style: TextStyle(fontSize: 20))),
-        ListTile(
-          title: const Text("Quantity"),
-          trailing: Text(formatCompactNumber.format(position.quantity!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: const Text("Average Cost"),
-          trailing: Text(formatCurrency.format(position.averageBuyPrice),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: const Text("Total Cost"),
-          trailing: Text(formatCurrency.format(position.totalCost),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: const Text("Market Value"),
-          trailing: Text(formatCurrency.format(position.marketValue),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-            title: const Text("Return"),
-            trailing: Wrap(children: [
-              position.trendingIcon,
-              Container(
-                width: 2,
-              ),
-              Text(formatCurrency.format(position.gainLoss), //.abs()
-                  style: const TextStyle(fontSize: 18)),
-            ])
-
-            /*
-          trailing: Text(formatCurrency.format(position!.gainLoss),
-              style: const TextStyle(fontSize: 18)),
-              */
-            ),
-        ListTile(
-          title: const Text("Return %"),
-          trailing: Text(formatPercentage.format(position.gainLossPercent),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-            title: const Text("Return Today"),
-            trailing: Wrap(children: [
-              position.trendingIconToday,
-              Container(
-                width: 2,
-              ),
-              Text(formatCurrency.format(position.gainLossToday), //.abs()
-                  style: const TextStyle(fontSize: 18)),
-            ])
-
-            /*
-          trailing: Text(formatCurrency.format(position!.gainLoss),
-              style: const TextStyle(fontSize: 18)),
-              */
-            ),
-        ListTile(
-          title: const Text("Return Today %"),
-          trailing: Text(formatPercentage.format(position.gainLossPercentToday),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: const Text("Created"),
-          trailing: Text(formatDate.format(position.createdAt!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          title: const Text("Updated"),
-          trailing: Text(formatDate.format(position.updatedAt!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-      ]))));
-    }
-
-    if (optionPositions.isNotEmpty) {
-      var filteredOptionPositions = optionPositions
-          .where((e) =>
-              (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-              (!hasQuantityFilters[0] || e.quantity! > 0) &&
-                  (!hasQuantityFilters[1] || e.quantity! <= 0))
-          .toList();
-      filteredOptionPositions.sort((a, b) {
-        int comp = a.legs.first.expirationDate!
-            .compareTo(b.legs.first.expirationDate!);
-        if (comp != 0) return comp;
-        return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-      });
-
-      if (filteredOptionPositions.isNotEmpty) {
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-        slivers.add(OptionPositionsRowWidget(
-            widget.user, widget.account, filteredOptionPositions));
-      }
-    }
-
-    if (instrument.quoteObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(quoteWidget(instrument));
-    }
-
-    if (instrument.fundamentalsObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(fundamentalsWidget(instrument));
-    }
-
-    if (instrument.ratingsObj != null &&
-        instrument.ratingsObj["summary"] != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildRatingsWidget(instrument));
-    }
-
-    if (instrument.ratingsOverviewObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildRatingsOverviewWidget(instrument));
-    }
-
-    if (instrument.earningsObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildEarningsWidget(instrument));
-    }
-
-    if (instrument.splitsObj != null && instrument.splitsObj!.isNotEmpty) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildSplitsWidget(instrument));
-    }
-
-    if (instrument.newsObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildNewsWidget(instrument));
-    }
-
-    if (instrument.similarObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildSimilarWidget(instrument));
-    }
-
-    if (instrument.listsObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(_buildListsWidget(instrument));
-    }
-
-    if (instrument.positionOrders != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(positionOrdersWidget(instrument.positionOrders!));
-    }
-
-    if (instrument.optionOrders != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-      slivers.add(OptionOrdersWidget(widget.user, widget.account,
-          instrument.optionOrders!, const ["confirmed", "filled"]));
-    }
-
-    slivers.add(const SliverToBoxAdapter(
-        child: SizedBox(
-      height: 25.0,
-    )));
-    slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
-
     return RefreshIndicator(
-        onRefresh: _pullRefresh, child: CustomScrollView(slivers: slivers));
+        onRefresh: _pullRefresh,
+        child: CustomScrollView(slivers: [
+          SliverAppBar(
+            title: headerTitle(instrument),
+            //expandedHeight: 160,
+            expandedHeight: 240, // 280.0,
+            floating: false,
+            pinned: true,
+            snap: false,
+            flexibleSpace: LayoutBuilder(
+                builder: (BuildContext context, BoxConstraints constraints) {
+              //var top = constraints.biggest.height;
+              //debugPrint(top.toString());
+              //debugPrint(kToolbarHeight.toString());
+
+              final settings = context.dependOnInheritedWidgetOfExactType<
+                  FlexibleSpaceBarSettings>();
+              final deltaExtent = settings!.maxExtent - settings.minExtent;
+              final t = (1.0 -
+                      (settings.currentExtent - settings.minExtent) /
+                          deltaExtent)
+                  .clamp(0.0, 1.0);
+              final fadeStart =
+                  math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+              const fadeEnd = 1.0;
+              final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+              return FlexibleSpaceBar(
+                  //titlePadding:
+                  //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+                  //background: const FlutterLogo(),
+                  background: Hero(
+                      tag: widget.heroTag != null
+                          ? '${widget.heroTag}'
+                          : 'logo_${instrument.symbol}',
+                      child: SizedBox(
+                          //width: double.infinity,
+                          child: instrument.logoUrl != null
+                              ? Image.network(
+                                  instrument.logoUrl!,
+                                  fit: BoxFit.none,
+                                  errorBuilder: (BuildContext context,
+                                      Object exception,
+                                      StackTrace? stackTrace) {
+                                    debugPrint(
+                                        'Error with ${instrument.symbol} ${instrument.logoUrl}');
+                                    //RobinhoodService.removeLogo(instrument.symbol);
+                                    return Container(); // Text(instrument.symbol);
+                                  },
+                                )
+                              : Container() //const FlutterLogo()
+                          /*Image.network(
+                        Constants.flexibleSpaceBarBackground,
+                        fit: BoxFit.cover,
+                      ),*/
+                          )),
+                  title: Opacity(
+                    //duration: Duration(milliseconds: 300),
+                    opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                    child: SingleChildScrollView(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: headerWidgets.toList())),
+                    /*
+          ListTile(
+            title: Text('${instrument.simpleName}'),
+            subtitle: Text(instrument.name),
+          )*/
+                  ));
+            }),
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.more_vert),
+                // icon: const Icon(Icons.settings),
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    //isScrollControlled: true,
+                    //useRootNavigator: true,
+                    //constraints: const BoxConstraints(maxHeight: 200),
+                    builder: (_) => MoreMenuBottomSheet(widget.user,
+                        onSettingsChanged: _handleSettingsChanged),
+                  );
+                },
+              ),
+              /*
+        IconButton(
+          icon: ru != null && ru.userName != null
+              ? const Icon(Icons.logout)
+              : const Icon(Icons.login),
+          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
+          onPressed: () {
+            if (ru != null && ru.userName != null) {
+              var alert = AlertDialog(
+                title: const Text('Logout process'),
+                content: SingleChildScrollView(
+                  child: ListBody(
+                    children: <Widget>[
+                      const Text(
+                          'This action will require you to log in again.'),
+                      const Text('Are you sure you want to log out?'),
+                    ],
+                  ),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'),
+                    onPressed: () {
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      _logout();
+                      Navigator.pop(context, 'dialog');
+                    },
+                  ),
+                ],
+              );
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return alert;
+                },
+              );
+            } else {
+              _openLogin();
+            }
+            /* ... */
+          },
+        ),*/
+            ],
+          ),
+          if (done == false) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 3, //150.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: Center(
+                      child: LinearProgressIndicator(
+                          //value: controller.value,
+                          //semanticsLabel: 'Linear progress indicator',
+                          ) //CircularProgressIndicator(),
+                      )),
+            ))
+          ],
+          SliverToBoxAdapter(
+              child: Align(
+                  alignment: Alignment.center,
+                  child: buildOverview(instrument))),
+          ...slivers,
+          Consumer<StockPositionStore>(
+              builder: (context, stockPositionStore, child) {
+            var position = stockPositionStore.items
+                .firstWhereOrNull((e) => e.instrument == instrument.url);
+            if (position == null) {
+              return SliverToBoxAdapter(child: Container());
+            }
+            return SliverToBoxAdapter(
+                child: Card(
+                    child: Column(mainAxisSize: MainAxisSize.min, children: <
+                        Widget>[
+              const ListTile(
+                  title:
+                      Text("Stock Position", style: TextStyle(fontSize: 20))),
+              ListTile(
+                title: const Text("Quantity"),
+                trailing: Text(formatCompactNumber.format(position.quantity!),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                title: const Text("Average Cost"),
+                trailing: Text(formatCurrency.format(position.averageBuyPrice),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                title: const Text("Total Cost"),
+                trailing: Text(formatCurrency.format(position.totalCost),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                title: const Text("Market Value"),
+                trailing: Text(formatCurrency.format(position.marketValue),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                  title: const Text("Return"),
+                  trailing: Wrap(children: [
+                    position.trendingIcon,
+                    Container(
+                      width: 2,
+                    ),
+                    Text(formatCurrency.format(position.gainLoss), //.abs()
+                        style: const TextStyle(fontSize: 18)),
+                  ])
+
+                  /*
+          trailing: Text(formatCurrency.format(position!.gainLoss),
+              style: const TextStyle(fontSize: 18)),
+              */
+                  ),
+              ListTile(
+                title: const Text("Return %"),
+                trailing: Text(
+                    formatPercentage.format(position.gainLossPercent),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                  title: const Text("Return Today"),
+                  trailing: Wrap(children: [
+                    position.trendingIconToday,
+                    Container(
+                      width: 2,
+                    ),
+                    Text(formatCurrency.format(position.gainLossToday), //.abs()
+                        style: const TextStyle(fontSize: 18)),
+                  ])
+
+                  /*
+          trailing: Text(formatCurrency.format(position!.gainLoss),
+              style: const TextStyle(fontSize: 18)),
+              */
+                  ),
+              ListTile(
+                title: const Text("Return Today %"),
+                trailing: Text(
+                    formatPercentage.format(position.gainLossPercentToday),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                title: const Text("Created"),
+                trailing: Text(formatDate.format(position.createdAt!),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+              ListTile(
+                title: const Text("Updated"),
+                trailing: Text(formatDate.format(position.updatedAt!),
+                    style: const TextStyle(fontSize: 18)),
+              ),
+            ])));
+          }),
+          Consumer<OptionPositionStore>(
+              builder: (context, optionPositionStore, child) {
+            var optionPositions = optionPositionStore.items
+                .where((e) => e.symbol == widget.instrument.symbol)
+                .toList();
+            optionPositions.sort((a, b) {
+              int comp = a.legs.first.expirationDate!
+                  .compareTo(b.legs.first.expirationDate!);
+              if (comp != 0) return comp;
+              return a.legs.first.strikePrice!
+                  .compareTo(b.legs.first.strikePrice!);
+            });
+
+            var filteredOptionPositions = optionPositions
+                .where((e) =>
+                    (hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                    (!hasQuantityFilters[0] || e.quantity! > 0) &&
+                        (!hasQuantityFilters[1] || e.quantity! <= 0))
+                .toList();
+            filteredOptionPositions.sort((a, b) {
+              int comp = a.legs.first.expirationDate!
+                  .compareTo(b.legs.first.expirationDate!);
+              if (comp != 0) return comp;
+              return a.legs.first.strikePrice!
+                  .compareTo(b.legs.first.strikePrice!);
+            });
+
+            return SliverToBoxAdapter(
+                child: ShrinkWrappingViewport(
+                    offset: ViewportOffset.zero(),
+                    slivers: [
+                  if (filteredOptionPositions.isNotEmpty) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    OptionPositionsRowWidget(
+                        widget.user, //widget.account,
+                        filteredOptionPositions)
+                  ]
+                ]));
+          }),
+          if (instrument.quoteObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            quoteWidget(instrument)
+          ],
+          if (instrument.fundamentalsObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            fundamentalsWidget(instrument)
+          ],
+          if (instrument.ratingsObj != null &&
+              instrument.ratingsObj["summary"] != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildRatingsWidget(instrument)
+          ],
+          if (instrument.ratingsOverviewObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildRatingsOverviewWidget(instrument)
+          ],
+          if (instrument.earningsObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildEarningsWidget(instrument)
+          ],
+          if (instrument.splitsObj != null &&
+              instrument.splitsObj!.isNotEmpty) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildSplitsWidget(instrument)
+          ],
+          if (instrument.newsObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildNewsWidget(instrument)
+          ],
+          if (instrument.similarObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildSimilarWidget(instrument)
+          ],
+          if (instrument.listsObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildListsWidget(instrument)
+          ],
+          Consumer<StockOrderStore>(builder: (context, stockOrderStore, child) {
+            var positionOrders = stockOrderStore.items.where(
+                (element) => element.instrumentId == widget.instrument.id);
+
+            if (instrument.positionOrders != null) {
+              return SliverToBoxAdapter(
+                  child: ShrinkWrappingViewport(
+                      offset: ViewportOffset.zero(),
+                      slivers: [
+                    SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    positionOrdersWidget(instrument.positionOrders!)
+                  ]));
+            }
+            return SliverToBoxAdapter(child: Container());
+          }),
+          Consumer<OptionOrderStore>(
+              builder: (context, optionOrderStore, child) {
+            var optionOrders = optionOrderStore.items.where(
+                (element) => element.chainSymbol == widget.instrument.symbol);
+            if (instrument.optionOrders != null) {
+              return SliverToBoxAdapter(
+                  child: ShrinkWrappingViewport(
+                      offset: ViewportOffset.zero(),
+                      slivers: [
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    OptionOrdersWidget(
+                        widget.user,
+                        //widget.account,
+                        instrument.optionOrders!,
+                        const ["confirmed", "filled"])
+                  ]));
+            }
+            return SliverToBoxAdapter(child: Container());
+          }),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget())
+        ]));
   }
 
   Future<void> _pullRefresh() async {
@@ -1026,7 +1044,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentOptionChainWidget(
-                              widget.user, widget.account, instrument)));
+                              widget.user,
+                              //widget.account,
+                              instrument)));
                 },
               ),
             ],
@@ -1085,251 +1105,242 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget quoteWidget(Instrument instrument) {
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Quote",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          ListTile(
-              title: const Text("Last Trade Price"),
-              trailing: Wrap(spacing: 8, children: [
-                Icon(
-                    instrument.quoteObj!.changeToday > 0
-                        ? Icons.trending_up
-                        : (instrument.quoteObj!.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (instrument.quoteObj!.changeToday > 0
-                        ? Colors.green
-                        : (instrument.quoteObj!.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey))),
-                Text(
-                  formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                  style: const TextStyle(fontSize: 18.0),
-                  textAlign: TextAlign.right,
-                ),
-              ])),
-          ListTile(
-            title: const Text("Adjusted Previous Close"),
-            trailing: Text(
-                formatCurrency
-                    .format(instrument.quoteObj!.adjustedPreviousClose),
-                style: const TextStyle(fontSize: 18)),
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Quote",
+            style: TextStyle(fontSize: 19.0),
           ),
-          ListTile(
-            title: const Text("Change Today"),
-            trailing: Text(
-                formatCurrency.format(instrument.quoteObj!.changeToday),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Change Today %"),
-            trailing: Text(
-                formatPercentage
-                    .format(instrument.quoteObj!.changePercentToday),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid - Ask Price"),
-            trailing: Text(
-                "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid - Ask Size"),
-            trailing: Text(
-                "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Last Extended Hours Trade Price"),
-            trailing: Text(
-                instrument.quoteObj!.lastExtendedHoursTradePrice != null
-                    ? formatCurrency.format(
-                        instrument.quoteObj!.lastExtendedHoursTradePrice)
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          Container(
-            height: 25,
-          )
-        ]))));
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        ListTile(
+            title: const Text("Last Trade Price"),
+            trailing: Wrap(spacing: 8, children: [
+              Icon(
+                  instrument.quoteObj!.changeToday > 0
+                      ? Icons.trending_up
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Icons.trending_down
+                          : Icons.trending_flat),
+                  color: (instrument.quoteObj!.changeToday > 0
+                      ? Colors.green
+                      : (instrument.quoteObj!.changeToday < 0
+                          ? Colors.red
+                          : Colors.grey))),
+              Text(
+                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                style: const TextStyle(fontSize: 18.0),
+                textAlign: TextAlign.right,
+              ),
+            ])),
+        ListTile(
+          title: const Text("Adjusted Previous Close"),
+          trailing: Text(
+              formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Change Today"),
+          trailing: Text(
+              formatCurrency.format(instrument.quoteObj!.changeToday),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Change Today %"),
+          trailing: Text(
+              formatPercentage.format(instrument.quoteObj!.changePercentToday),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Bid - Ask Price"),
+          trailing: Text(
+              "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Bid - Ask Size"),
+          trailing: Text(
+              "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Last Extended Hours Trade Price"),
+          trailing: Text(
+              instrument.quoteObj!.lastExtendedHoursTradePrice != null
+                  ? formatCurrency
+                      .format(instrument.quoteObj!.lastExtendedHoursTradePrice)
+                  : "",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        Container(
+          height: 25,
+        )
+      ])))
+    ]));
   }
 
   Widget fundamentalsWidget(Instrument instrument) {
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Fundamentals",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          /*
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Fundamentals",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        /*
           ListTile(
               title:
                   const Text("Fundamentals", style: TextStyle(fontSize: 20))),
                   */
-          ListTile(
-            title: const Text("Volume"),
-            trailing: Text(
-                formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
-                style: const TextStyle(fontSize: 18)),
+        ListTile(
+          title: const Text("Volume"),
+          trailing: Text(
+              formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Average Volume"),
+          trailing: Text(
+              formatCompactNumber
+                  .format(instrument.fundamentalsObj!.averageVolume!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Average Volume (2 weeks)"),
+          trailing: Text(
+              formatCompactNumber
+                  .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("52 Week High"),
+          trailing: Text(
+              formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("52 Week Low"),
+          trailing: Text(
+              formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Dividend Yield"),
+          trailing: Text(
+              instrument.fundamentalsObj!.dividendYield != null
+                  ? formatCompactNumber
+                      .format(instrument.fundamentalsObj!.dividendYield!)
+                  : "-",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Market Cap"),
+          trailing: Text(
+              formatCompactNumber
+                  .format(instrument.fundamentalsObj!.marketCap!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Shares Outstanding"),
+          trailing: Text(
+              formatCompactNumber
+                  .format(instrument.fundamentalsObj!.sharesOutstanding!),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("P/E Ratio"),
+          trailing: Text(
+              instrument.fundamentalsObj!.peRatio != null
+                  ? formatCompactNumber
+                      .format(instrument.fundamentalsObj!.peRatio!)
+                  : "-",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Sector"),
+          trailing: Text(instrument.fundamentalsObj!.sector,
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Industry"),
+          trailing: Text(instrument.fundamentalsObj!.industry,
+              style: const TextStyle(fontSize: 17)),
+        ),
+        ListTile(
+          title: const Text("Headquarters"),
+          trailing: Text(
+              "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("CEO"),
+          trailing: Text(instrument.fundamentalsObj!.ceo,
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Number of Employees"),
+          trailing: Text(
+              instrument.fundamentalsObj!.numEmployees != null
+                  ? formatCompactNumber
+                      .format(instrument.fundamentalsObj!.numEmployees!)
+                  : "",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Year Founded"),
+          trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text(
+            "Name",
+            style: TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
           ),
-          ListTile(
-            title: const Text("Average Volume"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.averageVolume!),
-                style: const TextStyle(fontSize: 18)),
+          subtitle: Text(instrument.name, style: const TextStyle(fontSize: 16)),
+        ),
+        ListTile(
+          title: const Text(
+            "Description",
+            style: TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
           ),
-          ListTile(
-            title: const Text("Average Volume (2 weeks)"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("52 Week High"),
-            trailing: Text(
-                formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("52 Week Low"),
-            trailing: Text(
-                formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Dividend Yield"),
-            trailing: Text(
-                instrument.fundamentalsObj!.dividendYield != null
-                    ? formatCompactNumber
-                        .format(instrument.fundamentalsObj!.dividendYield!)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Market Cap"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.marketCap!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Shares Outstanding"),
-            trailing: Text(
-                formatCompactNumber
-                    .format(instrument.fundamentalsObj!.sharesOutstanding!),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("P/E Ratio"),
-            trailing: Text(
-                instrument.fundamentalsObj!.peRatio != null
-                    ? formatCompactNumber
-                        .format(instrument.fundamentalsObj!.peRatio!)
-                    : "-",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Sector"),
-            trailing: Text(instrument.fundamentalsObj!.sector,
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Industry"),
-            trailing: Text(instrument.fundamentalsObj!.industry,
-                style: const TextStyle(fontSize: 17)),
-          ),
-          ListTile(
-            title: const Text("Headquarters"),
-            trailing: Text(
-                "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("CEO"),
-            trailing: Text(instrument.fundamentalsObj!.ceo,
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Number of Employees"),
-            trailing: Text(
-                instrument.fundamentalsObj!.numEmployees != null
-                    ? formatCompactNumber
-                        .format(instrument.fundamentalsObj!.numEmployees!)
-                    : "",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Year Founded"),
-            trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text(
-              "Name",
-              style: TextStyle(fontSize: 18.0),
-              //overflow: TextOverflow.visible
-            ),
-            subtitle:
-                Text(instrument.name, style: const TextStyle(fontSize: 16)),
-          ),
-          ListTile(
-            title: const Text(
-              "Description",
-              style: TextStyle(fontSize: 18.0),
-              //overflow: TextOverflow.visible
-            ),
-            subtitle: Text(instrument.fundamentalsObj!.description,
-                style: const TextStyle(fontSize: 16)),
-          ),
-          Container(
-            height: 25,
-          )
-        ]))));
+          subtitle: Text(instrument.fundamentalsObj!.description,
+              style: const TextStyle(fontSize: 16)),
+        ),
+        Container(
+          height: 25,
+        )
+      ])))
+    ]));
   }
 
   Widget _buildRatingsWidget(Instrument instrument) {
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: const ListTile(
-                title: Text(
-                  "Ratings",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-              ))),
-      sliver: SliverPadding(
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Ratings",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 2),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1463,122 +1474,110 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               },
               childCount: 3,
             ),
-          )),
-      /*
-      SliverToBoxAdapter(
-          child: Align(
-              alignment: Alignment.center,
-              child: Card(
-                  child: Column(
-                      mainAxisSize: MainAxisSize.min, children: <Widget>[
-                        Row()
-                      ])))),
-                      */
-    );
+          ))
+    ]));
   }
 
   Widget _buildRatingsOverviewWidget(Instrument instrument) {
     if (instrument.ratingsOverviewObj == null) {
       return Container();
     }
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Research",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          const SizedBox(height: 15),
-          ListTile(
-            title: Text(
-              instrument.ratingsOverviewObj!["report_title"],
-              style: const TextStyle(fontSize: 18.0),
-              //overflow: TextOverflow.visible
-            ),
-            subtitle: Text(
-                instrument.ratingsOverviewObj!["report_updated_at"] != null
-                    ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
-                    : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
-                style: const TextStyle(fontSize: 14)),
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Research",
+            style: TextStyle(fontSize: 19.0),
           ),
-          if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
-            ListTile(
-              title: const Text("Fair Value"),
-              trailing: Text(
-                  formatCurrency.format(double.parse(
-                      instrument.ratingsOverviewObj!["fair_value"]["value"])),
-                  style: const TextStyle(fontSize: 18)),
-            ),
-          ],
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        const SizedBox(height: 15),
+        ListTile(
+          title: Text(
+            instrument.ratingsOverviewObj!["report_title"],
+            style: const TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
+          ),
+          subtitle: Text(
+              instrument.ratingsOverviewObj!["report_updated_at"] != null
+                  ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
+                  : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
+              style: const TextStyle(fontSize: 14)),
+        ),
+        if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
           ListTile(
-            title: const Text("Economic Moat"),
+            title: const Text("Fair Value"),
             trailing: Text(
-                instrument.ratingsOverviewObj!["economic_moat"]
-                    .toString()
-                    .capitalize(),
+                formatCurrency.format(double.parse(
+                    instrument.ratingsOverviewObj!["fair_value"]["value"])),
                 style: const TextStyle(fontSize: 18)),
           ),
-          if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
-            ListTile(
-                title: const Text("Star Rating"),
-                trailing: Wrap(
-                  children: [
-                    for (var i = 0;
-                        i <
-                            int.parse(
-                                instrument.ratingsOverviewObj!["star_rating"]);
-                        i++) ...[
-                      const Icon(Icons.star),
-                    ]
-                  ],
-                )
-                /*
+        ],
+        ListTile(
+          title: const Text("Economic Moat"),
+          trailing: Text(
+              instrument.ratingsOverviewObj!["economic_moat"]
+                  .toString()
+                  .capitalize(),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
+          ListTile(
+              title: const Text("Star Rating"),
+              trailing: Wrap(
+                children: [
+                  for (var i = 0;
+                      i <
+                          int.parse(
+                              instrument.ratingsOverviewObj!["star_rating"]);
+                      i++) ...[
+                    const Icon(Icons.star),
+                  ]
+                ],
+              )
+              /*
             Text(
                 instrument.ratingsOverviewObj!["star_rating"]
                     .toString()
                     .capitalize(),
                 style: const TextStyle(fontSize: 18)),
                 */
-                ),
-          ],
-          ListTile(
-            title: const Text("Stewardship"),
-            trailing: Text(
-                instrument.ratingsOverviewObj!["stewardship"]
-                    .toString()
-                    .capitalize(),
-                style: const TextStyle(fontSize: 18)),
+              ),
+        ],
+        ListTile(
+          title: const Text("Stewardship"),
+          trailing: Text(
+              instrument.ratingsOverviewObj!["stewardship"]
+                  .toString()
+                  .capitalize(),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          title: const Text("Uncertainty"),
+          trailing: Text(
+              instrument.ratingsOverviewObj!["uncertainty"]
+                  .toString()
+                  .capitalize(),
+              style: const TextStyle(fontSize: 18)),
+        ),
+        Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
+          TextButton(
+            child: const Text('DOWNLOAD REPORT'),
+            onPressed: () async {
+              var _url = instrument.ratingsOverviewObj!["download_url"];
+              await canLaunch(_url)
+                  ? await launch(_url)
+                  : throw 'Could not launch $_url';
+            },
           ),
-          ListTile(
-            title: const Text("Uncertainty"),
-            trailing: Text(
-                instrument.ratingsOverviewObj!["uncertainty"]
-                    .toString()
-                    .capitalize(),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
-            TextButton(
-              child: const Text('DOWNLOAD REPORT'),
-              onPressed: () async {
-                var _url = instrument.ratingsOverviewObj!["download_url"];
-                await canLaunch(_url)
-                    ? await launch(_url)
-                    : throw 'Could not launch $_url';
-              },
-            ),
-          ])
-        ]))));
+        ])
+      ])))
+    ]));
   }
 
   Widget _buildEarningsWidget(Instrument instrument) {
@@ -1590,128 +1589,123 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       pastEarning = instrument.earningsObj![instrument.earningsObj!.length - 2];
     }
 
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Earnings",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          for (var earning in instrument.earningsObj!) ...[
-            ListTile(
-                title: Text(
-                  "${earning!["year"]} Q${earning!["quarter"]}",
-                  style: const TextStyle(fontSize: 18.0),
-                  //overflow: TextOverflow.visible
-                ),
-                subtitle: Text(
-                    earning!["report"] != null
-                        ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
-                        : "",
-                    style: const TextStyle(fontSize: 14)),
-                trailing: (earning!["eps"]["estimate"] != null ||
-                        earning!["eps"]["actual"] != null)
-                    ? Wrap(spacing: 10.0, children: [
-                        if (earning!["eps"]["estimate"] != null) ...[
-                          Column(
-                            children: [
-                              const Text("Estimate",
-                                  style: TextStyle(fontSize: 11)),
-                              Text(
-                                  formatCurrency.format(double.parse(
-                                      earning!["eps"]["estimate"])),
-                                  style: const TextStyle(fontSize: 18)),
-                            ],
-                          )
-                        ],
-                        if (earning!["eps"]["actual"] != null) ...[
-                          Column(children: [
-                            const Text("Actual",
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Earnings",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        for (var earning in instrument.earningsObj!) ...[
+          ListTile(
+              title: Text(
+                "${earning!["year"]} Q${earning!["quarter"]}",
+                style: const TextStyle(fontSize: 18.0),
+                //overflow: TextOverflow.visible
+              ),
+              subtitle: Text(
+                  earning!["report"] != null
+                      ? "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}"
+                      : "",
+                  style: const TextStyle(fontSize: 14)),
+              trailing: (earning!["eps"]["estimate"] != null ||
+                      earning!["eps"]["actual"] != null)
+                  ? Wrap(spacing: 10.0, children: [
+                      if (earning!["eps"]["estimate"] != null) ...[
+                        Column(
+                          children: [
+                            const Text("Estimate",
                                 style: TextStyle(fontSize: 11)),
                             Text(
                                 formatCurrency.format(
-                                    double.parse(earning!["eps"]["actual"])),
-                                style: const TextStyle(fontSize: 18))
-                          ])
-                        ]
-                      ])
-                    : null),
-            if (earning!["call"] != null &&
-                ((pastEarning["year"] == earning!["year"] &&
-                        pastEarning["quarter"] == earning!["quarter"]) ||
-                    (futureEarning["year"] == earning!["year"] &&
-                        futureEarning["quarter"] == earning!["quarter"]))) ...[
-              if (!earning!["report"]["verified"]) ...[
-                ListTile(
-                  title: Text(
-                      "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
-                      style: const TextStyle(fontSize: 18)),
-                  subtitle: Text(
-                      formatLongDate.format(DateTime.parse(earning!["call"]
-                          ["datetime"])), // ${earning!["report"]["timing"]}",
-                      style: const TextStyle(fontSize: 16)),
+                                    double.parse(earning!["eps"]["estimate"])),
+                                style: const TextStyle(fontSize: 18)),
+                          ],
+                        )
+                      ],
+                      if (earning!["eps"]["actual"] != null) ...[
+                        Column(children: [
+                          const Text("Actual", style: TextStyle(fontSize: 11)),
+                          Text(
+                              formatCurrency.format(
+                                  double.parse(earning!["eps"]["actual"])),
+                              style: const TextStyle(fontSize: 18))
+                        ])
+                      ]
+                    ])
+                  : null),
+          if (earning!["call"] != null &&
+              ((pastEarning["year"] == earning!["year"] &&
+                      pastEarning["quarter"] == earning!["quarter"]) ||
+                  (futureEarning["year"] == earning!["year"] &&
+                      futureEarning["quarter"] == earning!["quarter"]))) ...[
+            if (!earning!["report"]["verified"]) ...[
+              ListTile(
+                title: Text(
+                    "Report${earning!["report"]["verified"] ? "ed" : "ing"} ${formatDate.format(DateTime.parse(earning!["report"]["date"]))} ${earning!["report"]["timing"]}",
+                    style: const TextStyle(fontSize: 18)),
+                subtitle: Text(
+                    formatLongDate.format(DateTime.parse(earning!["call"]
+                        ["datetime"])), // ${earning!["report"]["timing"]}",
+                    style: const TextStyle(fontSize: 16)),
+              ),
+            ],
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
+              if (earning!["call"]["replay_url"] != null) ...[
+                TextButton(
+                  child: const Text('LISTEN TO REPLAY'),
+                  onPressed: () async {
+                    var _url = earning!["call"]["replay_url"];
+                    await canLaunch(_url)
+                        ? await launch(_url)
+                        : throw 'Could not launch $_url';
+                  },
                 ),
               ],
-              Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
-                if (earning!["call"]["replay_url"] != null) ...[
-                  TextButton(
-                    child: const Text('LISTEN TO REPLAY'),
-                    onPressed: () async {
-                      var _url = earning!["call"]["replay_url"];
-                      await canLaunch(_url)
-                          ? await launch(_url)
-                          : throw 'Could not launch $_url';
-                    },
-                  ),
-                ],
-                if (earning!["call"]["broadcast_url"] != null) ...[
-                  Container(width: 50),
-                  TextButton(
-                    child: const Text('LISTEN TO BROADCAST'),
-                    onPressed: () async {
-                      var _url = earning!["call"]["broadcast_url"];
-                      await canLaunch(_url)
-                          ? await launch(_url)
-                          : throw 'Could not launch $_url';
-                    },
-                  ),
-                ],
-              ])
-            ],
+              if (earning!["call"]["broadcast_url"] != null) ...[
+                Container(width: 50),
+                TextButton(
+                  child: const Text('LISTEN TO BROADCAST'),
+                  onPressed: () async {
+                    var _url = earning!["call"]["broadcast_url"];
+                    await canLaunch(_url)
+                        ? await launch(_url)
+                        : throw 'Could not launch $_url';
+                  },
+                ),
+              ],
+            ])
           ],
-        ]))));
+        ],
+      ])))
+    ]));
   }
 
   Widget _buildSplitsWidget(Instrument instrument) {
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Splits",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const <Widget>[
-              /*
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Splits",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const <Widget>[
+            /*
           for (var split in instrument.splitsObj!) ...[
             ListTile(
                 title: Text(
@@ -1793,112 +1787,111 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ],
           ],
               */
-            ]))));
+          ])))
+    ]));
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Similar",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverList(
-          // delegate: SliverChildListDelegate(widgets),
-          delegate:
-              SliverChildBuilderDelegate((BuildContext context, int index) {
-            return Card(
-                child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListTile(
-                  leading: Hero(
-                      tag: 'logo_${instrument.similarObj![index]["symbol"]}',
-                      child: instrument.similarObj![index]["logo_url"] != null
-                          ? CircleAvatar(
-                              radius: 25,
-                              foregroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary, //.onBackground,
-                              //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              child: Image.network(
-                                instrument.similarObj![index]["logo_url"]
-                                    .toString()
-                                    .replaceAll("https:////", "https://"),
-                                width: 40,
-                                height: 40,
-                                errorBuilder: (BuildContext context,
-                                    Object exception, StackTrace? stackTrace) {
-                                  //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
-                                  return Text(
-                                      instrument.similarObj![index]["symbol"]);
-                                },
-                              ))
-                          : CircleAvatar(
-                              radius: 25,
-                              foregroundColor:
-                                  Theme.of(context).colorScheme.primary,
-                              child: Text(
-                                instrument.similarObj![index]["symbol"],
-                              ))),
-                  title: Text(
-                    "${instrument.similarObj![index]["symbol"]}",
-                  ), //style: TextStyle(fontSize: 17.0)),
-                  subtitle: Text("${instrument.similarObj![index]["name"]}"),
-                  // ["tags"][0]["name"]
-                  /*
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Similar",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverList(
+        // delegate: SliverChildListDelegate(widgets),
+        delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
+          return Card(
+              child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: Hero(
+                    tag: 'logo_${instrument.similarObj![index]["symbol"]}',
+                    child: instrument.similarObj![index]["logo_url"] != null
+                        ? CircleAvatar(
+                            radius: 25,
+                            foregroundColor: Theme.of(context)
+                                .colorScheme
+                                .primary, //.onBackground,
+                            //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                            child: Image.network(
+                              instrument.similarObj![index]["logo_url"]
+                                  .toString()
+                                  .replaceAll("https:////", "https://"),
+                              width: 40,
+                              height: 40,
+                              errorBuilder: (BuildContext context,
+                                  Object exception, StackTrace? stackTrace) {
+                                //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
+                                return Text(
+                                    instrument.similarObj![index]["symbol"]);
+                              },
+                            ))
+                        : CircleAvatar(
+                            radius: 25,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.primary,
+                            child: Text(
+                              instrument.similarObj![index]["symbol"],
+                            ))),
+                title: Text(
+                  "${instrument.similarObj![index]["symbol"]}",
+                ), //style: TextStyle(fontSize: 17.0)),
+                subtitle: Text("${instrument.similarObj![index]["name"]}"),
+                // ["tags"][0]["name"]
+                /*
                   trailing: Text(instrument.similarObj![index]["extraData"]
                       ["popularityFraction"]), // ["boostFraction"]
                       */
-                  //isThreeLine: true,
-                  onTap: () async {
-                    var similarInstruments =
-                        await RobinhoodService.getInstrumentsByIds(
-                            widget.user,
-                            instrumentStore!,
-                            [instrument.similarObj![index]["instrument_id"]]);
-                    similarInstruments[0].logoUrl = instrument
-                        .similarObj![index]["logo_url"]
-                        .toString()
-                        .replaceAll("https:////", "https://");
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => InstrumentWidget(widget.user,
-                                widget.account, similarInstruments[0])));
-                  },
-                ),
-              ],
-            ));
+                //isThreeLine: true,
+                onTap: () async {
+                  var similarInstruments =
+                      await RobinhoodService.getInstrumentsByIds(
+                          widget.user,
+                          Provider.of<InstrumentStore>(context, listen: false),
+                          [instrument.similarObj![index]["instrument_id"]]);
+                  similarInstruments[0].logoUrl = instrument.similarObj![index]
+                          ["logo_url"]
+                      .toString()
+                      .replaceAll("https:////", "https://");
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => InstrumentWidget(
+                              widget.user,
+                              //widget.account,
+                              similarInstruments[0])));
+                },
+              ),
+            ],
+          ));
 
-            //if (positionOrders.length > index) {
-            //}
-          }, childCount: instrument.similarObj!.length),
-        ));
+          //if (positionOrders.length > index) {
+          //}
+        }, childCount: instrument.similarObj!.length),
+      )
+    ]));
   }
 
   Widget _buildListsWidget(Instrument instrument) {
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: const ListTile(
-                title: Text(
-                  "Lists",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-              ))),
-      sliver: SliverList(
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Lists",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
           return Card(
@@ -1926,7 +1919,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => ListWidget(
                               widget.user,
-                              widget.account,
+                              //widget.account,
                               instrument.listsObj![index]["id"].toString())));
                 },
               ),
@@ -1936,25 +1929,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //if (positionOrders.length > index) {
           //}
         }, childCount: instrument.listsObj!.length),
-      ),
-    );
+      )
+    ]));
   }
 
   Widget _buildNewsWidget(Instrument instrument) {
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-              //height: 208.0, //60.0,
-              //padding: EdgeInsets.symmetric(horizontal: 16.0),
-              alignment: Alignment.centerLeft,
-              child: const ListTile(
-                title: Text(
-                  "News",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-              ))),
-      sliver: SliverList(
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "News",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
           return Card(
@@ -1995,19 +1986,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //if (positionOrders.length > index) {
           //}
         }, childCount: instrument.newsObj!.length),
-      ),
-    );
+      )
+    ]));
   }
 
   Widget positionOrdersWidget(List<StockOrder> positionOrders) {
-    return SliverStickyHeader(
-      header: Material(
-          //elevation: 2,
-          child: Container(
-        //height: 208.0, //60.0,
-        //padding: EdgeInsets.symmetric(horizontal: 16.0),
-        alignment: Alignment.centerLeft,
-        child: ListTile(
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: [
+        ListTile(
             title: const Text(
               "Position Orders",
               style: TextStyle(fontSize: 19.0),
@@ -2043,8 +2031,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     },
                   );
                 })),
-      )),
-      sliver: SliverList(
+      ])),
+      SliverList(
         // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
           if ( //positionOrders[index] == null ||
@@ -2135,8 +2123,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //if (positionOrders.length > index) {
           //}
         }, childCount: positionOrders.length),
-      ),
-    );
+      )
+    ]));
   }
 
   Widget get openClosedFilterWidget {

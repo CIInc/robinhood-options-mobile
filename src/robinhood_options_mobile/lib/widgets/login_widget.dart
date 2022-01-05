@@ -99,7 +99,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var userStore = context.watch<UserStore>();
+    var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
           title: const Text("Login"),

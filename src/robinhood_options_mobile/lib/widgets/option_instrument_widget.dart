@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/option_historicals.dart';
+import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
-import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -18,6 +22,7 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
@@ -31,12 +36,17 @@ final formatCompactNumber = NumberFormat.compact();
 
 class OptionInstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
   final String? heroTag;
-  const OptionInstrumentWidget(this.user, this.account, this.optionInstrument,
-      {Key? key, this.optionPosition, this.heroTag})
+  const OptionInstrumentWidget(
+      this.user,
+      //this.account,
+      this.optionInstrument,
+      {Key? key,
+      this.optionPosition,
+      this.heroTag})
       : super(key: key);
 
   @override
@@ -47,27 +57,38 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<Quote>? futureQuote;
   Future<Instrument>? futureInstrument;
   Future<List<OptionOrder>>? futureOptionOrders;
+  Future<OptionHistoricals>? futureHistoricals;
 
   BarChart? chart;
   List<charts.Series<dynamic, String>> seriesList = [];
 
-  QuoteStore? quoteStore;
+  TimeSeriesChart? historicalChart;
+  ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
+  Bounds chartBoundsFilter = Bounds.regular;
+  InstrumentHistorical? selection;
+
+  Timer? refreshTriggerTime;
+  //QuoteStore? quoteStore;
 
   _OptionInstrumentWidgetState();
 
   @override
   void initState() {
     super.initState();
+
+    _startRefreshTimer();
+  }
+
+  @override
+  void dispose() {
+    _stopRefreshTimer();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This gets the current state of PortfolioStore and also tells Flutter
-    // to rebuild this widget when PortfolioStore notifies listeners (in other words,
-    // when it changes).
-    context.watch<OptionPositionStore>();
-
-    var optionOrderStore = context.watch<OptionOrderStore>();
+    var optionOrderStore =
+        Provider.of<OptionOrderStore>(context, listen: false);
     var optionOrders = optionOrderStore.items
         .where((element) => element.chainId == widget.optionInstrument.chainId)
         .toList();
@@ -77,17 +98,23 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       futureOptionOrders = RobinhoodService.getOptionOrders(
           widget.user, optionOrderStore, widget.optionInstrument.chainId);
     }
-    var instrumentStore = context.watch<InstrumentStore>();
 
-    quoteStore = context.watch<QuoteStore>();
-    var cachedQuotes = quoteStore!.items.where(
+    var quoteStore = Provider.of<QuoteStore>(context, listen: false);
+    var cachedQuotes = quoteStore.items.where(
         (element) => element.symbol == widget.optionInstrument.chainSymbol);
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
       futureQuote ??= RobinhoodService.getQuote(
-          widget.user, quoteStore!, widget.optionInstrument.chainSymbol);
+          widget.user, quoteStore, widget.optionInstrument.chainSymbol);
     }
+
+    futureHistoricals ??= RobinhoodService.getOptionHistoricals(
+        widget.user,
+        Provider.of<OptionHistoricalsStore>(context, listen: false),
+        [widget.optionInstrument.id],
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
 
     return Scaffold(
       body: FutureBuilder(
@@ -96,7 +123,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             if (quoteSnapshot.hasData) {
               var quote = quoteSnapshot.data!;
               futureInstrument ??= RobinhoodService.getInstrument(
-                  widget.user, instrumentStore, quote.instrument);
+                  widget.user,
+                  Provider.of<InstrumentStore>(context, listen: false),
+                  quote.instrument);
 
               return FutureBuilder(
                   future: futureInstrument,
@@ -696,6 +725,315 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         widget.user, optionInstrument, instrument,
                         optionPosition: optionPosition))),
           ],
+          Consumer<OptionHistoricalsStore>(builder: (context, value, child) {
+            if (value.items.isNotEmpty) {
+              InstrumentHistorical? firstHistorical;
+              InstrumentHistorical? lastHistorical;
+              double open = 0;
+              double close = 0;
+              double changeInPeriod = 0;
+              double changePercentInPeriod = 0;
+
+              firstHistorical = value.items[0].historicals[0];
+              lastHistorical = value
+                  .items[0].historicals[value.items[0].historicals.length - 1];
+              open = firstHistorical.openPrice!;
+              close = lastHistorical.closePrice!;
+              changeInPeriod = close - open;
+              changePercentInPeriod = changeInPeriod / close;
+
+              if (selection != null) {
+                changeInPeriod = selection!.closePrice! - open;
+                changePercentInPeriod = changeInPeriod / selection!.closePrice!;
+              }
+
+              var brightness = MediaQuery.of(context).platformBrightness;
+              var textColor = Theme.of(context).colorScheme.background;
+              if (brightness == Brightness.dark) {
+                textColor = Colors.grey.shade200;
+              } else {
+                textColor = Colors.grey.shade800;
+              }
+
+              if (historicalChart == null ||
+                  value.items[0].bounds !=
+                      chartBoundsFilter
+                          .toString()
+                          .replaceAll("Bounds.", "")
+                          .replaceAll("t24_7", "24_7") ||
+                  value.items[0].span !=
+                      chartDateSpanFilter
+                          .toString()
+                          .replaceAll("ChartDateSpan.", "")) {
+                historicalChart = TimeSeriesChart(
+                    [
+                      charts.Series<InstrumentHistorical, DateTime>(
+                        id: 'Open',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.blue.shadeDefault,
+                        domainFn: (InstrumentHistorical history, _) =>
+                            history.beginsAt!,
+                        measureFn: (InstrumentHistorical history, _) =>
+                            history.openPrice,
+                        data: value.items[0].historicals,
+                      ),
+                      charts.Series<InstrumentHistorical, DateTime>(
+                        id: 'Close',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.blue.shadeDefault,
+                        domainFn: (InstrumentHistorical history, _) =>
+                            history.beginsAt!,
+                        measureFn: (InstrumentHistorical history, _) =>
+                            history.closePrice,
+                        data: value.items[0].historicals,
+                      ),
+                      charts.Series<InstrumentHistorical, DateTime>(
+                        id: 'Low',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.red.shadeDefault,
+                        domainFn: (InstrumentHistorical history, _) =>
+                            history.beginsAt!,
+                        measureFn: (InstrumentHistorical history, _) =>
+                            history.lowPrice,
+                        data: value.items[0].historicals,
+                      ),
+                      charts.Series<InstrumentHistorical, DateTime>(
+                        id: 'High',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.green.shadeDefault,
+                        domainFn: (InstrumentHistorical history, _) =>
+                            history.beginsAt!,
+                        measureFn: (InstrumentHistorical history, _) =>
+                            history.highPrice,
+                        data: value.items[0].historicals,
+                      ),
+                    ],
+                    open: value.items[0].historicals[0].openPrice!,
+                    close: value
+                        .items[0]
+                        .historicals[value.items[0].historicals.length - 1]
+                        .closePrice!,
+                    hiddenSeries: const ["Close", "Low", "High"],
+                    onSelected: (dynamic historical) {
+                  if (selection != historical) {
+                    setState(() {
+                      selection = historical;
+                    });
+                  }
+                });
+              }
+
+              return SliverToBoxAdapter(
+                  child: Column(
+                children: [
+                  SizedBox(
+                      height: 36,
+                      child: Center(
+                          child: Column(
+                        children: [
+                          Wrap(
+                            children: [
+                              Text(
+                                  formatCurrency.format(selection != null
+                                      ? selection!.closePrice
+                                      : close),
+                                  style: TextStyle(
+                                      fontSize: 20, color: textColor)),
+                              Container(
+                                width: 10,
+                              ),
+                              Icon(
+                                changeInPeriod > 0
+                                    ? Icons.trending_up
+                                    : (changeInPeriod < 0
+                                        ? Icons.trending_down
+                                        : Icons.trending_flat),
+                                color: (changeInPeriod > 0
+                                    ? Colors.green
+                                    : (changeInPeriod < 0
+                                        ? Colors.red
+                                        : Colors.grey)),
+                                //size: 16.0
+                              ),
+                              Container(
+                                width: 2,
+                              ),
+                              Text(
+                                  formatPercentage
+                                      //.format(selection!.netReturn!.abs()),
+                                      .format(changePercentInPeriod.abs()),
+                                  style: TextStyle(
+                                      fontSize: 20.0, color: textColor)),
+                              Container(
+                                width: 10,
+                              ),
+                              Text(
+                                  "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                  style: TextStyle(
+                                      fontSize: 20.0, color: textColor)),
+                            ],
+                          ),
+                          Text(
+                              '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal())}',
+                              style: TextStyle(fontSize: 10, color: textColor)),
+                        ],
+                      ))),
+                  SizedBox(
+                      height: 300,
+                      child: Padding(
+                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.all(10.0),
+                        child: historicalChart,
+                      )),
+                  SizedBox(
+                      height: 56,
+                      child: ListView.builder(
+                        key: const PageStorageKey<String>(
+                            'instrumentChartFilters'),
+                        padding: const EdgeInsets.all(5.0),
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          return Row(children: [
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Day'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.day,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.day, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Week'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.week,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.week, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Month'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.month,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.month, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('3 Months'),
+                                selected: chartDateSpanFilter ==
+                                    ChartDateSpan.month_3,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(ChartDateSpan.month_3,
+                                        chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Year'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.year,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.year, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('5 Years'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.year_5,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(ChartDateSpan.year_5,
+                                        chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            /*
+                            Container(
+                              width: 10,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Regular Hours'),
+                                selected: chartBoundsFilter == Bounds.regular,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        chartDateSpanFilter, Bounds.regular);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('24/7 Hours'),
+                                selected: chartBoundsFilter == Bounds.t24_7,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        chartDateSpanFilter, Bounds.t24_7);
+                                  }
+                                },
+                              ),
+                            ),
+                            */
+                          ]);
+                        },
+                        itemCount: 1,
+                      ))
+                ],
+              ));
+            }
+            return SliverToBoxAdapter(child: Container());
+          }),
           SliverToBoxAdapter(
             child: ListTile(
               title: Wrap(
@@ -1436,8 +1774,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 child: SizedBox(
               height: 25.0,
             )),
-            OptionOrdersWidget(widget.user, widget.account,
-                optionInstrumentOrders, const ["confirmed", "filled"])
+            OptionOrdersWidget(
+                widget.user,
+                //widget.account,
+                optionInstrumentOrders,
+                const ["confirmed", "filled"])
           ],
           const SliverToBoxAdapter(
               child: SizedBox(
@@ -1447,9 +1788,41 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         ]));
   }
 
+  void _startRefreshTimer() {
+    // Start listening to clipboard
+    refreshTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 15000),
+      (timer) async {
+        if (widget.user.refreshEnabled) {
+          if (futureHistoricals != null) {
+            setState(() {
+              futureHistoricals = null;
+            });
+          }
+        }
+      },
+    );
+  }
+
+  void _stopRefreshTimer() {
+    if (refreshTriggerTime != null) {
+      refreshTriggerTime!.cancel();
+    }
+  }
+
+  void resetChart(ChartDateSpan span, Bounds bounds) {
+    setState(() {
+      chartDateSpanFilter = span;
+      chartBoundsFilter = bounds;
+      futureHistoricals = null;
+    });
+  }
+
   Future<void> _pullRefresh() async {
+    var quoteStore = Provider.of<QuoteStore>(context, listen: false);
+
     var quote = await RobinhoodService.getQuote(
-        widget.user, quoteStore!, widget.optionInstrument.chainSymbol);
+        widget.user, quoteStore, widget.optionInstrument.chainSymbol);
 
     setState(() {
       futureQuote = null;
@@ -1546,7 +1919,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                              user, widget.account, instrument,
+                              user,
+                              //widget.account,
+                              instrument,
                               //optionPosition: optionPosition
                             )));
               },
@@ -1560,8 +1935,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                              user, widget.account,
+                          builder: (context) => TradeOptionWidget(user,
+                              //widget.account,
                               optionPosition: optionPosition,
                               optionInstrument: optionInstrument,
                               positionType: "Buy")))),
@@ -1572,8 +1947,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                              user, widget.account,
+                          builder: (context) => TradeOptionWidget(user,
+                              //widget.account,
                               optionPosition: optionPosition,
                               optionInstrument: optionInstrument,
                               positionType: "Sell")))),
@@ -1583,8 +1958,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(
-                              user, widget.account,
+                          builder: (context) => TradeOptionWidget(user,
+                              //widget.account,
                               optionInstrument: optionInstrument)))),
             ],
             const SizedBox(width: 8),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -14,12 +16,13 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class TradeOptionWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final OptionAggregatePosition? optionPosition;
   final OptionInstrument? optionInstrument;
   final String? positionType;
 
-  const TradeOptionWidget(this.user, this.account,
+  const TradeOptionWidget(this.user,
+      //this.account,
       {Key? key,
       this.optionPosition,
       this.optionInstrument,
@@ -62,9 +65,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
           icon: const Icon(Icons.attach_money),
           onPressed: () async {
+            var accountStore =
+                Provider.of<AccountStore>(context, listen: false);
             var orderJson = await RobinhoodService.placeOptionsOrder(
               widget.user,
-              widget.account,
+              accountStore.items[0],
               widget.optionInstrument!,
               positionType == "Buy" ? "buy" : "sell", // side
               "open", //positionEffect

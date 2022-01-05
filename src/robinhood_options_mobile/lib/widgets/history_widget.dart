@@ -125,18 +125,8 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    // This gets the current state of CartModel and also tells Flutter
-    // to rebuild this widget when CartModel notifies listeners (in other words,
-    // when it changes).
-    var store = context.watch<OptionOrderStore>();
-    //store = Provider.of<PortfolioStore>(context, listen: true);
-
-    var stockOrderStore = context.watch<StockOrderStore>();
-    var optionEventStore = context.watch<OptionEventStore>();
-    var instrumentStore = context.watch<InstrumentStore>();
-
-    optionOrderStream ??=
-        RobinhoodService.streamOptionOrders(widget.user, store);
+    optionOrderStream ??= RobinhoodService.streamOptionOrders(
+        widget.user, Provider.of<OptionOrderStore>(context, listen: false));
 
     return StreamBuilder(
         stream: optionOrderStream,
@@ -145,7 +135,9 @@ class _HistoryPageState extends State<HistoryPage>
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
             positionOrderStream ??= RobinhoodService.streamPositionOrders(
-                widget.user, stockOrderStore, instrumentStore);
+                widget.user,
+                Provider.of<StockOrderStore>(context, listen: false),
+                Provider.of<InstrumentStore>(context, listen: false));
 
             return StreamBuilder(
                 stream: positionOrderStream,
@@ -155,7 +147,8 @@ class _HistoryPageState extends State<HistoryPage>
                         positionOrdersSnapshot.data as List<StockOrder>;
 
                     optionEventStream ??= RobinhoodService.streamOptionEvents(
-                        widget.user, optionEventStore);
+                        widget.user,
+                        Provider.of<OptionEventStore>(context, listen: false));
                     return StreamBuilder(
                         stream: optionEventStream,
                         builder: (context6, optionEventSnapshot) {
@@ -610,7 +603,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
-                                          widget.account!,
+                                          //widget.account!,
                                           optionOrder)));
                             },
                           ),
@@ -886,7 +879,7 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
-                                          widget.account!,
+                                          //widget.account!,
                                           filteredPositionOrders![index])));
                             },
                           ),

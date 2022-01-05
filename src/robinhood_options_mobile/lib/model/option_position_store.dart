@@ -41,4 +41,13 @@ class OptionPositionStore extends ChangeNotifier {
       add(item);
     }
   }
+
+  void sort() {
+    _items.sort((a, b) {
+      int comp =
+          a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
+      if (comp != 0) return comp;
+      return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
+    });
+  }
 }

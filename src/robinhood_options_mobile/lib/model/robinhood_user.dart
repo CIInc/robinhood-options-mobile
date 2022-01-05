@@ -173,19 +173,21 @@ class RobinhoodUser {
         break;
       case DisplayValue.todayReturnPercent:
         var numerator = ops
+            .map((OptionAggregatePosition e) => e.changeToday)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.marketValue - e.changeToday)
+            .reduce((a, b) => a + b);
+        /*
+        var numerator = ops
             .map((OptionAggregatePosition e) =>
                 e.changePercentToday * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
             .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
             */
+        value = numerator / denominator;
         break;
       case DisplayValue.totalReturn:
         value = ops
@@ -194,11 +196,19 @@ class RobinhoodUser {
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
+            .map((OptionAggregatePosition e) => e.gainLoss)
+            .reduce((a, b) => a + b);
+        var denominator = ops
+            .map((OptionAggregatePosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
+        /*
+        var numerator = ops
             .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
             .reduce((a, b) => a + b);
         var denominator = ops
             .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
+            */
         value = numerator / denominator;
         /*
         value = ops
@@ -274,6 +284,9 @@ class RobinhoodUser {
 
   double? getCryptoAggregateDisplayValue(List<ForexHolding> ops) {
     double value = 0;
+    if (ops.isEmpty) {
+      return value;
+    }
     switch (displayValue) {
       case DisplayValue.lastPrice:
         return null;

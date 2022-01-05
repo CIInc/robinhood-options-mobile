@@ -24,7 +24,7 @@ class InstrumentHistorical {
         closePrice = double.tryParse(json['close_price']),
         highPrice = double.tryParse(json['high_price']),
         lowPrice = double.tryParse(json['low_price']),
-        volume = json['volume'],
+        volume = json['volume'] ?? 0,
         session = json['session'],
         interpolated = json['interpolated'];
 

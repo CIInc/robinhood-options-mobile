@@ -32,10 +32,12 @@ final ItemPositionsListener itemPositionListener =
 
 class OptionPositionsRowWidget extends StatelessWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
   const OptionPositionsRowWidget(
-      this.user, this.account, this.filteredOptionPositions,
+      this.user,
+      //this.account,
+      this.filteredOptionPositions,
       {Key? key})
       : super(key: key);
 
@@ -230,7 +232,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             MaterialPageRoute(
                 builder: (context) => OptionInstrumentWidget(
                       user,
-                      account,
+                      //account,
                       op.optionInstrument!,
                       optionPosition: op,
                     )));
@@ -240,8 +242,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
         Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) =>
-                    InstrumentWidget(user, account, op.instrumentObj!)));
+                builder: (context) => InstrumentWidget(
+                    user,
+                    //account,
+                    op.instrumentObj!)));
       }
     });
     return SliverToBoxAdapter(
@@ -569,7 +573,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
-                        user, account, op.optionInstrument!,
+                        user,
+                        //account,
+                        op.optionInstrument!,
                         optionPosition: op,
                         heroTag: 'logo_${op.symbol}${op.id}')));
           },
@@ -846,7 +852,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => InstrumentWidget(
-                        user, account, ops.first.instrumentObj!)));
+                        user,
+                        //account,
+                        ops.first.instrumentObj!)));
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
           },
@@ -931,7 +939,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (context) => OptionInstrumentWidget(
-                          user, account, op.optionInstrument!,
+                          user,
+                          //account,
+                          op.optionInstrument!,
                           optionPosition: op)));
             },
           ),

@@ -21,9 +21,12 @@ final formatCompactNumber = NumberFormat.compact();
 
 class PositionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final StockOrder positionOrder;
-  const PositionOrderWidget(this.user, this.account, this.positionOrder,
+  const PositionOrderWidget(
+      this.user,
+      //this.account,
+      this.positionOrder,
       {Key? key})
       : super(key: key);
 
@@ -47,7 +50,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var instrumentStore = context.watch<InstrumentStore>();
+    var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
     var instruments = instrumentStore.items
         .where((element) => element.url == widget.positionOrder.instrument);
     if (instruments.isNotEmpty) {
@@ -57,7 +60,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           widget.user, instrumentStore, widget.positionOrder.instrument);
     }
 
-    var quoteStore = context.watch<QuoteStore>();
+    var quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
     return FutureBuilder(
         future: futureInstrument,
@@ -311,7 +314,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user, widget.account, instrument)));
+                            user,
+                            //widget.account,
+                            instrument)));
               },
             ),
             const SizedBox(width: 8),

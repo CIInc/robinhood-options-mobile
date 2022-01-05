@@ -73,7 +73,7 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildScaffold() {
-    instrumentStore = context.watch<InstrumentStore>();
+    instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
     futureMovers ??= RobinhoodService.getMovers(widget.user, direction: "up");
     futureLosers ??= RobinhoodService.getMovers(widget.user, direction: "down");
@@ -442,7 +442,9 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            widget.user, widget.account!, instrument)));
+                            widget.user,
+                            //widget.account!,
+                            instrument)));
               },
             )));
   }
@@ -468,7 +470,9 @@ class _SearchWidgetState extends State<SearchWidget>
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                              widget.user, widget.account!, instrument)));
+                              widget.user,
+                              //widget.account!,
+                              instrument)));
                 })));
     /*
     return ListTile(
@@ -556,7 +560,9 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user, widget.account!, instrumentObj)));
+                            user,
+                            //widget.account!,
+                            instrumentObj)));
               },
             )));
   }

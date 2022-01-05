@@ -23,11 +23,15 @@ final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentOptionChainWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final Instrument instrument;
   final OptionAggregatePosition? optionPosition;
-  const InstrumentOptionChainWidget(this.user, this.account, this.instrument,
-      {Key? key, this.optionPosition})
+  const InstrumentOptionChainWidget(
+      this.user,
+      //this.account,
+      this.instrument,
+      {Key? key,
+      this.optionPosition})
       : super(key: key);
 
   @override
@@ -49,7 +53,7 @@ class _InstrumentOptionChainWidgetState
 
   final List<bool> isSelected = [true, false];
 
-  List<OptionAggregatePosition> optionPositions = [];
+  //List<OptionAggregatePosition> optionPositions = [];
 
   ScrollController scrollController = ScrollController();
 
@@ -72,12 +76,11 @@ class _InstrumentOptionChainWidgetState
 
     futureOptionChain ??= RobinhoodService.getOptionChains(user, instrument.id);
 
-    // This gets the current state of CartModel and also tells Flutter
-    // to rebuild this widget when CartModel notifies listeners (in other words,
-    // when it changes).
-    var store = context.watch<OptionPositionStore>();
+    /*
+    var store = Provider.of<OptionPositionStore>(context, listen: false);
     optionPositions =
         store.items.where((e) => e.symbol == widget.instrument.symbol).toList();
+        */
 
     return Scaffold(
         body: FutureBuilder<OptionChain>(
@@ -372,56 +375,62 @@ class _InstrumentOptionChainWidgetState
                       optionInstrument.optionMarketData = value;
                     }));
           }
-          var optionPositionsMatchingInstrument = optionPositions
-              .where((e) => e.optionInstrument!.id == optionInstrument.id);
-          var optionInstrumentQuantity =
-              optionPositionsMatchingInstrument.isNotEmpty
-                  ? optionPositionsMatchingInstrument
-                      .map((e) => e.quantity ?? 0)
-                      .reduce((a, b) => a + b)
-                  : 0;
 
-          return Column(
-            children: [
-              if (instrument.quoteObj!.lastTradePrice! <
-                      optionInstrument.strikePrice! &&
-                  (prevOptionInstrument == null ||
-                      instrument.quoteObj!.lastTradePrice! >=
-                          prevOptionInstrument.strikePrice!)) ...[
-                Card(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                      Row(
-                        children: [
-                          Expanded(
-                              flex: 10,
-                              child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      15.0, 10, 15, 10),
-                                  child: priceAndChangeWidget(instrument))),
-                        ],
-                      )
+          return Consumer<OptionPositionStore>(
+              builder: (context, optionPositionStore, child) {
+            var optionPositions = optionPositionStore.items
+                .where((e) => e.symbol == widget.instrument.symbol)
+                .toList();
+            var optionPositionsMatchingInstrument = optionPositions
+                .where((e) => e.optionInstrument!.id == optionInstrument.id);
+            var optionInstrumentQuantity =
+                optionPositionsMatchingInstrument.isNotEmpty
+                    ? optionPositionsMatchingInstrument
+                        .map((e) => e.quantity ?? 0)
+                        .reduce((a, b) => a + b)
+                    : 0;
+            return Column(
+              children: [
+                if (instrument.quoteObj!.lastTradePrice! <
+                        optionInstrument.strikePrice! &&
+                    (prevOptionInstrument == null ||
+                        instrument.quoteObj!.lastTradePrice! >=
+                            prevOptionInstrument.strikePrice!)) ...[
+                  Card(
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                        Row(
+                          children: [
+                            Expanded(
+                                flex: 10,
+                                child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        15.0, 10, 15, 10),
+                                    child: priceAndChangeWidget(instrument))),
+                          ],
+                        )
 
-                      /*
+                        /*
                       ListTile(
                         title: Text(
                             '${formatCurrency.format(instrument.quoteObj!.lastTradePrice)} stock price'),
                       )
                       */
-                    ]))
-              ],
-              Card(
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                ListTile(
-                  //key: index == 0 ? dataKey : null,
-                  /*optionInstrument.id ==
+                      ]))
+                ],
+                Card(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                      ListTile(
+                        //key: index == 0 ? dataKey : null,
+                        /*optionInstrument.id ==
                           firstOptionsInstrumentsSorted.id
                       ? dataKey
                       : null,
                       */
-                  /*
+                        /*
                   leading: CircleAvatar(
                       backgroundColor: optionInstrument.type == 'call'
                           ? Colors.green
@@ -431,78 +440,80 @@ class _InstrumentOptionChainWidgetState
                           ? const Text('Call')
                           : const Text('Put')),
                           */
-                  /*
+                        /*
                 leading: CircleAvatar(
                     //backgroundImage: AssetImage(user.profilePicture),
                     child: Text('${optionOrders[index].quantity!.round()}',
                         style: const TextStyle(fontSize: 18))),
                 leading: Icon(Icons.ac_unit),
                 */
-                  leading: optionInstrumentQuantity > 0
-                      ? CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              formatCompactNumber
-                                  .format(optionInstrumentQuantity),
-                              style: const TextStyle(fontSize: 18)))
-                      : null, //Icon(Icons.ac_unit),
-                  title: Text(//${optionInstrument.chainSymbol}
-                      '\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type}'), // , style: TextStyle(fontSize: 18.0)),
-                  subtitle: Text(optionInstrument.optionMarketData != null
-                      //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-"}"
-                      ? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance of profit: ${actionFilter == 'Buy' ? (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-") : (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-")}"
-                      //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}"
-                      : ""),
-                  //'Issued ${dateFormat.format(optionInstrument.issueDate as DateTime)}'),
-                  trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        optionInstrument.optionMarketData != null
-                            ? Text(
-                                formatCurrency.format(optionInstrument
-                                    .optionMarketData!.markPrice),
-                                //"${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
-                                style: const TextStyle(fontSize: 18))
-                            : const Text(""),
-                        Wrap(spacing: 8, children: [
-                          Icon(
-                              instrument.quoteObj!.changeToday > 0
-                                  ? Icons.trending_up
-                                  : (instrument.quoteObj!.changeToday < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (instrument.quoteObj!.changeToday > 0
-                                  ? Colors.green
-                                  : (instrument.quoteObj!.changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                              size: 16),
-                          Text(
-                            optionInstrument.optionMarketData != null
-                                ? formatPercentage.format(optionInstrument
-                                    .optionMarketData!.changePercentToday)
-                                : "-",
-                            //style: TextStyle(fontSize: 16),
-                          )
-                        ]),
-                      ]),
-                  onTap: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => OptionInstrumentWidget(
-                                  widget.user,
-                                  widget.account,
-                                  optionInstrument,
-                                  optionPosition: optionInstrumentQuantity > 0
-                                      ? optionPosition
-                                      : null,
-                                )));
-                  },
-                )
-              ]))
-            ],
-          );
+                        leading: optionInstrumentQuantity > 0
+                            ? CircleAvatar(
+                                //backgroundImage: AssetImage(user.profilePicture),
+                                child: Text(
+                                    formatCompactNumber
+                                        .format(optionInstrumentQuantity),
+                                    style: const TextStyle(fontSize: 18)))
+                            : null, //Icon(Icons.ac_unit),
+                        title: Text(//${optionInstrument.chainSymbol}
+                            '\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type}'), // , style: TextStyle(fontSize: 18.0)),
+                        subtitle: Text(optionInstrument.optionMarketData != null
+                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-"}"
+                            ? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance of profit: ${actionFilter == 'Buy' ? (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-") : (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-")}"
+                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}"
+                            : ""),
+                        //'Issued ${dateFormat.format(optionInstrument.issueDate as DateTime)}'),
+                        trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              optionInstrument.optionMarketData != null
+                                  ? Text(
+                                      formatCurrency.format(optionInstrument
+                                          .optionMarketData!.markPrice),
+                                      //"${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
+                                      style: const TextStyle(fontSize: 18))
+                                  : const Text(""),
+                              Wrap(spacing: 8, children: [
+                                Icon(
+                                    instrument.quoteObj!.changeToday > 0
+                                        ? Icons.trending_up
+                                        : (instrument.quoteObj!.changeToday < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (instrument.quoteObj!.changeToday > 0
+                                        ? Colors.green
+                                        : (instrument.quoteObj!.changeToday < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    size: 16),
+                                Text(
+                                  optionInstrument.optionMarketData != null
+                                      ? formatPercentage.format(optionInstrument
+                                          .optionMarketData!.changePercentToday)
+                                      : "-",
+                                  //style: TextStyle(fontSize: 16),
+                                )
+                              ]),
+                            ]),
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => OptionInstrumentWidget(
+                                        widget.user,
+                                        //widget.account,
+                                        optionInstrument,
+                                        optionPosition:
+                                            optionInstrumentQuantity > 0
+                                                ? optionPosition
+                                                : null,
+                                      )));
+                        },
+                      )
+                    ]))
+              ],
+            );
+          });
 
           //return Text('\$${optionInstrument.strikePrice}');
         },

@@ -64,11 +64,11 @@ class _ListsWidgetState extends State<ListsWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-    var instrumentStore = context.watch<InstrumentStore>();
-    var quoteStore = context.watch<QuoteStore>();
 
-    watchlistStream ??=
-        RobinhoodService.streamLists(widget.user, instrumentStore, quoteStore);
+    watchlistStream ??= RobinhoodService.streamLists(
+        widget.user,
+        Provider.of<InstrumentStore>(context, listen: false),
+        Provider.of<QuoteStore>(context, listen: false));
     return StreamBuilder(
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
@@ -584,7 +584,7 @@ class _ListsWidgetState extends State<ListsWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                             ru,
-                            widget.account!,
+                            //widget.account!,
                             watchLists[index].instrumentObj as Instrument)));
               },
             )));

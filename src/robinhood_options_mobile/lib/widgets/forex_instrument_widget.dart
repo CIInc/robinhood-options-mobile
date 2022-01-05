@@ -25,10 +25,14 @@ final formatCompactNumber = NumberFormat.compact();
 
 class ForexInstrumentWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final ForexHolding holding;
   //final OptionAggregatePosition? optionPosition;
-  const ForexInstrumentWidget(this.user, this.account, this.holding, {Key? key})
+  const ForexInstrumentWidget(
+      this.user,
+      //this.account,
+      this.holding,
+      {Key? key})
       : super(key: key);
 
   @override

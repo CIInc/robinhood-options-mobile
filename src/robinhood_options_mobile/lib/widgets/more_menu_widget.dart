@@ -43,7 +43,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    userStore = context.watch<UserStore>();
+    userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar:
             AppBar(leading: const CloseButton(), title: const Text('Settings')),

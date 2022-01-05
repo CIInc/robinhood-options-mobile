@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
@@ -60,8 +61,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //int _selectedDrawerIndex = 0;
   bool _showDrawerContents = true;
 
-  UserStore? userStore;
-
   @override
   void initState() {
     super.initState();
@@ -69,6 +68,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     tabPages = [const InitialWidget()];
 
     RobinhoodService.loadLogos();
+
+    var userStore = Provider.of<UserStore>(context, listen: false);
+    if (userStore.items.isEmpty) {
+      futureRobinhoodUser ??= RobinhoodUser.loadUserFromStore(userStore);
+    }
   }
 
   @override
@@ -115,64 +119,50 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   @override
   Widget build(BuildContext context) {
-    //userStore = context.watch<UserStore>();
-    userStore = Provider.of<UserStore>(context, listen: false);
+    var userStore = Provider.of<UserStore>(context, listen: true);
+    //var accountStore = Provider.of<AccountStore>(context, listen: true);
 
-    if (userStore!.items.isNotEmpty) {
-      futureRobinhoodUser = Future.value(userStore!.items.first);
-    } else {
-      futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
-    }
+    if (userStore.items.isNotEmpty) {
+      robinhoodUser = userStore.items[0];
+      futureUser ??= RobinhoodService.getUser(robinhoodUser!);
+      //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
 
-    return FutureBuilder(
-        future: futureRobinhoodUser,
-        builder: (context, AsyncSnapshot<RobinhoodUser> userSnapshot) {
-          if (userSnapshot.hasData) {
-            robinhoodUser = userSnapshot.data!;
-
-            futureUser ??= RobinhoodService.getUser(robinhoodUser!);
-            //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
-
-            return FutureBuilder(
-                future:
-                    futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
-                builder: (context1, dataSnapshot) {
-                  if (dataSnapshot.hasData) {
-                    userInfo = dataSnapshot.data! as UserInfo;
-                    /*
+      return FutureBuilder(
+          future:
+              futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
+          builder: (context1, dataSnapshot) {
+            if (dataSnapshot.hasData) {
+              userInfo = dataSnapshot.data! as UserInfo;
+              /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
                     accounts =
                         data.length > 1 ? data[1] as List<Account> : null;
                         */
-                    _buildTabs();
-                  } else if (dataSnapshot.hasError) {
-                    debugPrint("${dataSnapshot.error}");
-                    return buildScaffold(
-                        widget: InitialWidget(
-                            child: Column(children: [
-                      Text("${dataSnapshot.error}"),
-                      const SizedBox(
-                        height: 10,
-                      ),
-                      ElevatedButton.icon(
-                        label: const Text(
-                          "Login",
-                          style: TextStyle(fontSize: 20.0),
-                        ),
-                        icon: const Icon(Icons.login),
-                        onPressed: () => _openLogin(),
-                      )
-                    ])));
-                  }
-                  return buildScaffold();
-                });
-          } else if (userSnapshot.hasError) {
-            debugPrint("${userSnapshot.error}");
-          }
-          debugPrint("$userSnapshot");
-          return buildScaffold();
-        });
+              _buildTabs();
+            } else if (dataSnapshot.hasError) {
+              debugPrint("${dataSnapshot.error}");
+              return buildScaffold(
+                  widget: InitialWidget(
+                      child: Column(children: [
+                Text("${dataSnapshot.error}"),
+                const SizedBox(
+                  height: 10,
+                ),
+                ElevatedButton.icon(
+                  label: const Text(
+                    "Login",
+                    style: TextStyle(fontSize: 20.0),
+                  ),
+                  icon: const Icon(Icons.login),
+                  onPressed: () => _openLogin(),
+                )
+              ])));
+            }
+            return buildScaffold();
+          });
+    }
+    return buildScaffold();
   }
 
   _buildTabs() {
@@ -226,7 +216,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       body: widget ??
           PageView.builder(
             itemBuilder: (context, index) {
-              debugPrint("PageView.itemBuilder index: $index");
+              //debugPrint("PageView.itemBuilder index: $index");
+              // PageView seems to preload pages. index can be 1 when _pageIndex is 0.
               if (_pageIndex == index) {
                 return tabPages[index];
               }
@@ -482,7 +473,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (result != null) {
       setState(() {
         //futureRobinhoodUser = null;
-        futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
+        futureRobinhoodUser = RobinhoodUser.loadUserFromStore(
+            Provider.of<UserStore>(context, listen: false));
         //user = null;
       });
 
@@ -519,7 +511,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           onPressed: () async {
             Navigator.pop(context, 'dialog');
 
-            await RobinhoodUser.clearUserFromStore(robinhoodUser!, userStore!);
+            await RobinhoodUser.clearUserFromStore(
+                robinhoodUser!, Provider.of<UserStore>(context, listen: false));
             // Future.delayed(const Duration(milliseconds: 1), () async {
 
             /* 
@@ -527,7 +520,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             */
             setState(() {
               //futureRobinhoodUser = null;
-              futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
+              futureRobinhoodUser = RobinhoodUser.loadUserFromStore(
+                  Provider.of<UserStore>(context, listen: false));
             });
           },
         ),

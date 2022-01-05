@@ -1,19 +1,19 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/portfolio.dart';
 
-class StockPositionStore extends ChangeNotifier {
+class PortfolioStore extends ChangeNotifier {
   /// Internal, private state of the store.
-  final List<StockPosition> _items = [];
+  final List<Portfolio> _items = [];
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<StockPosition> get items => UnmodifiableListView(_items);
+  UnmodifiableListView<Portfolio> get items => UnmodifiableListView(_items);
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
-  void add(StockPosition item) {
+  void add(Portfolio item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
@@ -25,11 +25,8 @@ class StockPositionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool update(StockPosition item) {
-    var index = _items.indexWhere((element) =>
-        //element.url == item.url);
-        //element.instrument == item.instrument);
-        element.instrumentId == item.instrumentId);
+  bool update(Portfolio item) {
+    var index = _items.indexWhere((element) => element.url == item.url);
     if (index == -1) {
       return false;
     }
@@ -38,9 +35,17 @@ class StockPositionStore extends ChangeNotifier {
     return true;
   }
 
-  void addOrUpdate(StockPosition item) {
+  void addOrUpdate(Portfolio item) {
     if (!update(item)) {
       add(item);
+    }
+  }
+
+  void remove(Portfolio item) {
+    var index = _items.indexWhere((element) => element.url == item.url);
+    if (index != -1) {
+      _items.removeAt(index);
+      notifyListeners();
     }
   }
 }

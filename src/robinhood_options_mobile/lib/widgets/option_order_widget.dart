@@ -21,9 +21,13 @@ final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrderWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final OptionOrder optionOrder;
-  const OptionOrderWidget(this.user, this.account, this.optionOrder, {Key? key})
+  const OptionOrderWidget(
+      this.user,
+      //this.account,
+      this.optionOrder,
+      {Key? key})
       : super(key: key);
 
   @override
@@ -46,8 +50,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var instrumentStore = context.watch<InstrumentStore>();
-    var quoteStore = context.watch<QuoteStore>();
+    var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
+    var quoteStore = Provider.of<QuoteStore>(context, listen: false);
     var cachedQuotes = quoteStore.items
         .where((element) => element.symbol == widget.optionOrder.chainSymbol);
     if (cachedQuotes.isNotEmpty) {
@@ -530,7 +534,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user, widget.account, instrument)));
+                            user,
+                            //widget.account,
+                            instrument)));
               },
             ),
             const SizedBox(width: 8),

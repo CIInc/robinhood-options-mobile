@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
+import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/stock_order_store.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
@@ -70,7 +76,22 @@ class MyApp extends StatelessWidget {
               create: (context) => UserStore(),
             ),
             ChangeNotifierProvider(
+              create: (context) => AccountStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => PortfolioStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => PortfolioHistoricalsStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => PortfolioHistoricalsSelectionStore(),
+            ),
+            ChangeNotifierProvider(
               create: (context) => OptionPositionStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => OptionHistoricalsStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => OptionOrderStore(),
@@ -83,6 +104,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => StockOrderStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ForexHoldingStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentStore(),

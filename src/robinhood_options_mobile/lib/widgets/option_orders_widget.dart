@@ -14,12 +14,15 @@ final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrdersWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account account;
+  //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
 
   const OptionOrdersWidget(
-      this.user, this.account, this.optionOrders, this.orderFilters,
+      this.user,
+      //this.account,
+      this.optionOrders,
+      this.orderFilters,
       {Key? key})
       : super(key: key);
 
@@ -182,8 +185,10 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => OptionOrderWidget(widget.user,
-                              widget.account, optionOrders[index])));
+                          builder: (context) => OptionOrderWidget(
+                              widget.user,
+                              //widget.account,
+                              optionOrders[index])));
                 },
               ),
             ],
