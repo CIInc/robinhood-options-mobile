@@ -2405,16 +2405,54 @@ class _HomePageState extends State<HomePage>
       optionPositionStoreStream = null;
     });
     */
-
+    /*
     var accounts = await RobinhoodService.getAccounts(
         widget.user, Provider.of<AccountStore>(context, listen: false));
     var portfolios = await RobinhoodService.getPortfolios(
         widget.user, Provider.of<PortfolioStore>(context, listen: false));
+    */
 
     setState(() {
+      Provider.of<AccountStore>(context, listen: false).removeAll();
+      futureAccounts = null;
+      Provider.of<PortfolioStore>(context, listen: false).removeAll();
+      futurePortfolios = null;
+      Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+      futureNummusHoldings = null;
+      Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+      futureOptionPositions = null;
+      Provider.of<StockPositionStore>(context, listen: false).removeAll();
+      futureStockPositions = null;
+      /*
       futureAccounts = Future.value(accounts);
       futurePortfolios = Future.value(portfolios);
+      */
     });
+    /*
+    futureAccounts ??= RobinhoodService.getAccounts(
+        widget.user, Provider.of<AccountStore>(context, listen: false));
+
+    futurePortfolios ??= RobinhoodService.getPortfolios(
+        widget.user, Provider.of<PortfolioStore>(context, listen: false));
+    //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
+    futureNummusHoldings ??= RobinhoodService.getNummusHoldings(
+        widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
+        nonzero: !hasQuantityFilters[1]);
+
+    futureOptionPositions ??= RobinhoodService.getOptionPositionStore(
+        widget.user,
+        Provider.of<OptionPositionStore>(context, listen: false),
+        Provider.of<InstrumentStore>(context, listen: false),
+        nonzero: !hasQuantityFilters[1]);
+
+    futureStockPositions ??= RobinhoodService.getStockPositionStore(
+        widget.user,
+        Provider.of<StockPositionStore>(context, listen: false),
+        Provider.of<InstrumentStore>(context, listen: false),
+        Provider.of<QuoteStore>(context, listen: false),
+        nonzero: !hasQuantityFilters[1]);
+    */
+
     /*
     await RobinhoodService.getPortfolioHistoricals(
         widget.user,
