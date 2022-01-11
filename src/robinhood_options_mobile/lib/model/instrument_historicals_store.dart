@@ -29,13 +29,6 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
     }
   }
 
-  void select(InstrumentHistoricals historical) {
-    if (selection != historical) {
-      selection = historical as InstrumentHistorical?;
-      notifyListeners();
-    }
-  }
-
   void add(InstrumentHistoricals item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.

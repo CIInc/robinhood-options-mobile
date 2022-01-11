@@ -29,13 +29,6 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
     }
   }
 
-  void select(EquityHistorical historical) {
-    if (selection != historical) {
-      selection = historical;
-      notifyListeners();
-    }
-  }
-
   void add(PortfolioHistoricals item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.

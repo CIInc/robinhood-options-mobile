@@ -186,6 +186,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     futureSplits ??= RobinhoodService.getSplits(user, instrument);
 
+    futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+        user,
+        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+        instrument.symbol,
+        chartBoundsFilter: chartBoundsFilter,
+        chartDateSpanFilter: chartDateSpanFilter);
+
     return Scaffold(
         body: FutureBuilder(
       future: Future.wait([
@@ -220,33 +227,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
           _calculatePositionOrderBalance(instrument.positionOrders!);
           _calculateOptionOrderBalance(instrument.optionOrders!);
-
-          futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
-              user,
-              Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-              instrument.symbol,
-              chartBoundsFilter: chartBoundsFilter,
-              chartDateSpanFilter: chartDateSpanFilter);
-
-          return FutureBuilder<InstrumentHistoricals>(
-              future: futureHistoricals,
-              builder: (context11, historicalsSnapshot) {
-                if (historicalsSnapshot.hasData) {
-                  if (instrument.instrumentHistoricalsObj == null ||
-                      historicalsSnapshot.data!.bounds !=
-                          instrument.instrumentHistoricalsObj!.bounds ||
-                      historicalsSnapshot.data!.span !=
-                          instrument.instrumentHistoricalsObj!.span) {
-                    chart = null;
-                  }
-
-                  instrument.instrumentHistoricalsObj =
-                      historicalsSnapshot.data!;
-                }
-                return buildScrollView(instrument,
-                    done: historicalsSnapshot.connectionState ==
-                        ConnectionState.done);
-              });
         } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Center(child: Text("${snapshot.error}"));
@@ -471,8 +451,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: buildOverview(instrument))),
           Consumer<InstrumentHistoricalsStore>(
               builder: (context, instrumentHistoricalsStore, child) {
-            if (instrument.instrumentHistoricalsObj != null &&
-                instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
+            if (instrumentHistoricalsStore.items.isNotEmpty) {
+              instrument.instrumentHistoricalsObj =
+                  instrumentHistoricalsStore.items.first;
+              //instrument.instrumentHistoricalsObj != null &&
+              //instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
               double open = 0;
