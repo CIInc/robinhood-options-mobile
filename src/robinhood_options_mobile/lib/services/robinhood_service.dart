@@ -127,7 +127,7 @@ class RobinhoodService {
       Bounds chartBoundsFilter,
       ChartDateSpan chartDateSpanFilter) async {
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
-    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
 
@@ -158,7 +158,41 @@ class RobinhoodService {
     return bounds;
   }
 
-  static List<String> convertChartSpanFilter(
+  static String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
+    String span = "day";
+    switch (chartDateSpanFilter) {
+      case ChartDateSpan.hour:
+        span = "hour";
+        //bounds = "24_7"; // Does not work with regular?!
+        break;
+      case ChartDateSpan.day:
+        span = "day";
+        break;
+      case ChartDateSpan.week:
+        span = "week";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month:
+        span = "month";
+        // bounds = "24_7"; // Does not look good with regular?!
+        break;
+      case ChartDateSpan.month_3:
+        span = "3month";
+        break;
+      case ChartDateSpan.year:
+        span = "year";
+        break;
+      case ChartDateSpan.year_5:
+        span = "5year";
+        break;
+      case ChartDateSpan.all:
+        span = "all";
+        break;
+    }
+    return span;
+  }
+
+  static List<String> convertChartSpanFilterWithInterval(
       ChartDateSpan chartDateSpanFilter) {
     String interval = "5minute";
     String span = "day";
@@ -706,11 +740,15 @@ class RobinhoodService {
       String symbolOrInstrumentId,
       {bool includeInactive = true,
       Bounds chartBoundsFilter = Bounds.trading,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
+      String? chartInterval}) async {
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
-    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
+    if (chartInterval != null) {
+      interval = chartInterval;
+    }
     var result = await RobinhoodService.getJson(
         user,
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
@@ -1244,7 +1282,7 @@ class RobinhoodService {
       {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
-    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
     // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=04c8d8fb-7805-4593-84a7-eb3641e75c7b&interval=5minute&ratios=1&span=day&types=long
@@ -1541,7 +1579,7 @@ class RobinhoodService {
     //https://api.robinhood.com/marketdata/forex/historicals/3d961844-d360-45fc-989b-f6fca761d511/?bounds=24_7&interval=hour&span=week
     // var url = "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}";
     String bounds = convertChartBoundsFilter(chartBoundsFilter);
-    var rtn = convertChartSpanFilter(chartDateSpanFilter);
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String span = rtn[0];
     String interval = rtn[1];
 

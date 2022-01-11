@@ -1,4 +1,5 @@
-import 'dart:collection';
+//import 'dart:collection';
+import 'package:collection/collection.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
@@ -17,13 +18,18 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(InstrumentHistoricals item) {
-    if (items.isEmpty) {
+    var current = items.firstWhereOrNull((element) =>
+        element.symbol == item.symbol &&
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
+    if (current == null) {
       _items.add(item);
       notifyListeners();
     } else {
-      if (_items[0].historicals.first.beginsAt !=
+      if (current.historicals.first.beginsAt !=
           item.historicals.first.beginsAt) {
-        _items[0] = item;
+        current = item;
         notifyListeners();
       }
     }

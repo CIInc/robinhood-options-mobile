@@ -68,6 +68,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<Quote?>? futureQuote;
   Future<Fundamentals?>? futureFundamentals;
   Future<InstrumentHistoricals>? futureHistoricals;
+  Future<InstrumentHistoricals>? futureRsiHistoricals;
   Future<List<dynamic>>? futureNews;
   Future<List<dynamic>>? futureLists;
   Future<dynamic>? futureRatings;
@@ -193,6 +194,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         chartBoundsFilter: chartBoundsFilter,
         chartDateSpanFilter: chartDateSpanFilter);
 
+    futureRsiHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+        user,
+        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+        instrument.symbol,
+        chartBoundsFilter: Bounds.regular,
+        chartDateSpanFilter: ChartDateSpan.month,
+        chartInterval: 'day');
+
     return Scaffold(
         body: FutureBuilder(
       future: Future.wait([
@@ -207,7 +216,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureOptionEvents as Future,
         futureEarnings as Future,
         futureSimilar as Future,
-        futureSplits as Future
+        futureSplits as Future,
+        futureRsiHistoricals as Future
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -225,8 +235,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.similarObj = data.length > 10 ? data[10] : null;
           instrument.splitsObj = data.length > 11 ? data[11] : null;
 
-          _calculatePositionOrderBalance(instrument.positionOrders!);
-          _calculateOptionOrderBalance(instrument.optionOrders!);
+          positionOrdersBalance = instrument.positionOrders != null &&
+                  instrument.positionOrders!.isNotEmpty
+              ? instrument.positionOrders!
+                  .map((e) =>
+                      (e.averagePrice != null
+                          ? e.averagePrice! * e.quantity!
+                          : 0.0) *
+                      (e.side == "buy" ? 1 : -1))
+                  .reduce((a, b) => a + b)
+              : 0.0;
+
+          optionOrdersPremiumBalance = instrument.optionOrders != null &&
+                  instrument.optionOrders!.isNotEmpty
+              ? instrument.optionOrders!
+                  .map((e) =>
+                      (e.processedPremium != null ? e.processedPremium! : 0) *
+                      (e.direction == "credit" ? 1 : -1))
+                  .reduce((a, b) => a + b) as double
+              : 0;
         } else if (snapshot.hasError) {
           debugPrint("${snapshot.error}");
           return Center(child: Text("${snapshot.error}"));
@@ -235,26 +262,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             done: snapshot.connectionState == ConnectionState.done);
       },
     ));
-  }
-
-  void _calculateOptionOrderBalance(List<OptionOrder> optionOrders) {
-    optionOrdersPremiumBalance = optionOrders.isNotEmpty
-        ? optionOrders
-            .map((e) =>
-                (e.processedPremium != null ? e.processedPremium! : 0) *
-                (e.direction == "credit" ? 1 : -1))
-            .reduce((a, b) => a + b) as double
-        : 0;
-  }
-
-  void _calculatePositionOrderBalance(List<StockOrder> positionOrders) {
-    positionOrdersBalance = positionOrders.isNotEmpty
-        ? positionOrders
-            .map((e) =>
-                (e.averagePrice != null ? e.averagePrice! * e.quantity! : 0.0) *
-                (e.side == "buy" ? 1 : -1))
-            .reduce((a, b) => a + b)
-        : 0.0;
   }
 
   void _startRefreshTimer() {
@@ -451,11 +458,34 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: buildOverview(instrument))),
           Consumer<InstrumentHistoricalsStore>(
               builder: (context, instrumentHistoricalsStore, child) {
-            if (instrumentHistoricalsStore.items.isNotEmpty) {
-              instrument.instrumentHistoricalsObj =
-                  instrumentHistoricalsStore.items.first;
-              //instrument.instrumentHistoricalsObj != null &&
-              //instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
+            instrument.instrumentHistoricalsObj =
+                instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
+                        element.symbol == instrument.symbol &&
+                        element.span ==
+                            RobinhoodService.convertChartSpanFilter(
+                                chartDateSpanFilter) &&
+                        element.bounds ==
+                            RobinhoodService.convertChartBoundsFilter(
+                                chartBoundsFilter)
+                    //&& element.interval == element.interval
+                    );
+
+            var rsi = instrumentHistoricalsStore.items.firstWhereOrNull(
+                (element) =>
+                    element.symbol == instrument.symbol &&
+                    element.span ==
+                        RobinhoodService.convertChartSpanFilter(
+                            ChartDateSpan.month) &&
+                    element.bounds ==
+                        RobinhoodService.convertChartBoundsFilter(
+                            chartBoundsFilter) &&
+                    element.interval == 'day');
+            if (rsi != null) {
+              debugPrint(rsi.historicals.first.closePrice!.toString());
+            }
+
+            if (instrument.instrumentHistoricalsObj != null &&
+                instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
               double open = 0;
