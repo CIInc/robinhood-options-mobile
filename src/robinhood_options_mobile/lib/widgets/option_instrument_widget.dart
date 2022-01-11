@@ -878,7 +878,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         ],
                       ))),
                   SizedBox(
-                      height: 300,
+                      height: 240,
                       child: Padding(
                         //padding: EdgeInsets.symmetric(horizontal: 12.0),
                         padding: const EdgeInsets.all(10.0),

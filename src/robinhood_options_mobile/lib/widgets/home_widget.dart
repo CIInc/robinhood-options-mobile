@@ -869,7 +869,7 @@ class _HomePageState extends State<HomePage>
                       )),
                   */
                   SizedBox(
-                      height: 400,
+                      height: 240,
                       child: Padding(
                         //padding: EdgeInsets.symmetric(horizontal: 12.0),
                         padding: const EdgeInsets.all(10.0),

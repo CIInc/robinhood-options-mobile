@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
@@ -110,6 +112,12 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => InstrumentStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InstrumentHistoricalsStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InstrumentHistoricalsSelectionStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => QuoteStore(),

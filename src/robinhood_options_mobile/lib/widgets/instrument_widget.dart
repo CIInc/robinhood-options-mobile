@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
@@ -220,7 +222,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           _calculateOptionOrderBalance(instrument.optionOrders!);
 
           futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
-              user, instrument.symbol,
+              user,
+              Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+              instrument.symbol,
               chartBoundsFilter: chartBoundsFilter,
               chartDateSpanFilter: chartDateSpanFilter);
 
@@ -279,11 +283,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       const Duration(milliseconds: 15000),
       (timer) async {
         if (widget.user.refreshEnabled) {
+          await RobinhoodService.getInstrumentHistoricals(
+              widget.user,
+              Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+              widget.instrument.symbol,
+              chartBoundsFilter: chartBoundsFilter,
+              chartDateSpanFilter: chartDateSpanFilter);
+          /*
           if (futureHistoricals != null) {
             setState(() {
               futureHistoricals = null;
             });
           }
+          */
         }
       },
     );
@@ -305,282 +317,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   buildScrollView(Instrument instrument,
       {List<OptionInstrument>? optionInstruments, bool done = false}) {
-    var slivers = <Widget>[];
-
-    if (instrument.instrumentHistoricalsObj != null) {
-      if (chart == null) {
-        List<charts.Series<dynamic, DateTime>> seriesList = [
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Open',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.openPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Close',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.closePrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-              id: 'Volume',
-              colorFn: (_, __) => charts.MaterialPalette.cyan.shadeDefault,
-              domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-              measureFn: (InstrumentHistorical history, _) => history.volume,
-              data: instrument.instrumentHistoricalsObj!.historicals),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'Low',
-            colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.lowPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-          charts.Series<InstrumentHistorical, DateTime>(
-            id: 'High',
-            colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
-            domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
-            measureFn: (InstrumentHistorical history, _) => history.highPrice,
-            data: instrument.instrumentHistoricalsObj!.historicals,
-          ),
-        ];
-        var open =
-            instrument.instrumentHistoricalsObj!.historicals[0].openPrice!;
-        var close = instrument
-            .instrumentHistoricalsObj!
-            .historicals[
-                instrument.instrumentHistoricalsObj!.historicals.length - 1]
-            .closePrice!;
-        chart = TimeSeriesChart(seriesList,
-            open: open,
-            close: close,
-            hiddenSeries: const ["Close", "Volume", "Low", "High"],
-            onSelected: _onChartSelection);
-      }
-
-      InstrumentHistorical? firstHistorical;
-      InstrumentHistorical? lastHistorical;
-      double open = 0;
-      double close = 0;
-      double changeInPeriod = 0;
-      double changePercentInPeriod = 0;
-
-      firstHistorical = instrument.instrumentHistoricalsObj!.historicals[0];
-      lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
-          instrument.instrumentHistoricalsObj!.historicals.length - 1];
-      open = firstHistorical.openPrice!;
-      close = lastHistorical.closePrice!;
-      changeInPeriod = close - open;
-      changePercentInPeriod = changeInPeriod / close;
-
-      if (selection != null) {
-        changeInPeriod = selection!.closePrice! - open;
-        changePercentInPeriod = changeInPeriod / selection!.closePrice!;
-      }
-
-      var brightness = MediaQuery.of(context).platformBrightness;
-      var textColor = Theme.of(context).colorScheme.background;
-      if (brightness == Brightness.dark) {
-        textColor = Colors.grey.shade200;
-      } else {
-        textColor = Colors.grey.shade800;
-      }
-
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-
-      slivers.add(SliverToBoxAdapter(
-          child: SizedBox(
-              height: 36,
-              child: Center(
-                  child: Column(
-                children: [
-                  Wrap(
-                    children: [
-                      Text(
-                          formatCurrency.format(selection != null
-                              ? selection!.closePrice
-                              : close),
-                          style: TextStyle(fontSize: 20, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Icon(
-                        changeInPeriod > 0
-                            ? Icons.trending_up
-                            : (changeInPeriod < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (changeInPeriod > 0
-                            ? Colors.green
-                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                        //size: 16.0
-                      ),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              //.format(selection!.netReturn!.abs()),
-                              .format(changePercentInPeriod.abs()),
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ],
-                  ),
-                  Text(
-                      '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal())}',
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ],
-              )))));
-
-      slivers.add(SliverToBoxAdapter(
-          child: SizedBox(
-              height: 400,
-              child: Padding(
-                //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                padding: const EdgeInsets.all(10.0),
-                child: chart,
-              ))));
-      //child: StackedAreaLineChart.withSampleData()))));
-      slivers.add(SliverToBoxAdapter(
-          child: SizedBox(
-              height: 56,
-              child: ListView.builder(
-                key: const PageStorageKey<String>('instrumentChartFilters'),
-                padding: const EdgeInsets.all(5.0),
-                scrollDirection: Axis.horizontal,
-                itemBuilder: (context, index) {
-                  return Row(children: [
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Day'),
-                        selected: chartDateSpanFilter == ChartDateSpan.day,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(ChartDateSpan.day, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Week'),
-                        selected: chartDateSpanFilter == ChartDateSpan.week,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(ChartDateSpan.week, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Month'),
-                        selected: chartDateSpanFilter == ChartDateSpan.month,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(ChartDateSpan.month, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('3 Months'),
-                        selected: chartDateSpanFilter == ChartDateSpan.month_3,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(
-                                ChartDateSpan.month_3, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Year'),
-                        selected: chartDateSpanFilter == ChartDateSpan.year,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(ChartDateSpan.year, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('5 Years'),
-                        selected: chartDateSpanFilter == ChartDateSpan.year_5,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(ChartDateSpan.year_5, chartBoundsFilter);
-                          }
-                        },
-                      ),
-                    ),
-                    Container(
-                      width: 10,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Regular Hours'),
-                        selected: chartBoundsFilter == Bounds.regular,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(chartDateSpanFilter, Bounds.regular);
-                          }
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: ChoiceChip(
-                        //avatar: const Icon(Icons.history_outlined),
-                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        label: const Text('Trading Hours'),
-                        selected: chartBoundsFilter == Bounds.trading,
-                        onSelected: (bool value) {
-                          if (value) {
-                            resetChart(chartDateSpanFilter, Bounds.trading);
-                          }
-                        },
-                      ),
-                    ),
-                  ]);
-                },
-                itemCount: 1,
-              ))));
-    }
-
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
@@ -733,7 +469,316 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Align(
                   alignment: Alignment.center,
                   child: buildOverview(instrument))),
-          ...slivers,
+          Consumer<InstrumentHistoricalsStore>(
+              builder: (context, instrumentHistoricalsStore, child) {
+            if (instrument.instrumentHistoricalsObj != null &&
+                instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
+              InstrumentHistorical? firstHistorical;
+              InstrumentHistorical? lastHistorical;
+              double open = 0;
+              double close = 0;
+              double changeInPeriod = 0;
+              double changePercentInPeriod = 0;
+
+              firstHistorical =
+                  instrument.instrumentHistoricalsObj!.historicals[0];
+              lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
+                  instrument.instrumentHistoricalsObj!.historicals.length - 1];
+              open = firstHistorical.openPrice!;
+              close = lastHistorical.closePrice!;
+              changeInPeriod = close - open;
+              changePercentInPeriod = changeInPeriod / close;
+
+              var brightness = MediaQuery.of(context).platformBrightness;
+              var textColor = Theme.of(context).colorScheme.background;
+              if (brightness == Brightness.dark) {
+                textColor = Colors.grey.shade200;
+              } else {
+                textColor = Colors.grey.shade800;
+              }
+              List<charts.Series<dynamic, DateTime>> seriesList = [
+                charts.Series<InstrumentHistorical, DateTime>(
+                  id: 'Open',
+                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                  domainFn: (InstrumentHistorical history, _) =>
+                      history.beginsAt!,
+                  measureFn: (InstrumentHistorical history, _) =>
+                      history.openPrice,
+                  data: instrument.instrumentHistoricalsObj!.historicals,
+                ),
+                charts.Series<InstrumentHistorical, DateTime>(
+                  id: 'Close',
+                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                  domainFn: (InstrumentHistorical history, _) =>
+                      history.beginsAt!,
+                  measureFn: (InstrumentHistorical history, _) =>
+                      history.closePrice,
+                  data: instrument.instrumentHistoricalsObj!.historicals,
+                ),
+                charts.Series<InstrumentHistorical, DateTime>(
+                    id: 'Volume',
+                    colorFn: (_, __) =>
+                        charts.MaterialPalette.cyan.shadeDefault,
+                    domainFn: (InstrumentHistorical history, _) =>
+                        history.beginsAt!,
+                    measureFn: (InstrumentHistorical history, _) =>
+                        history.volume,
+                    data: instrument.instrumentHistoricalsObj!.historicals),
+                charts.Series<InstrumentHistorical, DateTime>(
+                  id: 'Low',
+                  colorFn: (_, __) => charts.MaterialPalette.red.shadeDefault,
+                  domainFn: (InstrumentHistorical history, _) =>
+                      history.beginsAt!,
+                  measureFn: (InstrumentHistorical history, _) =>
+                      history.lowPrice,
+                  data: instrument.instrumentHistoricalsObj!.historicals,
+                ),
+                charts.Series<InstrumentHistorical, DateTime>(
+                  id: 'High',
+                  colorFn: (_, __) => charts.MaterialPalette.green.shadeDefault,
+                  domainFn: (InstrumentHistorical history, _) =>
+                      history.beginsAt!,
+                  measureFn: (InstrumentHistorical history, _) =>
+                      history.highPrice,
+                  data: instrument.instrumentHistoricalsObj!.historicals,
+                ),
+              ];
+              chart = TimeSeriesChart(seriesList,
+                  open: open,
+                  close: close,
+                  hiddenSeries: const ["Close", "Volume", "Low", "High"],
+                  onSelected: _onChartSelection);
+
+              /*
+              slivers.add(const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )));
+*/
+              return SliverToBoxAdapter(
+                  child: Column(
+                children: [
+                  Consumer<InstrumentHistoricalsSelectionStore>(
+                      builder: (context, value, child) {
+                    selection = value.selection;
+                    if (selection != null) {
+                      changeInPeriod = selection!.closePrice! - open;
+                      changePercentInPeriod =
+                          changeInPeriod / selection!.closePrice!;
+                    } else {
+                      changeInPeriod = close - open;
+                      changePercentInPeriod = changeInPeriod / close;
+                    }
+                    return SizedBox(
+                        height: 36,
+                        child: Center(
+                            child: Column(
+                          children: [
+                            Wrap(
+                              children: [
+                                Text(
+                                    formatCurrency.format(selection != null
+                                        ? selection!.closePrice
+                                        : close),
+                                    style: TextStyle(
+                                        fontSize: 20, color: textColor)),
+                                Container(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  changeInPeriod > 0
+                                      ? Icons.trending_up
+                                      : (changeInPeriod < 0
+                                          ? Icons.trending_down
+                                          : Icons.trending_flat),
+                                  color: (changeInPeriod > 0
+                                      ? Colors.green
+                                      : (changeInPeriod < 0
+                                          ? Colors.red
+                                          : Colors.grey)),
+                                  //size: 16.0
+                                ),
+                                Container(
+                                  width: 2,
+                                ),
+                                Text(
+                                    formatPercentage
+                                        //.format(selection!.netReturn!.abs()),
+                                        .format(changePercentInPeriod.abs()),
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: textColor)),
+                                Container(
+                                  width: 10,
+                                ),
+                                Text(
+                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: textColor)),
+                              ],
+                            ),
+                            Text(
+                                '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                style:
+                                    TextStyle(fontSize: 10, color: textColor)),
+                          ],
+                        )));
+                  }),
+                  SizedBox(
+                      height: 240,
+                      child: Padding(
+                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.all(10.0),
+                        child: chart,
+                      )),
+                  SizedBox(
+                      height: 56,
+                      child: ListView.builder(
+                        key: const PageStorageKey<String>(
+                            'instrumentChartFilters'),
+                        padding: const EdgeInsets.all(5.0),
+                        scrollDirection: Axis.horizontal,
+                        itemBuilder: (context, index) {
+                          return Row(children: [
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Day'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.day,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.day, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Week'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.week,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.week, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Month'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.month,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.month, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('3 Months'),
+                                selected: chartDateSpanFilter ==
+                                    ChartDateSpan.month_3,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(ChartDateSpan.month_3,
+                                        chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Year'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.year,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        ChartDateSpan.year, chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('5 Years'),
+                                selected:
+                                    chartDateSpanFilter == ChartDateSpan.year_5,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(ChartDateSpan.year_5,
+                                        chartBoundsFilter);
+                                  }
+                                },
+                              ),
+                            ),
+                            Container(
+                              width: 10,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Regular Hours'),
+                                selected: chartBoundsFilter == Bounds.regular,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        chartDateSpanFilter, Bounds.regular);
+                                  }
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ChoiceChip(
+                                //avatar: const Icon(Icons.history_outlined),
+                                //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                label: const Text('Trading Hours'),
+                                selected: chartBoundsFilter == Bounds.trading,
+                                onSelected: (bool value) {
+                                  if (value) {
+                                    resetChart(
+                                        chartDateSpanFilter, Bounds.trading);
+                                  }
+                                },
+                              ),
+                            ),
+                          ]);
+                        },
+                        itemCount: 1,
+                      ))
+                ],
+              ));
+
+              //child: StackedAreaLineChart.withSampleData()))));
+            }
+            return SliverToBoxAdapter(child: Container());
+          }),
           Consumer<StockPositionStore>(
               builder: (context, stockPositionStore, child) {
             var position = stockPositionStore.items
@@ -991,11 +1036,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   _onChartSelection(dynamic historical) {
-    if (selection != historical) {
-      setState(() {
-        selection = historical;
-      });
-    }
+    var provider = Provider.of<InstrumentHistoricalsSelectionStore>(context,
+        listen: false);
+    provider.selectionChanged(historical);
     /*
     if (historical != null) {
       if (selection != historical as InstrumentHistorical) {

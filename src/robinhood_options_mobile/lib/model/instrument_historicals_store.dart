@@ -1,42 +1,42 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:robinhood_options_mobile/model/equity_historical.dart';
-import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
+import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 
-class PortfolioHistoricalsStore extends ChangeNotifier {
+class InstrumentHistoricalsStore extends ChangeNotifier {
   /// Internal, private state of the store.
-  final List<PortfolioHistoricals> _items = [];
-  EquityHistorical? selection;
+  final List<InstrumentHistoricals> _items = [];
+  InstrumentHistorical? selection;
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<PortfolioHistoricals> get items =>
+  UnmodifiableListView<InstrumentHistoricals> get items =>
       UnmodifiableListView(_items);
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
-  void set(PortfolioHistoricals item) {
+  void set(InstrumentHistoricals item) {
     if (items.isEmpty) {
       _items.add(item);
       notifyListeners();
     } else {
-      if (_items[0].equityHistoricals.first.beginsAt !=
-          item.equityHistoricals.first.beginsAt) {
+      if (_items[0].historicals.first.beginsAt !=
+          item.historicals.first.beginsAt) {
         _items[0] = item;
         notifyListeners();
       }
     }
   }
 
-  void select(EquityHistorical historical) {
+  void select(InstrumentHistoricals historical) {
     if (selection != historical) {
-      selection = historical;
+      selection = historical as InstrumentHistorical?;
       notifyListeners();
     }
   }
 
-  void add(PortfolioHistoricals item) {
+  void add(InstrumentHistoricals item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
@@ -48,7 +48,7 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool update(PortfolioHistoricals item) {
+  bool update(InstrumentHistoricals item) {
     var index = _items.indexWhere((element) =>
         element.span == item.span && element.bounds == item.bounds);
     if (index == -1) {
@@ -59,7 +59,7 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
     return true;
   }
 
-  void addOrUpdate(PortfolioHistoricals item) {
+  void addOrUpdate(InstrumentHistoricals item) {
     if (!update(item)) {
       add(item);
     }

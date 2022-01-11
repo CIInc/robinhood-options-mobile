@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
@@ -262,7 +263,7 @@ class RobinhoodService {
         var position = store.items
             .firstWhere((element) => element.instrumentId == instrumentObj.id);
         position.instrumentObj = instrumentObj;
-        //store.update(position);
+        store.update(position);
       }
       var symbols = store.items.map((e) => e.instrumentObj!.symbol).toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
@@ -700,7 +701,9 @@ class RobinhoodService {
   // Year: bounds: regular, interval: day, span: 5year
   */
   static Future<InstrumentHistoricals> getInstrumentHistoricals(
-      RobinhoodUser user, String symbolOrInstrumentId,
+      RobinhoodUser user,
+      InstrumentHistoricalsStore store,
+      String symbolOrInstrumentId,
       {bool includeInactive = true,
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
@@ -708,63 +711,15 @@ class RobinhoodService {
     var rtn = convertChartSpanFilter(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
-    /*
-        String? bounds;
-        String? interval;
-        String? span;
-        switch (chartBoundsFilter) {
-          case Bounds.regular:
-            bounds = "regular";
-            break;
-          case Bounds.trading:
-            bounds = "trading";
-            break;
-          default:
-            bounds = "regular";
-            break;
-        }
-        switch (chartDateSpanFilter) {
-          case ChartDateSpan.day:
-            interval = "5minute";
-            span = "day";
-            bounds = "trading";
-            break;
-          case ChartDateSpan.week:
-            interval = "10minute";
-            span = "week";
-            // bounds = "24_7"; // Does not look good with regular?!
-            break;
-          case ChartDateSpan.month:
-            interval = "hour";
-            span = "month";
-            // bounds = "24_7"; // Does not look good with regular?!
-            break;
-          case ChartDateSpan.month_3:
-            interval = "day";
-            span = "3month";
-            break;
-          case ChartDateSpan.year:
-            interval = "day";
-            span = "year";
-            break;
-          case ChartDateSpan.year_5:
-            interval = "day";
-            span = "5year";
-            break;
-          default:
-            interval = "5minute";
-            span = "day";
-            bounds = "trading";
-            break;
-        }
-      */
     var result = await RobinhoodService.getJson(
         user,
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
         "${Constants.robinHoodEndpoint}/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
-    return InstrumentHistoricals.fromJson(result);
+    var instrumentHistorical = InstrumentHistoricals.fromJson(result);
+    store.set(instrumentHistorical);
+    return instrumentHistorical;
   }
 
   static Future<List<StockOrder>> getInstrumentOrders(RobinhoodUser user,
