@@ -221,12 +221,13 @@ class RobinhoodUser {
     return value;
   }
 
-  double? getPositionAggregateDisplayValue(List<StockPosition> ops) {
+  double? getPositionAggregateDisplayValue(List<StockPosition> ops,
+      {DisplayValue? displayValue}) {
     double value = 0;
     if (ops.isEmpty) {
       return value;
     }
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         return null;
       /*
@@ -282,12 +283,13 @@ class RobinhoodUser {
     return value;
   }
 
-  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops) {
+  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops,
+      {DisplayValue? displayValue}) {
     double value = 0;
     if (ops.isEmpty) {
       return value;
     }
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         return null;
       /*
@@ -397,18 +399,15 @@ class RobinhoodUser {
     return value;
   }
 
-  Icon? getDisplayIcon(double value) {
-    if (displayValue == DisplayValue.lastPrice ||
-        displayValue == DisplayValue.marketValue) {
-      return null;
-    }
+  Icon getDisplayIcon(double value, {double? size}) {
     var icon = Icon(
-        value > 0
-            ? Icons.trending_up
-            : (value < 0 ? Icons.trending_down : Icons.trending_flat),
-        color: (value > 0
-            ? Colors.green
-            : (value < 0 ? Colors.red : Colors.grey)));
+      value > 0
+          ? Icons.trending_up
+          : (value < 0 ? Icons.trending_down : Icons.trending_flat),
+      color:
+          (value > 0 ? Colors.green : (value < 0 ? Colors.red : Colors.grey)),
+      size: size,
+    );
     return icon;
   }
 

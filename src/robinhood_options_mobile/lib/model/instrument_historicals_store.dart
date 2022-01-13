@@ -27,8 +27,12 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
       _items.add(item);
       notifyListeners();
     } else {
-      if (current.historicals.first.beginsAt !=
-          item.historicals.first.beginsAt) {
+      if (current.historicals.first.beginsAt!
+                  .compareTo(item.historicals.first.beginsAt!) !=
+              0 ||
+          current.historicals.last.beginsAt!
+                  .compareTo(item.historicals.last.beginsAt!) !=
+              0) {
         current = item;
         notifyListeners();
       }

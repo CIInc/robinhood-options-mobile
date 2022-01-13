@@ -21,8 +21,18 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
       _items.add(item);
       notifyListeners();
     } else {
-      if (_items[0].equityHistoricals.first.beginsAt !=
-          item.equityHistoricals.first.beginsAt) {
+      if (_items[0]
+                  .equityHistoricals
+                  .first
+                  .beginsAt!
+                  .compareTo(item.equityHistoricals.first.beginsAt!) !=
+              0 ||
+          _items[0]
+                  .equityHistoricals
+                  .last
+                  .beginsAt!
+                  .compareTo(item.equityHistoricals.last.beginsAt!) !=
+              0) {
         _items[0] = item;
         notifyListeners();
       }

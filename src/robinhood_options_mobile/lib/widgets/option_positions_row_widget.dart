@@ -247,6 +247,18 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     op.instrumentObj!)));
       }
     });
+    /*
+    double? value = user.getAggregateDisplayValue(filteredOptionPositions);
+    String? trailingText;
+    Icon? icon;
+    if (value != null) {
+      trailingText = user.getDisplayText(value);
+      icon = user.getDisplayIcon(value);
+    }
+    */
+    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
+
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(
       offset: ViewportOffset.zero(),
@@ -263,9 +275,15 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts, ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying"), // of ${formatCompactNumber.format(optionPositions.length)}
-                /*
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", " + formatCompactNumber.format(groupedOptionAggregatePositions.length) + " underlying" : ""}"),
                 trailing: Wrap(spacing: 8, children: [
+                  Text(
+                    marketValueText,
+                    style: const TextStyle(fontSize: 21.0),
+                    textAlign: TextAlign.right,
+                  )
+
+                  /*
                   if (icon != null) ...[
                     icon,
                   ],
@@ -276,8 +294,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       textAlign: TextAlign.right,
                     )
                   ]
+                  */
                 ]),
-                */
               ),
               SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -286,6 +304,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            /*
                             Padding(
                               padding: const EdgeInsets.all(
                                   summaryEgdeInset), //.symmetric(horizontal: 6),
@@ -302,23 +321,24 @@ class OptionPositionsRowWidget extends StatelessWidget {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
+                            */
                             Padding(
                               padding: const EdgeInsets.all(
                                   summaryEgdeInset), //.symmetric(horizontal: 6),
                               child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
-                                    /*
                                     Wrap(spacing: 8, children: [
-                                      user.getDisplayIcon(todayReturn)!,
+                                      todayIcon,
                                       Text(todayReturnText,
                                           style: const TextStyle(
                                               fontSize: summaryValueFontSize))
                                     ]),
-                                    */
+                                    /*
                                     Text(todayReturnText,
                                         style: const TextStyle(
                                             fontSize: summaryValueFontSize)),
+                                            */
                                     /*
                                     Text(todayReturnPercentText,
                                         style: const TextStyle(
@@ -349,17 +369,17 @@ class OptionPositionsRowWidget extends StatelessWidget {
                               child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
-                                    /*
                                     Wrap(spacing: 8, children: [
-                                      user.getDisplayIcon(todayReturn)!,
+                                      totalIcon,
                                       Text(totalReturnText,
                                           style: const TextStyle(
                                               fontSize: summaryValueFontSize))
                                     ]),
-                                    */
+                                    /*
                                     Text(totalReturnText,
                                         style: const TextStyle(
                                             fontSize: summaryValueFontSize)),
+                                            */
                                     /*
                                     Text(totalReturnPercentText,
                                         style: const TextStyle(
@@ -516,7 +536,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
       OptionAggregatePosition op, BuildContext context) {
     double value = user.getDisplayValue(op);
     String opTrailingText = user.getDisplayText(value);
-    Icon? icon = user.getDisplayIcon(value);
+    Icon? icon = (user.displayValue == DisplayValue.lastPrice ||
+            user.displayValue == DisplayValue.marketValue)
+        ? null
+        : user.getDisplayIcon(value);
 
     return Card(
         child: Column(
@@ -769,7 +792,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
     Icon? icon;
     if (value != null) {
       trailingText = user.getDisplayText(value);
-      icon = user.getDisplayIcon(value);
+      icon = (user.displayValue == DisplayValue.lastPrice ||
+              user.displayValue == DisplayValue.marketValue)
+          ? null
+          : user.getDisplayIcon(value);
     }
 
     double? deltaAvg,
@@ -872,7 +898,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
     for (OptionAggregatePosition op in ops) {
       double value = user.getDisplayValue(op);
       String trailingText = user.getDisplayText(value);
-      Icon? icon = user.getDisplayIcon(value);
+      Icon? icon = (user.displayValue == DisplayValue.lastPrice ||
+              user.displayValue == DisplayValue.marketValue)
+          ? null
+          : user.getDisplayIcon(value);
 
       cards.add(
           //Card(child:

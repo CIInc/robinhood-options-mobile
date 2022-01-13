@@ -308,7 +308,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
           SliverAppBar(
-            title: headerTitle(instrument),
+            title: Consumer<QuoteStore>(builder: (context, quoteStore, child) {
+              return headerTitle(instrument, quoteStore);
+            }),
             //expandedHeight: 160,
             expandedHeight: 240, // 280.0,
             floating: false,
@@ -2485,7 +2487,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ));
   }
 
-  Widget headerTitle(Instrument instrument) {
+  Widget headerTitle(Instrument instrument, QuoteStore store) {
+    var quoteObj = store.items
+        .firstWhereOrNull((element) => element.symbol == instrument.symbol);
     return Wrap(
         crossAxisAlignment: WrapCrossAlignment.end,
         //runAlignment: WrapAlignment.end,
@@ -2497,37 +2501,35 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             instrument.symbol, // ${optionPosition.strategy.split('_').first}
             //style: const TextStyle(fontSize: 20.0)
           ),
-          if (instrument.quoteObj != null) ...[
+          if (quoteObj != null) ...[
             Wrap(spacing: 10, children: [
-              Text(formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+              Text(formatCurrency.format(quoteObj.lastTradePrice),
                   //style: const TextStyle(fontSize: 15.0)
                   style:
                       const TextStyle(fontSize: 16.0, color: Colors.white70)),
               Wrap(children: [
                 Icon(
-                    instrument.quoteObj!.changeToday > 0
+                    quoteObj.changeToday > 0
                         ? Icons.trending_up
-                        : (instrument.quoteObj!.changeToday < 0
+                        : (quoteObj.changeToday < 0
                             ? Icons.trending_down
                             : Icons.trending_flat),
-                    color: (instrument.quoteObj!.changeToday > 0
+                    color: (quoteObj.changeToday > 0
                         ? Colors.lightGreenAccent
-                        : (instrument.quoteObj!.changeToday < 0
+                        : (quoteObj.changeToday < 0
                             ? Colors.red
                             : Colors.grey)),
                     size: 20.0),
                 Container(
                   width: 2,
                 ),
-                Text(
-                    formatPercentage
-                        .format(instrument.quoteObj!.changePercentToday),
+                Text(formatPercentage.format(quoteObj.changePercentToday),
                     //style: const TextStyle(fontSize: 15.0)
                     style:
                         const TextStyle(fontSize: 16.0, color: Colors.white70)),
               ]),
               Text(
-                  "${instrument.quoteObj!.changeToday > 0 ? "+" : instrument.quoteObj!.changeToday < 0 ? "-" : ""}${formatCurrency.format(instrument.quoteObj!.changeToday.abs())}",
+                  "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
                   //style: const TextStyle(fontSize: 12.0),
                   style: const TextStyle(fontSize: 16.0, color: Colors.white70),
                   textAlign: TextAlign.right)
