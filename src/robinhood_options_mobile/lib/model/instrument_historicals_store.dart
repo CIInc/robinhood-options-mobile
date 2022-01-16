@@ -31,10 +31,17 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
                   .compareTo(item.historicals.first.beginsAt!) !=
               0 ||
           current.historicals.last.beginsAt!
-                  .compareTo(item.historicals.last.beginsAt!) !=
+                  .compareTo(item.historicals.last.beginsAt!) <
               0) {
+        // QuoteStore entry was added to the end, so check that the historical is newer.
+        debugPrint(
+            '${current.historicals.first.beginsAt} != ${item.historicals.first.beginsAt!}');
+        debugPrint(
+            '${current.historicals.last.beginsAt} != ${item.historicals.last.beginsAt!}');
         current = item;
         notifyListeners();
+      } else {
+        debugPrint('No updates for InstrumentHistoricals.');
       }
     }
   }

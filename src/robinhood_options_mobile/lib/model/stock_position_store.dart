@@ -10,8 +10,14 @@ class StockPositionStore extends ChangeNotifier {
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<StockPosition> get items => UnmodifiableListView(_items);
 
-  /// The current total price of all items (assuming all items cost $42).
-  //int get totalPrice => _items.length * 42;
+  double get equity => _items.isNotEmpty
+      ? _items.map((e) => e.marketValue).reduce((a, b) => a + b)
+      : 0;
+
+  List<String> get symbols => _items
+      .where((element) => element.instrumentObj != null)
+      .map((e) => e.instrumentObj!.symbol)
+      .toList(); //.toSet().toList()
 
   void add(StockPosition item) {
     _items.add(item);

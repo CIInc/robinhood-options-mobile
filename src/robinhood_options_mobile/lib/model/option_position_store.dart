@@ -11,8 +11,16 @@ class OptionPositionStore extends ChangeNotifier {
   UnmodifiableListView<OptionAggregatePosition> get items =>
       UnmodifiableListView(_items);
 
-  /// The current total price of all items (assuming all items cost $42).
-  //int get totalPrice => _items.length * 42;
+  double get equity => _items.isNotEmpty
+      ? _items
+          .map((e) => e.legs.first.positionType == "long"
+              ? e.marketValue
+              : e.marketValue)
+          .reduce((a, b) => a + b)
+      : 0;
+
+  List<String> get symbols =>
+      _items.map((e) => e.symbol).toList(); //.toSet().toList()
 
   void add(OptionAggregatePosition item) {
     _items.add(item);

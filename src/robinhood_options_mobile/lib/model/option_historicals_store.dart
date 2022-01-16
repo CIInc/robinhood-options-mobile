@@ -27,13 +27,31 @@ class OptionHistoricalsStore extends ChangeNotifier {
   }
 
   bool update(OptionHistoricals item) {
-    var index = _items
-        .indexWhere((element) => element.legs.first.id == item.legs.first.id);
+    var index = _items.indexWhere((element) =>
+        element.legs.first.id == item.legs.first.id &&
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
     if (index == -1) {
       return false;
     }
-    _items[index] = item;
-    notifyListeners();
+    if (_items[0]
+                .historicals
+                .first
+                .beginsAt!
+                .compareTo(item.historicals.first.beginsAt!) !=
+            0 ||
+        _items[0]
+                .historicals
+                .last
+                .beginsAt!
+                .compareTo(item.historicals.last.beginsAt!) !=
+            0) {
+      _items[index] = item;
+      notifyListeners();
+    } else {
+      debugPrint('No updates for OptionHistoricals.');
+    }
     return true;
   }
 

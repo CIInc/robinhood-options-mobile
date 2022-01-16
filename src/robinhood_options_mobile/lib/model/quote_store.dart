@@ -30,8 +30,10 @@ class QuoteStore extends ChangeNotifier {
     if (index == -1) {
       return false;
     }
-    _items[index] = item;
-    notifyListeners();
+    if (item.updatedAt!.compareTo(_items[index].updatedAt!) != 0) {
+      _items[index] = item;
+      notifyListeners();
+    }
     return true;
   }
 

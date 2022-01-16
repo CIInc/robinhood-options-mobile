@@ -458,8 +458,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Align(
                   alignment: Alignment.center,
                   child: buildOverview(instrument))),
-          Consumer<InstrumentHistoricalsStore>(
-              builder: (context, instrumentHistoricalsStore, child) {
+          Consumer2<InstrumentHistoricalsStore, QuoteStore>(builder:
+              (context, instrumentHistoricalsStore, quoteStore, child) {
             instrument.instrumentHistoricalsObj =
                 instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
                         element.symbol == instrument.symbol &&
@@ -488,6 +488,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
             if (instrument.instrumentHistoricalsObj != null &&
                 instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
+              var quoteObj = quoteStore.items.firstWhereOrNull(
+                  (element) => element.symbol == instrument.symbol);
+
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
               double open = 0;
@@ -499,7 +502,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   instrument.instrumentHistoricalsObj!.historicals[0];
               lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
                   instrument.instrumentHistoricalsObj!.historicals.length - 1];
-              open = firstHistorical.openPrice!;
+              open = instrument.instrumentHistoricalsObj!.previousClosePrice ??
+                  firstHistorical.openPrice!;
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
               changePercentInPeriod = changeInPeriod / close;
@@ -510,6 +514,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 textColor = Colors.grey.shade200;
               } else {
                 textColor = Colors.grey.shade800;
+              }
+              // TODO: review
+              if (instrument
+                      .instrumentHistoricalsObj!.historicals.last.beginsAt !=
+                  quoteObj!.updatedAt) {
+                instrument.instrumentHistoricalsObj!.historicals
+                    .add(InstrumentHistorical(
+                        //DateTime.now(),
+                        quoteObj.updatedAt,
+                        quoteObj.lastTradePrice,
+                        quoteObj.lastTradePrice,
+                        quoteObj.lastTradePrice,
+                        quoteObj.lastTradePrice,
+                        0,
+                        '',
+                        false));
               }
               List<charts.Series<dynamic, DateTime>> seriesList = [
                 charts.Series<InstrumentHistorical, DateTime>(

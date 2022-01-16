@@ -1,5 +1,8 @@
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+final formatCurrency = NumberFormat.simpleCurrency();
 
 class TimeSeriesChart extends StatefulWidget {
   final List<charts.Series<dynamic, DateTime>> seriesList;
@@ -49,9 +52,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
     var rangeAnnotationColor = charts.MaterialPalette.gray.shade800;
+    var rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
     var axisLabelColor = charts.MaterialPalette.gray.shade200;
     if (brightness == Brightness.light) {
       rangeAnnotationColor = charts.MaterialPalette.gray.shade200;
+      rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
 
@@ -115,9 +120,14 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 widget.open! <= widget.close! ? widget.open! : widget.close!,
                 widget.open! <= widget.close! ? widget.close! : widget.open!,
                 charts.RangeAnnotationAxisType.measure,
-                startLabel: widget.open! <= widget.close! ? 'Open' : 'Close',
-                endLabel: widget.open! <= widget.close! ? 'Close' : 'Open',
-                labelStyleSpec: charts.TextStyleSpec(color: axisLabelColor),
+                startLabel: widget.open! <= widget.close!
+                    ? 'Previous ' + formatCurrency.format(widget.open!)
+                    : 'Current ' + formatCurrency.format(widget.close!),
+                endLabel: widget.open! <= widget.close!
+                    ? 'Current ' + formatCurrency.format(widget.close!)
+                    : 'Previous ' + formatCurrency.format(widget.open!),
+                labelStyleSpec: charts.TextStyleSpec(
+                    color: rangeAnnotationLabelColor), //axisLabelColor
                 color: rangeAnnotationColor // gray.shade200
                 ),
           ])

@@ -10,8 +10,9 @@ class ForexHoldingStore extends ChangeNotifier {
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<ForexHolding> get items => UnmodifiableListView(_items);
 
-  /// The current total price of all items (assuming all items cost $42).
-  //int get totalPrice => _items.length * 42;
+  double get equity => _items.isNotEmpty
+      ? _items.map((e) => e.marketValue).reduce((a, b) => a + b)
+      : 0;
 
   void add(ForexHolding item) {
     _items.add(item);

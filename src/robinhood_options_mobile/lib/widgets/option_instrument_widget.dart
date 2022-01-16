@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
@@ -58,10 +60,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<OptionHistoricals>? futureHistoricals;
 
-  BarChart? chart;
-  List<charts.Series<dynamic, String>> seriesList = [];
-
-  TimeSeriesChart? historicalChart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.regular;
   InstrumentHistorical? selection;
@@ -210,52 +208,50 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           optionPosition.createdAt!.month, optionPosition.createdAt!.day);
     }
     originalDte = optionInstrument.expirationDate!.difference(createdAt).inDays;
-    if (chart == null) {
-      seriesList = [
-        charts.Series<dynamic, String>(
+    List<charts.Series<dynamic, String>> seriesList = [
+      charts.Series<dynamic, String>(
+        id: 'Days to Expiration',
+        data: [
+          {'label': 'DTE', 'dte': dte}
+        ],
+        domainFn: (var d, _) => d['label'],
+        measureFn: (var d, _) => d['dte'],
+        labelAccessorFn: (d, _) => '${d['dte'].toString()} days',
+      ),
+      charts.Series<dynamic, String>(
           id: 'Days to Expiration',
           data: [
-            {'label': 'DTE', 'dte': dte}
+            {'label': 'DTE', 'dte': originalDte}
           ],
           domainFn: (var d, _) => d['label'],
-          measureFn: (var d, _) => d['dte'],
-          labelAccessorFn: (d, _) => '${d['dte'].toString()} days',
-        ),
-        charts.Series<dynamic, String>(
-            id: 'Days to Expiration',
-            data: [
-              {'label': 'DTE', 'dte': originalDte}
-            ],
-            domainFn: (var d, _) => d['label'],
-            measureFn: (var d, _) => d['dte'])
-          ..setAttribute(charts.rendererIdKey, "customTargetLine")
-      ];
-      var brightness = MediaQuery.of(context).platformBrightness;
-      var axisLabelColor = charts.MaterialPalette.gray.shade500;
-      if (brightness == Brightness.light) {
-        axisLabelColor = charts.MaterialPalette.gray.shade700;
-      }
-      chart ??= BarChart(seriesList,
-          renderer: charts.BarRendererConfig(
-              barRendererDecorator: charts.BarLabelDecorator<String>(),
-              cornerStrategy: const charts.ConstCornerStrategy(10)),
-          domainAxis:
-              const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
-          primaryMeasureAxis: charts.NumericAxisSpec(
-            //showAxisLine: true,
-            //renderSpec: charts.GridlineRendererSpec(),
-            renderSpec: charts.GridlineRendererSpec(
-                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-            //renderSpec: charts.NoneRenderSpec(),
-            //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-            //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-            //tickProviderSpec:
-            //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-            //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-          ),
-          customRendererId: 'customTargetLine',
-          onSelected: (_) {});
+          measureFn: (var d, _) => d['dte'])
+        ..setAttribute(charts.rendererIdKey, "customTargetLine")
+    ];
+    var brightness = MediaQuery.of(context).platformBrightness;
+    var axisLabelColor = charts.MaterialPalette.gray.shade500;
+    if (brightness == Brightness.light) {
+      axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
+    BarChart chart = BarChart(seriesList,
+        renderer: charts.BarRendererConfig(
+            barRendererDecorator: charts.BarLabelDecorator<String>(),
+            cornerStrategy: const charts.ConstCornerStrategy(10)),
+        domainAxis:
+            const charts.OrdinalAxisSpec(renderSpec: charts.NoneRenderSpec()),
+        primaryMeasureAxis: charts.NumericAxisSpec(
+          //showAxisLine: true,
+          //renderSpec: charts.GridlineRendererSpec(),
+          renderSpec: charts.GridlineRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          //renderSpec: charts.NoneRenderSpec(),
+          //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+          //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+          //tickProviderSpec:
+          //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+          //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+        ),
+        customRendererId: 'customTargetLine',
+        onSelected: (_) {});
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
@@ -724,8 +720,22 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                         widget.user, optionInstrument, instrument,
                         optionPosition: optionPosition))),
           ],
-          Consumer<OptionHistoricalsStore>(builder: (context, value, child) {
-            if (value.items.isNotEmpty) {
+          Consumer<OptionHistoricalsStore>(
+              builder: (context, optionHistoricalsStore, child) {
+            var optionInstrumentHistoricalsObj = optionHistoricalsStore.items
+                .firstWhereOrNull((element) =>
+                        element.legs.first.id == optionInstrument.id &&
+                        element.span ==
+                            RobinhoodService.convertChartSpanFilter(
+                                chartDateSpanFilter) &&
+                        element.bounds ==
+                            RobinhoodService.convertChartBoundsFilter(
+                                chartBoundsFilter)
+                    //&& element.interval == element.interval
+                    );
+            debugPrint(
+                '${optionInstrumentHistoricalsObj != null ? 'Found' : 'Not found'} optionInstrumentHistoricals for span: ${RobinhoodService.convertChartSpanFilter(chartDateSpanFilter)}, bounds: ${RobinhoodService.convertChartBoundsFilter(chartBoundsFilter)}');
+            if (optionInstrumentHistoricalsObj != null) {
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
               double open = 0;
@@ -733,9 +743,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               double changeInPeriod = 0;
               double changePercentInPeriod = 0;
 
-              firstHistorical = value.items[0].historicals[0];
-              lastHistorical = value
-                  .items[0].historicals[value.items[0].historicals.length - 1];
+              firstHistorical =
+                  optionInstrumentHistoricalsObj.historicals.first;
+              lastHistorical = optionInstrumentHistoricalsObj.historicals.last;
               open = firstHistorical.openPrice!;
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
@@ -753,130 +763,144 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               } else {
                 textColor = Colors.grey.shade800;
               }
-
+              /*
               if (historicalChart == null ||
-                  value.items[0].bounds !=
+                  optionInstrumentHistoricalsObj.bounds !=
                       chartBoundsFilter
                           .toString()
                           .replaceAll("Bounds.", "")
                           .replaceAll("t24_7", "24_7") ||
-                  value.items[0].span !=
+                  optionInstrumentHistoricalsObj.span !=
                       chartDateSpanFilter
                           .toString()
                           .replaceAll("ChartDateSpan.", "")) {
-                historicalChart = TimeSeriesChart(
-                    [
-                      charts.Series<InstrumentHistorical, DateTime>(
-                        id: 'Open',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.blue.shadeDefault,
-                        domainFn: (InstrumentHistorical history, _) =>
-                            history.beginsAt!,
-                        measureFn: (InstrumentHistorical history, _) =>
-                            history.openPrice,
-                        data: value.items[0].historicals,
-                      ),
-                      charts.Series<InstrumentHistorical, DateTime>(
-                        id: 'Close',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.blue.shadeDefault,
-                        domainFn: (InstrumentHistorical history, _) =>
-                            history.beginsAt!,
-                        measureFn: (InstrumentHistorical history, _) =>
-                            history.closePrice,
-                        data: value.items[0].historicals,
-                      ),
-                      charts.Series<InstrumentHistorical, DateTime>(
-                        id: 'Low',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.red.shadeDefault,
-                        domainFn: (InstrumentHistorical history, _) =>
-                            history.beginsAt!,
-                        measureFn: (InstrumentHistorical history, _) =>
-                            history.lowPrice,
-                        data: value.items[0].historicals,
-                      ),
-                      charts.Series<InstrumentHistorical, DateTime>(
-                        id: 'High',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.green.shadeDefault,
-                        domainFn: (InstrumentHistorical history, _) =>
-                            history.beginsAt!,
-                        measureFn: (InstrumentHistorical history, _) =>
-                            history.highPrice,
-                        data: value.items[0].historicals,
-                      ),
-                    ],
-                    open: value.items[0].historicals[0].openPrice!,
-                    close: value
-                        .items[0]
-                        .historicals[value.items[0].historicals.length - 1]
-                        .closePrice!,
-                    hiddenSeries: const ["Close", "Low", "High"],
-                    onSelected: (dynamic historical) {
-                  if (selection != historical) {
-                    setState(() {
-                      selection = historical;
-                    });
-                  }
-                });
-              }
+                            */
+              TimeSeriesChart historicalChart = TimeSeriesChart(
+                  [
+                    charts.Series<InstrumentHistorical, DateTime>(
+                      id: 'Open',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.blue.shadeDefault,
+                      domainFn: (InstrumentHistorical history, _) =>
+                          history.beginsAt!,
+                      measureFn: (InstrumentHistorical history, _) =>
+                          history.openPrice,
+                      data: optionInstrumentHistoricalsObj.historicals,
+                    ),
+                    charts.Series<InstrumentHistorical, DateTime>(
+                      id: 'Close',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.blue.shadeDefault,
+                      domainFn: (InstrumentHistorical history, _) =>
+                          history.beginsAt!,
+                      measureFn: (InstrumentHistorical history, _) =>
+                          history.closePrice,
+                      data: optionInstrumentHistoricalsObj.historicals,
+                    ),
+                    charts.Series<InstrumentHistorical, DateTime>(
+                      id: 'Low',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.red.shadeDefault,
+                      domainFn: (InstrumentHistorical history, _) =>
+                          history.beginsAt!,
+                      measureFn: (InstrumentHistorical history, _) =>
+                          history.lowPrice,
+                      data: optionInstrumentHistoricalsObj.historicals,
+                    ),
+                    charts.Series<InstrumentHistorical, DateTime>(
+                      id: 'High',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.green.shadeDefault,
+                      domainFn: (InstrumentHistorical history, _) =>
+                          history.beginsAt!,
+                      measureFn: (InstrumentHistorical history, _) =>
+                          history.highPrice,
+                      data: optionInstrumentHistoricalsObj.historicals,
+                    ),
+                  ],
+                  open:
+                      optionInstrumentHistoricalsObj.historicals[0].openPrice!,
+                  close: optionInstrumentHistoricalsObj
+                      .historicals[
+                          optionInstrumentHistoricalsObj.historicals.length - 1]
+                      .closePrice!,
+                  hiddenSeries: const ["Close", "Low", "High"],
+                  onSelected: (dynamic historical) {
+                var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
+                    context,
+                    listen: false);
+                provider.selectionChanged(historical);
+                /*
+                if (selection != historical) {
+                  setState(() {
+                    selection = historical;
+                  });
+                }
+                */
+              });
+              //}
 
               return SliverToBoxAdapter(
                   child: Column(
                 children: [
-                  SizedBox(
-                      height: 36,
-                      child: Center(
-                          child: Column(
-                        children: [
-                          Wrap(
-                            children: [
-                              Text(
-                                  formatCurrency.format(selection != null
-                                      ? selection!.closePrice
-                                      : close),
-                                  style: TextStyle(
-                                      fontSize: 20, color: textColor)),
-                              Container(
-                                width: 10,
-                              ),
-                              Icon(
-                                changeInPeriod > 0
-                                    ? Icons.trending_up
-                                    : (changeInPeriod < 0
-                                        ? Icons.trending_down
-                                        : Icons.trending_flat),
-                                color: (changeInPeriod > 0
-                                    ? Colors.green
-                                    : (changeInPeriod < 0
-                                        ? Colors.red
-                                        : Colors.grey)),
-                                //size: 16.0
-                              ),
-                              Container(
-                                width: 2,
-                              ),
-                              Text(
-                                  formatPercentage
-                                      //.format(selection!.netReturn!.abs()),
-                                      .format(changePercentInPeriod.abs()),
-                                  style: TextStyle(
-                                      fontSize: 20.0, color: textColor)),
-                              Container(
-                                width: 10,
-                              ),
-                              Text(
-                                  "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                  style: TextStyle(
-                                      fontSize: 20.0, color: textColor)),
-                            ],
-                          ),
-                          Text(
-                              '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal())}',
-                              style: TextStyle(fontSize: 10, color: textColor)),
-                        ],
-                      ))),
+                  Consumer<InstrumentHistoricalsSelectionStore>(
+                      builder: (context, value, child) {
+                    selection = value.selection;
+
+                    return SizedBox(
+                        height: 36,
+                        child: Center(
+                            child: Column(
+                          children: [
+                            Wrap(
+                              children: [
+                                Text(
+                                    formatCurrency.format(selection != null
+                                        ? selection!.closePrice
+                                        : close),
+                                    style: TextStyle(
+                                        fontSize: 20, color: textColor)),
+                                Container(
+                                  width: 10,
+                                ),
+                                Icon(
+                                  changeInPeriod > 0
+                                      ? Icons.trending_up
+                                      : (changeInPeriod < 0
+                                          ? Icons.trending_down
+                                          : Icons.trending_flat),
+                                  color: (changeInPeriod > 0
+                                      ? Colors.green
+                                      : (changeInPeriod < 0
+                                          ? Colors.red
+                                          : Colors.grey)),
+                                  //size: 16.0
+                                ),
+                                Container(
+                                  width: 2,
+                                ),
+                                Text(
+                                    formatPercentage
+                                        //.format(selection!.netReturn!.abs()),
+                                        .format(changePercentInPeriod.abs()),
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: textColor)),
+                                Container(
+                                  width: 10,
+                                ),
+                                Text(
+                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                    style: TextStyle(
+                                        fontSize: 20.0, color: textColor)),
+                              ],
+                            ),
+                            Text(
+                                '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                style:
+                                    TextStyle(fontSize: 10, color: textColor)),
+                          ],
+                        )));
+                  }),
                   SizedBox(
                       height: 240,
                       child: Padding(
@@ -1090,169 +1114,204 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatNumber.format(optionInstrument
-                                            .optionMarketData!.delta),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("Δ",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Delta",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatNumber.format(optionInstrument
-                                            .optionMarketData!.gamma!),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("Γ",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Gamma",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatNumber.format(optionInstrument
-                                            .optionMarketData!.theta!),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("Θ",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Theta",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatNumber.format(optionInstrument
-                                            .optionMarketData!.vega!),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("v",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Vega",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatNumber.format(optionInstrument
-                                            .optionMarketData!.rho!),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("p",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Rho",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatPercentage.format(optionInstrument
-                                            .optionMarketData!
-                                            .impliedVolatility),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("IV",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Impl. Vol.",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatPercentage.format(optionInstrument
-                                            .optionMarketData!
-                                            .chanceOfProfitLong),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("%",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Chance Long",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
-                            Card(
-                                child: Padding(
-                              padding: const EdgeInsets.all(
-                                  6), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        formatPercentage.format(optionInstrument
-                                            .optionMarketData!
-                                            .chanceOfProfitShort),
-                                        style: const TextStyle(fontSize: 17.0)),
-                                    Container(
-                                      height: 5,
-                                    ),
-                                    const Text("%",
-                                        style: TextStyle(fontSize: 17.0)),
-                                    const Text("Chance Short",
-                                        style: TextStyle(fontSize: 10.0)),
-                                  ]),
-                            )),
+                            if (optionInstrument.optionMarketData!.delta !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatNumber.format(optionInstrument
+                                              .optionMarketData!.delta),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("Δ",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Delta",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument.optionMarketData!.gamma !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatNumber.format(optionInstrument
+                                              .optionMarketData!.gamma!),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("Γ",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Gamma",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument.optionMarketData!.theta !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatNumber.format(optionInstrument
+                                              .optionMarketData!.theta!),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("Θ",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Theta",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument.optionMarketData!.vega !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatNumber.format(optionInstrument
+                                              .optionMarketData!.vega!),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("v",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Vega",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument.optionMarketData!.rho !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatNumber.format(optionInstrument
+                                              .optionMarketData!.rho!),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("p",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Rho",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument
+                                    .optionMarketData!.impliedVolatility !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatPercentage.format(
+                                              optionInstrument.optionMarketData!
+                                                  .impliedVolatility),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("IV",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Impl. Vol.",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument
+                                    .optionMarketData!.chanceOfProfitLong !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatPercentage.format(
+                                              optionInstrument.optionMarketData!
+                                                  .chanceOfProfitLong),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("%",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Chance Long",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
+                            if (optionInstrument
+                                    .optionMarketData!.chanceOfProfitShort !=
+                                null) ...[
+                              Card(
+                                  child: Padding(
+                                padding: const EdgeInsets.all(
+                                    6), //.symmetric(horizontal: 6),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          formatPercentage.format(
+                                              optionInstrument.optionMarketData!
+                                                  .chanceOfProfitShort),
+                                          style:
+                                              const TextStyle(fontSize: 17.0)),
+                                      Container(
+                                        height: 5,
+                                      ),
+                                      const Text("%",
+                                          style: TextStyle(fontSize: 17.0)),
+                                      const Text("Chance Short",
+                                          style: TextStyle(fontSize: 10.0)),
+                                    ]),
+                              )),
+                            ],
                             Card(
                                 child: Padding(
                               padding: const EdgeInsets.all(
@@ -1793,11 +1852,19 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       const Duration(milliseconds: 15000),
       (timer) async {
         if (widget.user.refreshEnabled) {
+          await RobinhoodService.getOptionHistoricals(
+              widget.user,
+              Provider.of<OptionHistoricalsStore>(context, listen: false),
+              [widget.optionInstrument.id],
+              chartBoundsFilter: chartBoundsFilter,
+              chartDateSpanFilter: chartDateSpanFilter);
+          /*
           if (futureHistoricals != null) {
             setState(() {
               futureHistoricals = null;
             });
           }
+          */
         }
       },
     );

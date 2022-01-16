@@ -209,7 +209,7 @@ class RobinhoodService {
         span = "day";
         break;
       case ChartDateSpan.week:
-        interval = "hour";
+        interval = "10minute"; //"hour";
         span = "week";
         // bounds = "24_7"; // Does not look good with regular?!
         break;

@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -105,9 +106,7 @@ class _HomePageState extends State<HomePage>
   Future<PortfolioHistoricals>? futurePortfolioHistoricals;
   PortfolioHistoricals? portfolioHistoricals;
 
-  //charts.TimeSeriesChart? chart;
   List<charts.Series<dynamic, DateTime>>? seriesList;
-  TimeSeriesChart? historicalChart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
@@ -400,6 +399,11 @@ class _HomePageState extends State<HomePage>
                     stockPositionStore,
                     optionPositionStore,
                     forexHoldingStore);
+                /*
+                return SliverToBoxAdapter(
+                    child: ShrinkWrappingViewport(
+                        offset: ViewportOffset.zero(), slivers: []));
+                        */
               },
             ),
             //userWidget(userInfo)
@@ -428,8 +432,61 @@ class _HomePageState extends State<HomePage>
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-            Consumer<PortfolioHistoricalsStore>(
-                builder: (context, portfolioHistoricalsStore, child) {
+            Consumer4<PortfolioStore, StockPositionStore, OptionPositionStore,
+                    ForexHoldingStore>(
+                builder: (context, portfolioStore, stockPositionStore,
+                    optionPositionStore, forexHoldingStore, child) {
+              List<PieChartData> data = [];
+              if (portfolioStore.items.isNotEmpty) {
+                //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+                //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
+                data.add(PieChartData(
+                    'Options', optionPositionStore.equity)); // / portfolioValue
+                data.add(PieChartData(
+                    'Stocks', stockPositionStore.equity)); // / portfolioValue
+                data.add(PieChartData(
+                    'Crypto', forexHoldingStore.equity)); // / portfolioValue
+                double portfolioCash =
+                    account != null ? account.portfolioCash! : 0;
+                data.add(
+                    PieChartData('Cash', portfolioCash)); // / portfolioValue
+              }
+
+              return SliverToBoxAdapter(
+                child: SizedBox(
+                    height: 240,
+                    width: 240,
+                    child: Padding(
+                      //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                      padding: const EdgeInsets.all(10.0),
+                      child: PieChart(
+                        [
+                          charts.Series<PieChartData, String>(
+                            id: 'Portfolio Breakdown',
+                            //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                            domainFn: (PieChartData val, index) => val.label,
+                            measureFn: (PieChartData val, index) => val.value,
+                            data: data,
+                          ),
+                        ],
+                        renderer: new charts.ArcRendererConfig(
+                            arcWidth: 60,
+                            arcRendererDecorators: [
+                              new charts.ArcLabelDecorator()
+                            ]),
+                        onSelected: (_) {},
+                      ),
+                    )),
+              );
+            }),
+            Consumer<
+                PortfolioHistoricalsStore /*, PortfolioStore,
+                    ForexHoldingStore*/
+                >(builder: (context,
+                portfolioHistoricalsStore /*, portfolioStore,
+                    forexHoldingStore*/
+                ,
+                child) {
               if (portfolioHistoricalsStore.items
                       .isNotEmpty /* &&
                   (portfolioHistoricals == null ||
@@ -446,6 +503,7 @@ class _HomePageState extends State<HomePage>
                 */
 
                 portfolioHistoricals = portfolioHistoricalsStore.items[0];
+                /* Removed because it was causing PortfolioHistoricalStore to updateListeners when the next http request was no different.  
                 if (portfolioHistoricals!.span == "day") {
                   final DateTime now = DateTime.now();
                   final DateTime today = DateTime(now.year, now.month, now.day);
@@ -456,6 +514,7 @@ class _HomePageState extends State<HomePage>
                               element.beginsAt!.compareTo(today) >= 0)
                           .toList();
                 }
+                */
 
                 EquityHistorical? firstHistorical;
                 EquityHistorical? lastHistorical;
@@ -467,8 +526,8 @@ class _HomePageState extends State<HomePage>
                 firstHistorical = portfolioHistoricals!.equityHistoricals[0];
                 lastHistorical = portfolioHistoricals!.equityHistoricals[
                     portfolioHistoricals!.equityHistoricals.length - 1];
-                // TODO - Figure out what properties to use // portfolioHistoricals.adjustedOpenEquity
-                open = firstHistorical.adjustedOpenEquity!;
+                open = portfolioHistoricals!.adjustedPreviousCloseEquity ??
+                    firstHistorical.adjustedOpenEquity!;
                 close = lastHistorical.adjustedCloseEquity!;
                 changeInPeriod = close - open;
                 changePercentInPeriod = changeInPeriod / close;
@@ -497,22 +556,36 @@ class _HomePageState extends State<HomePage>
                             .replaceAll("ChartDateSpan.", "")
                     ) {
                       */
-                historicalChart = TimeSeriesChart(
+                // TODO: review
+                /*
+                var portfolioEquity = portfolioStore.items.first.equity;
+                var nummusEquity = forexHoldingStore.items
+                    .map((e) => e.marketValue)
+                    .reduce((a, b) => a + b);
+                var portfolioValue = portfolioEquity! + nummusEquity;
+                */
+
+                TimeSeriesChart historicalChart = TimeSeriesChart(
                     [
                       charts.Series<EquityHistorical, DateTime>(
-                          id: 'Adjusted Equity',
-                          colorFn: (_, __) =>
-                              charts.MaterialPalette.blue.shadeDefault,
-                          domainFn: (EquityHistorical history, _) =>
-                              history.beginsAt!,
-                          //filteredEquityHistoricals.indexOf(history),
-                          measureFn: (EquityHistorical history, index) =>
-                              index == 0
-                                  ? history.adjustedOpenEquity
-                                  : history.adjustedCloseEquity,
-                          data: portfolioHistoricals!
-                              .equityHistoricals //filteredEquityHistoricals,
-                          ),
+                        id: 'Adjusted Equity',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.blue.shadeDefault,
+                        domainFn: (EquityHistorical history, _) =>
+                            history.beginsAt!,
+                        //filteredEquityHistoricals.indexOf(history),
+                        measureFn: (EquityHistorical history, index) =>
+                            index == 0
+                                ? history.adjustedOpenEquity
+                                : history.adjustedCloseEquity,
+                        data: portfolioHistoricals!.equityHistoricals,
+                        /*
+                          [
+                            ...portfolioHistoricals!.equityHistoricals,
+                            EquityHistorical(portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioStore.items.first.updatedAt, 0, '')
+                          ]
+                          */
+                      ),
                       charts.Series<EquityHistorical, DateTime>(
                           id: 'Equity',
                           colorFn: (_, __) =>
@@ -545,22 +618,8 @@ class _HomePageState extends State<HomePage>
                     open: open,
                     close: close,
                     hiddenSeries: const ['Equity', 'Market Value'],
-                    onSelected: _onChartSelection
-                    /*(dynamic historical) {
-              if (selection != historical) {
-                setState(() {
-                  selection = historical;
-                });
-              }
-            }*/
-                    );
-                //}
-                /*
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
-*/
+                    onSelected: _onChartSelection);
+
                 return SliverToBoxAdapter(
                     child: Column(children: [
                   Consumer<PortfolioHistoricalsSelectionStore>(
@@ -722,152 +781,6 @@ class _HomePageState extends State<HomePage>
                           ],
                         ));
                   }),
-                  /*
-                  SizedBox(
-                      height: 72,
-                      child: Column(
-                        children: [
-                          ListTile(
-                            title: /*const Text(
-                      "Portfolio",
-                      style: TextStyle(fontSize: 19.0),)
-                      */
-                                Wrap(
-                              children: [
-                                const Text(
-                                  "Portfolio",
-                                  style: TextStyle(fontSize: 19.0),
-                                ),
-                                Container(
-                                  width: 10,
-                                ),
-                                Text(
-                                    formatCurrency.format(selection != null
-                                        ? selection!.adjustedCloseEquity
-                                        : close),
-                                    style: TextStyle(
-                                        fontSize: 19, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  changeInPeriod > 0
-                                      ? Icons.trending_up
-                                      : (changeInPeriod < 0
-                                          ? Icons.trending_down
-                                          : Icons.trending_flat),
-                                  color: (changeInPeriod > 0
-                                      ? Colors.green
-                                      : (changeInPeriod < 0
-                                          ? Colors.red
-                                          : Colors.grey)),
-                                  //size: 16.0
-                                ),
-                                Container(
-                                  width: 2,
-                                ),
-                                Text(
-                                    formatPercentage
-                                        //.format(selection!.netReturn!.abs()),
-                                        .format(changePercentInPeriod.abs()),
-                                    style: TextStyle(
-                                        fontSize: 19.0, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Text(
-                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                    style: TextStyle(
-                                        fontSize: 19.0, color: textColor)),
-                              ],
-                            ),
-                            subtitle: Text(
-                                '${formatMediumDate.format(firstHistorical.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal())}',
-                                style: const TextStyle(fontSize: 12.0)),
-                            /*
-                    trailing: Wrap(
-                      children: [
-                        Text(
-                            formatCurrency.format(selection != null
-                                ? selection!.adjustedCloseEquity
-                                : close),
-                            style: TextStyle(fontSize: 19, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Icon(
-                          changeInPeriod > 0
-                              ? Icons.trending_up
-                              : (changeInPeriod < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (changeInPeriod > 0
-                              ? Colors.green
-                              : (changeInPeriod < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          //size: 16.0
-                        ),
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            formatPercentage
-                                //.format(selection!.netReturn!.abs()),
-                                .format(changePercentInPeriod.abs()),
-                            style: TextStyle(fontSize: 19.0, color: textColor)),
-                        Container(
-                          width: 10,
-                        ),
-                        Text(
-                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                            style: TextStyle(fontSize: 19.0, color: textColor)),
-                      ],
-                    ),
-                    */
-                          ),
-                          /*
-                  Wrap(
-                    children: [
-                      Text(formatCurrency.format(close),
-                          style: TextStyle(fontSize: 20, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Icon(
-                        changeInPeriod > 0
-                            ? Icons.trending_up
-                            : (changeInPeriod < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (changeInPeriod > 0
-                            ? Colors.green
-                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                        //size: 16.0
-                      ),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              //.format(selection!.netReturn!.abs()),
-                              .format(changePercentInPeriod.abs()),
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ],
-                  ),
-                  Text(
-                      '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                      */
-                        ],
-                      )),
-                  */
                   SizedBox(
                       height: 240,
                       child: Padding(
@@ -2278,6 +2191,12 @@ class _HomePageState extends State<HomePage>
       StockPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
       ForexHoldingStore forexHoldingStore) {
+    positionSymbols = stockPositionStore.symbols;
+    positionSymbols.sort((a, b) => (a.compareTo(b)));
+
+    chainSymbols = optionPositionStore.symbols;
+    chainSymbols.sort((a, b) => (a.compareTo(b)));
+
     double portfolioValue = 0.0;
     double stockAndOptionsEquityPercent = 0.0;
     double optionEquityPercent = 0.0;
@@ -2285,70 +2204,27 @@ class _HomePageState extends State<HomePage>
     double portfolioCash = 0.0;
     double cashPercent = 0.0;
     double cryptoPercent = 0.0;
-
-    double optionEquity = 0;
-    double positionEquity = 0;
-    double nummusEquity = 0;
-    var portfolios = portfolioStore.items;
-
-    var positions = stockPositionStore.items;
-
-    var optionPositions = optionPositionStore.items;
-
-    var nummusHoldings = forexHoldingStore.items;
-
-    //if (positions != null) {
-    if (positions.isNotEmpty) {
-      positionEquity =
-          positions.map((e) => e.marketValue).reduce((a, b) => a + b);
-    }
-    positionSymbols = positions
-        .where((element) => element.instrumentObj != null)
-        .map((e) => e.instrumentObj!.symbol)
-        .toSet()
-        .toList();
-    positionSymbols.sort((a, b) => (a.compareTo(b)));
-    //}
-
-    if (nummusHoldings.isNotEmpty) {
-      nummusEquity =
-          nummusHoldings.map((e) => e.marketValue).reduce((a, b) => a + b);
-    }
-
-    //if (optionPositions != null) {
-    if (optionPositions.isNotEmpty) {
-      optionEquity = optionPositions
-          .map((e) => e.legs.first.positionType == "long"
-              ? e.marketValue
-              : e.marketValue)
-          .reduce((a, b) => a + b);
-    }
-    chainSymbols = optionPositions.map((e) => e.symbol).toSet().toList();
-    chainSymbols.sort((a, b) => (a.compareTo(b)));
-    //}
-
-    if (portfolios.isNotEmpty) {
-      // != null) {
-      portfolioValue = (portfolios[0].equity ?? 0) + nummusEquity;
+    if (portfolioStore.items.isNotEmpty) {
+      portfolioValue =
+          (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
       stockAndOptionsEquityPercent =
-          portfolios[0].marketValue! / portfolioValue;
-      optionEquityPercent = optionEquity / portfolioValue;
-      positionEquityPercent = positionEquity / portfolioValue;
+          portfolioStore.items[0].marketValue! / portfolioValue;
+      optionEquityPercent = optionPositionStore.equity / portfolioValue;
+      positionEquityPercent = stockPositionStore.equity / portfolioValue;
       if (account != null) {
         portfolioCash = account.portfolioCash ?? 0;
       }
       cashPercent = portfolioCash / portfolioValue;
-      cryptoPercent = nummusEquity / portfolioValue;
-      //changeInPeriod = portfolios[0].equity! - portfolios[0].equityPreviousClose!;
-      //changePercentInPeriod = changeInPeriod / portfolios[0].equity!;
+      cryptoPercent = forexHoldingStore.equity / portfolioValue;
     }
 
     double changeInPeriod = 0;
     double changePercentInPeriod = 0;
-    if (portfolios.isNotEmpty) {
-      changeInPeriod =
-          portfolios[0].equity! - portfolios[0].equityPreviousClose!;
-      changePercentInPeriod = (changeInPeriod) / portfolios[0].equity!;
+    if (portfolioStore.items.isNotEmpty) {
+      changeInPeriod = portfolioStore.items[0].equity! -
+          portfolioStore.items[0].equityPreviousClose!;
+      changePercentInPeriod =
+          (changeInPeriod) / portfolioStore.items[0].equity!;
     }
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
@@ -2456,13 +2332,13 @@ class _HomePageState extends State<HomePage>
                     userInfo,
                     portfolioValue,
                     stockAndOptionsEquityPercent,
-                    portfolios,
+                    portfolioStore.items,
                     optionEquityPercent,
-                    optionEquity,
+                    optionPositionStore.equity,
                     positionEquityPercent,
-                    positionEquity,
+                    stockPositionStore.equity,
                     cryptoPercent,
-                    nummusEquity,
+                    forexHoldingStore.equity,
                     cashPercent,
                     portfolioCash)));
       }),

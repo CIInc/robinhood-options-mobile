@@ -33,8 +33,14 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
                   .beginsAt!
                   .compareTo(item.equityHistoricals.last.beginsAt!) !=
               0) {
+        debugPrint(
+            '${_items[0].equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt!}');
+        debugPrint(
+            '${_items[0].equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt!}');
         _items[0] = item;
         notifyListeners();
+      } else {
+        debugPrint('No updates for PortfolioHistoricals.');
       }
     }
   }
