@@ -1,4 +1,5 @@
-import 'dart:collection';
+//import 'dart:collection';
+import 'package:collection/collection.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
@@ -17,27 +18,25 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(PortfolioHistoricals item) {
-    if (items.isEmpty) {
+    var current = items.firstWhereOrNull((element) =>
+        element.span == item.span &&
+        element.bounds == item.bounds &&
+        element.interval == item.interval);
+    if (current == null) {
       _items.add(item);
       notifyListeners();
     } else {
-      if (_items[0]
-                  .equityHistoricals
-                  .first
-                  .beginsAt!
+      if (current.equityHistoricals.first.beginsAt!
                   .compareTo(item.equityHistoricals.first.beginsAt!) !=
               0 ||
-          _items[0]
-                  .equityHistoricals
-                  .last
-                  .beginsAt!
+          current.equityHistoricals.last.beginsAt!
                   .compareTo(item.equityHistoricals.last.beginsAt!) !=
               0) {
         debugPrint(
-            '${_items[0].equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt!}');
+            '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt!}');
         debugPrint(
-            '${_items[0].equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt!}');
-        _items[0] = item;
+            '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt!}');
+        current = item;
         notifyListeners();
       } else {
         debugPrint('No updates for PortfolioHistoricals.');

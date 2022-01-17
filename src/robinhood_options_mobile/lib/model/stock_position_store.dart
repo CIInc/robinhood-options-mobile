@@ -17,7 +17,8 @@ class StockPositionStore extends ChangeNotifier {
   List<String> get symbols => _items
       .where((element) => element.instrumentObj != null)
       .map((e) => e.instrumentObj!.symbol)
-      .toList(); //.toSet().toList()
+      .toSet()
+      .toList();
 
   void add(StockPosition item) {
     _items.add(item);

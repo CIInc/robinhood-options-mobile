@@ -19,8 +19,7 @@ class OptionPositionStore extends ChangeNotifier {
           .reduce((a, b) => a + b)
       : 0;
 
-  List<String> get symbols =>
-      _items.map((e) => e.symbol).toList(); //.toSet().toList()
+  List<String> get symbols => _items.map((e) => e.symbol).toSet().toList();
 
   void add(OptionAggregatePosition item) {
     _items.add(item);
