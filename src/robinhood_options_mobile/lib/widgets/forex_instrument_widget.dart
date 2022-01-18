@@ -170,7 +170,9 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         List<charts.Series<dynamic, DateTime>> seriesList = [
           charts.Series<InstrumentHistorical, DateTime>(
             id: 'Open',
-            colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
             domainFn: (InstrumentHistorical history, _) => history.beginsAt!,
             measureFn: (InstrumentHistorical history, _) => history.openPrice,
             data: holding.historicalsObj!.historicals,

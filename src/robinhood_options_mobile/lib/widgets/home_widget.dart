@@ -528,8 +528,9 @@ class _HomePageState extends State<HomePage>
                   [
                     charts.Series<EquityHistorical, DateTime>(
                       id: 'Adjusted Equity',
-                      colorFn: (_, __) =>
-                          charts.MaterialPalette.blue.shadeDefault,
+                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                          Theme.of(context).colorScheme.primary),
+                      //charts.MaterialPalette.blue.shadeDefault,
                       domainFn: (EquityHistorical history, _) =>
                           history.beginsAt!,
                       //filteredEquityHistoricals.indexOf(history),
@@ -913,26 +914,30 @@ class _HomePageState extends State<HomePage>
                 builder: (context, portfolioStore, stockPositionStore,
                     optionPositionStore, forexHoldingStore, child) {
               List<PieChartData> data = [];
-              if (portfolioStore.items.isNotEmpty) {
-                //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-                //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
-                data.add(PieChartData(
-                    'Options\n${formatCompactNumber.format(optionPositionStore.equity)}',
-                    optionPositionStore.equity)); // / portfolioValue
-                data.add(PieChartData(
-                    'Stocks\n${formatCompactNumber.format(stockPositionStore.equity)}',
-                    stockPositionStore.equity)); // / portfolioValue
-                data.add(PieChartData(
-                    'Crypto\n${formatCompactNumber.format(forexHoldingStore.equity)}',
-                    forexHoldingStore.equity)); // / portfolioValue
-                double portfolioCash =
-                    account != null ? account.portfolioCash! : 0;
-                data.add(PieChartData(
-                    'Cash\n${formatCompactNumber.format(portfolioCash)}',
-                    portfolioCash)); // / portfolioValue
-              }
+              //if (portfolioStore.items.isNotEmpty) {
+              //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+              //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
+              data.add(PieChartData(
+                  'Options\n${formatCompactNumber.format(optionPositionStore.equity)}',
+                  optionPositionStore.equity)); // / portfolioValue
+              data.add(PieChartData(
+                  'Stocks\n${formatCompactNumber.format(stockPositionStore.equity)}',
+                  stockPositionStore.equity)); // / portfolioValue
+              data.add(PieChartData(
+                  'Crypto\n${formatCompactNumber.format(forexHoldingStore.equity)}',
+                  forexHoldingStore.equity)); // / portfolioValue
+              double portfolioCash =
+                  account != null ? account.portfolioCash! : 0;
+              data.add(PieChartData(
+                  'Cash\n${formatCompactNumber.format(portfolioCash)}',
+                  portfolioCash)); // / portfolioValue
+              //}
               data.sort((a, b) => b.value.compareTo(a.value));
-
+              var shades = PieChart.makeShades(
+                  charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.primary),
+                  4);
+              var total = data.map((e) => e.value).reduce((a, b) => a + b);
               return SliverToBoxAdapter(
                   child: Center(
                 child: SizedBox(
@@ -942,24 +947,34 @@ class _HomePageState extends State<HomePage>
                       padding: EdgeInsets.zero,
                       //padding: EdgeInsets.symmetric(horizontal: 1.0),
                       //padding: const EdgeInsets.all(10.0),
-                      child: PieChart(
-                        [
-                          charts.Series<PieChartData, String>(
-                            id: 'Portfolio Breakdown',
-                            //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                            domainFn: (PieChartData val, index) => val.label,
-                            measureFn: (PieChartData val, index) => val.value,
-                            data: data,
-                          ),
-                        ],
-                        animate: false,
-                        renderer: charts.ArcRendererConfig(
-                            //arcWidth: 60,
-                            arcRendererDecorators: [
-                              charts.ArcLabelDecorator()
-                            ]),
-                        onSelected: (_) {},
-                      ),
+                      child: total > 0
+                          ? PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Portfolio Breakdown',
+                                  colorFn: (_, index) => shades[index!],
+                                  /*
+                            colorFn: (_, index) => charts.MaterialPalette.cyan
+                                .makeShades(4)[index!],
+                            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                Theme.of(context).colorScheme.primary),
+                            */
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  data: data,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(
+                                  //arcWidth: 60,
+                                  arcRendererDecorators: [
+                                    charts.ArcLabelDecorator()
+                                  ]),
+                              onSelected: (_) {},
+                            )
+                          : Container(),
                     )),
                 /*
                 SizedBox(
@@ -1080,6 +1095,8 @@ class _HomePageState extends State<HomePage>
               barChartSeriesList.add(charts.Series<dynamic, String>(
                 id: widget.user.displayValue.toString(),
                 data: data,
+                colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                    Theme.of(context).colorScheme.primary),
                 domainFn: (var d, _) => d['domain'],
                 measureFn: (var d, _) => d['measure'],
                 labelAccessorFn: (d, _) => d['label'],
@@ -1429,6 +1446,8 @@ class _HomePageState extends State<HomePage>
                 barChartSeriesList.add(charts.Series<dynamic, String>(
                   id: widget.user.displayValue.toString(),
                   data: data,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.primary),
                   domainFn: (var d, _) => d['domain'],
                   measureFn: (var d, _) => d['measure'],
                   labelAccessorFn: (d, _) => d['label'],

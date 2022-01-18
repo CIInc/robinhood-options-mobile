@@ -160,6 +160,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
       barChartSeriesList.add(charts.Series<dynamic, String>(
         id: user.displayValue.toString(),
         data: data,
+        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+            Theme.of(context).colorScheme.primary),
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['measure'],
         labelAccessorFn: (d, _) => d['label'],

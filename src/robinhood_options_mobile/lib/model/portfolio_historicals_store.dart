@@ -18,14 +18,15 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(PortfolioHistoricals item) {
-    var current = items.firstWhereOrNull((element) =>
+    var index = _items.indexWhere((element) =>
         element.span == item.span &&
         element.bounds == item.bounds &&
         element.interval == item.interval);
-    if (current == null) {
+    if (index == -1) {
       _items.add(item);
       notifyListeners();
     } else {
+      var current = _items[index];
       if (current.equityHistoricals.first.beginsAt!
                   .compareTo(item.equityHistoricals.first.beginsAt!) !=
               0 ||
@@ -36,7 +37,9 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
             '${current.equityHistoricals.first.beginsAt} != ${item.equityHistoricals.first.beginsAt!}');
         debugPrint(
             '${current.equityHistoricals.last.beginsAt} != ${item.equityHistoricals.last.beginsAt!}');
-        current = item;
+        //_items.clear();
+        //_items.add(item);
+        _items[index] = item;
         notifyListeners();
       } else {
         debugPrint('No updates for PortfolioHistoricals.');

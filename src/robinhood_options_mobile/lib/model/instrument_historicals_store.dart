@@ -18,15 +18,16 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
   //int get totalPrice => _items.length * 42;
 
   void set(InstrumentHistoricals item) {
-    var current = items.firstWhereOrNull((element) =>
+    var index = items.indexWhere((element) =>
         element.symbol == item.symbol &&
         element.span == item.span &&
         element.bounds == item.bounds &&
         element.interval == item.interval);
-    if (current == null) {
+    if (index == -1) {
       _items.add(item);
       notifyListeners();
     } else {
+      var current = _items[index];
       if (current.historicals.first.beginsAt!
                   .compareTo(item.historicals.first.beginsAt!) !=
               0 ||
@@ -38,7 +39,7 @@ class InstrumentHistoricalsStore extends ChangeNotifier {
             '${current.historicals.first.beginsAt} != ${item.historicals.first.beginsAt!}');
         debugPrint(
             '${current.historicals.last.beginsAt} != ${item.historicals.last.beginsAt!}');
-        current = item;
+        _items[index] = item;
         notifyListeners();
       } else {
         debugPrint('No updates for InstrumentHistoricals.');

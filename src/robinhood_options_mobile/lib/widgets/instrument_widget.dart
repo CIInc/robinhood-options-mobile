@@ -534,7 +534,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               List<charts.Series<dynamic, DateTime>> seriesList = [
                 charts.Series<InstrumentHistorical, DateTime>(
                   id: 'Open',
-                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.primary),
+                  //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
                   domainFn: (InstrumentHistorical history, _) =>
                       history.beginsAt!,
                   measureFn: (InstrumentHistorical history, _) =>
@@ -1545,6 +1547,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     ));
 
                   default:
+                    return Container();
                 }
               },
               childCount: 3,
