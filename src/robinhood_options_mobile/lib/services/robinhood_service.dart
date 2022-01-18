@@ -10,6 +10,7 @@ import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
@@ -1205,6 +1206,7 @@ class RobinhoodService {
 
   static Stream<List<OptionInstrument>> streamOptionInstruments(
       RobinhoodUser user,
+      OptionInstrumentStore store,
       Instrument instrument,
       String? expirationDates, // 2021-03-05
       String? type, // call or put
@@ -1233,6 +1235,7 @@ class RobinhoodService {
         var op = OptionInstrument.fromJson(result);
         if (!optionInstruments.any((element) => element.id == op.id)) {
           optionInstruments.add(op);
+          store.addOrUpdate(op);
           yield optionInstruments;
         }
       }

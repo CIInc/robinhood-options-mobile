@@ -64,7 +64,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _pageIndex);
-    tabPages = [const InitialWidget()];
+    tabPages = [
+      InitialWidget(
+          child: Column(children: [
+        ElevatedButton.icon(
+          label: const Text(
+            "Login",
+            style: TextStyle(fontSize: 20.0),
+          ),
+          icon: const Icon(Icons.login),
+          onPressed: () => _openLogin(),
+        )
+      ]))
+    ];
 
     RobinhoodService.loadLogos();
 
@@ -477,7 +489,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         //user = null;
       });
 
-      Navigator.pop(context); //, 'login'
+      //Navigator.pop(context); //, 'login'
 
       // After the Selection Screen returns a result, hide any previous snackbars
       // and show the new result.

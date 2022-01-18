@@ -55,11 +55,11 @@ class RobinhoodUser {
       };
 
   Future save(UserStore store) async {
+    store.addOrUpdate(this);
     var contents = jsonEncode(this);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
     //await Store.writeFile(Constants.cacheFilename, contents);
-    store.addOrUpdate(this);
   }
 
   static Future<RobinhoodUser> loadUserFromStore(UserStore store) async {

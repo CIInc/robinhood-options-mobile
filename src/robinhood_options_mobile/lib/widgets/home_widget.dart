@@ -524,29 +524,6 @@ class _HomePageState extends State<HomePage>
               } else {
                 textColor = Colors.grey.shade800;
               }
-              /*
-                if (historicalChart ==
-                        null  ||
-                    portfolioHistoricals.bounds !=
-                        chartBoundsFilter
-                            .toString()
-                            .replaceAll("Bounds.", "")
-                            .replaceAll("t24_7", "24_7") ||
-                    portfolioHistoricals.span !=
-                        chartDateSpanFilter
-                            .toString()
-                            .replaceAll("ChartDateSpan.", "")
-                    ) {
-                      */
-              // TODO: review
-              /*
-                var portfolioEquity = portfolioStore.items.first.equity;
-                var nummusEquity = forexHoldingStore.items
-                    .map((e) => e.marketValue)
-                    .reduce((a, b) => a + b);
-                var portfolioValue = portfolioEquity! + nummusEquity;
-                */
-
               TimeSeriesChart historicalChart = TimeSeriesChart(
                   [
                     charts.Series<EquityHistorical, DateTime>(
@@ -976,10 +953,10 @@ class _HomePageState extends State<HomePage>
                           ),
                         ],
                         animate: false,
-                        renderer: new charts.ArcRendererConfig(
+                        renderer: charts.ArcRendererConfig(
                             //arcWidth: 60,
                             arcRendererDecorators: [
-                              new charts.ArcLabelDecorator()
+                              charts.ArcLabelDecorator()
                             ]),
                         onSelected: (_) {},
                       ),

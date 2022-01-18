@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
+import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -96,6 +97,7 @@ class _InstrumentOptionChainWidgetState
 
           optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
               user,
+              Provider.of<OptionInstrumentStore>(context, listen: false),
               instrument,
               expirationDateFilter != null
                   ? formatExpirationDate.format(expirationDateFilter!)
