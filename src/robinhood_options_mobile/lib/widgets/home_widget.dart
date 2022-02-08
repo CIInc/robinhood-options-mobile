@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
@@ -114,6 +115,7 @@ class _HomePageState extends State<HomePage>
   ChartDateSpan prevChartDateSpanFilter = ChartDateSpan.day;
   Bounds prevChartBoundsFilter = Bounds.t24_7;
   EquityHistorical? selection;
+  bool animateChart = true;
 
   Future<StockPositionStore>? futureStockPositions;
   //Stream<StockPositionStore>? positionStoreStream;
@@ -307,6 +309,7 @@ class _HomePageState extends State<HomePage>
       const Duration(milliseconds: 15000),
       (timer) async {
         if (widget.user.refreshEnabled) {
+          // animateChart = false;
           await RobinhoodService.getPortfolioHistoricals(
               widget.user,
               Provider.of<PortfolioHistoricalsStore>(context, listen: false),
@@ -314,8 +317,10 @@ class _HomePageState extends State<HomePage>
               chartBoundsFilter,
               chartDateSpanFilter);
 
-          await RobinhoodService.refreshOptionMarketData(widget.user,
-              Provider.of<OptionPositionStore>(context, listen: false));
+          await RobinhoodService.refreshOptionMarketData(
+              widget.user,
+              Provider.of<OptionPositionStore>(context, listen: false),
+              Provider.of<OptionInstrumentStore>(context, listen: false));
 
           await RobinhoodService.refreshPositionQuote(
               widget.user,
@@ -574,6 +579,7 @@ class _HomePageState extends State<HomePage>
                             .equityHistoricals //filteredEquityHistoricals,
                         ),
                   ],
+                  animate: animateChart,
                   open: open,
                   close: close,
                   hiddenSeries: const ['Equity', 'Market Value'],

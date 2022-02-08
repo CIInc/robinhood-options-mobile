@@ -111,7 +111,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             ),
             SwitchListTile(
               //leading: Icon(Icons.functions),
-              title: const Text("Display Options Greeks in Lists"),
+              title: const Text("Show Market Data & Greeks"),
               value: widget.user.showGreeks,
               onChanged: (bool value) {
                 setState(() {

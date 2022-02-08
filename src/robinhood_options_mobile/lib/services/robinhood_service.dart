@@ -634,6 +634,15 @@ class RobinhoodService {
     return quote;
   }
 
+  static Future<Quote> refreshQuote(
+      RobinhoodUser user, QuoteStore store, String symbol) async {
+    var url = "${Constants.robinHoodEndpoint}/quotes/$symbol/";
+    var resultJson = await getJson(user, url);
+    var quote = Quote.fromJson(resultJson);
+    store.update(quote);
+    return quote;
+  }
+
   //https://api.robinhood.com/quotes/historicals/
 
   /*
@@ -959,6 +968,7 @@ class RobinhoodService {
   static Stream<OptionPositionStore> streamOptionPositionStore(
       RobinhoodUser user,
       OptionPositionStore store,
+      OptionInstrumentStore optionInstrumentStore,
       InstrumentStore instrumentStore,
       {bool nonzero = true}) async* {
     List<OptionAggregatePosition> ops =
@@ -1005,6 +1015,7 @@ class RobinhoodService {
         });
 
         optionPosition.optionInstrument = optionInstrument;
+        optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
       }
 
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
@@ -1016,7 +1027,8 @@ class RobinhoodService {
         });
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        optionPosition.marketData = optionMarketDatum;
+        optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
+        //optionPosition.marketData = optionMarketDatum;
 
         // Link OptionPosition to Instrument and vice-versa.
         var instrument = await getInstrumentBySymbol(
@@ -1094,7 +1106,7 @@ class RobinhoodService {
         });
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        optionPosition.marketData = optionMarketDatum;
+        //optionPosition.marketData = optionMarketDatum;
 
         // Link OptionPosition to Instrument and vice-versa.
         var instrument = await getInstrumentBySymbol(
@@ -1315,18 +1327,21 @@ class RobinhoodService {
   }
 
   static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      RobinhoodUser user, OptionPositionStore store) async {
-    if (store.items.isEmpty || store.items.first.optionInstrument == null) {
-      return store.items;
+      RobinhoodUser user,
+      OptionPositionStore optionPositionStore,
+      OptionInstrumentStore optionInstrumentStore) async {
+    if (optionPositionStore.items.isEmpty ||
+        optionPositionStore.items.first.optionInstrument == null) {
+      return optionPositionStore.items;
     }
-    var len = store.items.length;
+    var len = optionPositionStore.items.length;
     // TODO: Size appropriately
     var size = 30;
     //25; //20; //15; //17;
     List<List<OptionAggregatePosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
-      chunks.add(store.items.sublist(i, end));
+      chunks.add(optionPositionStore.items.sublist(i, end));
     }
     for (var chunk in chunks) {
       var optionIds = chunk.map((e) {
@@ -1339,20 +1354,20 @@ class RobinhoodService {
       var optionMarketData = await getOptionMarketDataByIds(user, optionIds);
 
       for (var optionMarketDatum in optionMarketData) {
-        var optionPosition = store.items.singleWhere((element) {
+        var optionPosition = optionPositionStore.items.singleWhere((element) {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
 
         optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        optionPosition.marketData = optionMarketDatum;
+        optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
 
         // Update store
-        store.update(optionPosition);
+        optionPositionStore.update(optionPosition);
       }
     }
 
-    return store.items;
+    return optionPositionStore.items;
   }
 
   static Stream<List<OptionOrder>> streamOptionOrders(

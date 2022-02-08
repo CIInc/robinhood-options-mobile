@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -16,11 +17,14 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
+
+const totalValueFontSize = 22.0;
+
 const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;
 const greekEgdeInset = 10.0;
 
-const summaryValueFontSize = 18.0;
+const summaryValueFontSize = 19.0;
 const summaryLabelFontSize = 10.0;
 const summaryEgdeInset = 10.0;
 /*
@@ -67,6 +71,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
     String? marketValueText = user.getDisplayText(marketValue!,
         displayValue: DisplayValue.marketValue);
 
+    /*
     double? totalReturn = user.getAggregateDisplayValue(filteredOptionPositions,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = user.getDisplayText(totalReturn!,
@@ -88,6 +93,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
+    */
 
     double? deltaAvg,
         gammaAvg,
@@ -258,8 +267,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
       icon = user.getDisplayIcon(value);
     }
     */
-    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(
@@ -281,7 +288,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     marketValueText,
-                    style: const TextStyle(fontSize: 21.0),
+                    style: const TextStyle(fontSize: totalValueFontSize),
                     textAlign: TextAlign.right,
                   )
 
@@ -292,13 +299,26 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   if (trailingText != null) ...[
                     Text(
                       trailingText,
-                      style: const TextStyle(fontSize: 21.0),
+                      style: const TextStyle(fontSize: totalValueFontSize),
                       textAlign: TextAlign.right,
                     )
                   ]
                   */
                 ]),
               ),
+              _buildDetailScrollRow(
+                  filteredOptionPositions,
+                  deltaAvg,
+                  gammaAvg,
+                  thetaAvg,
+                  vegaAvg,
+                  rhoAvg,
+                  ivAvg,
+                  chanceAvg,
+                  (openInterestAvg ?? 0).toInt(),
+                  summaryValueFontSize,
+                  summaryLabelFontSize),
+              /*
               SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Padding(
@@ -412,6 +432,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                                   ]),
                             ),
                           ]))),
+                          */
               if (user.displayValue != DisplayValue.lastPrice) ...[
                 SizedBox(
                     height: barChartSeriesList.first.data.length * 25 +
@@ -422,11 +443,23 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       child: optionChart,
                     )),
               ],
+              /*
               if (user.showGreeks &&
                   groupedOptionAggregatePositions.length == 1) ...[
-                _buildGreekScrollRow(deltaAvg!, gammaAvg!, thetaAvg!, vegaAvg!,
-                    rhoAvg!, ivAvg!, chanceAvg!, openInterestAvg!.toInt())
+                _buildDetailScrollRow(
+                    groupedOptionAggregatePositions.values.first,
+                    deltaAvg!,
+                    gammaAvg!,
+                    thetaAvg!,
+                    vegaAvg!,
+                    rhoAvg!,
+                    ivAvg!,
+                    chanceAvg!,
+                    openInterestAvg!.toInt(),
+                    greekValueFontSize,
+                    greekLabelFontSize)
               ]
+              */
             ]
                 //)
                 )),
@@ -476,49 +509,69 @@ class OptionPositionsRowWidget extends StatelessWidget {
         .reduce((a, b) => a + b);
 
     deltaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData != null ? e.marketData!.delta! * e.marketValue : 0)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.delta! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     gammaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData != null ? e.marketData!.gamma! * e.marketValue : 0)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.gamma! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     thetaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData != null ? e.marketData!.theta! * e.marketValue : 0)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.theta! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     vegaAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData != null ? e.marketData!.vega! * e.marketValue : 0)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.vega! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     rhoAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) =>
-                e.marketData != null ? e.marketData!.rho! * e.marketValue : 0)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.rho! * e.marketValue
+                : 0)
             .reduce((a, b) => a + b) /
         denominator;
     ivAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.marketData != null
-                ? e.marketData!.impliedVolatility! * e.marketValue
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.impliedVolatility! *
+                    e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     chanceAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => (e.direction == 'debit'
-                ? (e.marketData != null
-                    ? e.marketData!.chanceOfProfitLong! * e.marketValue
+                ? (e.optionInstrument != null &&
+                        e.optionInstrument!.optionMarketData != null
+                    ? e.optionInstrument!.optionMarketData!
+                            .chanceOfProfitLong! *
+                        e.marketValue
                     : 0)
-                : (e.marketData != null
-                    ? e.marketData!.chanceOfProfitShort! * e.marketValue
+                : (e.optionInstrument != null &&
+                        e.optionInstrument!.optionMarketData != null
+                    ? e.optionInstrument!.optionMarketData!
+                            .chanceOfProfitShort! *
+                        e.marketValue
                     : 0)))
             .reduce((a, b) => a + b) /
         denominator;
     openInterestAvg = filteredOptionPositions
-            .map((OptionAggregatePosition e) => e.marketData != null
-                ? e.marketData!.openInterest * e.marketValue
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.openInterest *
+                    e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
@@ -536,9 +589,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = user.getDisplayValue(op);
+    double value = user.getDisplayValue(op,
+        displayValue:
+            user.showGreeks ? DisplayValue.marketValue : user.displayValue);
     String opTrailingText = user.getDisplayText(value);
-    Icon? icon = (user.displayValue == DisplayValue.lastPrice ||
+    Icon? icon = (user.showGreeks ||
+            user.displayValue == DisplayValue.lastPrice ||
             user.displayValue == DisplayValue.marketValue)
         ? null
         : user.getDisplayIcon(value);
@@ -580,7 +636,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             ],
             Text(
               opTrailingText,
-              style: const TextStyle(fontSize: 18.0),
+              style: const TextStyle(fontSize: summaryValueFontSize),
               textAlign: TextAlign.right,
             )
           ]),
@@ -605,179 +661,255 @@ class OptionPositionsRowWidget extends StatelessWidget {
           },
         ),
         if (user.showGreeks) ...[
-          _buildGreekScrollRow(
-              op.marketData!.delta!,
-              op.marketData!.gamma!,
-              op.marketData!.theta!,
-              op.marketData!.vega!,
-              op.marketData!.rho!,
-              op.marketData!.impliedVolatility!,
+          _buildDetailScrollRow(
+              [op],
+              op.optionInstrument!.optionMarketData!.delta!,
+              op.optionInstrument!.optionMarketData!.gamma!,
+              op.optionInstrument!.optionMarketData!.theta!,
+              op.optionInstrument!.optionMarketData!.vega!,
+              op.optionInstrument!.optionMarketData!.rho!,
+              op.optionInstrument!.optionMarketData!.impliedVolatility!,
               op.direction == 'debit'
-                  ? op.marketData!.chanceOfProfitLong!
-                  : op.marketData!.chanceOfProfitShort!,
-              op.marketData!.openInterest)
+                  ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong!
+                  : op.optionInstrument!.optionMarketData!.chanceOfProfitShort!,
+              op.optionInstrument!.optionMarketData!.openInterest,
+              greekValueFontSize,
+              greekLabelFontSize)
         ]
       ],
     ));
   }
 
-  SingleChildScrollView _buildGreekScrollRow(
-      double delta,
-      double gamma,
-      double theta,
-      double vega,
-      double rho,
-      double impliedVolatility,
-      double chanceOfProfit,
-      int openInterest) {
+  SingleChildScrollView _buildDetailScrollRow(
+      List<OptionAggregatePosition> ops,
+      double? delta,
+      double? gamma,
+      double? theta,
+      double? vega,
+      double? rho,
+      double? impliedVolatility,
+      double? chanceOfProfit,
+      int openInterest,
+      double valueFontSize,
+      double labelFontSize) {
+    List<Widget> tiles = [];
+    /*
+    double? marketValue = user.getAggregateDisplayValue(ops,
+        displayValue: DisplayValue.marketValue);
+    String? marketValueText = user.getDisplayText(marketValue!,
+        displayValue: DisplayValue.marketValue);
+        */
+
+    double? totalReturn = user.getAggregateDisplayValue(ops,
+        displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = user.getDisplayText(totalReturn!,
+        displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = user.getAggregateDisplayValue(ops,
+        displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = user.getDisplayText(totalReturnPercent!,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = user.getAggregateDisplayValue(ops,
+        displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = user.getDisplayText(todayReturn!,
+        displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = user.getAggregateDisplayValue(ops,
+        displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
+
+    tiles = [
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            todayIcon,
+            Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
+          ]),
+          /*
+                                    Text(todayReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          /*
+                                    Text(todayReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(todayReturnPercentText,
+              style: TextStyle(fontSize: valueFontSize)),
+          Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            totalIcon,
+            Text(totalReturnText, style: TextStyle(fontSize: valueFontSize))
+          ]),
+          /*
+                                    Text(totalReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          /*
+                                    Text(totalReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(totalReturnPercentText,
+              style: TextStyle(fontSize: valueFontSize)),
+
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      )
+    ];
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              /*Card(
-                  elevation: 0,
-                  child:*/
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatNumber.format(delta),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                  const Text("Delta Δ",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatNumber.format(gamma),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("Γ", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Gamma Γ",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatNumber.format(theta),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("Θ", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Theta Θ",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatNumber.format(vega),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("v", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Vega v",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatNumber.format(rho),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("p", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Rho p",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatPercentage.format(impliedVolatility),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("IV", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Impl. Vol.",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatPercentage.format(chanceOfProfit),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("%", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Chance",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
-              ,
-              /*Card(
-                  elevation: 0,
-                  child: */
-              Padding(
-                padding: const EdgeInsets.all(
-                    greekEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(formatCompactNumber.format(openInterest),
-                      style: const TextStyle(fontSize: greekValueFontSize)),
-                  //Container(height: 5),
-                  //const Text("%", style: TextStyle(fontSize: greekValueFontSize)),
-                  const Text("Open Interest",
-                      style: TextStyle(fontSize: greekLabelFontSize)),
-                ]),
-              )
-              //)
+              ...tiles,
+              if (delta != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatNumber.format(delta),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                    Text("Delta Δ", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (gamma != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatNumber.format(gamma),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("Γ", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Gamma Γ", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (theta != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatNumber.format(theta),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("Θ", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Theta Θ", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (vega != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatNumber.format(vega),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("v", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Vega v", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (rho != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatNumber.format(rho),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("p", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Rho p", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (impliedVolatility != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatPercentage.format(impliedVolatility),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("IV", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Impl. Vol.",
+                        style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (chanceOfProfit != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatPercentage.format(chanceOfProfit),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("%", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Chance", style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ],
+              if (delta != null) ...[
+                Padding(
+                  padding: const EdgeInsets.all(
+                      greekEgdeInset), //.symmetric(horizontal: 6),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    Text(formatCompactNumber.format(openInterest),
+                        style: TextStyle(fontSize: valueFontSize)),
+                    //Container(height: 5),
+                    //const Text("%", style: TextStyle(fontSize: valueFontSize)),
+                    Text("Open Interest",
+                        style: TextStyle(fontSize: labelFontSize)),
+                  ]),
+                )
+              ]
             ])));
   }
 
@@ -789,12 +921,15 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
     List<Widget> cards = [];
 
-    double? value = user.getAggregateDisplayValue(ops);
+    double? value = user.getAggregateDisplayValue(ops,
+        displayValue:
+            user.showGreeks ? DisplayValue.marketValue : user.displayValue);
     String? trailingText;
     Icon? icon;
     if (value != null) {
       trailingText = user.getDisplayText(value);
-      icon = (user.displayValue == DisplayValue.lastPrice ||
+      icon = (user.showGreeks ||
+              user.displayValue == DisplayValue.lastPrice ||
               user.displayValue == DisplayValue.marketValue)
           ? null
           : user.getDisplayIcon(value);
@@ -853,7 +988,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             if (trailingText != null) ...[
               Text(
                 trailingText,
-                style: const TextStyle(fontSize: 21.0),
+                style: const TextStyle(fontSize: totalValueFontSize),
                 textAlign: TextAlign.right,
               )
             ]
@@ -887,8 +1022,20 @@ class OptionPositionsRowWidget extends StatelessWidget {
           },
         ),
         if (user.showGreeks && ops.length > 1) ...[
-          _buildGreekScrollRow(deltaAvg!, gammaAvg!, thetaAvg!, vegaAvg!,
-              rhoAvg!, ivAvg!, chanceAvg!, openInterestAvg!.toInt())
+          _buildDetailScrollRow(
+              ops,
+              deltaAvg,
+              gammaAvg,
+              thetaAvg,
+              vegaAvg,
+              rhoAvg,
+              ivAvg,
+              chanceAvg,
+              openInterestAvg != null && !openInterestAvg.isNaN
+                  ? openInterestAvg.toInt()
+                  : 0,
+              summaryValueFontSize,
+              summaryLabelFontSize)
         ]
       ]));
       cards.add(
@@ -898,9 +1045,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
       );
     }
     for (OptionAggregatePosition op in ops) {
-      double value = user.getDisplayValue(op);
+      double value = user.getDisplayValue(op,
+          displayValue:
+              user.showGreeks ? DisplayValue.marketValue : user.displayValue);
       String trailingText = user.getDisplayText(value);
-      Icon? icon = (user.displayValue == DisplayValue.lastPrice ||
+      Icon? icon = (user.showGreeks ||
+              user.displayValue == DisplayValue.lastPrice ||
               user.displayValue == DisplayValue.marketValue)
           ? null
           : user.getDisplayIcon(value);
@@ -912,7 +1062,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         children: <Widget>[
           ListTile(
             title: Text(
-                '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
+                '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.optionType.capitalize()} ${op.legs.first.positionType == 'long' ? '+' : '-'}${formatCompactNumber.format(op.quantity!)}'),
             subtitle: Text(
                 '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
             trailing: Wrap(spacing: 8, children: [
@@ -921,7 +1071,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
               ],
               Text(
                 trailingText,
-                style: const TextStyle(fontSize: 18.0),
+                style: const TextStyle(fontSize: summaryValueFontSize),
                 textAlign: TextAlign.right,
               )
             ]),
@@ -975,18 +1125,24 @@ class OptionPositionsRowWidget extends StatelessWidget {
                           optionPosition: op)));
             },
           ),
-          if (user.showGreeks && op.marketData != null) ...[
-            _buildGreekScrollRow(
-                op.marketData!.delta!,
-                op.marketData!.gamma!,
-                op.marketData!.theta!,
-                op.marketData!.vega!,
-                op.marketData!.rho!,
-                op.marketData!.impliedVolatility!,
+          if (user.showGreeks &&
+              op.optionInstrument != null &&
+              op.optionInstrument!.optionMarketData != null) ...[
+            _buildDetailScrollRow(
+                [op],
+                op.optionInstrument!.optionMarketData!.delta,
+                op.optionInstrument!.optionMarketData!.gamma,
+                op.optionInstrument!.optionMarketData!.theta,
+                op.optionInstrument!.optionMarketData!.vega,
+                op.optionInstrument!.optionMarketData!.rho,
+                op.optionInstrument!.optionMarketData!.impliedVolatility,
                 op.direction == 'debit'
-                    ? op.marketData!.chanceOfProfitLong!
-                    : op.marketData!.chanceOfProfitShort!,
-                op.marketData!.openInterest),
+                    ? op.optionInstrument!.optionMarketData!.chanceOfProfitLong
+                    : op.optionInstrument!.optionMarketData!
+                        .chanceOfProfitShort,
+                op.optionInstrument!.optionMarketData!.openInterest,
+                greekValueFontSize,
+                greekLabelFontSize),
             const Divider(
               height: 10,
             ),

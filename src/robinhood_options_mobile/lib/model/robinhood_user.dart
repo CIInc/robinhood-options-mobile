@@ -429,11 +429,15 @@ class RobinhoodUser {
     return opTrailingText;
   }
 
-  double getDisplayValue(OptionAggregatePosition op) {
+  double getDisplayValue(OptionAggregatePosition op,
+      {DisplayValue? displayValue}) {
     double value = 0;
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
-        value = op.marketData != null ? op.marketData!.markPrice! : 0;
+        value = op.optionInstrument != null &&
+                op.optionInstrument!.optionMarketData != null
+            ? op.optionInstrument!.optionMarketData!.markPrice!
+            : 0;
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;

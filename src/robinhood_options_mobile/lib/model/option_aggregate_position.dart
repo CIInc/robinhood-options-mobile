@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
-import 'package:robinhood_options_mobile/model/option_marketdata.dart';
+//import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 
 //@immutable
 class OptionAggregatePosition {
@@ -28,7 +28,8 @@ class OptionAggregatePosition {
   final String strategyCode;
 
   OptionInstrument? optionInstrument;
-  OptionMarketData? marketData;
+  // Redundant with this.optionInstrument.marketData
+  //OptionMarketData? marketData;
   Instrument? instrumentObj;
   String? logoUrl;
 

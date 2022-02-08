@@ -276,6 +276,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               widget.instrument.symbol,
               chartBoundsFilter: chartBoundsFilter,
               chartDateSpanFilter: chartDateSpanFilter);
+
+          await RobinhoodService.refreshQuote(
+              widget.user,
+              Provider.of<QuoteStore>(context, listen: false),
+              widget.instrument.symbol);
+
           /*
           if (futureHistoricals != null) {
             setState(() {
@@ -458,8 +464,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Align(
                   alignment: Alignment.center,
                   child: buildOverview(instrument))),
-          Consumer2<InstrumentHistoricalsStore, QuoteStore>(builder:
-              (context, instrumentHistoricalsStore, quoteStore, child) {
+          Consumer<InstrumentHistoricalsStore>(builder: //, QuoteStore
+              (context, instrumentHistoricalsStore, child) {
+            //, quoteStore
             instrument.instrumentHistoricalsObj =
                 instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
                         element.symbol == instrument.symbol &&
@@ -488,9 +495,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
             if (instrument.instrumentHistoricalsObj != null &&
                 instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
-              var quoteObj = quoteStore.items.firstWhereOrNull(
-                  (element) => element.symbol == instrument.symbol);
-
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
               double open = 0;
@@ -515,7 +519,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               } else {
                 textColor = Colors.grey.shade800;
               }
-              // TODO: review
+              /* TODO: review
+              var quoteObj = quoteStore.items.firstWhereOrNull(
+                  (element) => element.symbol == instrument.symbol);
               if (instrument
                       .instrumentHistoricalsObj!.historicals.last.beginsAt !=
                   quoteObj!.updatedAt) {
@@ -531,6 +537,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         '',
                         false));
               }
+              */
               List<charts.Series<dynamic, DateTime>> seriesList = [
                 charts.Series<InstrumentHistorical, DateTime>(
                   id: 'Open',
