@@ -2722,7 +2722,7 @@ class _HomePageState extends State<HomePage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: const [
                       SizedBox(
-                        width: 80,
+                        width: 70,
                         child: Text(
                           "Options",
                           style: TextStyle(fontSize: 11.0),
@@ -2765,7 +2765,7 @@ class _HomePageState extends State<HomePage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: const [
                       SizedBox(
-                        width: 80,
+                        width: 70,
                         child: Text(
                           "Stocks",
                           style: TextStyle(fontSize: 11.0),
@@ -2809,7 +2809,7 @@ class _HomePageState extends State<HomePage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: const [
                       SizedBox(
-                          width: 80,
+                          width: 70,
                           child: Text(
                             "Crypto",
                             style: TextStyle(fontSize: 11.0),
@@ -2850,7 +2850,7 @@ class _HomePageState extends State<HomePage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: const [
                       SizedBox(
-                          width: 80,
+                          width: 70,
                           child: Text(
                             "Cash",
                             style: TextStyle(fontSize: 11.0),

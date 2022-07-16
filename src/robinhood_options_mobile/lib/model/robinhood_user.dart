@@ -24,6 +24,7 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
 class RobinhoodUser {
+  final String? source;
   final String? userName;
   final String? credentials;
   oauth2.Client? oauth2Client;
@@ -32,10 +33,12 @@ class RobinhoodUser {
   DisplayValue? displayValue = DisplayValue.marketValue;
   bool showGreeks = false;
 
-  RobinhoodUser(this.userName, this.credentials, this.oauth2Client);
+  RobinhoodUser(
+      this.source, this.userName, this.credentials, this.oauth2Client);
 
   RobinhoodUser.fromJson(Map<String, dynamic> json)
-      : userName = json['userName'],
+      : source = json['source'],
+        userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? true,
         optionsView =
@@ -46,6 +49,7 @@ class RobinhoodUser {
         showGreeks = json['showGreeks'] ?? true;
 
   Map<String, dynamic> toJson() => {
+        'source': source,
         'userName': userName,
         'credentials': credentials,
         'refreshEnabled': refreshEnabled,
@@ -56,13 +60,13 @@ class RobinhoodUser {
 
   Future save(UserStore store) async {
     store.addOrUpdate(this);
-    var contents = jsonEncode(this);
+    var contents = jsonEncode(store.items); //this
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
     //await Store.writeFile(Constants.cacheFilename, contents);
   }
 
-  static Future<RobinhoodUser> loadUserFromStore(UserStore store) async {
+  static Future<List<RobinhoodUser>> loadUserFromStore(UserStore store) async {
     // await Store.deleteFile(Constants.cacheFilename);
     debugPrint('Loading cache.');
 
@@ -71,21 +75,26 @@ class RobinhoodUser {
     //String? contents = await Store.readFile(Constants.cacheFilename);
     if (contents == null) {
       debugPrint('No cache file found.');
-      return RobinhoodUser(null, null, null);
+      return [];
     }
     try {
-      var userMap = jsonDecode(contents) as Map<String, dynamic>;
-      var user = RobinhoodUser.fromJson(userMap);
-      var credentials = oauth2.Credentials.fromJson(user.credentials as String);
-      var client = oauth2.Client(credentials, identifier: Constants.identifier);
-      user.oauth2Client = client;
-      debugPrint('Loaded cache.');
-      store.add(user);
-      return user;
+      store.removeAll();
+      var users = jsonDecode(contents) as List<dynamic>;
+      for (Map<String, dynamic> userMap in users) {
+        var user = RobinhoodUser.fromJson(userMap);
+        var credentials =
+            oauth2.Credentials.fromJson(user.credentials as String);
+        var client =
+            oauth2.Client(credentials, identifier: Constants.rhClientId);
+        user.oauth2Client = client;
+        debugPrint('Loaded cache.');
+        store.add(user);
+      }
+      return store.items;
     } on FormatException catch (e) {
       debugPrint(
           'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
-      return RobinhoodUser(null, null, null);
+      return [];
     }
   }
   /* Deprecated for save()
@@ -99,10 +108,13 @@ class RobinhoodUser {
 
   static Future clearUserFromStore(RobinhoodUser user, UserStore store) async {
     debugPrint("Cleared user from store.");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove(Constants.preferencesUserKey);
+
     //await Store.deleteFile(Constants.cacheFilename);
     store.remove(user);
+
+    var contents = jsonEncode(store.items); //this
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(Constants.preferencesUserKey, contents);
   }
 
   static String displayValueText(DisplayValue displayValue) {

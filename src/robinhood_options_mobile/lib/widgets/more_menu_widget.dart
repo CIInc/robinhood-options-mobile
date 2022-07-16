@@ -288,30 +288,14 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               height: 10,
             ),
             if (widget.user.userName != null) ...[
+              /*
               ListTile(
                   leading: const Icon(Icons.account_circle),
                   title: const Text("Profile"),
                   onTap: () {
                     _openLogin();
-                    /*
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Alert'),
-                          content:
-                              const Text('This feature is not implemented.'),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, 'OK'),
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                    */
                   }),
+                  */
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text("Logout"),

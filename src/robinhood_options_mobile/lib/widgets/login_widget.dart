@@ -26,6 +26,8 @@ class LoginWidget extends StatefulWidget {
 }
 
 class _LoginWidgetState extends State<LoginWidget> {
+  String? source = 'Robinhood';
+
   Future<http.Response>? authenticationResponse;
   Future<http.Response>? challengeResponse;
 
@@ -87,8 +89,14 @@ class _LoginWidgetState extends State<LoginWidget> {
   void _login() {
     setState(() {
       authenticationResponse = oauth2_robinhood.login(
-          Constants.tokenEndpoint, userCtl.text, passCtl.text,
-          identifier: Constants.identifier,
+          source == 'Robinhood'
+              ? Constants.rhAuthEndpoint
+              : Constants.tdAuthEndpoint,
+          userCtl.text,
+          passCtl.text,
+          identifier: source == 'Robinhood'
+              ? Constants.rhClientId
+              : Constants.tdClientId,
           basicAuth: false,
           deviceToken: deviceToken,
           mfaCode: mfaCtl.text.isNotEmpty ? mfaCtl.text : null,
@@ -140,17 +148,23 @@ class _LoginWidgetState extends State<LoginWidget> {
                   _stopMonitoringClipboard();
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
-                      Constants.tokenEndpoint,
+                      source == 'Robinhood'
+                          ? Constants.rhAuthEndpoint
+                          : Constants.tdAuthEndpoint,
                       ' ',
-                      Constants.identifier,
+                      source == 'Robinhood'
+                          ? Constants.rhClientId
+                          : Constants.tdClientId,
                       null,
                       null,
                       null);
-                  var user = RobinhoodUser(
-                      userCtl.text, client!.credentials.toJson(), client);
+                  var user = RobinhoodUser(source, userCtl.text,
+                      client!.credentials.toJson(), client);
                   user.save(userStore).then((value) {
                     Navigator.pop(context, user);
                   });
+                  //Navigator.pop(context, user);
+
                   /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                   Future.delayed(Duration.zero, () {
                     Navigator.pop(context, user);
@@ -191,7 +205,7 @@ class _LoginWidgetState extends State<LoginWidget> {
         child: ElevatedButton.icon(
           label: const Text(
             "Login",
-            style: TextStyle(fontSize: 22.0, height: 1.5),
+            // style: TextStyle(fontSize: 22.0, height: 1.5),
           ),
           icon: const Icon(Icons.login_outlined),
           onPressed: challengeRequestId == null ? _login : _handleChallenge,
@@ -209,52 +223,87 @@ class _LoginWidgetState extends State<LoginWidget> {
         : floatBtn;
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
-          child: TextField(
-              controller: userCtl,
-              decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.all(10),
-                  hintText: 'Robinhood username or email'),
-              style: const TextStyle(fontSize: 22.0, height: 1.5)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ChoiceChip(
+                label: const Text('Robinhood'),
+                selected: source == 'Robinhood',
+                onSelected: (bool selected) {
+                  setState(() {
+                    source = selected ? 'Robinhood' : null;
+                    //instrumentPosition = null;
+                  });
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ChoiceChip(
+                label: const Text('TD Ameritrade'),
+                selected: source == "TD Ameritrade",
+                onSelected: (bool selected) {
+                  setState(() {
+                    source = selected ? "TD Ameritrade" : null;
+                    //instrumentPosition = null;
+                  });
+                },
+              ),
+            ),
+          ],
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
           child: TextField(
-              controller: passCtl,
-              decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.all(10),
-                  hintText: 'Robinhood password'),
-              obscureText: true,
-              style: const TextStyle(fontSize: 22.0, height: 1.5)),
+            controller: userCtl,
+            decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.all(10),
+                hintText: '$source username or email'),
+            //style: const TextStyle(fontSize: 22.0, height: 1.5)
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+          child: TextField(
+            controller: passCtl,
+            decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.all(10),
+                hintText: '$source password'),
+            obscureText: true,
+            //style: const TextStyle(fontSize: 22.0, height: 1.5)
+          ),
         ),
         if (challengeRequestId != null) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
             child: TextField(
-                controller: smsCtl,
-                focusNode: myFocusNode,
-                autofocus: true,
-                decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.all(10),
-                    hintText: 'Robinhood SMS code received'),
-                style: const TextStyle(fontSize: 22.0, height: 1.5)),
+              controller: smsCtl,
+              focusNode: myFocusNode,
+              autofocus: true,
+              decoration: InputDecoration(
+                  isDense: true,
+                  contentPadding: const EdgeInsets.all(10),
+                  hintText: '$source SMS code received'),
+              //style: const TextStyle(fontSize: 22.0, height: 1.5)
+            ),
           ),
         ] else if (challengeType == 'app') ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
             child: TextField(
-                controller: mfaCtl,
-                focusNode: myFocusNode,
-                autofocus: true,
-                decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.all(10),
-                    hintText: 'MFA Authenticator App code'),
-                style: const TextStyle(fontSize: 22.0, height: 1.5)),
+              controller: mfaCtl,
+              focusNode: myFocusNode,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.all(10),
+                  hintText: 'MFA Authenticator App code'),
+              //style: const TextStyle(fontSize: 22.0, height: 1.5)
+            ),
           ),
         ],
         Padding(

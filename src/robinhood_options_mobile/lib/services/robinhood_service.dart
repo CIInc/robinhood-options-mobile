@@ -502,7 +502,7 @@ class RobinhoodService {
   static Future<List<dynamic>> getFeed(RobinhoodUser user) async {
     //https://dora.robinhood.com/feed/
     var resultJson =
-        await getJson(user, "${Constants.robinhoodExploreEndpoint}/feed/");
+        await getJson(user, "${Constants.robinHoodExploreEndpoint}/feed/");
     List<dynamic> list = [];
     for (var i = 0; i < resultJson["results"].length; i++) {
       var result = resultJson["results"][i];
@@ -913,7 +913,7 @@ class RobinhoodService {
       RobinhoodUser user, String instrumentId) async {
     //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
     var resultJson = await getJson(user,
-        "${Constants.robinhoodExploreEndpoint}/instruments/similar/$instrumentId/");
+        "${Constants.robinHoodExploreEndpoint}/instruments/similar/$instrumentId/");
     //return resultJson;
     List<dynamic> list = [];
     bool savePrefs = false;

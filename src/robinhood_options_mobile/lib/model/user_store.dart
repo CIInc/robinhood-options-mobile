@@ -26,8 +26,8 @@ class UserStore extends ChangeNotifier {
   }
 
   bool update(RobinhoodUser item) {
-    var index =
-        _items.indexWhere((element) => element.userName == item.userName);
+    var index = _items.indexWhere((element) =>
+        element.userName == item.userName && element.source == item.source);
     if (index == -1) {
       return false;
     }

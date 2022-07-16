@@ -38,8 +38,9 @@ class NavigationStatefulWidget extends StatefulWidget {
 
 /// This is the private State class that goes with NavigationStatefulWidget.
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
-  Future<RobinhoodUser>? futureRobinhoodUser;
-  RobinhoodUser? robinhoodUser;
+  Future<List<RobinhoodUser>>? futureRobinhoodUsers;
+  List<RobinhoodUser> robinhoodUsers = [];
+  int currentUserIndex = 0;
   Future<UserInfo>? futureUser;
   UserInfo? userInfo;
   Future<List<Account>>? futureAccounts;
@@ -58,7 +59,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   List<Widget> tabPages = [];
 
   //int _selectedDrawerIndex = 0;
-  bool _showDrawerContents = true;
+  bool _showDrawerContents = false;
 
   @override
   void initState() {
@@ -82,7 +83,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
     var userStore = Provider.of<UserStore>(context, listen: false);
     if (userStore.items.isEmpty) {
-      futureRobinhoodUser ??= RobinhoodUser.loadUserFromStore(userStore);
+      futureRobinhoodUsers ??= RobinhoodUser.loadUserFromStore(userStore);
     }
   }
 
@@ -134,8 +135,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     //var accountStore = Provider.of<AccountStore>(context, listen: true);
 
     if (userStore.items.isNotEmpty) {
-      robinhoodUser = userStore.items[0];
-      futureUser ??= RobinhoodService.getUser(robinhoodUser!);
+      robinhoodUsers = userStore.items;
+      futureUser ??= RobinhoodService.getUser(robinhoodUsers[currentUserIndex]);
       //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
 
       return FutureBuilder(
@@ -178,20 +179,23 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   _buildTabs() {
     tabPages = [
-      HomePage(robinhoodUser!, userInfo!,
+      HomePage(robinhoodUsers[currentUserIndex], userInfo!,
           title: 'Robinhood Options',
           navigatorKey: navigatorKeys[0],
           //onUserChanged: _handleUserChanged,
           onAccountsChanged: _handleAccountChanged),
       //const HomePage(title: 'Orders'),
-      SearchWidget(robinhoodUser!, accounts != null ? accounts!.first : null,
+      SearchWidget(robinhoodUsers[currentUserIndex],
+          accounts != null ? accounts!.first : null,
           navigatorKey: navigatorKeys[1]),
-      ListsWidget(robinhoodUser!, accounts != null ? accounts!.first : null,
+      ListsWidget(robinhoodUsers[currentUserIndex],
+          accounts != null ? accounts!.first : null,
           navigatorKey: navigatorKeys[2]),
-      HistoryPage(robinhoodUser!, accounts != null ? accounts!.first : null,
+      HistoryPage(robinhoodUsers[currentUserIndex],
+          accounts != null ? accounts!.first : null,
           navigatorKey: navigatorKeys[3]),
-      UserWidget(
-          robinhoodUser!, userInfo!, accounts != null ? accounts!.first : null,
+      UserWidget(robinhoodUsers[currentUserIndex], userInfo!,
+          accounts != null ? accounts!.first : null,
           navigatorKey: navigatorKeys[4]),
       //const LoginWidget()
       //],
@@ -286,8 +290,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: robinhoodUser == null ||
-                robinhoodUser!.userName == null ||
+        children: robinhoodUsers.isEmpty ||
+                robinhoodUsers[currentUserIndex].userName == null ||
                 userInfo == null
             ? <Widget>[
                 const DrawerHeader(
@@ -337,6 +341,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 ),
                 Column(children: [
                   if (_showDrawerContents) ...[
+                    for (int userIndex = 0;
+                        userIndex < robinhoodUsers.length;
+                        userIndex++) ...[
+                      ListTile(
+                        leading: CircleAvatar(
+                            //backgroundColor: Colors.amber,
+                            child: Text(
+                          '${robinhoodUsers[userIndex].userName!.substring(0, 1)}',
+                        )),
+                        title: Text(
+                            '${robinhoodUsers[userIndex].userName!} (${robinhoodUsers[userIndex].source!})'),
+                        //selected: userInfo!.profileName == userInfo!.profileName,
+                        onTap: () {
+                          _showDrawerContents = false;
+                          //Navigator.pop(context); // close the drawer
+                          setState(() {
+                            currentUserIndex = userIndex;
+                          });
+                          // _onPageChanged(4);
+                        },
+                      ),
+                    ],
+                    /*
                     ListTile(
                       leading: CircleAvatar(
                           //backgroundColor: Colors.amber,
@@ -351,20 +378,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         _onPageChanged(4);
                       },
                     ),
+                    */
                     ListTile(
-                      leading: const CircleAvatar(
-                          //backgroundColor: Colors.amber,
-                          child: Text(
-                        'SA',
-                      )),
-                      title: const Text("Second Account"),
-                      //selected: userInfo!.profileName == 1,
-                      onTap: () {
-                        _showDrawerContents = false;
-                        //Navigator.pop(context); // close the drawer
-                        _onPageChanged(4);
-                      },
-                    ),
+                        leading: const Icon(Icons.person_add),
+                        title: const Text("Link Brokerage Account"),
+                        //selected: userInfo!.profileName == 1,
+                        onTap: () {
+                          //_onSelectItem(0);
+                          _openLogin();
+                        }),
                     const Divider(
                       height: 10,
                     ),
@@ -419,7 +441,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           //isScrollControlled: true,
                           //useRootNavigator: true,
                           //constraints: const BoxConstraints(maxHeight: 200),
-                          builder: (_) => MoreMenuBottomSheet(robinhoodUser!,
+                          builder: (_) => MoreMenuBottomSheet(
+                              robinhoodUsers[currentUserIndex],
                               /*
                     chainSymbols: chainSymbols,
                     positionSymbols: positionSymbols,
@@ -484,7 +507,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (result != null) {
       setState(() {
         //futureRobinhoodUser = null;
-        futureRobinhoodUser = RobinhoodUser.loadUserFromStore(
+        futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
             Provider.of<UserStore>(context, listen: false));
         //user = null;
       });
@@ -523,7 +546,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             Navigator.pop(context, 'dialog');
 
             await RobinhoodUser.clearUserFromStore(
-                robinhoodUser!, Provider.of<UserStore>(context, listen: false));
+                robinhoodUsers[currentUserIndex],
+                Provider.of<UserStore>(context, listen: false));
             // Future.delayed(const Duration(milliseconds: 1), () async {
 
             /* 
@@ -531,7 +555,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             */
             setState(() {
               //futureRobinhoodUser = null;
-              futureRobinhoodUser = RobinhoodUser.loadUserFromStore(
+              futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
                   Provider.of<UserStore>(context, listen: false));
             });
           },
