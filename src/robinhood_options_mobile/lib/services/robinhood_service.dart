@@ -302,7 +302,12 @@ class RobinhoodService {
         position.instrumentObj = instrumentObj;
         store.update(position);
       }
-      var symbols = store.items.map((e) => e.instrumentObj!.symbol).toList();
+      var symbols = store.items
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
+          .map((e) => e.instrumentObj!.symbol)
+          .toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
         var position = store.items.firstWhere(
@@ -377,7 +382,12 @@ class RobinhoodService {
       chunks.add(ops.sublist(i, end));
     }
     for (var chunk in chunks) {
-      var symbols = chunk.map((e) => e.instrumentObj!.symbol).toList();
+      var symbols = chunk
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
+          .map((e) => e.instrumentObj!.symbol)
+          .toList();
 
       var quoteObjs =
           await getQuoteByIds(user, quoteStore, symbols, fromCache: false);
@@ -1713,7 +1723,9 @@ WATCHLIST
       }
 
       var instrumentSymbols = wl.items
-          .where((e) => e.instrumentObj != null)
+          .where((e) =>
+              e.instrumentObj !=
+              null) // Figure out why in certain conditions, instrumentObj is null
           .map((e) => e.instrumentObj!.symbol)
           .toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
@@ -1778,7 +1790,9 @@ WATCHLIST
     }
 
     var instrumentSymbols = items
-        .where((e) => e.instrumentObj != null)
+        .where((e) =>
+            e.instrumentObj !=
+            null) // Figure out why in certain conditions, instrumentObj is null
         .map((e) => e.instrumentObj!.symbol)
         .toList();
     var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);

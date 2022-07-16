@@ -314,9 +314,9 @@ class _HistoryPageState extends State<HistoryPage>
           .toList();
     }
     slivers.add(SliverAppBar(
-      floating: false,
+      //floating: false,
       pinned: true,
-      snap: false,
+      //snap: false,
       title: Wrap(
           crossAxisAlignment: WrapCrossAlignment.end,
           //runAlignment: WrapAlignment.end,
@@ -902,18 +902,22 @@ class _HistoryPageState extends State<HistoryPage>
       height: 25.0,
     )));
 
-    return Scaffold(
-      body: RefreshIndicator(
-        child: CustomScrollView(slivers: slivers), //controller: _controller,
-        onRefresh: _pullRefresh,
-      ),
+    // Removed Scaffold at this level as it blocks the drawer menu from appearing.
+    // This requires the removal of the share floatingActionButton, still available in the vertical menu.
+    return /*Scaffold(
+      body: */
+        RefreshIndicator(
+      child: CustomScrollView(slivers: slivers), //controller: _controller,
+      onRefresh: _pullRefresh,
+    ) /*,
       floatingActionButton: FloatingActionButton(
         onPressed: _showShareView,
         tooltip: 'Share Orders',
         child:
             showShareView ? const Icon(Icons.preview) : const Icon(Icons.share),
       ),
-    );
+    )*/
+        ;
   }
 
   Widget symbolWidgets(List<Widget> widgets) {
