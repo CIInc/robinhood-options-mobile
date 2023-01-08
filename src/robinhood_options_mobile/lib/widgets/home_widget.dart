@@ -243,7 +243,7 @@ class _HomePageState extends State<HomePage>
           if (accounts != accts) {
             accounts = accts;
             account = accounts!.first;
-            WidgetsBinding.instance!.addPostFrameCallback(
+            WidgetsBinding.instance.addPostFrameCallback(
                 (_) => widget.onAccountsChanged(accounts!));
           }
 

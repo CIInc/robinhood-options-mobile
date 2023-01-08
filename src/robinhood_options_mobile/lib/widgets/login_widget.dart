@@ -50,6 +50,8 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? challengeResponseId;
   String challengeType = 'sms';
 
+  bool popped = false;
+
   // Define the focus node. To manage the lifecycle, create the FocusNode in
   // the initState method, and clean it up in the dispose method.
   late FocusNode myFocusNode;
@@ -161,7 +163,12 @@ class _LoginWidgetState extends State<LoginWidget> {
                   var user = RobinhoodUser(source, userCtl.text,
                       client!.credentials.toJson(), client);
                   user.save(userStore).then((value) {
-                    Navigator.pop(context, user);
+                    //Navigator.popUntil(context, ModalRoute.withName('/'));
+                    // This is being called twice, figure out root cause and not this workaround.
+                    if (!popped) {
+                      Navigator.pop(context, user);
+                      popped = true;
+                    }
                   });
                   //Navigator.pop(context, user);
 
