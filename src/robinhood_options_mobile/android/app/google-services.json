@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "507549221555",
+    "project_id": "investiomanus",
+    "storage_bucket": "investiomanus.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507549221555:android:5e4509b8b9a595aa15e6c6",
+        "android_client_info": {
+          "package_name": "com.cidevelop.robinhood_options_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "507549221555-9mfmc1238f9hsv9fm2un18qps7uahjt5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCll0SsOLABNtLmLZptvU3X5WC0XBSxkZk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "507549221555-9mfmc1238f9hsv9fm2un18qps7uahjt5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cidevelop.robinhoodOptionsMobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

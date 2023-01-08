@@ -35,7 +35,7 @@ class ForexInstrumentWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _ForexInstrumentWidgetState createState() => _ForexInstrumentWidgetState();
+  State<ForexInstrumentWidget> createState() => _ForexInstrumentWidgetState();
 }
 
 class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>

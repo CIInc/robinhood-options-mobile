@@ -29,7 +29,7 @@ class TradeOptionWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _TradeOptionWidgetState createState() => _TradeOptionWidgetState();
+  State<TradeOptionWidget> createState() => _TradeOptionWidgetState();
 }
 
 class _TradeOptionWidgetState extends State<TradeOptionWidget> {
@@ -79,6 +79,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
             var newOrder = OptionOrder.fromJson(orderJson);
             if (newOrder.state == "confirmed" ||
                 newOrder.state == "unconfirmed") {
+              if (!mounted) return;
               Navigator.pop(context);
 
               ScaffoldMessenger.of(context)
@@ -122,36 +123,10 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               ListTile(
                 title: const Text("Position Type"),
                 trailing: ToggleButtons(
-                    children: <Widget>[
-                      Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: Row(
-                            children: const [
-                              Text(
-                                'Buy',
-                                style: TextStyle(fontSize: 16),
-                              )
-                            ],
-                          )),
-                      Padding(
-                        padding: const EdgeInsets.all(14.0),
-                        child: Row(
-                          children: const [
-                            Text(
-                              'Sell',
-                              style: TextStyle(fontSize: 16),
-                            )
-                          ],
-                        ),
-                      ),
-                      //Icon(Icons.ac_unit),
-                      //Icon(Icons.call),
-                      //Icon(Icons.cake),
-                    ],
-                    onPressed: (int index) {
-                      setState(() {
-                        positionType = index == 0 ? "Buy" : "Sell";
-                        /*
+                  onPressed: (int index) {
+                    setState(() {
+                      positionType = index == 0 ? "Buy" : "Sell";
+                      /*
                       for (int buttonIndex = 0;
                           buttonIndex < isSelected.length;
                           buttonIndex++) {
@@ -163,13 +138,39 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                         }
                       }
                       */
-                      });
-                    },
-                    isSelected: [
-                      positionType == "Buy",
-                      positionType == "Sell"
-                    ] //isSelected,
+                    });
+                  },
+                  isSelected: [
+                    positionType == "Buy",
+                    positionType == "Sell"
+                  ], //isSelected,
+                  children: <Widget>[
+                    Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: Row(
+                          children: const [
+                            Text(
+                              'Buy',
+                              style: TextStyle(fontSize: 16),
+                            )
+                          ],
+                        )),
+                    Padding(
+                      padding: const EdgeInsets.all(14.0),
+                      child: Row(
+                        children: const [
+                          Text(
+                            'Sell',
+                            style: TextStyle(fontSize: 16),
+                          )
+                        ],
+                      ),
                     ),
+                    //Icon(Icons.ac_unit),
+                    //Icon(Icons.call),
+                    //Icon(Icons.cake),
+                  ],
+                ),
               ),
               ListTile(
                 title: TextField(

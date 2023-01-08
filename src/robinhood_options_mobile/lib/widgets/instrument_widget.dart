@@ -61,7 +61,7 @@ class InstrumentWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _InstrumentWidgetState createState() => _InstrumentWidgetState();
+  State<InstrumentWidget> createState() => _InstrumentWidgetState();
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
@@ -277,6 +277,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               chartBoundsFilter: chartBoundsFilter,
               chartDateSpanFilter: chartDateSpanFilter);
 
+          if (!mounted) return;
           await RobinhoodService.refreshQuote(
               widget.user,
               Provider.of<QuoteStore>(context, listen: false),
@@ -1654,10 +1655,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           TextButton(
             child: const Text('DOWNLOAD REPORT'),
             onPressed: () async {
-              var _url = instrument.ratingsOverviewObj!["download_url"];
-              await canLaunch(_url)
-                  ? await launch(_url)
-                  : throw 'Could not launch $_url';
+              var url = instrument.ratingsOverviewObj!["download_url"];
+              await canLaunchUrl(url)
+                  ? await launchUrl(url)
+                  : throw 'Could not launch $url';
             },
           ),
         ])
@@ -1747,10 +1748,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 TextButton(
                   child: const Text('LISTEN TO REPLAY'),
                   onPressed: () async {
-                    var _url = earning!["call"]["replay_url"];
-                    await canLaunch(_url)
-                        ? await launch(_url)
-                        : throw 'Could not launch $_url';
+                    var url = earning!["call"]["replay_url"];
+                    await canLaunchUrl(url)
+                        ? await launchUrl(url)
+                        : throw 'Could not launch $url';
                   },
                 ),
               ],
@@ -1759,10 +1760,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 TextButton(
                   child: const Text('LISTEN TO BROADCAST'),
                   onPressed: () async {
-                    var _url = earning!["call"]["broadcast_url"];
-                    await canLaunch(_url)
-                        ? await launch(_url)
-                        : throw 'Could not launch $_url';
+                    var url = earning!["call"]["broadcast_url"];
+                    await canLaunchUrl(url)
+                        ? await launchUrl(url)
+                        : throw 'Could not launch $url';
                   },
                 ),
               ],
@@ -1945,6 +1946,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ["logo_url"]
                       .toString()
                       .replaceAll("https:////", "https://");
+                  if (!mounted) return;
                   Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -2059,10 +2061,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       */
                 isThreeLine: true,
                 onTap: () async {
-                  var _url = instrument.newsObj![index]["url"];
-                  await canLaunch(_url)
-                      ? await launch(_url)
-                      : throw 'Could not launch $_url';
+                  var url = instrument.newsObj![index]["url"];
+                  await canLaunchUrl(url)
+                      ? await launchUrl(url)
+                      : throw 'Could not launch $url';
                 },
               ),
             ],

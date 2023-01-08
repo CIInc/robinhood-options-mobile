@@ -18,7 +18,8 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: '>=3.0.0-85.0.dev <4.0.0'
+#  sdk: ">=2.12.0 <3.0.0"
 
 dependencies:
   flutter:
@@ -27,31 +28,34 @@ dependencies:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.5
 
-  oauth2: ^2.0.0
-  shared_preferences: ^2.0.11
+  oauth2: ^2.0.1
+  shared_preferences: ^2.0.15
   #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
-  provider: ^6.0.2
+  provider: ^6.0.5
   intl: ^0.17.0
-  decimal: ^2.0.0
-  csv: ^5.0.0
-  permission_handler: ^8.1.6
+  decimal: ^2.3.2
+  csv: ^5.0.1
+  permission_handler: ^10.2.0
   open_file: ^3.2.1
   # rxdart: ^0.27.2
-  flutter_sticky_header: ^0.6.0
+  flutter_sticky_header: ^0.6.5
   charts_flutter: ^0.12.0
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
-  url_launcher: ^6.0.17
+  url_launcher: ^6.1.7
   # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^3.0.4
-  uuid: ^3.0.5
-  material_color_utilities: ^0.1.2
-  dynamic_color: ^0.1.0
+  share_plus: ^4.5.3
+  uuid: ^3.0.7
+  material_color_utilities: ^0.2.0
+  dynamic_color: ^1.5.4
 #  scrollable_positioned_list: ^0.2.3
+  collection: ^1.17.0
+  http: ^0.13.5
+  firebase_core: ^2.4.1
 
 dev_dependencies:
   flutter_test:
@@ -62,7 +66,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^1.0.0
+  flutter_lints: ^2.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

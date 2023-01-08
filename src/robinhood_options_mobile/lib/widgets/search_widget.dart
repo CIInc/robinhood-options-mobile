@@ -26,7 +26,7 @@ class SearchWidget extends StatefulWidget {
   final GlobalKey<NavigatorState>? navigatorKey;
 
   @override
-  _SearchWidgetState createState() => _SearchWidgetState();
+  State<SearchWidget> createState() => _SearchWidgetState();
 }
 
 class _SearchWidgetState extends State<SearchWidget>
@@ -438,6 +438,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     builder: (context) => InstrumentWidget(ru, widget.account,
                         watchLists[index].instrumentObj as Instrument)));
                         */
+                if (!mounted) return;
                 Navigator.push(
                     context,
                     MaterialPageRoute(

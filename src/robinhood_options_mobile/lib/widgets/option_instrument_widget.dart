@@ -52,7 +52,7 @@ class OptionInstrumentWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _OptionInstrumentWidgetState createState() => _OptionInstrumentWidgetState();
+  State<OptionInstrumentWidget> createState() => _OptionInstrumentWidgetState();
 }
 
 class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
@@ -129,7 +129,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   future: futureInstrument,
                   builder: (context1, instrumentSnapshot) {
                     if (instrumentSnapshot.hasData) {
-                      var instrument = instrumentSnapshot.data! as Instrument;
+                      var instrument = instrumentSnapshot.data!;
                       instrument.quoteObj = quote;
 
                       return FutureBuilder(
@@ -139,8 +139,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               return _buildPage(widget.optionInstrument,
                                   instrument: instrument,
                                   optionPosition: widget.optionPosition,
-                                  optionOrders:
-                                      ordersSnapshot.data! as List<OptionOrder>,
+                                  optionOrders: ordersSnapshot.data!,
                                   done: instrumentSnapshot.connectionState ==
                                           ConnectionState.done &&
                                       quoteSnapshot.connectionState ==

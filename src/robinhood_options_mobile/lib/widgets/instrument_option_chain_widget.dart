@@ -35,7 +35,7 @@ class InstrumentOptionChainWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _InstrumentOptionChainWidgetState createState() =>
+  State<InstrumentOptionChainWidget> createState() =>
       _InstrumentOptionChainWidgetState();
 }
 
@@ -906,6 +906,31 @@ class _InstrumentOptionChainWidgetState
   Card buildOptions() {
     return Card(
         child: ToggleButtons(
+      onPressed: (int index) {
+        setState(() {
+          for (int buttonIndex = 0;
+              buttonIndex < isSelected.length;
+              buttonIndex++) {
+            if (buttonIndex == index) {
+              isSelected[buttonIndex] = true;
+            } else {
+              isSelected[buttonIndex] = false;
+            }
+          }
+          /*
+          if (index == 0 && futureCallOptionInstruments == null) {
+            futureCallOptionInstruments =
+                RobinhoodService.downloadOptionInstruments(
+                    user, instrument, null, 'call');
+          } else if (index == 1 && futurePutOptionInstruments == null) {
+            futurePutOptionInstruments =
+                RobinhoodService.downloadOptionInstruments(
+                    user, instrument, null, 'put');
+          }
+          */
+        });
+      },
+      isSelected: isSelected,
       children: <Widget>[
         Padding(
             padding: const EdgeInsets.all(14.0),
@@ -938,31 +963,6 @@ class _InstrumentOptionChainWidgetState
         //Icon(Icons.call),
         //Icon(Icons.cake),
       ],
-      onPressed: (int index) {
-        setState(() {
-          for (int buttonIndex = 0;
-              buttonIndex < isSelected.length;
-              buttonIndex++) {
-            if (buttonIndex == index) {
-              isSelected[buttonIndex] = true;
-            } else {
-              isSelected[buttonIndex] = false;
-            }
-          }
-          /*
-          if (index == 0 && futureCallOptionInstruments == null) {
-            futureCallOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'call');
-          } else if (index == 1 && futurePutOptionInstruments == null) {
-            futurePutOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
-                    user, instrument, null, 'put');
-          }
-          */
-        });
-      },
-      isSelected: isSelected,
     ));
   }
 }

@@ -12,7 +12,7 @@ class OptionOrderFilterBottomSheet extends StatefulWidget {
   final List<OptionAggregatePosition>? optionAggregatePositions;
 
   @override
-  _OptionOrderFilterBottomSheetState createState() =>
+  State<OptionOrderFilterBottomSheet> createState() =>
       _OptionOrderFilterBottomSheetState();
 }
 

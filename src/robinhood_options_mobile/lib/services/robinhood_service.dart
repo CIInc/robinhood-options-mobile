@@ -910,7 +910,7 @@ class RobinhoodService {
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     var resultJson = await getJson(user,
-        "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/" + instrumentId + "/")}");
+        "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/$instrumentId/")}");
     List<dynamic> list = [];
     for (var i = 0; i < resultJson["results"].length; i++) {
       var result = resultJson["results"][i];

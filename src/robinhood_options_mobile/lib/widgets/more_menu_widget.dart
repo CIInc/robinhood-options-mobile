@@ -29,7 +29,7 @@ class MoreMenuBottomSheet extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _MoreMenuBottomSheetState createState() => _MoreMenuBottomSheetState();
+  State<MoreMenuBottomSheet> createState() => _MoreMenuBottomSheetState();
 }
 
 class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
@@ -653,6 +653,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
+      if (!mounted) return;
       Navigator.pop(context); //, 'login'
 
       // After the Selection Screen returns a result, hide any previous snackbars

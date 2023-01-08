@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 enum SortType { alphabetical, change }
+
 enum SortDirection { asc, desc }
 
 final formatCompactNumber = NumberFormat.compact();
@@ -28,7 +29,7 @@ class ListsWidget extends StatefulWidget {
   final Account? account;
 
   @override
-  _ListsWidgetState createState() => _ListsWidgetState();
+  State<ListsWidget> createState() => _ListsWidgetState();
 }
 
 class _ListsWidgetState extends State<ListsWidget>
@@ -73,7 +74,7 @@ class _ListsWidgetState extends State<ListsWidget>
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
           if (watchlistsSnapshot.hasData) {
-            watchlists = watchlistsSnapshot.data! as List<Watchlist>;
+            watchlists = watchlistsSnapshot.data!;
             for (var watchList in watchlists!) {
               if (_sortType == SortType.alphabetical) {
                 watchList.items.sort((a, b) =>

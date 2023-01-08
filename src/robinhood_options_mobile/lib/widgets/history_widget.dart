@@ -54,7 +54,7 @@ class HistoryPage extends StatefulWidget {
   final Account? account;
 
   @override
-  _HistoryPageState createState() => _HistoryPageState();
+  State<HistoryPage> createState() => _HistoryPageState();
 }
 
 class _HistoryPageState extends State<HistoryPage>
@@ -94,11 +94,6 @@ class _HistoryPageState extends State<HistoryPage>
 
   @override
   bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -907,8 +902,8 @@ class _HistoryPageState extends State<HistoryPage>
     return /*Scaffold(
       body: */
         RefreshIndicator(
-      child: CustomScrollView(slivers: slivers), //controller: _controller,
       onRefresh: _pullRefresh,
+      child: CustomScrollView(slivers: slivers), //controller: _controller,
     ) /*,
       floatingActionButton: FloatingActionButton(
         onPressed: _showShareView,

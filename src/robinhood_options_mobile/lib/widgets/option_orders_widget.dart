@@ -26,7 +26,7 @@ class OptionOrdersWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _OptionOrdersWidgetState createState() => _OptionOrdersWidgetState();
+  State<OptionOrdersWidget> createState() => _OptionOrdersWidgetState();
 }
 
 class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {

@@ -27,7 +27,7 @@ class UserWidget extends StatefulWidget {
   final GlobalKey<NavigatorState>? navigatorKey;
 
   @override
-  _UserWidgetState createState() => _UserWidgetState();
+  State<UserWidget> createState() => _UserWidgetState();
 }
 
 class _UserWidgetState extends State<UserWidget> {

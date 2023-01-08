@@ -284,7 +284,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", " + formatCompactNumber.format(groupedOptionAggregatePositions.length) + " underlying" : ""}"),
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", $formatCompactNumber.format(groupedOptionAggregatePositions.length) underlying" : ""}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     marketValueText,

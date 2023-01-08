@@ -79,6 +79,8 @@ flutter build appbundle
 
 ### Generate APKs
 
+This command generates an .apk file used to publish an installation file.
+
 ```bash
 cd src/robinhood_options_mobile
 flutter build apk --release

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
@@ -20,7 +24,7 @@ import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:material_color_utilities/material_color_utilities.dart';
+//import 'package:material_color_utilities/material_color_utilities.dart';
 
 void main() {
   runApp(const MyApp());
@@ -36,6 +40,11 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+
+    // await
+    Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     /*
     ThemeData lightTheme, darkTheme;
     lightTheme =
@@ -45,9 +54,11 @@ class MyApp extends StatelessWidget {
     */
     return DynamicColorBuilder(
         //future: DynamicColorPlugin.getCorePalette(),
-        builder: (CorePalette? corePalette) {
+        //builder: (CorePalette? corePalette) {
+        builder: (ColorScheme? colorScheme, ColorScheme? darkColorScheme) {
       ColorScheme colorScheme = const ColorScheme.light();
       ColorScheme darkColorScheme = const ColorScheme.dark();
+      /*
       if (corePalette != null) {
         colorScheme = colorScheme.copyWith(
           primary: Color(corePalette.primary.get(40)),
@@ -58,6 +69,7 @@ class MyApp extends StatelessWidget {
         colorScheme = colorScheme.harmonized();
         darkColorScheme = darkColorScheme.harmonized();
       }
+      */
       /* else {
         colorScheme = colorScheme.copyWith(
           primary: Colors.teal,

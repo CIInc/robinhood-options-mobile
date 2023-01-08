@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 enum SortType { alphabetical, change }
+
 enum SortDirection { asc, desc }
 
 final formatCompactNumber = NumberFormat.compact();
@@ -33,7 +34,7 @@ class ListWidget extends StatefulWidget {
   final String listKey;
 
   @override
-  _ListWidgetState createState() => _ListWidgetState();
+  State<ListWidget> createState() => _ListWidgetState();
 }
 
 class _ListWidgetState extends State<ListWidget>
@@ -79,7 +80,7 @@ class _ListWidgetState extends State<ListWidget>
         stream: watchlistStream,
         builder: (context4, watchlistsSnapshot) {
           if (watchlistsSnapshot.hasData) {
-            watchlist = watchlistsSnapshot.data! as Watchlist;
+            watchlist = watchlistsSnapshot.data!;
             if (_sortType == SortType.alphabetical) {
               watchlist!.items.sort((a, b) =>
                   a.instrumentObj != null && b.instrumentObj != null

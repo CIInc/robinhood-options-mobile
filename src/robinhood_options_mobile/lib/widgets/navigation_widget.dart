@@ -32,7 +32,7 @@ class NavigationStatefulWidget extends StatefulWidget {
   const NavigationStatefulWidget({Key? key}) : super(key: key);
 
   @override
-  _NavigationStatefulWidgetState createState() =>
+  State<NavigationStatefulWidget> createState() =>
       _NavigationStatefulWidgetState();
 }
 
@@ -144,7 +144,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
           builder: (context1, dataSnapshot) {
             if (dataSnapshot.hasData) {
-              userInfo = dataSnapshot.data! as UserInfo;
+              userInfo = dataSnapshot.data!;
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -348,7 +348,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         leading: CircleAvatar(
                             //backgroundColor: Colors.amber,
                             child: Text(
-                          '${robinhoodUsers[userIndex].userName!.substring(0, 1)}',
+                          robinhoodUsers[userIndex].userName!.substring(0, 1),
                         )),
                         title: Text(
                             '${robinhoodUsers[userIndex].userName!} (${robinhoodUsers[userIndex].source!})'),
@@ -505,12 +505,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             builder: (BuildContext context) => const LoginWidget()));
 
     if (result != null) {
-      setState(() {
-        //futureRobinhoodUser = null;
-        futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
-            Provider.of<UserStore>(context, listen: false));
-        //user = null;
-      });
+      if (!mounted) return;
+      // TODO: see if setState is actually needed, Provider pattern is already listening.
+      //setState(() {
+      //futureRobinhoodUser = null;
+      futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
+          Provider.of<UserStore>(context, listen: false));
+      //user = null;
+      //});
 
       //Navigator.pop(context); //, 'login'
 
@@ -553,11 +555,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             /* 
             widget.onUserChanged(null);
             */
-            setState(() {
-              //futureRobinhoodUser = null;
-              futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
-                  Provider.of<UserStore>(context, listen: false));
-            });
+            // TODO: see if setState is actually needed, Provider pattern is already listening.
+            //setState(() {
+            //futureRobinhoodUser = null;
+            if (!mounted) return;
+            futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
+                Provider.of<UserStore>(context, listen: false));
+            //});
           },
         ),
       ],

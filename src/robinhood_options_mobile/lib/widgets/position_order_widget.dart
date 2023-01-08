@@ -30,7 +30,7 @@ class PositionOrderWidget extends StatefulWidget {
       : super(key: key);
 
   @override
-  _PositionOrderWidgetState createState() => _PositionOrderWidgetState();
+  State<PositionOrderWidget> createState() => _PositionOrderWidgetState();
 }
 
 class _PositionOrderWidgetState extends State<PositionOrderWidget> {

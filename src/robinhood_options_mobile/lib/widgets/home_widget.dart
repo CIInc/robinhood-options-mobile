@@ -91,7 +91,7 @@ class HomePage extends StatefulWidget {
   final String? title;
 
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage>
@@ -310,26 +310,31 @@ class _HomePageState extends State<HomePage>
       (timer) async {
         if (widget.user.refreshEnabled) {
           // animateChart = false;
-          await RobinhoodService.getPortfolioHistoricals(
-              widget.user,
-              Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-              account!.accountNumber,
-              chartBoundsFilter,
-              chartDateSpanFilter);
-
+          if (account != null) {
+            await RobinhoodService.getPortfolioHistoricals(
+                widget.user,
+                Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+                account!.accountNumber,
+                chartBoundsFilter,
+                chartDateSpanFilter);
+          }
+          if (!mounted) return;
           await RobinhoodService.refreshOptionMarketData(
               widget.user,
               Provider.of<OptionPositionStore>(context, listen: false),
               Provider.of<OptionInstrumentStore>(context, listen: false));
 
+          if (!mounted) return;
           await RobinhoodService.refreshPositionQuote(
               widget.user,
               Provider.of<StockPositionStore>(context, listen: false),
               Provider.of<QuoteStore>(context, listen: false));
 
+          if (!mounted) return;
           await RobinhoodService.getPortfolios(
               widget.user, Provider.of<PortfolioStore>(context, listen: false));
 
+          if (!mounted) return;
           await RobinhoodService.refreshNummusHoldings(
             widget.user,
             Provider.of<ForexHoldingStore>(context, listen: false),
@@ -399,6 +404,7 @@ class _HomePageState extends State<HomePage>
       bool done = true}) {
     //debugPrint('_buildPage');
     return RefreshIndicator(
+      onRefresh: _pullRefresh,
       child: CustomScrollView(
           // physics: ClampingScrollPhysics(),
           slivers: [
@@ -1778,7 +1784,6 @@ class _HomePageState extends State<HomePage>
               height: 25.0,
             ))
           ]), //controller: _controller,
-      onRefresh: _pullRefresh,
     );
   }
 

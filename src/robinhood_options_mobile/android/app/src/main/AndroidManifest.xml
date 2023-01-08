@@ -2,6 +2,7 @@
     package="com.cidevelop.robinhood_options_mobile">
    <application
         android:label="Robinhood Options"
+        android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -34,7 +35,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
+            
             <!-- Deep linking -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
             <!-- Make sure you explicitly set android:autoVerify to "true". -->
