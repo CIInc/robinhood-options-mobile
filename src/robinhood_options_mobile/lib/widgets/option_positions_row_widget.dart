@@ -1,5 +1,6 @@
 import 'dart:math' as math;
-import 'package:flutter/material.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
@@ -34,15 +35,20 @@ final ItemPositionsListener itemPositionListener =
     */
 
 class OptionPositionsRowWidget extends StatelessWidget {
+  const OptionPositionsRowWidget(
+    this.user,
+    //this.account,
+    this.filteredOptionPositions, {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
-  const OptionPositionsRowWidget(
-      this.user,
-      //this.account,
-      this.filteredOptionPositions,
-      {Key? key})
-      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +251,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       //account,
                       op.optionInstrument!,
                       optionPosition: op,
+                      analytics: analytics,
+                      observer: observer,
                     )));
       } else {
         var op = filteredOptionPositions
@@ -253,9 +261,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
             context,
             MaterialPageRoute(
                 builder: (context) => InstrumentWidget(
-                    user,
-                    //account,
-                    op.instrumentObj!)));
+                      user,
+                      //account,
+                      op.instrumentObj!,
+                      analytics: analytics,
+                      observer: observer,
+                    )));
       }
     });
     /*
@@ -284,7 +295,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   style: TextStyle(fontSize: 19.0),
                 ),
                 subtitle: Text(
-                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", $formatCompactNumber.format(groupedOptionAggregatePositions.length) underlying" : ""}"),
+                    "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"),
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     marketValueText,
@@ -315,7 +326,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   rhoAvg,
                   ivAvg,
                   chanceAvg,
-                  (openInterestAvg ?? 0).toInt(),
+                  (openInterestAvg != null && !openInterestAvg.isNaN
+                          ? openInterestAvg
+                          : 0)
+                      .toInt(),
                   summaryValueFontSize,
                   summaryLabelFontSize),
               /*
@@ -653,11 +667,14 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
-                        user,
-                        //account,
-                        op.optionInstrument!,
-                        optionPosition: op,
-                        heroTag: 'logo_${op.symbol}${op.id}')));
+                          user,
+                          //account,
+                          op.optionInstrument!,
+                          optionPosition: op,
+                          heroTag: 'logo_${op.symbol}${op.id}',
+                          analytics: analytics,
+                          observer: observer,
+                        )));
           },
         ),
         if (user.showGreeks) ...[
@@ -1014,9 +1031,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                     builder: (context) => InstrumentWidget(
-                        user,
-                        //account,
-                        ops.first.instrumentObj!)));
+                          user,
+                          //account,
+                          ops.first.instrumentObj!,
+                          analytics: analytics,
+                          observer: observer,
+                        )));
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
           },
@@ -1119,10 +1139,13 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (context) => OptionInstrumentWidget(
-                          user,
-                          //account,
-                          op.optionInstrument!,
-                          optionPosition: op)));
+                            user,
+                            //account,
+                            op.optionInstrument!,
+                            optionPosition: op,
+                            analytics: analytics,
+                            observer: observer,
+                          )));
             },
           ),
           if (user.showGreeks &&

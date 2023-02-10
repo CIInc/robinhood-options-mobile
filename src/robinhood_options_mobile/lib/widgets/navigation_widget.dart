@@ -1,5 +1,6 @@
 //import 'dart:html';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -29,7 +30,15 @@ import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 /// This is the stateful widget that the main application instantiates.
 class NavigationStatefulWidget extends StatefulWidget {
-  const NavigationStatefulWidget({Key? key}) : super(key: key);
+  //const NavigationStatefulWidget({Key? key}) : super(key: key);
+  const NavigationStatefulWidget({
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
 
   @override
   State<NavigationStatefulWidget> createState() =>
@@ -122,10 +131,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
   */
+
   void _handleAccountChanged(List<Account> accts) {
     setState(() {
       accounts = accts;
-      _buildTabs();
+      if (accounts != null) {
+        _buildTabs();
+      }
     });
   }
 
@@ -138,13 +150,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       robinhoodUsers = userStore.items;
       futureUser ??= RobinhoodService.getUser(robinhoodUsers[currentUserIndex]);
       //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
-
       return FutureBuilder(
           future:
               futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
           builder: (context1, dataSnapshot) {
             if (dataSnapshot.hasData) {
               userInfo = dataSnapshot.data!;
+              widget.analytics.setUserId(id: userInfo?.username);
+              widget.analytics.setCurrentScreen(screenName: 'Navigation');
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -182,20 +195,30 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       HomePage(robinhoodUsers[currentUserIndex], userInfo!,
           title: 'Robinhood Options',
           navigatorKey: navigatorKeys[0],
+          analytics: widget.analytics,
+          observer: widget.observer,
           //onUserChanged: _handleUserChanged,
           onAccountsChanged: _handleAccountChanged),
       //const HomePage(title: 'Orders'),
       SearchWidget(robinhoodUsers[currentUserIndex],
           accounts != null ? accounts!.first : null,
+          analytics: widget.analytics,
+          observer: widget.observer,
           navigatorKey: navigatorKeys[1]),
       ListsWidget(robinhoodUsers[currentUserIndex],
           accounts != null ? accounts!.first : null,
+          analytics: widget.analytics,
+          observer: widget.observer,
           navigatorKey: navigatorKeys[2]),
       HistoryPage(robinhoodUsers[currentUserIndex],
           accounts != null ? accounts!.first : null,
+          analytics: widget.analytics,
+          observer: widget.observer,
           navigatorKey: navigatorKeys[3]),
       UserWidget(robinhoodUsers[currentUserIndex], userInfo!,
           accounts != null ? accounts!.first : null,
+          analytics: widget.analytics,
+          observer: widget.observer,
           navigatorKey: navigatorKeys[4]),
       //const LoginWidget()
       //],
@@ -242,8 +265,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+      bottomNavigationBar: Container(height: this.loggedIn() ? null : 0, child: BottomNavigationBar(
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance), //home
             label: 'Portfolio',
@@ -281,7 +304,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         //unselectedItemColor: Colors.grey.shade400, //.amber[800],
         onTap: _onPageChanged,
         //onTap: _onIndexedViewChanged,
-      ),
+      )),
     );
     //);
   }
@@ -442,15 +465,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           //useRootNavigator: true,
                           //constraints: const BoxConstraints(maxHeight: 200),
                           builder: (_) => MoreMenuBottomSheet(
-                              robinhoodUsers[currentUserIndex],
-                              /*
+                                robinhoodUsers[currentUserIndex],
+                                /*
                     chainSymbols: chainSymbols,
                     positionSymbols: positionSymbols,
                     cryptoSymbols: cryptoSymbols,
                     optionSymbolFilters: optionSymbolFilters,
                     stockSymbolFilters: stockSymbolFilters,
                     cryptoFilters: cryptoFilters,*/
-                              onSettingsChanged: (_) => {}));
+                                onSettingsChanged: (_) => {},
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              ));
                     },
                   ),
                   const Divider(
@@ -498,19 +524,28 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         });
   }
   */
+
+  loggedIn() {
+    return robinhoodUsers.isNotEmpty &&
+        robinhoodUsers[currentUserIndex].userName != null &&
+        userInfo != null;
+  }
+
   _openLogin() async {
     final RobinhoodUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (BuildContext context) => const LoginWidget()));
+            builder: (BuildContext context) => LoginWidget(
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                )));
 
     if (result != null) {
       if (!mounted) return;
       // TODO: see if setState is actually needed, Provider pattern is already listening.
       //setState(() {
-      //futureRobinhoodUser = null;
-      futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
-          Provider.of<UserStore>(context, listen: false));
+      futureRobinhoodUsers = null;
+      //futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
       //user = null;
       //});
 
@@ -527,9 +562,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   _logout() async {
     var alert = AlertDialog(
       title: const Text('Logout process'),
-      content: SingleChildScrollView(
+      content: const SingleChildScrollView(
         child: ListBody(
-          children: const <Widget>[
+          children: <Widget>[
             Text('This action will require you to log in again.'),
             Text('Are you sure you want to log out?'),
           ],

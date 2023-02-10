@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -19,15 +20,20 @@ final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrderWidget extends StatefulWidget {
+  const OptionOrderWidget(
+    this.user,
+    //this.account,
+    this.optionOrder, {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
   final OptionOrder optionOrder;
-  const OptionOrderWidget(
-      this.user,
-      //this.account,
-      this.optionOrder,
-      {Key? key})
-      : super(key: key);
 
   @override
   State<OptionOrderWidget> createState() => _OptionOrderWidgetState();
@@ -49,6 +55,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName: 'OptionOrder/${widget.optionOrder.chainSymbol}',
+    );
     var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
     var cachedQuotes = quoteStore.items
@@ -120,7 +129,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              Row(children: const [SizedBox(height: 70)]),
+              const Row(children: [SizedBox(height: 70)]),
               Wrap(
                   crossAxisAlignment: WrapCrossAlignment.end,
                   //runAlignment: WrapAlignment.end,
@@ -533,9 +542,12 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user,
-                            //widget.account,
-                            instrument)));
+                              user,
+                              //widget.account,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
               },
             ),
             const SizedBox(width: 8),

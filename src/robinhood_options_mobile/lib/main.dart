@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -26,12 +28,34 @@ import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 //import 'package:material_color_utilities/material_color_utilities.dart';
 
-void main() {
+void main() async {
+  // Needed for Firebase
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // AdMob
+  MobileAds.instance.initialize();
+  /*
+  // Add Test Devices:
+  // A43B7A3B3E2A53090ACF37DCDA7528C6 = Aymeric Pixel 7
+  RequestConfiguration configuration =
+      RequestConfiguration(testDeviceIds: ["A43B7A3B3E2A53090ACF37DCDA7528C6"]);
+  MobileAds.instance.updateRequestConfiguration(configuration);
+  */
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
+
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  static FirebaseAnalyticsObserver observer =
+      FirebaseAnalyticsObserver(analytics: analytics);
 
   // This widget is the root of your application.
   @override
@@ -40,11 +64,6 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-
-    // await
-    Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
     /*
     ThemeData lightTheme, darkTheme;
     lightTheme =
@@ -159,7 +178,8 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ), */
             // home: OptionPositionsWidget()
-            home: const NavigationStatefulWidget(),
+            home: NavigationStatefulWidget(
+                analytics: analytics, observer: observer),
             //HomePage(title: 'Robinhood Options'),
           ));
     });

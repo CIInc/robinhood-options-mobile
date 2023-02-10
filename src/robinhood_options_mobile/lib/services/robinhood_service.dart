@@ -452,9 +452,9 @@ class RobinhoodService {
     return resultJson;
   }
 
+  // https://api.robinhood.com/midlands/movers/sp500/?direction=up
   static Future<List<MidlandMoversItem>> getMovers(RobinhoodUser user,
       {String direction = "up"}) async {
-    //https://api.robinhood.com/midlands/movers/sp500/?direction=up
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodEndpoint}/midlands/movers/sp500/?direction=$direction");
     List<MidlandMoversItem> list = [];
@@ -477,6 +477,8 @@ class RobinhoodService {
     return list;
   }
 
+  // https://api.robinhood.com/midlands/tags/tag/top-movers/
+  // {"canonical_examples":"","description":"","instruments":["https://api.robinhood.com/instruments/98bf9407-f2f2-4eb7-b2b7-07c811cc384a/","https://api.robinhood.com/instruments/94c5ec10-9f48-42bf-a396-3927ed0463b0/","https://api.robinhood.com/instruments/3d280b06-b393-4d07-94de-89c1f0617ce1/","https://api.robinhood.com/instruments/45650848-0d8d-4704-8656-a99e83eb4a6a/","https://api.robinhood.com/instruments/f604bdef-f96c-4ae8-a7b3-cd1c38c270db/","https://api.robinhood.com/instruments/7df1fd83-653c-4b92-a5ce-9e108aab7f9e/","https://api.robinhood.com/instruments/f917d25c-9191-42d5-ae3f-dc449123336e/","https://api.robinhood.com/instruments/54e96481-1912-4b9a-ac2c-3aee5e7e7709/","https://api.robinhood.com/instruments/214ad08e-eac2-41d4-96f8-42f101654fcf/","https://api.robinhood.com/instruments/847998ca-67ec-4054-934e-e54067f1e404/","https://api.robinhood.com/instruments/552aedf0-af4b-4693-8825-cbee56a685bc/","https://api.robinhood.com/instruments/964fef8b-7677-4b3f-84aa-6c1ab1ac90ec/","https://api.robinhood.com/instruments/39474cfd-82f3-432b-87db-e65b9603c946/","https://api.robinhood.com/instruments/035b0a57-3ec1-4c92-bc85-35bd1d39f891/","https://api.robinhood.com/instruments/feaa53b3-8033-4d72-93ec-4fed9e35a62d/","https://api.robinhood.com/instruments/75cb568b-9c30-48d6-9b67-aef53dae1249/","https://api.robinhood.com/instruments/18d7b0a9-5a13-4dad-8f77-54b85f01bd7f/","https://api.robinhood.com/instruments/3fb03605-fcb7-44ab-aebb-429ca7f1c474/","https://api.robinhood.com/instruments/89eec724-e25d-4852-860f-146b25995d65/","https://api.robinhood.com/instruments/3669946d-1833-4fe9-b6b4-0b74c90020e1/"],"name":"Top Movers","slug":"top-movers","membership_count":20}
   static Future<List<Instrument>> getListMovers(
       RobinhoodUser user, InstrumentStore instrumentStore) async {
     var resultJson = await getJson(
@@ -493,6 +495,7 @@ class RobinhoodService {
     return list;
   }
 
+  // https://api.robinhood.com/midlands/tags/tag/100-most-popular/
   static Future<List<Instrument>> getListMostPopular(
       RobinhoodUser user, InstrumentStore instrumentStore) async {
     var resultJson = await getJson(user,
@@ -524,7 +527,9 @@ class RobinhoodService {
   /* 
   INSTRUMENTS
   */
-
+  // Using cache and getInstruments to retrieve in batches.
+  // instead of using direct restful url:
+  // https://api.robinhood.com/instruments/1362827e-7c1a-475c-a46e-3cbb2263b081/
   static Future<Instrument> getInstrument(
       RobinhoodUser user, InstrumentStore store, String instrumentUrl) async {
     var cached = store.items.where((element) => element.url == instrumentUrl);
@@ -1956,11 +1961,15 @@ def subscription_url():
 def wiretransfers_url():
     return('https://api.robinhood.com/wire/transfers')
 
-# markets
+# TODO: Markets
 
+// https://api.robinhood.com/markets/
+// {"next":null,"previous":null,"results":[{"url":"https:\/\/api.robinhood.com\/markets\/IEXG\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/IEXG\/hours\/2023-02-09\/","mic":"IEXG","operating_mic":"IEXG","acronym":"IEX","name":"IEX Market","city":"New York","country":"US - United States of America","timezone":"US\/Eastern","website":"www.iextrading.com"},{"url":"https:\/\/api.robinhood.com\/markets\/OTCM\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/OTCM\/hours\/2023-02-09\/","mic":"OTCM","operating_mic":"OTCM","acronym":"OTCM","name":"Otc Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.otcmarkets.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XASE\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XASE\/hours\/2023-02-09\/","mic":"XASE","operating_mic":"XNYS","acronym":"AMEX","name":"NYSE Mkt Llc","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/ARCX\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/ARCX\/hours\/2023-02-09\/","mic":"ARCX","operating_mic":"XNYS","acronym":"NYSE","name":"NYSE Arca","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNYS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNYS\/hours\/2023-02-09\/","mic":"XNYS","operating_mic":"XNYS","acronym":"NYSE","name":"New York Stock Exchange, Inc.","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNAS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNAS\/hours\/2023-02-09\/","mic":"XNAS","operating_mic":"XNAS","acronym":"NASDAQ","name":"NASDAQ - All Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nasdaq.com"},{"url":"https:\/\/api.robinhood.com\/markets\/BATS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/BATS\/hours\/2023-02-09\/","mic":"BATS","operating_mic":"BATS","acronym":"BATS","name":"BATS Exchange","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.batstrading.com"}]}
 def markets_url():
     return('https://api.robinhood.com/markets/')
 
+// https://api.robinhood.com/markets/IEXG/hours/2021-11-20/
+// {"date":"2021-11-20","is_open":false,"opens_at":null,"closes_at":null,"late_option_closes_at":null,"extended_opens_at":null,"extended_closes_at":null,"all_day_opens_at":null,"all_day_closes_at":null,"previous_open_hours":"https:\/\/api.robinhood.com\/markets\/IEXG\/hours\/2021-11-19\/","next_open_hours":"https:\/\/api.robinhood.com\/markets\/IEXG\/hours\/2021-11-22\/"}
 def market_hours_url(market, date):
     return('https://api.robinhood.com/markets/{}/hours/{}/'.format(market, date))
 

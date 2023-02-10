@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:provider/provider.dart';
@@ -69,6 +71,8 @@ class HomePage extends StatefulWidget {
 
   const HomePage(this.user, this.userInfo, // this.account,
       {Key? key,
+      required this.analytics,
+      required this.observer,
       this.title,
       this.navigatorKey,
       //required this.onUserChanged,
@@ -76,6 +80,8 @@ class HomePage extends StatefulWidget {
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   //final ValueChanged<RobinhoodUser?> onUserChanged;
   final ValueChanged<List<Account>> onAccountsChanged;
 
@@ -146,6 +152,33 @@ class _HomePageState extends State<HomePage>
 
   Timer? refreshTriggerTime;
 
+  final BannerAd myBanner = BannerAd(
+    // Test Banner Ad
+    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+    // investiomanus Home banner
+    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    size: AdSize.banner,
+    request: const AdRequest(),
+    listener: const BannerAdListener(),
+  );
+
+  final BannerAdListener listener = BannerAdListener(
+    // Called when an ad is successfully received.
+    onAdLoaded: (Ad ad) => print('Ad loaded.'),
+    // Called when an ad request failed.
+    onAdFailedToLoad: (Ad ad, LoadAdError error) {
+      // Dispose the ad here to free resources.
+      ad.dispose();
+      print('Ad failed to load: $error');
+    },
+    // Called when an ad opens an overlay that covers the screen.
+    onAdOpened: (Ad ad) => print('Ad opened.'),
+    // Called when an ad removes an overlay that covers the screen.
+    onAdClosed: (Ad ad) => print('Ad closed.'),
+    // Called when an impression occurs on the ad.
+    onAdImpression: (Ad ad) => print('Ad impression.'),
+  );
+
   _HomePageState();
 
   /*
@@ -168,6 +201,9 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName: 'Home',
+    );
     //super.build(context);
     /*
     return Navigator(
@@ -235,6 +271,7 @@ class _HomePageState extends State<HomePage>
         futureAccounts as Future,
         //futurePortfolios as Future,
         //futureNummusHoldings as Future,
+        myBanner.load()
       ]),
       builder: (context1, dataSnapshot) {
         if (dataSnapshot.hasData) {
@@ -403,6 +440,13 @@ class _HomePageState extends State<HomePage>
       //List<StockPosition>? positions,
       bool done = true}) {
     //debugPrint('_buildPage');
+    final AdWidget adWidget = AdWidget(ad: myBanner);
+    final Container adContainer = Container(
+      alignment: Alignment.center,
+      width: myBanner.size.width.toDouble(),
+      height: myBanner.size.height.toDouble(),
+      child: adWidget,
+    );
     return RefreshIndicator(
       onRefresh: _pullRefresh,
       child: CustomScrollView(
@@ -1048,9 +1092,12 @@ class _HomePageState extends State<HomePage>
                       )),
                       */
                       OptionPositionsRowWidget(
-                          widget.user,
-                          //account!,
-                          filteredOptionAggregatePositions)
+                        widget.user,
+                        //account!,
+                        filteredOptionAggregatePositions,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      )
                     ],
                     const SliverToBoxAdapter(
                         child: SizedBox(
@@ -1782,7 +1829,12 @@ class _HomePageState extends State<HomePage>
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
-            ))
+            )),
+            SliverToBoxAdapter(child: adContainer),
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
           ]), //controller: _controller,
     );
   }
@@ -2474,6 +2526,8 @@ class _HomePageState extends State<HomePage>
                 //useRootNavigator: true,
                 //constraints: const BoxConstraints(maxHeight: 200),
                 builder: (_) => MoreMenuBottomSheet(widget.user,
+                    analytics: widget.analytics,
+                    observer: widget.observer,
                     chainSymbols: chainSymbols,
                     positionSymbols: positionSymbols,
                     cryptoSymbols: cryptoSymbols,
@@ -2723,9 +2777,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2766,9 +2820,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2810,9 +2864,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                           width: 70,
                           child: Text(
@@ -2851,9 +2905,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                           width: 70,
                           child: Text(
@@ -3059,10 +3113,13 @@ class _HomePageState extends State<HomePage>
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
-                      widget.user,
-                      //account!,
-                      instrument!,
-                      heroTag: 'logo_${instrument.symbol}${instrument.id}')));
+                        widget.user,
+                        //account!,
+                        instrument!,
+                        heroTag: 'logo_${instrument.symbol}${instrument.id}',
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      )));
           // Refresh in case settings were updated.
           futureFromInstrument.then((value) => setState(() {}));
         },
@@ -3130,9 +3187,12 @@ class _HomePageState extends State<HomePage>
               context,
               MaterialPageRoute(
                   builder: (context) => ForexInstrumentWidget(
-                      widget.user,
-                      //account!,
-                      holdings[index])));
+                        widget.user,
+                        //account!,
+                        holdings[index],
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      )));
           /*
           showDialog<String>(
               context: context,

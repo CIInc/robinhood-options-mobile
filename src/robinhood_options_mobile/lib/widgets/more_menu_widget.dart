@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -6,6 +7,22 @@ import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 class MoreMenuBottomSheet extends StatefulWidget {
+  const MoreMenuBottomSheet(
+    this.user, {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+    this.chainSymbols,
+    this.positionSymbols,
+    this.cryptoSymbols,
+    this.optionSymbolFilters,
+    this.stockSymbolFilters,
+    this.cryptoFilters,
+    required this.onSettingsChanged,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   final ValueChanged<dynamic> onSettingsChanged;
   final List<String>? chainSymbols;
@@ -15,18 +32,6 @@ class MoreMenuBottomSheet extends StatefulWidget {
   final List<String>? optionSymbolFilters;
   final List<String>? stockSymbolFilters;
   final List<String>? cryptoFilters;
-
-  const MoreMenuBottomSheet(
-    this.user, {
-    Key? key,
-    this.chainSymbols,
-    this.positionSymbols,
-    this.cryptoSymbols,
-    this.optionSymbolFilters,
-    this.stockSymbolFilters,
-    this.cryptoFilters,
-    required this.onSettingsChanged,
-  }) : super(key: key);
 
   @override
   State<MoreMenuBottomSheet> createState() => _MoreMenuBottomSheetState();
@@ -43,6 +48,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(screenName: 'MoreMenu');
     userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar:
@@ -302,9 +308,9 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                 onTap: () {
                   var alert = AlertDialog(
                     title: const Text('Logout process'),
-                    content: SingleChildScrollView(
+                    content: const SingleChildScrollView(
                       child: ListBody(
-                        children: const <Widget>[
+                        children: <Widget>[
                           Text('This action will require you to log in again.'),
                           Text('Are you sure you want to log out?'),
                         ],
@@ -650,7 +656,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
     final RobinhoodUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (BuildContext context) => const LoginWidget()));
+            builder: (BuildContext context) => LoginWidget(
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                )));
 
     if (result != null) {
       if (!mounted) return;

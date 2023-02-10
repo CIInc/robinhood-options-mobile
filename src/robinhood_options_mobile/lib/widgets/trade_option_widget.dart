@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -14,19 +15,23 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class TradeOptionWidget extends StatefulWidget {
+  const TradeOptionWidget(this.user,
+      //this.account,
+      {Key? key,
+      required this.analytics,
+      required this.observer,
+      this.optionPosition,
+      this.optionInstrument,
+      this.positionType = "Buy"})
+      : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
   final OptionAggregatePosition? optionPosition;
   final OptionInstrument? optionInstrument;
   final String? positionType;
-
-  const TradeOptionWidget(this.user,
-      //this.account,
-      {Key? key,
-      this.optionPosition,
-      this.optionInstrument,
-      this.positionType = "Buy"})
-      : super(key: key);
 
   @override
   State<TradeOptionWidget> createState() => _TradeOptionWidgetState();
@@ -57,6 +62,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(screenName: 'Trade Option');
     var floatBtn = SizedBox(
         width: 340.0,
         child: ElevatedButton.icon(
@@ -76,7 +82,16 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               double.parse(priceCtl.text),
               int.parse(quantityCtl.text),
             );
+
             var newOrder = OptionOrder.fromJson(orderJson);
+
+            widget.analytics.logPurchase(
+                currency: widget.optionInstrument!.chainSymbol,
+                value:
+                    double.parse(priceCtl.text) + int.parse(quantityCtl.text),
+                transactionId: newOrder.id,
+                affiliation: positionType);
+
             if (newOrder.state == "confirmed" ||
                 newOrder.state == "unconfirmed") {
               if (!mounted) return;
@@ -144,11 +159,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                     positionType == "Buy",
                     positionType == "Sell"
                   ], //isSelected,
-                  children: <Widget>[
+                  children: const <Widget>[
                     Padding(
-                        padding: const EdgeInsets.all(14.0),
+                        padding: EdgeInsets.all(14.0),
                         child: Row(
-                          children: const [
+                          children: [
                             Text(
                               'Buy',
                               style: TextStyle(fontSize: 16),
@@ -156,9 +171,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                           ],
                         )),
                     Padding(
-                      padding: const EdgeInsets.all(14.0),
+                      padding: EdgeInsets.all(14.0),
                       child: Row(
-                        children: const [
+                        children: [
                           Text(
                             'Sell',
                             style: TextStyle(fontSize: 16),

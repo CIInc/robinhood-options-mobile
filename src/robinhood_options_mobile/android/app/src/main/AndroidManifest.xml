@@ -37,22 +37,17 @@
             </intent-filter>
             
             <!-- Deep linking -->
+    <!-- Previously existed
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
-            <!-- Make sure you explicitly set android:autoVerify to "true". -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
-                <!-- If a user clicks on a shared link that uses the "http" scheme, your
-                    app should be able to delegate that traffic to "https". -->
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-
-                <!-- Include one or more domains that should be verified. -->
                 <data android:host="robinhood-options-mobile.web.app" />
-                <!--<data android:pathPrefix="" />-->
             </intent-filter>
+            -->
             <!--
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -67,16 +62,26 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-9947876916436144~7612501759"/>
     </application>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <!--<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />-->
+    <!-- Previously existed
     <queries>
+    -->
       <!-- If your app opens https URLs -->
+    <!-- Previously existed
       <intent>
         <action android:name="android.intent.action.VIEW" />
         <data android:scheme="https" />
       </intent>
+    -->
       <!-- If your app makes calls 
       <intent>
         <action android:name="android.intent.action.DIAL" />
@@ -89,5 +94,7 @@
         <data android:mimeType="*/*" />
       </intent>
        -->
+    <!-- Previously existed
     </queries>
+    -->
 </manifest>

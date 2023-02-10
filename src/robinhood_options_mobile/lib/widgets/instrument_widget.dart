@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
@@ -48,17 +49,22 @@ final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
-  final RobinhoodUser user;
-  //final Account account;
-  final Instrument instrument;
-  final String? heroTag;
   const InstrumentWidget(
       this.user,
       //this.account,
       this.instrument,
       {Key? key,
+      required this.analytics,
+      required this.observer,
       this.heroTag})
       : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final RobinhoodUser user;
+  //final Account account;
+  final Instrument instrument;
+  final String? heroTag;
 
   @override
   State<InstrumentWidget> createState() => _InstrumentWidgetState();
@@ -122,6 +128,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName: 'Instrument/${widget.instrument.symbol}',
+    );
     var instrument = widget.instrument;
     var user = widget.user;
 
@@ -217,7 +226,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureEarnings as Future,
         futureSimilar as Future,
         futureSplits as Future,
-        futureRsiHistoricals as Future
+        futureRsiHistoricals as Future,
+        widget.analytics.setCurrentScreen(
+          screenName: 'Instrument/${widget.instrument.symbol}',
+        )
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
@@ -393,8 +405,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     //isScrollControlled: true,
                     //useRootNavigator: true,
                     //constraints: const BoxConstraints(maxHeight: 200),
-                    builder: (_) => MoreMenuBottomSheet(widget.user,
-                        onSettingsChanged: _handleSettingsChanged),
+                    builder: (_) => MoreMenuBottomSheet(
+                      widget.user,
+                      onSettingsChanged: _handleSettingsChanged,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    ),
                   );
                 },
               ),
@@ -951,8 +967,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       height: 25.0,
                     )),
                     OptionPositionsRowWidget(
-                        widget.user, //widget.account,
-                        filteredOptionPositions)
+                      widget.user, //widget.account,
+                      filteredOptionPositions,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    )
                   ]
                 ]));
           }),
@@ -1053,10 +1072,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       height: 25.0,
                     )),
                     OptionOrdersWidget(
-                        widget.user,
-                        //widget.account,
-                        instrument.optionOrders!,
-                        const ["confirmed", "filled"])
+                      widget.user,
+                      //widget.account,
+                      instrument.optionOrders!,
+                      const ["confirmed", "filled"],
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    )
                   ]));
             }
             return SliverToBoxAdapter(child: Container());
@@ -1129,9 +1151,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentOptionChainWidget(
-                              widget.user,
-                              //widget.account,
-                              instrument)));
+                                widget.user,
+                                //widget.account,
+                                instrument,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 },
               ),
             ],
@@ -1192,8 +1217,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget quoteWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Quote",
@@ -1273,8 +1298,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget fundamentalsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Fundamentals",
@@ -1416,8 +1441,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildRatingsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Ratings",
@@ -1570,8 +1595,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Research",
@@ -1677,8 +1702,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Earnings",
@@ -1776,21 +1801,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildSplitsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
-        ListTile(
-          title: Text(
-            "Splits",
-            style: TextStyle(fontSize: 19.0),
-          ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const <Widget>[
+        child: ShrinkWrappingViewport(
+            offset: ViewportOffset.zero(),
+            slivers: const [
+          SliverToBoxAdapter(
+              child: Column(children: [
+            ListTile(
+              title: Text(
+                "Splits",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            )
+          ])),
+          SliverToBoxAdapter(
+              child: Card(
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
             /*
           for (var split in instrument.splitsObj!) ...[
             ListTile(
@@ -1874,14 +1900,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
               */
           ])))
-    ]));
+        ]));
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Similar",
@@ -1951,9 +1977,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                              widget.user,
-                              //widget.account,
-                              similarInstruments[0])));
+                                widget.user,
+                                //widget.account,
+                                similarInstruments[0],
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 },
               ),
             ],
@@ -1969,8 +1998,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildListsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "Lists",
@@ -2005,9 +2034,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => ListWidget(
-                              widget.user,
-                              //widget.account,
-                              instrument.listsObj![index]["id"].toString())));
+                                widget.user,
+                                //widget.account,
+                                instrument.listsObj![index]["id"].toString(),
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 },
               ),
             ],
@@ -2023,8 +2055,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildNewsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      SliverToBoxAdapter(
-          child: Column(children: const [
+      const SliverToBoxAdapter(
+          child: Column(children: [
         ListTile(
           title: Text(
             "News",

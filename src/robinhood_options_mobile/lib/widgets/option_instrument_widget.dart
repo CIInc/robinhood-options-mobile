@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
@@ -37,19 +38,24 @@ final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
 class OptionInstrumentWidget extends StatefulWidget {
-  final RobinhoodUser user;
-  //final Account account;
-  final OptionInstrument optionInstrument;
-  final OptionAggregatePosition? optionPosition;
-  final String? heroTag;
   const OptionInstrumentWidget(
       this.user,
       //this.account,
       this.optionInstrument,
       {Key? key,
+      required this.analytics,
+      required this.observer,
       this.optionPosition,
       this.heroTag})
       : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final RobinhoodUser user;
+  //final Account account;
+  final OptionInstrument optionInstrument;
+  final OptionAggregatePosition? optionPosition;
+  final String? heroTag;
 
   @override
   State<OptionInstrumentWidget> createState() => _OptionInstrumentWidgetState();
@@ -85,6 +91,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName:
+          'OptionInstrument/${widget.optionInstrument.chainSymbol}/${widget.optionPosition!.strategy.split('_').first}/${widget.optionInstrument.type}/${widget.optionInstrument.strikePrice}/${widget.optionInstrument.expirationDate}',
+    );
+
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
     var optionOrders = optionOrderStore.items
@@ -637,8 +648,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               context: context,
                               builder: (BuildContext context) => AlertDialog(
                                 title: const Text('Greeks'),
-                                content: SingleChildScrollView(
-                                    child: Column(children: const [
+                                content: const SingleChildScrollView(
+                                    child: Column(children: [
                                   Text(
                                       "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
                                   //Another way of thinking about the metric is that it can give an idea of whether an option will end up in the money at the expiration date. As an option moves further into the money, the delta value will head away from 0. For a call option, it will head toward a value of 1, while a put option will head toward a value of -1. As the option moves further out of the money, the delta value will head towards 0.
@@ -1396,10 +1407,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               height: 25.0,
             )),
             OptionOrdersWidget(
-                widget.user,
-                //widget.account,
-                optionInstrumentOrders,
-                const ["confirmed", "filled"])
+              widget.user,
+              //widget.account,
+              optionInstrumentOrders,
+              const ["confirmed", "filled"],
+              analytics: widget.analytics,
+              observer: widget.observer,
+            )
           ],
           const SliverToBoxAdapter(
               child: SizedBox(
@@ -1525,9 +1539,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              Column(
+                              const Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1558,9 +1572,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              Column(
+                              const Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1609,9 +1623,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 5,
                               ),
-                              Column(
+                              const Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
@@ -1642,9 +1656,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              Column(
+                              const Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1656,9 +1670,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 5,
                               ),
-                              Column(
+                              const Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
-                                  children: const [
+                                  children: [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
@@ -1689,9 +1703,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                Column(
+                                const Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
-                                    children: const [
+                                    children: [
                                       SizedBox(
                                         width: 55,
                                         child: Text(
@@ -1747,9 +1761,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                Column(
+                                const Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
-                                    children: const [
+                                    children: [
                                       SizedBox(
                                         width: 55,
                                         child: Text(
@@ -1958,6 +1972,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               //widget.account,
                               instrument,
                               //optionPosition: optionPosition
+                              analytics: widget.analytics,
+                              observer: widget.observer,
                             )));
               },
             ),
@@ -1970,11 +1986,15 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
-                              //widget.account,
-                              optionPosition: optionPosition,
-                              optionInstrument: optionInstrument,
-                              positionType: "Buy")))),
+                          builder: (context) => TradeOptionWidget(
+                                user,
+                                //widget.account,
+                                optionPosition: optionPosition,
+                                optionInstrument: optionInstrument,
+                                positionType: "Buy",
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )))),
               TextButton(
                   child: Text(optionPosition.direction == "debit"
                       ? "SELL TO CLOSE"
@@ -1982,20 +2002,28 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
-                              //widget.account,
-                              optionPosition: optionPosition,
-                              optionInstrument: optionInstrument,
-                              positionType: "Sell")))),
+                          builder: (context) => TradeOptionWidget(
+                                user,
+                                //widget.account,
+                                optionPosition: optionPosition,
+                                optionInstrument: optionInstrument,
+                                positionType: "Sell",
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )))),
             ] else ...[
               TextButton(
                   child: const Text('TRADE'),
                   onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeOptionWidget(user,
-                              //widget.account,
-                              optionInstrument: optionInstrument)))),
+                          builder: (context) => TradeOptionWidget(
+                                user,
+                                //widget.account,
+                                optionInstrument: optionInstrument,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )))),
             ],
             const SizedBox(width: 8),
           ],

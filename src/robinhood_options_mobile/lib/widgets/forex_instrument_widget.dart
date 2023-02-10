@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -23,16 +24,21 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
 class ForexInstrumentWidget extends StatefulWidget {
+  const ForexInstrumentWidget(
+    this.user,
+    //this.account,
+    this.holding, {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
   final ForexHolding holding;
   //final OptionAggregatePosition? optionPosition;
-  const ForexInstrumentWidget(
-      this.user,
-      //this.account,
-      this.holding,
-      {Key? key})
-      : super(key: key);
 
   @override
   State<ForexInstrumentWidget> createState() => _ForexInstrumentWidgetState();
@@ -74,6 +80,9 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    widget.analytics.setCurrentScreen(
+        screenName: 'ForexInstrument/${widget.holding.currencyId}');
 
     if (widget.holding.quoteObj == null) {
       var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>

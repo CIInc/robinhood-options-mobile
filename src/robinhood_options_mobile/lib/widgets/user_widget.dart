@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -13,18 +14,22 @@ final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
 class UserWidget extends StatefulWidget {
-  final RobinhoodUser user;
-  final UserInfo userInfo;
-  final Account? account;
   const UserWidget(
     this.user,
     this.userInfo,
     this.account, {
     Key? key,
+    required this.analytics,
+    required this.observer,
     this.navigatorKey,
   }) : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final RobinhoodUser user;
+  final UserInfo userInfo;
+  final Account? account;
 
   @override
   State<UserWidget> createState() => _UserWidgetState();
@@ -40,6 +45,7 @@ class _UserWidgetState extends State<UserWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(screenName: 'User');
     return CustomScrollView(
         // physics: ClampingScrollPhysics(),
         slivers: [
@@ -50,8 +56,8 @@ class _UserWidgetState extends State<UserWidget> {
             title: Text('Manage Accounts', style: TextStyle(fontSize: 20.0)),
             actions: [],
           ),
-          SliverToBoxAdapter(
-              child: Column(children: const [
+          const SliverToBoxAdapter(
+              child: Column(children: [
             ListTile(
               title: Text(
                 "User",
@@ -65,8 +71,8 @@ class _UserWidgetState extends State<UserWidget> {
             height: 25.0,
           )),
           if (widget.account != null) ...[
-            SliverToBoxAdapter(
-                child: Column(children: const [
+            const SliverToBoxAdapter(
+                child: Column(children: [
               ListTile(
                 title: Text(
                   "Accounts",

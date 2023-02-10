@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -19,7 +20,14 @@ import 'package:robinhood_options_mobile/services/resource_owner_password_grant.
     as oauth2_robinhood;
 
 class LoginWidget extends StatefulWidget {
-  const LoginWidget({Key? key}) : super(key: key);
+  const LoginWidget({
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
 
   @override
   State<LoginWidget> createState() => _LoginWidgetState();
@@ -109,6 +117,8 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(screenName: 'Login');
+
     var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
@@ -166,6 +176,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                     //Navigator.popUntil(context, ModalRoute.withName('/'));
                     // This is being called twice, figure out root cause and not this workaround.
                     if (!popped) {
+                      widget.analytics
+                          .logLogin(loginMethod: "Robinhood ${challengeType}");
                       Navigator.pop(context, user);
                       popped = true;
                     }

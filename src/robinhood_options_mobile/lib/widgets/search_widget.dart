@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
@@ -20,10 +21,16 @@ class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
   final Account? account;
 
-  const SearchWidget(this.user, this.account, {Key? key, this.navigatorKey})
+  const SearchWidget(this.user, this.account,
+      {Key? key,
+      required this.analytics,
+      required this.observer,
+      this.navigatorKey})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
 
   @override
   State<SearchWidget> createState() => _SearchWidgetState();
@@ -56,6 +63,7 @@ class _SearchWidgetState extends State<SearchWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    widget.analytics.setCurrentScreen(screenName: 'Search');
 
     /* For navigation within this tab, uncomment
     return WillPopScope(
@@ -155,6 +163,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 //fontStyle: FontStyle.italic,
                                 ),
                             onChanged: (text) {
+                              widget.analytics.logSearch(searchTerm: text);
                               setState(() {
                                 futureSearch =
                                     RobinhoodService.search(widget.user, text);
@@ -221,8 +230,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -259,8 +268,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -297,8 +306,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "Top Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -335,8 +344,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "100 Most Popular",
                                       style: TextStyle(fontSize: 19.0),
@@ -443,9 +452,12 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            widget.user,
-                            //widget.account!,
-                            instrument)));
+                              widget.user,
+                              //widget.account!,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
               },
             )));
   }
@@ -471,9 +483,12 @@ class _SearchWidgetState extends State<SearchWidget>
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                              widget.user,
-                              //widget.account!,
-                              instrument)));
+                                widget.user,
+                                //widget.account!,
+                                instrument,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 })));
     /*
     return ListTile(
@@ -561,9 +576,12 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            user,
-                            //widget.account!,
-                            instrumentObj)));
+                              user,
+                              //widget.account!,
+                              instrumentObj,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
               },
             )));
   }

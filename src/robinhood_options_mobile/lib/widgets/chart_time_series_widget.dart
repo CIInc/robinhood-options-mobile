@@ -121,11 +121,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 widget.open! <= widget.close! ? widget.close! : widget.open!,
                 charts.RangeAnnotationAxisType.measure,
                 startLabel: widget.open! <= widget.close!
-                    ? 'Previous $formatCurrency.format(widget.open!)'
-                    : 'Current $formatCurrency.format(widget.close!)',
+                    ? 'Previous ${formatCurrency.format(widget.open!)}'
+                    : 'Current ${formatCurrency.format(widget.close!)}',
                 endLabel: widget.open! <= widget.close!
-                    ? 'Current $formatCurrency.format(widget.close!)'
-                    : 'Previous $formatCurrency.format(widget.open!)',
+                    ? 'Current ${formatCurrency.format(widget.close!)}'
+                    : 'Previous ${formatCurrency.format(widget.open!)}',
                 labelStyleSpec: charts.TextStyleSpec(
                     color: rangeAnnotationLabelColor), //axisLabelColor
                 color: rangeAnnotationColor // gray.shade200

@@ -10,6 +10,56 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/stock_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 
+/*
+https://api.robinhood.com/instruments/?ids=4cf14b0c-a633-4002-9719-ee221decca22
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": "4cf14b0c-a633-4002-9719-ee221decca22",
+            "url": "https:\/\/api.robinhood.com\/instruments\/4cf14b0c-a633-4002-9719-ee221decca22\/",
+            "quote": "https:\/\/api.robinhood.com\/quotes\/KODK\/",
+            "fundamentals": "https:\/\/api.robinhood.com\/fundamentals\/KODK\/",
+            "splits": "https:\/\/api.robinhood.com\/instruments\/4cf14b0c-a633-4002-9719-ee221decca22\/splits\/",
+            "state": "active",
+            "market": "https:\/\/api.robinhood.com\/markets\/XNYS\/",
+            "simple_name": "Kodak",
+            "name": "EASTMAN KODAK COMPANY",
+            "tradeable": true,
+            "tradability": "tradable",
+            "symbol": "KODK",
+            "bloomberg_unique": "EQ0000000031536927",
+            "margin_initial_ratio": "0.8000",
+            "maintenance_ratio": "0.7500",
+            "country": "US",
+            "day_trade_ratio": "0.2500",
+            "list_date": "2013-11-01",
+            "min_tick_size": null,
+            "type": "stock",
+            "tradable_chain_id": "eefb80a4-efc0-4b5f-ba27-a7aa9a358469",
+            "rhs_tradability": "tradable",
+            "fractional_tradability": "tradable",
+            "default_collar_fraction": "0.05",
+            "ipo_access_status": null,
+            "ipo_access_cob_deadline": null,
+            "ipo_s1_url": null,
+            "ipo_roadshow_url": null,
+            "is_spac": false,
+            "is_test": false,
+            "ipo_access_supports_dsp": false,
+            "extended_hours_fractional_tradability": false,
+            "internal_halt_reason": "",
+            "internal_halt_details": "",
+            "internal_halt_sessions": null,
+            "internal_halt_start_time": null,
+            "internal_halt_end_time": null,
+            "internal_halt_source": "",
+            "all_day_tradability": "untradable"
+        }
+    ]
+}
+*/
 class Instrument {
   final String id;
   final String url;

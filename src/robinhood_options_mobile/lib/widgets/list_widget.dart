@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
@@ -25,9 +26,13 @@ class ListWidget extends StatefulWidget {
       //this.account,
       this.listKey,
       {Key? key,
+      required this.analytics,
+      required this.observer,
       this.navigatorKey})
       : super(key: key);
 
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final GlobalKey<NavigatorState>? navigatorKey;
   final RobinhoodUser user;
   //final Account account;
@@ -49,6 +54,9 @@ class _ListWidgetState extends State<ListWidget>
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName: 'List/${widget.listKey}',
+    );
     super.build(context);
 
     /* For navigation within this tab, uncomment
@@ -460,9 +468,12 @@ class _ListWidgetState extends State<ListWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            ru,
-                            //widget.account,
-                            watchLists[index].instrumentObj as Instrument)));
+                              ru,
+                              //widget.account,
+                              watchLists[index].instrumentObj as Instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
               },
             )));
   }

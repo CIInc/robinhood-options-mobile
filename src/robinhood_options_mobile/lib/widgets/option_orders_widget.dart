@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
@@ -12,18 +13,22 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrdersWidget extends StatefulWidget {
+  const OptionOrdersWidget(
+    this.user,
+    //this.account,
+    this.optionOrders,
+    this.orderFilters, {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+  }) : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
-
-  const OptionOrdersWidget(
-      this.user,
-      //this.account,
-      this.optionOrders,
-      this.orderFilters,
-      {Key? key})
-      : super(key: key);
 
   @override
   State<OptionOrdersWidget> createState() => _OptionOrdersWidgetState();
@@ -41,6 +46,12 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
 
   @override
   Widget build(BuildContext context) {
+    /* Not a screen but a sub-view used by instrument widget and option instrument widget.
+    widget.analytics.setCurrentScreen(
+      screenName:
+          'OptionOrders/${widget.optionOrders.isNotEmpty ? widget.optionOrders[0].chainSymbol : ''}',
+    );
+    */
     var optionOrders = widget.optionOrders;
     var orderFilters = widget.orderFilters;
     var optionOrdersPremiumBalance = optionOrders.isNotEmpty
@@ -185,9 +196,12 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => OptionOrderWidget(
-                              widget.user,
-                              //widget.account,
-                              optionOrders[index])));
+                                widget.user,
+                                //widget.account,
+                                optionOrders[index],
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 },
               ),
             ],

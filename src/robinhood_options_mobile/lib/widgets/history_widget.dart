@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
@@ -46,10 +47,16 @@ class HistoryPage extends StatefulWidget {
   ];
   */
 
-  const HistoryPage(this.user, this.account, {Key? key, this.navigatorKey})
+  const HistoryPage(this.user, this.account,
+      {Key? key,
+      required this.analytics,
+      required this.observer,
+      this.navigatorKey})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   final Account? account;
 
@@ -98,6 +105,7 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    widget.analytics.setCurrentScreen(screenName: 'History');
     /*
     return Navigator(
         key: widget.navigatorKey,
@@ -597,9 +605,12 @@ class _HistoryPageState extends State<HistoryPage>
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
-                                          widget.user,
-                                          //widget.account!,
-                                          optionOrder)));
+                                            widget.user,
+                                            //widget.account!,
+                                            optionOrder,
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                          )));
                             },
                           ),
                   ],
@@ -873,9 +884,12 @@ class _HistoryPageState extends State<HistoryPage>
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
-                                          widget.user,
-                                          //widget.account!,
-                                          filteredPositionOrders![index])));
+                                            widget.user,
+                                            //widget.account!,
+                                            filteredPositionOrders![index],
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                          )));
                             },
                           ),
                   ],

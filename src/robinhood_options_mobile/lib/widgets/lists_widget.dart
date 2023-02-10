@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
@@ -21,10 +22,16 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.user, this.account, {Key? key, this.navigatorKey})
+  const ListsWidget(this.user, this.account,
+      {Key? key,
+      required this.analytics,
+      required this.observer,
+      this.navigatorKey})
       : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   final Account? account;
 
@@ -45,6 +52,9 @@ class _ListsWidgetState extends State<ListsWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    widget.analytics.setCurrentScreen(
+      screenName: 'Lists',
+    );
 
     /* For navigation within this tab, uncomment
     return WillPopScope(
@@ -584,9 +594,12 @@ class _ListsWidgetState extends State<ListsWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                            ru,
-                            //widget.account!,
-                            watchLists[index].instrumentObj as Instrument)));
+                              ru,
+                              //widget.account!,
+                              watchLists[index].instrumentObj as Instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
               },
             )));
   }

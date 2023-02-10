@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -22,17 +23,22 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentOptionChainWidget extends StatefulWidget {
-  final RobinhoodUser user;
-  //final Account account;
-  final Instrument instrument;
-  final OptionAggregatePosition? optionPosition;
   const InstrumentOptionChainWidget(
       this.user,
       //this.account,
       this.instrument,
       {Key? key,
+      required this.analytics,
+      required this.observer,
       this.optionPosition})
       : super(key: key);
+
+  final FirebaseAnalytics analytics;
+  final FirebaseAnalyticsObserver observer;
+  final RobinhoodUser user;
+  //final Account account;
+  final Instrument instrument;
+  final OptionAggregatePosition? optionPosition;
 
   @override
   State<InstrumentOptionChainWidget> createState() =>
@@ -71,6 +77,10 @@ class _InstrumentOptionChainWidgetState
 
   @override
   Widget build(BuildContext context) {
+    widget.analytics.setCurrentScreen(
+      screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
+    );
+
     var instrument = widget.instrument;
     var user = widget.user;
 
@@ -508,6 +518,8 @@ class _InstrumentOptionChainWidgetState
                                             optionInstrumentQuantity > 0
                                                 ? optionPosition
                                                 : null,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
                                       )));
                         },
                       )
@@ -931,11 +943,11 @@ class _InstrumentOptionChainWidgetState
         });
       },
       isSelected: isSelected,
-      children: <Widget>[
+      children: const <Widget>[
         Padding(
-            padding: const EdgeInsets.all(14.0),
+            padding: EdgeInsets.all(14.0),
             child: Row(
-              children: const [
+              children: [
                 CircleAvatar(child: Text("C", style: TextStyle(fontSize: 18))),
                 //Icon(Icons.trending_up),
                 SizedBox(width: 10),
@@ -946,9 +958,9 @@ class _InstrumentOptionChainWidgetState
               ],
             )),
         Padding(
-          padding: const EdgeInsets.all(14.0),
+          padding: EdgeInsets.all(14.0),
           child: Row(
-            children: const [
+            children: [
               CircleAvatar(child: Text("P", style: TextStyle(fontSize: 18))),
               // Icon(Icons.trending_down),
               SizedBox(width: 10),
