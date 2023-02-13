@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -69,21 +70,25 @@ class HomePage extends StatefulWidget {
   ];
   */
 
-  const HomePage(this.user, this.userInfo, // this.account,
-      {Key? key,
-      required this.analytics,
-      required this.observer,
-      this.title,
-      this.navigatorKey,
-      //required this.onUserChanged,
-      required this.onAccountsChanged})
-      : super(key: key);
+  const HomePage(
+    this.user,
+    this.userInfo, // this.account,
+    {
+    Key? key,
+    required this.analytics,
+    required this.observer,
+    this.title,
+    this.navigatorKey,
+    //required this.onUserChanged,
+    //required this.onAccountsChanged
+  }) : super(key: key);
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   //final ValueChanged<RobinhoodUser?> onUserChanged;
-  final ValueChanged<List<Account>> onAccountsChanged;
+
+  //final ValueChanged<List<Account>> onAccountsChanged;
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -164,19 +169,19 @@ class _HomePageState extends State<HomePage>
 
   final BannerAdListener listener = BannerAdListener(
     // Called when an ad is successfully received.
-    onAdLoaded: (Ad ad) => print('Ad loaded.'),
+    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
     // Called when an ad request failed.
     onAdFailedToLoad: (Ad ad, LoadAdError error) {
       // Dispose the ad here to free resources.
       ad.dispose();
-      print('Ad failed to load: $error');
+      debugPrint('Ad failed to load: $error');
     },
     // Called when an ad opens an overlay that covers the screen.
-    onAdOpened: (Ad ad) => print('Ad opened.'),
+    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
     // Called when an ad removes an overlay that covers the screen.
-    onAdClosed: (Ad ad) => print('Ad closed.'),
+    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
     // Called when an impression occurs on the ad.
-    onAdImpression: (Ad ad) => print('Ad impression.'),
+    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
   );
 
   _HomePageState();
@@ -191,6 +196,10 @@ class _HomePageState extends State<HomePage>
     super.initState();
 
     _startRefreshTimer();
+
+    widget.analytics.setCurrentScreen(
+      screenName: 'Home',
+    );
   }
 
   @override
@@ -201,9 +210,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName: 'Home',
-    );
+    debugPrint('${widget.user.source}');
     //super.build(context);
     /*
     return Navigator(
@@ -280,8 +287,10 @@ class _HomePageState extends State<HomePage>
           if (accounts != accts) {
             accounts = accts;
             account = accounts!.first;
+            /*
             WidgetsBinding.instance.addPostFrameCallback(
                 (_) => widget.onAccountsChanged(accounts!));
+                */
           }
 
           futurePortfolioHistoricals ??=

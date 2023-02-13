@@ -113,6 +113,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     _startRefreshTimer();
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
+    widget.analytics.setCurrentScreen(
+      screenName: 'Instrument/${widget.instrument.symbol}',
+    );
   }
 
   @override
@@ -128,9 +131,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName: 'Instrument/${widget.instrument.symbol}',
-    );
     var instrument = widget.instrument;
     var user = widget.user;
 
@@ -227,9 +227,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureSimilar as Future,
         futureSplits as Future,
         futureRsiHistoricals as Future,
-        widget.analytics.setCurrentScreen(
-          screenName: 'Instrument/${widget.instrument.symbol}',
-        )
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {

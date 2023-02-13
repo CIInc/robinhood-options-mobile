@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:oauth2/oauth2.dart';
@@ -197,11 +199,12 @@ Future<http.Response> login(
   }
 
   httpClient ??= http.Client();
-
+  debugPrint(jsonEncode(body));
   var response = await httpClient.post(authorizationEndpoint,
       headers: headers, body: body);
 
   //{"mfa_required":true,"mfa_type":"app"}
+  //{"mfa_required":true,"mfa_type":"sms"}
 
   return response;
 }

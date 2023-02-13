@@ -58,12 +58,12 @@ class _SearchWidgetState extends State<SearchWidget>
     super.initState();
 
     searchCtl = TextEditingController();
+    widget.analytics.setCurrentScreen(screenName: 'Search');
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    widget.analytics.setCurrentScreen(screenName: 'Search');
 
     /* For navigation within this tab, uncomment
     return WillPopScope(

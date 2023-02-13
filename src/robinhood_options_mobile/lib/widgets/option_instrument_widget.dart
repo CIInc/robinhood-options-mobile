@@ -81,6 +81,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     super.initState();
 
     _startRefreshTimer();
+    widget.analytics.setCurrentScreen(
+      screenName:
+          'OptionInstrument/${widget.optionInstrument.chainSymbol}/${widget.optionPosition!.strategy.split('_').first}/${widget.optionInstrument.type}/${widget.optionInstrument.strikePrice}/${widget.optionInstrument.expirationDate}',
+    );
   }
 
   @override
@@ -91,11 +95,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName:
-          'OptionInstrument/${widget.optionInstrument.chainSymbol}/${widget.optionPosition!.strategy.split('_').first}/${widget.optionInstrument.type}/${widget.optionInstrument.strikePrice}/${widget.optionInstrument.expirationDate}',
-    );
-
     var optionOrderStore =
         Provider.of<OptionOrderStore>(context, listen: false);
     var optionOrders = optionOrderStore.items

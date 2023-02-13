@@ -50,11 +50,16 @@ class _ListsWidgetState extends State<ListsWidget>
   bool get wantKeepAlive => true;
 
   @override
-  Widget build(BuildContext context) {
-    super.build(context);
+  void initState() {
+    super.initState();
     widget.analytics.setCurrentScreen(
       screenName: 'Lists',
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
 
     /* For navigation within this tab, uncomment
     return WillPopScope(

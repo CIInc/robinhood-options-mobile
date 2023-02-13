@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
     as oauth2_robinhood;
@@ -56,7 +57,8 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? deviceToken;
   String? challengeRequestId;
   String? challengeResponseId;
-  String challengeType = 'sms';
+  String challengeType = 'email'; //sms
+  bool mfaRequired = false;
 
   bool popped = false;
 
@@ -84,6 +86,7 @@ class _LoginWidgetState extends State<LoginWidget> {
         }
       }
     });
+    widget.analytics.setCurrentScreen(screenName: 'Login');
   }
 
   @override
@@ -97,28 +100,26 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _login() {
-    setState(() {
-      authenticationResponse = oauth2_robinhood.login(
-          source == 'Robinhood'
-              ? Constants.rhAuthEndpoint
-              : Constants.tdAuthEndpoint,
-          userCtl.text,
-          passCtl.text,
-          identifier: source == 'Robinhood'
-              ? Constants.rhClientId
-              : Constants.tdClientId,
-          basicAuth: false,
-          deviceToken: deviceToken,
-          mfaCode: mfaCtl.text.isNotEmpty ? mfaCtl.text : null,
-          challengeType: challengeType,
-          challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
-    });
+    if (source == 'TD Ameritrade') {
+      TdAmeritradeService.login();
+    } else {
+      setState(() {
+        authenticationResponse = oauth2_robinhood.login(
+            Constants.rhAuthEndpoint, userCtl.text, passCtl.text,
+            identifier: Constants.rhClientId,
+            basicAuth: false,
+            deviceToken: deviceToken,
+            mfaCode: smsCtl.text.isNotEmpty
+                ? smsCtl.text
+                : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
+            challengeType: challengeType,
+            challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(screenName: 'Login');
-
     var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
@@ -149,6 +150,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       });
                 } else if (authenticationResponse['mfa_required'] != null &&
                     authenticationResponse['mfa_required'] == true) {
+                  mfaRequired = true;
                   challengeType = authenticationResponse['mfa_type'];
 
                   /*
@@ -170,6 +172,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       null,
                       null,
                       null);
+                  // debugPrint(jsonEncode(client));
                   var user = RobinhoodUser(source, userCtl.text,
                       client!.credentials.toJson(), client);
                   user.save(userStore).then((value) {
@@ -177,21 +180,18 @@ class _LoginWidgetState extends State<LoginWidget> {
                     // This is being called twice, figure out root cause and not this workaround.
                     if (!popped) {
                       widget.analytics
-                          .logLogin(loginMethod: "Robinhood ${challengeType}");
-                      Navigator.pop(context, user);
+                          .logLogin(loginMethod: "Robinhood $challengeType");
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        Navigator.pop(context, user);
+                      });
+                      /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
+                      Future.delayed(Duration.zero, () {
+                        Navigator.pop(context, user);
+                      });
+                      */
                       popped = true;
                     }
                   });
-                  //Navigator.pop(context, user);
-
-                  /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
-                  Future.delayed(Duration.zero, () {
-                    Navigator.pop(context, user);
-                  });
-                  WidgetsBinding.instance!.addPostFrameCallback((_) {
-                    Navigator.pop(context, user);
-                  });
-                  */
                 } else {
                   if (authenticationSnapshot.connectionState ==
                       ConnectionState.done) {
@@ -222,13 +222,15 @@ class _LoginWidgetState extends State<LoginWidget> {
         width: 340.0,
         height: 60,
         child: ElevatedButton.icon(
-          label: const Text(
-            "Login",
-            // style: TextStyle(fontSize: 22.0, height: 1.5),
-          ),
-          icon: const Icon(Icons.login_outlined),
-          onPressed: challengeRequestId == null ? _login : _handleChallenge,
-        ));
+            label: const Text(
+              "Login",
+              style: TextStyle(fontSize: 20.0),
+              // style: TextStyle(fontSize: 22.0, height: 1.5),
+            ),
+            icon: const Icon(Icons.login_outlined),
+            onPressed:
+                _login // challengeRequestId == null ? _login : _handleChallenge,
+            ));
     var action = waiting
         ? Stack(
             alignment: FractionalOffset.center,
@@ -242,6 +244,7 @@ class _LoginWidgetState extends State<LoginWidget> {
         : floatBtn;
     return Column(
       children: [
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -250,9 +253,11 @@ class _LoginWidgetState extends State<LoginWidget> {
               child: ChoiceChip(
                 label: const Text('Robinhood'),
                 selected: source == 'Robinhood',
+                labelPadding: const EdgeInsets.all(10.0),
+                //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
-                    source = selected ? 'Robinhood' : null;
+                    source = 'Robinhood'; //selected ? 'Robinhood' : null;
                     //instrumentPosition = null;
                   });
                 },
@@ -263,9 +268,12 @@ class _LoginWidgetState extends State<LoginWidget> {
               child: ChoiceChip(
                 label: const Text('TD Ameritrade'),
                 selected: source == "TD Ameritrade",
+                labelPadding: const EdgeInsets.all(10.0),
+                labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
-                    source = selected ? "TD Ameritrade" : null;
+                    source =
+                        'TD Ameritrade'; //selected ? "TD Ameritrade" : null;
                     //instrumentPosition = null;
                   });
                 },
@@ -273,60 +281,75 @@ class _LoginWidgetState extends State<LoginWidget> {
             ),
           ],
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
-          child: TextField(
-            controller: userCtl,
-            decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.all(10),
-                hintText: '$source username or email'),
-            //style: const TextStyle(fontSize: 22.0, height: 1.5)
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
-          child: TextField(
-            controller: passCtl,
-            decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.all(10),
-                hintText: '$source password'),
-            obscureText: true,
-            //style: const TextStyle(fontSize: 22.0, height: 1.5)
-          ),
-        ),
-        if (challengeRequestId != null) ...[
+        if (source == "Robinhood") ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+            padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
-              controller: smsCtl,
-              focusNode: myFocusNode,
-              autofocus: true,
-              decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.all(10),
-                  hintText: '$source SMS code received'),
-              //style: const TextStyle(fontSize: 22.0, height: 1.5)
-            ),
+                controller: userCtl,
+                decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.all(10),
+                    hintText: '$source username or email'),
+                style: const TextStyle(fontSize: 18.0, height: 1.5)),
           ),
-        ] else if (challengeType == 'app') ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
+            padding: const EdgeInsets.fromLTRB(30, 15, 30, 15),
             child: TextField(
-              controller: mfaCtl,
-              focusNode: myFocusNode,
-              autofocus: true,
-              decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.all(10),
-                  hintText: 'MFA Authenticator App code'),
-              //style: const TextStyle(fontSize: 22.0, height: 1.5)
-            ),
+                controller: passCtl,
+                decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.all(10),
+                    hintText: '$source password'),
+                obscureText: true,
+                style: const TextStyle(fontSize: 18.0, height: 1.5)),
           ),
+          // challengeRequestId != null
+          if (mfaRequired && challengeType == 'sms') ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
+              child: TextField(
+                  controller: smsCtl,
+                  focusNode: myFocusNode,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.all(10),
+                      hintText: '$source SMS code received'),
+                  style: const TextStyle(fontSize: 18.0, height: 1.5)),
+            ),
+          ] else if (mfaRequired && challengeType == 'app') ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
+              child: TextField(
+                  controller: mfaCtl,
+                  focusNode: myFocusNode,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                      isDense: true,
+                      contentPadding: EdgeInsets.all(10),
+                      hintText: 'MFA Authenticator App code'),
+                  style: const TextStyle(fontSize: 18.0, height: 1.5)),
+            ),
+          ],
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
+        ] else if (source == "TD Ameritrade") ...[
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
+              child: SizedBox(
+                  width: 340.0,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    label: const Text(
+                      "Link TD Ameritrade",
+                      style: TextStyle(fontSize: 20.0),
+                      // style: TextStyle(fontSize: 22.0, height: 1.5),
+                    ),
+                    icon: const Icon(Icons.login_outlined),
+                    onPressed:
+                        challengeRequestId == null ? _login : _handleChallenge,
+                  )))
         ],
-        Padding(
-            padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
       ],
     );
   }

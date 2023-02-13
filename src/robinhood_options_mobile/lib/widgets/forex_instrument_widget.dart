@@ -69,6 +69,8 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
 
     _startRefreshTimer();
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
+    widget.analytics.setCurrentScreen(
+        screenName: 'ForexInstrument/${widget.holding.currencyId}');
   }
 
   @override
@@ -80,9 +82,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    widget.analytics.setCurrentScreen(
-        screenName: 'ForexInstrument/${widget.holding.currencyId}');
 
     if (widget.holding.quoteObj == null) {
       var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>

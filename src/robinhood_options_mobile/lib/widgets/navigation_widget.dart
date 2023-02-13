@@ -1,13 +1,18 @@
 //import 'dart:html';
 
+import 'dart:convert';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
@@ -16,6 +21,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
+import 'package:uni_links/uni_links.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -74,6 +80,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _pageIndex);
+    this.initTabs();
+
+    RobinhoodService.loadLogos();
+
+    var userStore = Provider.of<UserStore>(context, listen: false);
+    if (userStore.items.isEmpty) {
+      futureRobinhoodUsers ??= RobinhoodUser.loadUserFromStore(userStore);
+    }
+
+    loadDeepLinks(userStore);
+  }
+
+  void initTabs() {
     tabPages = [
       InitialWidget(
           child: Column(children: [
@@ -87,13 +106,45 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         )
       ]))
     ];
+  }
 
-    RobinhoodService.loadLogos();
-
-    var userStore = Provider.of<UserStore>(context, listen: false);
-    if (userStore.items.isEmpty) {
-      futureRobinhoodUsers ??= RobinhoodUser.loadUserFromStore(userStore);
+  Future<void> loadDeepLinks(UserStore userStore) async {
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    String? initialLink;
+    try {
+      initialLink = await getInitialLink();
+      // Parse the link and warn the user, if it is not correct,
+      // but keep in mind it could be `null`.
+    } on PlatformException {
+      // Handle exception by warning the user their action did not succeed
+      // return?
     }
+
+    // Attach a listener to the stream
+    final _sub = linkStream.listen((String? link) async {
+      // Parse the link and warn the user, if it is not correct
+      debugPrint('newLink:$link');
+      String code =
+          link!.replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
+      debugPrint('code:$code');
+      var user = await TdAmeritradeService.getAccessToken(code);
+      debugPrint('result:${jsonEncode(user)}');
+      await user!.save(userStore);
+      /*
+      var grant = AuthorizationCodeGrant(Constants.tdClientId,
+          Constants.tdAuthEndpoint, Constants.tdTokenEndpoint);
+      var authorizationUrl =
+          grant.getAuthorizationUrl(Uri.parse(Constants.tdRedirectUrl));
+      //var client = await grant.handleAuthorizationCode(code);
+      var parameters = Uri.parse(link).queryParameters;
+      debugPrint(jsonEncode(parameters));
+      var client = await grant.handleAuthorizationResponse(parameters);
+      debugPrint('credential:${jsonEncode(client.credentials)}');
+      */
+    }, onError: (err) {
+      // Handle exception by warning the user their action did not succeed
+      debugPrint('linkStreamError:$err');
+    });
   }
 
   @override
@@ -132,6 +183,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
   */
 
+  /* Replaced by UseStore provider
   void _handleAccountChanged(List<Account> accts) {
     setState(() {
       accounts = accts;
@@ -140,6 +192,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       }
     });
   }
+  */
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +210,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             if (dataSnapshot.hasData) {
               userInfo = dataSnapshot.data!;
               widget.analytics.setUserId(id: userInfo?.username);
-              widget.analytics.setCurrentScreen(screenName: 'Navigation');
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -192,13 +244,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   _buildTabs() {
     tabPages = [
-      HomePage(robinhoodUsers[currentUserIndex], userInfo!,
-          title: 'Robinhood Options',
-          navigatorKey: navigatorKeys[0],
-          analytics: widget.analytics,
-          observer: widget.observer,
-          //onUserChanged: _handleUserChanged,
-          onAccountsChanged: _handleAccountChanged),
+      HomePage(
+        robinhoodUsers[currentUserIndex], userInfo!,
+        title: 'Investiomanus',
+        navigatorKey: navigatorKeys[0],
+        analytics: widget.analytics,
+        observer: widget.observer,
+        //onUserChanged: _handleUserChanged,
+        //onAccountsChanged: _handleAccountChanged
+      ),
       //const HomePage(title: 'Orders'),
       SearchWidget(robinhoodUsers[currentUserIndex],
           accounts != null ? accounts!.first : null,
@@ -265,46 +319,48 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      bottomNavigationBar: Container(height: this.loggedIn() ? null : 0, child: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance), //home
-            label: 'Portfolio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          /*
+      bottomNavigationBar: SizedBox(
+          height: loggedIn() ? null : 0,
+          child: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance), //home
+                label: 'Portfolio',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search),
+                label: 'Search',
+              ),
+              /*
                 BottomNavigationBarItem(
                   icon: Icon(Icons.payments), //inventory //history
                   label: 'Orders',
                 ),
                 */
-          BottomNavigationBarItem(
-            icon: Icon(Icons.collections_bookmark), //bookmarks //visibility
-            label: 'Lists',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          //],
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle), // manage_accounts //person
-            label: 'Accounts',
-          ),
-        ],
-        currentIndex: _pageIndex,
-        //fixedColor: Colors.grey,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        //selectedItemColor: Colors.blue,
-        unselectedItemColor:
-            Colors.grey.shade400, // Theme.of(context).colorScheme.background,
-        //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-        onTap: _onPageChanged,
-        //onTap: _onIndexedViewChanged,
-      )),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.collections_bookmark), //bookmarks //visibility
+                label: 'Lists',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history),
+                label: 'History',
+              ),
+              //],
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_circle), // manage_accounts //person
+                label: 'Accounts',
+              ),
+            ],
+            currentIndex: _pageIndex,
+            //fixedColor: Colors.grey,
+            selectedItemColor: Theme.of(context).colorScheme.primary,
+            //selectedItemColor: Colors.blue,
+            unselectedItemColor: Colors
+                .grey.shade400, // Theme.of(context).colorScheme.background,
+            //unselectedItemColor: Colors.grey.shade400, //.amber[800],
+            onTap: _onPageChanged,
+            //onTap: _onIndexedViewChanged,
+          )),
     );
     //);
   }
@@ -318,8 +374,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 userInfo == null
             ? <Widget>[
                 const DrawerHeader(
-                  child:
-                      Text('Robinhood Options', style: TextStyle(fontSize: 30)),
+                  child: Text('Investiomanus', style: TextStyle(fontSize: 30)),
                   //decoration: BoxDecoration(color: Colors.green)
                 ),
                 ListTile(
@@ -543,11 +598,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (result != null) {
       if (!mounted) return;
       // TODO: see if setState is actually needed, Provider pattern is already listening.
-      //setState(() {
-      futureRobinhoodUsers = null;
-      //futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
-      //user = null;
-      //});
+      setState(() {
+        futureUser = null;
+        //futureRobinhoodUsers = null;
+        //futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
+        //user = null;
+      });
 
       //Navigator.pop(context); //, 'login'
 
@@ -582,9 +638,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           onPressed: () async {
             Navigator.pop(context, 'dialog');
 
-            await RobinhoodUser.clearUserFromStore(
-                robinhoodUsers[currentUserIndex],
+            await robinhoodUsers[currentUserIndex].clearUserFromStore(
                 Provider.of<UserStore>(context, listen: false));
+
             // Future.delayed(const Duration(milliseconds: 1), () async {
 
             /* 
@@ -593,9 +649,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             // TODO: see if setState is actually needed, Provider pattern is already listening.
             //setState(() {
             //futureRobinhoodUser = null;
-            if (!mounted) return;
-            futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(
-                Provider.of<UserStore>(context, listen: false));
+            //if (!mounted) return;
+            setState(() {
+              initTabs();
+              futureRobinhoodUsers =
+                  null; // RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
+              futureUser = null;
+            });
+
             //});
           },
         ),

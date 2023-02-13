@@ -1,11 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
+import 'package:uni_links/uni_links.dart';
+import 'package:oauth2/oauth2.dart';
+import 'firebase_options.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -38,7 +43,44 @@ void main() async {
   );
 
   // AdMob
-  MobileAds.instance.initialize();
+  await MobileAds.instance.initialize();
+  /*
+  // Platform messages may fail, so we use a try/catch PlatformException.
+  String? initialLink;
+  try {
+    initialLink = await getInitialLink();
+    // Parse the link and warn the user, if it is not correct,
+    // but keep in mind it could be `null`.
+  } on PlatformException {
+    // Handle exception by warning the user their action did not succeed
+    // return?
+  }
+
+  // Attach a listener to the stream
+  final _sub = linkStream.listen((String? link) async {
+    // Parse the link and warn the user, if it is not correct
+    debugPrint('newLink:$link');
+    String code =
+        link!.replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
+    debugPrint('code:$code');
+    var user = await TdAmeritradeService.getAccessToken(code);
+    debugPrint('result:${jsonEncode(user)}');
+    //var store = Provider.of<UserStore>(BuildContext(), listen: false);
+    //await user!.save(store);
+//    var grant = AuthorizationCodeGrant(Constants.tdClientId,
+//        Constants.tdAuthEndpoint, Constants.tdTokenEndpoint);
+//    var authorizationUrl =
+        grant.getAuthorizationUrl(Uri.parse(Constants.tdRedirectUrl));
+//    //var client = await grant.handleAuthorizationCode(code);
+//    var parameters = Uri.parse(link).queryParameters;
+//    debugPrint(jsonEncode(parameters));
+//    var client = await grant.handleAuthorizationResponse(parameters);
+//    debugPrint('credential:${jsonEncode(client.credentials)}');
+  }, onError: (err) {
+    // Handle exception by warning the user their action did not succeed
+    debugPrint('linkStreamError:$err');
+  });
+  */
   /*
   // Add Test Devices:
   // A43B7A3B3E2A53090ACF37DCDA7528C6 = Aymeric Pixel 7
@@ -159,7 +201,7 @@ class MyApp extends StatelessWidget {
             )
           ],
           child: MaterialApp(
-            title: 'Robinhood Options',
+            title: 'Investiomanus',
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,
@@ -178,9 +220,16 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.blue,
         ), */
             // home: OptionPositionsWidget()
-            home: NavigationStatefulWidget(
-                analytics: analytics, observer: observer),
-            //HomePage(title: 'Robinhood Options'),
+            routes: {
+              '/': (context) => NavigationStatefulWidget(
+                  analytics: analytics, observer: observer),
+              /*
+              '/login-callback': (context) => SearchWidget(
+                  new RobinhoodUser(null, null, null, null), null,
+                  analytics: analytics, observer: observer)
+                  */
+            },
+            //home: NavigationStatefulWidget(analytics: analytics, observer: observer),
           ));
     });
   }

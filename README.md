@@ -1,4 +1,4 @@
-# Robinhood Options Mobile
+# Investiomanus
 
 This repository implements the Robinhood API to provide an options focused Android and iOS mobile app using the Flutter SDK.
 
@@ -39,7 +39,14 @@ If prompted choose the ```Dart & Flutter``` configuration.
 
 1. Enable USB debugging on your Android device.
 2. Plug in your device. 
-3. Open the command palette (```Ctrl+Shift+P```) and enter ```Flutter: Select Device```
+3. Open the command palette (```Ctrl+Shift+P```) and enter ```Flutter: Select Device```  
+Or  
+Navigate to the project directory and run the flutter command.
+    ```bash
+    cd src/robinhood_options_mobile
+    flutter run
+    ```
+
 
 ### Web
 

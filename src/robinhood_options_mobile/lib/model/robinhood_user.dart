@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum View { grouped, list }
+
 enum DisplayValue {
   marketValue,
   lastPrice,
@@ -19,6 +20,7 @@ enum DisplayValue {
   totalReturnPercent,
   totalReturn
 }
+
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
@@ -40,7 +42,7 @@ class RobinhoodUser {
       : source = json['source'],
         userName = json['userName'],
         credentials = json['credentials'],
-        refreshEnabled = json['refreshEnabled'] ?? true,
+        refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
                 ? View.list
@@ -106,11 +108,11 @@ class RobinhoodUser {
   }
   */
 
-  static Future clearUserFromStore(RobinhoodUser user, UserStore store) async {
+  Future clearUserFromStore(UserStore store) async {
     debugPrint("Cleared user from store.");
 
     //await Store.deleteFile(Constants.cacheFilename);
-    store.remove(user);
+    store.remove(this);
 
     var contents = jsonEncode(store.items); //this
     SharedPreferences prefs = await SharedPreferences.getInstance();

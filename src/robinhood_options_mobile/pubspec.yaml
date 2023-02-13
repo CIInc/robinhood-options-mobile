@@ -1,5 +1,5 @@
 name: robinhood_options_mobile
-description: Robinhood Options Flutter application.
+description: Investiomanus Flutter application.
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -25,8 +25,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  firebase_analytics: ^10.1.0
-  firebase_core: ^2.4.1
+  firebase_analytics: ^10.1.1
+  firebase_core: ^2.5.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -40,15 +40,15 @@ dependencies:
   decimal: ^2.3.2
   csv: ^5.0.1
   permission_handler: ^10.2.0
-  open_file: ^3.2.1
+  # TODO: Check if used
+  #open_file: ^3.2.1
   # rxdart: ^0.27.2
   flutter_sticky_header: ^0.6.5
   charts_flutter: ^0.12.0
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
-  url_launcher: ^6.1.7
-  # flutter_echarts: ^2.3.0
+  url_launcher: ^6.1.9  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
   share_plus: ^4.5.3
   uuid: ^3.0.7
@@ -58,6 +58,8 @@ dependencies:
   collection: ^1.17.0
   http: ^0.13.5
   google_mobile_ads: ^2.3.0
+  flutter_web_auth_2: ^2.0.4
+  uni_links: ^0.5.1
 
 dev_dependencies:
   flutter_test:

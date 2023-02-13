@@ -51,13 +51,13 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   @override
   void initState() {
     super.initState();
+    widget.analytics.setCurrentScreen(
+      screenName: 'OptionOrder/${widget.optionOrder.chainSymbol}',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName: 'OptionOrder/${widget.optionOrder.chainSymbol}',
-    );
     var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
     var cachedQuotes = quoteStore.items

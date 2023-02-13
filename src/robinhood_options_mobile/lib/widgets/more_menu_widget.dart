@@ -47,8 +47,13 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   UserStore? userStore;
 
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
     widget.analytics.setCurrentScreen(screenName: 'MoreMenu');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar:
@@ -302,6 +307,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                     _openLogin();
                   }),
                   */
+              /*
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text("Logout"),
@@ -340,6 +346,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                   );
                 },
               ),
+              */
             ] else ...[
               ListTile(
                 leading: const Icon(Icons.login),
@@ -672,21 +679,21 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
     }
   }
-
+  /*
   _logout() async {
-    await RobinhoodUser.clearUserFromStore(widget.user, userStore!);
+    await widget.user.clearUserFromStore(userStore!);
+    Navigator.pop(context, 'dialog');
+
     // Future.delayed(const Duration(milliseconds: 1), () async {
 
-    /* 
-    widget.onUserChanged(null);
+    //widget.onUserChanged(null);
 
-    setState(() {
-      futureRobinhoodUser = null;
-      // _selectedDrawerIndex = 0;
-    });
+    //setState(() {
+    //  futureRobinhoodUser = null;
+    //  // _selectedDrawerIndex = 0;
     //});
-    */
   }
+    */
 }
 /*
 class OptionOrderFilterWidget extends StatefulWidget {

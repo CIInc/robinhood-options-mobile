@@ -58,11 +58,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     super.initState();
     positionType = widget.positionType;
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
+    widget.analytics.setCurrentScreen(screenName: 'Trade Option');
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(screenName: 'Trade Option');
     var floatBtn = SizedBox(
         width: 340.0,
         child: ElevatedButton.icon(

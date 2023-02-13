@@ -103,9 +103,14 @@ class _HistoryPageState extends State<HistoryPage>
   bool get wantKeepAlive => true;
 
   @override
+  void initState() {
+    super.initState();
+    widget.analytics.setCurrentScreen(screenName: 'History');
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
-    widget.analytics.setCurrentScreen(screenName: 'History');
     /*
     return Navigator(
         key: widget.navigatorKey,
@@ -1229,7 +1234,7 @@ class _HistoryPageState extends State<HistoryPage>
       }
       if (shareLink) {
         ordersText +=
-            "\n\nClick the link to import this data into Robinhood Options Mobile: https://robinhood-options-mobile.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
+            "\n\nClick the link to import this data into Investiomanus: https://robinhood-options-mobile.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
       }
       /*
 adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://robinhood-options-mobile.web.app/?options=123"

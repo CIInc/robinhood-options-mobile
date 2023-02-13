@@ -51,13 +51,13 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   @override
   void initState() {
     super.initState();
+    widget.analytics.setCurrentScreen(
+      screenName: 'PositionOrder/${widget.positionOrder.instrumentObj!.symbol}',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName: 'PositionOrder/${widget.positionOrder.instrumentObj!.symbol}',
-    );
     var instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
     var instruments = instrumentStore.items
         .where((element) => element.url == widget.positionOrder.instrument);

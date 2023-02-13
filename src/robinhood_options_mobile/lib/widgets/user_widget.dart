@@ -41,11 +41,11 @@ class _UserWidgetState extends State<UserWidget> {
   @override
   void initState() {
     super.initState();
+    widget.analytics.setCurrentScreen(screenName: 'User');
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(screenName: 'User');
     return CustomScrollView(
         // physics: ClampingScrollPhysics(),
         slivers: [

@@ -6,7 +6,7 @@
     "configurations": [
         /*
         {
-            "name": "Launch Robinhood Options for Chrome",
+            "name": "Launch Investiomanus for Chrome",
             "request": "launch",
             "type": "pwa-chrome",
             "url": "http://localhost:8080",
@@ -17,7 +17,7 @@
         },
         */
         {
-            "name": "Launch Robinhood Options for Mobile",
+            "name": "Launch Investiomanus for Mobile",
             "cwd": "src\\robinhood_options_mobile",
             "request": "launch",
             "type": "dart",

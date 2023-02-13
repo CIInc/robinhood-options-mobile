@@ -73,14 +73,13 @@ class _InstrumentOptionChainWidgetState
     super.initState();
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
+    widget.analytics.setCurrentScreen(
+      screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    widget.analytics.setCurrentScreen(
-      screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
-    );
-
     var instrument = widget.instrument;
     var user = widget.user;
 

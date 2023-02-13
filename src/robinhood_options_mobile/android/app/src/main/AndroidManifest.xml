@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cidevelop.robinhood_options_mobile">
    <application
-        android:label="Robinhood Options"
+        android:label="Investiomanus"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -37,8 +37,14 @@
             </intent-filter>
             
             <!-- Deep linking -->
-    <!-- Previously existed
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
+            <intent-filter android:label="flutter_web_auth">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="investiomanus" />
+            </intent-filter>
+    <!-- Previously existed
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
