@@ -1,5 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/material.dart' hide View;
+import 'package:flutter/material.dart'; // hide View;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';

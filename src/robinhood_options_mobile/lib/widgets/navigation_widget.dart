@@ -1,10 +1,10 @@
 //import 'dart:html';
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -76,6 +76,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //int _selectedDrawerIndex = 0;
   bool _showDrawerContents = false;
 
+  StreamSubscription<String?>? linkStreamSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -116,6 +118,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   Future<void> loadDeepLinks(UserStore userStore) async {
     // Platform messages may fail, so we use a try/catch PlatformException.
+    /* Don't expect cold start login callbacks, do nothing for initialLinks for now until the use case arises.
     String? initialLink;
     try {
       initialLink = await getInitialLink();
@@ -125,9 +128,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       // Handle exception by warning the user their action did not succeed
       // return?
     }
+    */
 
     // Attach a listener to the stream
-    final _sub = linkStream.listen((String? link) async {
+    linkStreamSubscription = linkStream.listen((String? link) async {
       // Parse the link and warn the user, if it is not correct
       debugPrint('newLink:$link');
       String code =
@@ -157,6 +161,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   void dispose() {
     if (_pageController != null) {
       _pageController!.dispose();
+    }
+    if (linkStreamSubscription != null) {
+      linkStreamSubscription!.cancel();
     }
     super.dispose();
   }
