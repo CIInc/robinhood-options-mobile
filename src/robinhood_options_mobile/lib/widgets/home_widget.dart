@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -2786,9 +2785,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                const Column(
+                Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2829,9 +2828,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                const Column(
+                Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2873,9 +2872,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                const Column(
+                Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       SizedBox(
                           width: 70,
                           child: Text(
@@ -2914,9 +2913,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                const Column(
+                Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       SizedBox(
                           width: 70,
                           child: Text(

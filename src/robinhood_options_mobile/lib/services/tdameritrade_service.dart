@@ -48,7 +48,7 @@ class TdAmeritradeService {
     */
 
     final bodyStr =
-        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=KXVLJA7RAVHUFLYXSPBIJRY9SNKHOKMC&redirect_uri=https%3A%2F%2Finvestiomanus.web.app&code=${code}';
+        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=KXVLJA7RAVHUFLYXSPBIJRY9SNKHOKMC&redirect_uri=https%3A%2F%2Finvestiomanus.web.app&code=$code';
     final response = await http.post(
       Constants.tdTokenEndpoint,
       body: bodyStr,

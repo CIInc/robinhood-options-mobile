@@ -1214,8 +1214,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget quoteWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Quote",
@@ -1295,8 +1295,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget fundamentalsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Fundamentals",
@@ -1438,8 +1438,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildRatingsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Ratings",
@@ -1592,8 +1592,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Research",
@@ -1699,8 +1699,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Earnings",
@@ -1798,22 +1798,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildSplitsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(
-            offset: ViewportOffset.zero(),
-            slivers: const [
-          SliverToBoxAdapter(
-              child: Column(children: [
-            ListTile(
-              title: Text(
-                "Splits",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            )
-          ])),
-          SliverToBoxAdapter(
-              child: Card(
-                  child:
-                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
+        ListTile(
+          title: Text(
+            "Splits",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const <Widget>[
             /*
           for (var split in instrument.splitsObj!) ...[
             ListTile(
@@ -1897,14 +1896,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
               */
           ])))
-        ]));
+    ]));
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Similar",
@@ -1995,8 +1994,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildListsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "Lists",
@@ -2052,8 +2051,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildNewsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
+      SliverToBoxAdapter(
+          child: Column(children: const [
         ListTile(
           title: Text(
             "News",
