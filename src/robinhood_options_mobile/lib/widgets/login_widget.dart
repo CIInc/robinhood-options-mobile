@@ -242,7 +242,8 @@ class _LoginWidgetState extends State<LoginWidget> {
             ],
           )
         : floatBtn;
-    return Column(
+    return SingleChildScrollView(
+        child: Column(
       children: [
         const SizedBox(height: 10),
         Row(
@@ -269,7 +270,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 label: const Text('TD Ameritrade'),
                 selected: source == "TD Ameritrade",
                 labelPadding: const EdgeInsets.all(10.0),
-                labelStyle: const TextStyle(fontSize: 14.0, height: 1),
+                //labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
                     source =
@@ -290,7 +291,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     isDense: true,
                     contentPadding: const EdgeInsets.all(10),
                     hintText: '$source username or email'),
-                style: const TextStyle(fontSize: 18.0, height: 1.5)),
+                style: const TextStyle(fontSize: 18.0, height: 2.0)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 15, 30, 15),
@@ -301,7 +302,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     contentPadding: const EdgeInsets.all(10),
                     hintText: '$source password'),
                 obscureText: true,
-                style: const TextStyle(fontSize: 18.0, height: 1.5)),
+                style: const TextStyle(fontSize: 18.0, height: 2.0)),
           ),
           // challengeRequestId != null
           if (mfaRequired && challengeType == 'sms') ...[
@@ -315,7 +316,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       isDense: true,
                       contentPadding: const EdgeInsets.all(10),
                       hintText: '$source SMS code received'),
-                  style: const TextStyle(fontSize: 18.0, height: 1.5)),
+                  style: const TextStyle(fontSize: 18.0, height: 2.0)),
             ),
           ] else if (mfaRequired && challengeType == 'app') ...[
             Padding(
@@ -328,7 +329,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       isDense: true,
                       contentPadding: EdgeInsets.all(10),
                       hintText: 'MFA Authenticator App code'),
-                  style: const TextStyle(fontSize: 18.0, height: 1.5)),
+                  style: const TextStyle(fontSize: 18.0, height: 2.0)),
             ),
           ],
           Padding(
@@ -351,7 +352,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   )))
         ],
       ],
-    );
+    ));
   }
 
   void _handleChallenge() async {

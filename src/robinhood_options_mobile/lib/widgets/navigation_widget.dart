@@ -96,14 +96,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     tabPages = [
       InitialWidget(
           child: Column(children: [
-        ElevatedButton.icon(
-          label: const Text(
-            "Login",
-            style: TextStyle(fontSize: 20.0),
-          ),
-          icon: const Icon(Icons.login),
-          onPressed: () => _openLogin(),
-        )
+        // Semantics for screen reader
+        // Accessibility warnings
+        // Content labeling: This item may not have a label readable by screen readers. Learn more
+        Semantics(
+            button: true,
+            label: 'Login',
+            child: ElevatedButton.icon(
+              label: const Text(
+                "Login",
+                style: TextStyle(fontSize: 20.0),
+              ),
+              icon: const Icon(Icons.login),
+              onPressed: () => _openLogin(),
+            ))
       ]))
     ];
   }

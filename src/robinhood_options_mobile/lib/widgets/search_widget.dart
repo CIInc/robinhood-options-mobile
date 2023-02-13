@@ -1,6 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -47,6 +48,34 @@ class _SearchWidgetState extends State<SearchWidget>
   Future<List<Instrument>>? futureListMostPopular;
 
   InstrumentStore? instrumentStore;
+
+  final BannerAd myBanner = BannerAd(
+    // Test Banner Ad
+    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+    // investiomanus Home banner
+    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    //adUnitId: 'ca-app-pub-9947876916436144/4945883922',
+    size: AdSize.mediumRectangle, //.fluid,
+    request: const AdRequest(),
+    listener: const BannerAdListener(),
+  );
+
+  final BannerAdListener listener = BannerAdListener(
+    // Called when an ad is successfully received.
+    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
+    // Called when an ad request failed.
+    onAdFailedToLoad: (Ad ad, LoadAdError error) {
+      // Dispose the ad here to free resources.
+      ad.dispose();
+      debugPrint('Ad failed to load: $error');
+    },
+    // Called when an ad opens an overlay that covers the screen.
+    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
+    // Called when an ad removes an overlay that covers the screen.
+    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
+    // Called when an impression occurs on the ad.
+    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+  );
 
   _SearchWidgetState();
 
@@ -98,6 +127,7 @@ class _SearchWidgetState extends State<SearchWidget>
           futureLosers as Future,
           futureListMovers as Future,
           futureListMostPopular as Future,
+          myBanner.load()
         ]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.hasData) {
@@ -132,6 +162,14 @@ class _SearchWidgetState extends State<SearchWidget>
       List<Instrument>? listMovers,
       List<Instrument>? listMostPopular,
       bool done = false}) {
+    final AdWidget adWidget = AdWidget(ad: myBanner);
+    final Container adContainer = Container(
+      alignment: Alignment.center,
+      width: myBanner.size.width.toDouble(),
+      height: myBanner.size.height.toDouble(),
+      child: adWidget,
+    );
+
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: GestureDetector(
@@ -375,7 +413,16 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
-                  const SliverToBoxAdapter(child: DisclaimerWidget())
+                  SliverToBoxAdapter(child: adContainer),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
                 ])));
   }
 

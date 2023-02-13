@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -99,6 +100,33 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareText = true;
   bool shareLink = true;
 
+  final BannerAd myBanner = BannerAd(
+    // Test Banner Ad
+    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+    // investiomanus Home banner
+    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    size: AdSize.mediumRectangle,
+    request: const AdRequest(),
+    listener: const BannerAdListener(),
+  );
+
+  final BannerAdListener listener = BannerAdListener(
+    // Called when an ad is successfully received.
+    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
+    // Called when an ad request failed.
+    onAdFailedToLoad: (Ad ad, LoadAdError error) {
+      // Dispose the ad here to free resources.
+      ad.dispose();
+      debugPrint('Ad failed to load: $error');
+    },
+    // Called when an ad opens an overlay that covers the screen.
+    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
+    // Called when an ad removes an overlay that covers the screen.
+    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
+    // Called when an impression occurs on the ad.
+    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+  );
+
   @override
   bool get wantKeepAlive => true;
 
@@ -106,6 +134,7 @@ class _HistoryPageState extends State<HistoryPage>
   void initState() {
     super.initState();
     widget.analytics.setCurrentScreen(screenName: 'History');
+    myBanner.load();
   }
 
   @override
@@ -225,6 +254,14 @@ class _HistoryPageState extends State<HistoryPage>
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
+    final AdWidget adWidget = AdWidget(ad: myBanner);
+    final Container adContainer = Container(
+      alignment: Alignment.center,
+      width: myBanner.size.width.toDouble(),
+      height: myBanner.size.height.toDouble(),
+      child: adWidget,
+    );
+
     var slivers = <Widget>[];
 
     int days = 0;
@@ -904,6 +941,11 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
         ));
+        slivers.add(const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )));
+        slivers.add(SliverToBoxAdapter(child: adContainer));
         slivers.add(const SliverToBoxAdapter(
             child: SizedBox(
           height: 25.0,

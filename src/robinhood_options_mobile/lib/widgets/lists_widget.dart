@@ -1,6 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -46,6 +47,33 @@ class _ListsWidgetState extends State<ListsWidget>
   SortType? _sortType = SortType.alphabetical;
   SortDirection? _sortDirection = SortDirection.desc;
 
+  final BannerAd myBanner = BannerAd(
+    // Test Banner Ad
+    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
+    // investiomanus Home banner
+    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    size: AdSize.largeBanner,
+    request: const AdRequest(),
+    listener: const BannerAdListener(),
+  );
+
+  final BannerAdListener listener = BannerAdListener(
+    // Called when an ad is successfully received.
+    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
+    // Called when an ad request failed.
+    onAdFailedToLoad: (Ad ad, LoadAdError error) {
+      // Dispose the ad here to free resources.
+      ad.dispose();
+      debugPrint('Ad failed to load: $error');
+    },
+    // Called when an ad opens an overlay that covers the screen.
+    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
+    // Called when an ad removes an overlay that covers the screen.
+    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
+    // Called when an impression occurs on the ad.
+    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+  );
+
   @override
   bool get wantKeepAlive => true;
 
@@ -55,6 +83,7 @@ class _ListsWidgetState extends State<ListsWidget>
     widget.analytics.setCurrentScreen(
       screenName: 'Lists',
     );
+    myBanner.load();
   }
 
   @override
@@ -72,6 +101,7 @@ class _ListsWidgetState extends State<ListsWidget>
                   MaterialPageRoute(builder: (_) => _buildPage()))),
     );
     */
+
     return WillPopScope(
         onWillPop: () => Future.value(false), child: _buildPage());
   }
@@ -80,7 +110,6 @@ class _ListsWidgetState extends State<ListsWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-
     watchlistStream ??= RobinhoodService.streamLists(
         widget.user,
         Provider.of<InstrumentStore>(context, listen: false),
@@ -125,6 +154,14 @@ class _ListsWidgetState extends State<ListsWidget>
   }
 
   Widget _buildScaffold({bool done = false}) {
+    final AdWidget adWidget = AdWidget(ad: myBanner);
+    final Container adContainer = Container(
+      alignment: Alignment.center,
+      width: myBanner.size.width.toDouble(),
+      height: myBanner.size.height.toDouble(),
+      child: adWidget,
+    );
+
     var totalItems = 0;
     var totalLists = 0;
     if (watchlists != null) {
@@ -438,7 +475,16 @@ class _ListsWidgetState extends State<ListsWidget>
           )),
         ]
       ],
-      const SliverToBoxAdapter(child: DisclaimerWidget())
+      SliverToBoxAdapter(child: adContainer),
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
+      const SliverToBoxAdapter(child: DisclaimerWidget()),
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
     ])
 
         /*body: Builder(builder: (context) {

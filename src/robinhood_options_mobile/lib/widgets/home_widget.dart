@@ -1834,12 +1834,12 @@ class _HomePageState extends State<HomePage>
                   ]));
             }),
             */
-            const SliverToBoxAdapter(child: DisclaimerWidget()),
+            SliverToBoxAdapter(child: adContainer),
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
             )),
-            SliverToBoxAdapter(child: adContainer),
+            const SliverToBoxAdapter(child: DisclaimerWidget()),
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
