@@ -648,7 +648,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               builder: (BuildContext context) => AlertDialog(
                                 title: const Text('Greeks'),
                                 content: SingleChildScrollView(
-                                    child: Column(children: [
+                                    child: Column(children: const [
                                   Text(
                                       "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
                                   //Another way of thinking about the metric is that it can give an idea of whether an option will end up in the money at the expiration date. As an option moves further into the money, the delta value will head away from 0. For a call option, it will head toward a value of 1, while a put option will head toward a value of -1. As the option moves further out of the money, the delta value will head towards 0.
@@ -1540,7 +1540,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                               Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
+                                  children: const [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1573,7 +1573,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                               Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
+                                  children: const [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1624,7 +1624,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                               Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
+                                  children: const [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
@@ -1657,7 +1657,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                               Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
+                                  children: const [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
@@ -1671,7 +1671,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ),
                               Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
+                                  children: const [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
@@ -1704,7 +1704,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 ),
                                 Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
+                                    children: const [
                                       SizedBox(
                                         width: 55,
                                         child: Text(
@@ -1762,7 +1762,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 ),
                                 Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
+                                    children: const [
                                       SizedBox(
                                         width: 55,
                                         child: Text(

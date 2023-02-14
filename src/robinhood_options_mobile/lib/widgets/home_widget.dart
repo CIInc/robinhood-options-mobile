@@ -2828,15 +2828,17 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      "Stocks",
-                      style: TextStyle(fontSize: 11.0),
-                    ),
-                  )
-                ]),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                        width: 70,
+                        child: Text(
+                          "Stocks",
+                          style: TextStyle(fontSize: 11.0),
+                        ),
+                      )
+                    ]),
                 Container(
                   width: 3,
                 ),
@@ -2870,14 +2872,16 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: 70,
-                      child: Text(
-                        "Crypto",
-                        style: TextStyle(fontSize: 11.0),
-                      )),
-                ]),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                          width: 70,
+                          child: Text(
+                            "Crypto",
+                            style: TextStyle(fontSize: 11.0),
+                          )),
+                    ]),
                 Container(
                   width: 3,
                 ),
@@ -2909,14 +2913,16 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: 70,
-                      child: Text(
-                        "Cash",
-                        style: TextStyle(fontSize: 11.0),
-                      )),
-                ]),
+                Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: const [
+                      SizedBox(
+                          width: 70,
+                          child: Text(
+                            "Cash",
+                            style: TextStyle(fontSize: 11.0),
+                          )),
+                    ]),
                 Container(
                   width: 3,
                 ),

@@ -269,7 +269,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
-                                  title: Wrap(children: [
+                                  title: Wrap(children: const [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -307,7 +307,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
-                                  title: Wrap(children: [
+                                  title: Wrap(children: const [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -345,7 +345,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
-                                  title: Wrap(children: [
+                                  title: Wrap(children: const [
                                     Text(
                                       "Top Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -383,7 +383,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             child: Container(
                                 alignment: Alignment.centerLeft,
                                 child: ListTile(
-                                  title: Wrap(children: [
+                                  title: Wrap(children: const [
                                     Text(
                                       "100 Most Popular",
                                       style: TextStyle(fontSize: 19.0),

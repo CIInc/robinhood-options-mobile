@@ -95,7 +95,7 @@ class _UserWidgetState extends State<UserWidget> {
             actions: [],
           ),
           SliverToBoxAdapter(
-              child: Column(children: [
+              child: Column(children: const [
             ListTile(
               title: Text(
                 "User",
@@ -110,7 +110,7 @@ class _UserWidgetState extends State<UserWidget> {
           )),
           if (widget.account != null) ...[
             SliverToBoxAdapter(
-                child: Column(children: [
+                child: Column(children: const [
               ListTile(
                 title: Text(
                   "Accounts",

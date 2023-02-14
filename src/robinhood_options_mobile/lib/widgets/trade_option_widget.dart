@@ -161,9 +161,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                   ], //isSelected,
                   children: <Widget>[
                     Padding(
-                        padding: EdgeInsets.all(14.0),
+                        padding: const EdgeInsets.all(14.0),
                         child: Row(
-                          children: [
+                          children: const [
                             Text(
                               'Buy',
                               style: TextStyle(fontSize: 16),
@@ -171,9 +171,9 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                           ],
                         )),
                     Padding(
-                      padding: EdgeInsets.all(14.0),
+                      padding: const EdgeInsets.all(14.0),
                       child: Row(
-                        children: [
+                        children: const [
                           Text(
                             'Sell',
                             style: TextStyle(fontSize: 16),

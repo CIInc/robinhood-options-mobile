@@ -633,7 +633,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       title: const Text('Logout process'),
       content: SingleChildScrollView(
         child: ListBody(
-          children: <Widget>[
+          children: const <Widget>[
             Text('This action will require you to log in again.'),
             Text('Are you sure you want to log out?'),
           ],

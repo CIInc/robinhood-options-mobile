@@ -18,14 +18,14 @@ class InitialWidget extends StatelessWidget {
             //alignment: WrapAlignment.end,
             spacing: 20,
             //runSpacing: 5,
-            children: [
+            children: const [
               Text('Investiomanus', style: TextStyle(fontSize: 20.0)),
               Text(
                 "",
                 style: TextStyle(fontSize: 16.0, color: Colors.white70),
               )
             ]),
-        actions: [],
+        actions: const [],
       ),
       const SliverToBoxAdapter(
           child: SizedBox(
