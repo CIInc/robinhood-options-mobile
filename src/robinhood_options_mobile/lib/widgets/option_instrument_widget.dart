@@ -647,7 +647,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               context: context,
                               builder: (BuildContext context) => AlertDialog(
                                 title: const Text('Greeks'),
-                                content: const SingleChildScrollView(
+                                content: SingleChildScrollView(
                                     child: Column(children: [
                                   Text(
                                       "Delta, Δ, measures the rate of change of the theoretical option value with respect to changes in the underlying asset's price.\n"),
@@ -1538,7 +1538,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
@@ -1571,7 +1571,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
@@ -1622,7 +1622,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 5,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     SizedBox(
@@ -1655,7 +1655,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
@@ -1669,7 +1669,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 5,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     SizedBox(
@@ -1702,7 +1702,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                const Column(
+                                Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       SizedBox(
@@ -1760,7 +1760,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                const Column(
+                                Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       SizedBox(

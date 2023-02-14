@@ -8,7 +8,7 @@ class InitialWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(slivers: [
-      const SliverAppBar(
+      SliverAppBar(
         floating: false,
         pinned: true,
         snap: false,

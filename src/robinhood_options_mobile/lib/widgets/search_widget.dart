@@ -268,7 +268,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
+                                child: ListTile(
                                   title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
@@ -306,7 +306,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
+                                child: ListTile(
                                   title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
@@ -344,7 +344,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
+                                child: ListTile(
                                   title: Wrap(children: [
                                     Text(
                                       "Top Movers",
@@ -382,7 +382,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
+                                child: ListTile(
                                   title: Wrap(children: [
                                     Text(
                                       "100 Most Popular",

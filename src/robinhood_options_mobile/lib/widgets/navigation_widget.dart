@@ -631,7 +631,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   _logout() async {
     var alert = AlertDialog(
       title: const Text('Logout process'),
-      content: const SingleChildScrollView(
+      content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
             Text('This action will require you to log in again.'),

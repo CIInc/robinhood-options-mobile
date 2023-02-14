@@ -159,7 +159,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                     positionType == "Buy",
                     positionType == "Sell"
                   ], //isSelected,
-                  children: const <Widget>[
+                  children: <Widget>[
                     Padding(
                         padding: EdgeInsets.all(14.0),
                         child: Row(
