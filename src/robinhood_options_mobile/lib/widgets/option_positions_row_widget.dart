@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/material.dart'; // hide View;
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
@@ -477,7 +477,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             ]
                 //)
                 )),
-        user.optionsView == View.list
+        user.optionsView == OptionsView.list
             ? SliverList(
                 // delegate: SliverChildListDelegate(widgets),
                 delegate: SliverChildBuilderDelegate(

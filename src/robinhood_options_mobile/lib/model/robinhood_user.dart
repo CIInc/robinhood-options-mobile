@@ -10,7 +10,7 @@ import 'package:robinhood_options_mobile/model/stock_position.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum View { grouped, list }
+enum OptionsView { grouped, list }
 
 enum DisplayValue {
   marketValue,
@@ -31,7 +31,7 @@ class RobinhoodUser {
   final String? credentials;
   oauth2.Client? oauth2Client;
   bool refreshEnabled = true;
-  View optionsView = View.list;
+  OptionsView optionsView = OptionsView.list;
   DisplayValue? displayValue = DisplayValue.marketValue;
   bool showGreeks = false;
 
@@ -45,8 +45,8 @@ class RobinhoodUser {
         refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
-                ? View.list
-                : View.grouped,
+                ? OptionsView.list
+                : OptionsView.grouped,
         displayValue = parseDisplayValue(json['displayValue']),
         showGreeks = json['showGreeks'] ?? true;
 

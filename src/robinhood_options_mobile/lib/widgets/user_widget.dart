@@ -94,8 +94,8 @@ class _UserWidgetState extends State<UserWidget> {
             title: Text('Manage Accounts', style: TextStyle(fontSize: 20.0)),
             actions: [],
           ),
-          SliverToBoxAdapter(
-              child: Column(children: const [
+          const SliverToBoxAdapter(
+              child: Column(children: [
             ListTile(
               title: Text(
                 "User",
@@ -109,8 +109,8 @@ class _UserWidgetState extends State<UserWidget> {
             height: 25.0,
           )),
           if (widget.account != null) ...[
-            SliverToBoxAdapter(
-                child: Column(children: const [
+            const SliverToBoxAdapter(
+                child: Column(children: [
               ListTile(
                 title: Text(
                   "Accounts",

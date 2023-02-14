@@ -2785,9 +2785,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2828,9 +2828,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                         width: 70,
                         child: Text(
@@ -2872,9 +2872,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                           width: 70,
                           child: Text(
@@ -2913,9 +2913,9 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
                           width: 70,
                           child: Text(

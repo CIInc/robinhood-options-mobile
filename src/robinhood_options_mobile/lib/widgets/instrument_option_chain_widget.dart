@@ -942,11 +942,11 @@ class _InstrumentOptionChainWidgetState
         });
       },
       isSelected: isSelected,
-      children: <Widget>[
+      children: const <Widget>[
         Padding(
-            padding: const EdgeInsets.all(14.0),
+            padding: EdgeInsets.all(14.0),
             child: Row(
-              children: const [
+              children: [
                 CircleAvatar(child: Text("C", style: TextStyle(fontSize: 18))),
                 //Icon(Icons.trending_up),
                 SizedBox(width: 10),
@@ -957,9 +957,9 @@ class _InstrumentOptionChainWidgetState
               ],
             )),
         Padding(
-          padding: const EdgeInsets.all(14.0),
+          padding: EdgeInsets.all(14.0),
           child: Row(
-            children: const [
+            children: [
               CircleAvatar(child: Text("P", style: TextStyle(fontSize: 18))),
               // Icon(Icons.trending_down),
               SizedBox(width: 10),

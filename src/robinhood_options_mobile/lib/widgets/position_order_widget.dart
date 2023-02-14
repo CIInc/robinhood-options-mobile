@@ -114,7 +114,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              Row(children: const [SizedBox(height: 70)]),
+              const Row(children: [SizedBox(height: 70)]),
               Wrap(
                   crossAxisAlignment: WrapCrossAlignment.end,
                   //runAlignment: WrapAlignment.end,

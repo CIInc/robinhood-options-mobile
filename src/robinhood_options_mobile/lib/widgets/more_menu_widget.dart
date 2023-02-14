@@ -1,5 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/material.dart'; // hide View;
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -107,10 +107,11 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             SwitchListTile(
               //leading: Icon(Icons.functions),
               title: const Text("Group Options by Stock"),
-              value: widget.user.optionsView == View.grouped,
+              value: widget.user.optionsView == OptionsView.grouped,
               onChanged: (bool value) {
                 setState(() {
-                  widget.user.optionsView = value ? View.grouped : View.list;
+                  widget.user.optionsView =
+                      value ? OptionsView.grouped : OptionsView.list;
                   //widget.user.showGreeks = value;
                 });
                 _onSettingsChanged();

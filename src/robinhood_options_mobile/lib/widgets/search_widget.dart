@@ -268,8 +268,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -306,8 +306,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -344,8 +344,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "Top Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -382,8 +382,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "100 Most Popular",
                                       style: TextStyle(fontSize: 19.0),
