@@ -209,7 +209,6 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('${widget.user.source}');
     //super.build(context);
     /*
     return Navigator(
@@ -1222,7 +1221,24 @@ class _HomePageState extends State<HomePage>
                       renderSpec: charts.SmallTickRendererSpec(
                           labelStyle:
                               charts.TextStyleSpec(color: axisLabelColor))),
-                  onSelected: (_) {});
+                  onSelected: (dynamic historical) {
+                debugPrint(historical
+                    .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
+                var position = filteredPositions.firstWhere((element) =>
+                    element.instrumentObj!.symbol == historical['domain']);
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              widget.user,
+                              //account!,
+                              position.instrumentObj!,
+                              heroTag:
+                                  'logo_${position.instrumentObj!.symbol}${position.instrumentObj!.id}',
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
+              });
 
               double? marketValue = widget.user
                   .getPositionAggregateDisplayValue(filteredPositions,
@@ -1576,7 +1592,22 @@ class _HomePageState extends State<HomePage>
                         renderSpec: charts.SmallTickRendererSpec(
                             labelStyle:
                                 charts.TextStyleSpec(color: axisLabelColor))),
-                    onSelected: (_) {});
+                    onSelected: (dynamic historical) {
+                  debugPrint(historical
+                      .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
+                  var holding = filteredHoldings.firstWhere((element) =>
+                      element.currencyCode == historical['domain']);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => ForexInstrumentWidget(
+                                widget.user,
+                                //account!,
+                                holding,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
+                });
 
                 double? marketValue = widget.user
                     .getCryptoAggregateDisplayValue(filteredHoldings,
