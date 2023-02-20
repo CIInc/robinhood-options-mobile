@@ -4,7 +4,6 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
@@ -20,9 +19,8 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
-  final Account? account;
 
-  const SearchWidget(this.user, this.account,
+  const SearchWidget(this.user,
       {Key? key,
       required this.analytics,
       required this.observer,
@@ -491,7 +489,7 @@ class _SearchWidgetState extends State<SearchWidget>
 
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru, widget.account,
+                    builder: (context) => InstrumentWidget(ru,
                         watchLists[index].instrumentObj as Instrument)));
                         */
                 if (!mounted) return;
@@ -500,7 +498,6 @@ class _SearchWidgetState extends State<SearchWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               widget.user,
-                              //widget.account!,
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
@@ -531,7 +528,6 @@ class _SearchWidgetState extends State<SearchWidget>
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
                                 widget.user,
-                                //widget.account!,
                                 instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
@@ -547,7 +543,7 @@ class _SearchWidgetState extends State<SearchWidget>
             context,
             MaterialPageRoute(
                 builder: (context) =>
-                    InstrumentWidget(widget.user, widget.account, instrument)));
+                    InstrumentWidget(widget.user, instrument)));
       },
     );
     */
@@ -616,7 +612,7 @@ class _SearchWidgetState extends State<SearchWidget>
               onTap: () {
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru, widget.account,
+                    builder: (context) => InstrumentWidget(ru,
                         watchLists[index].instrumentObj as Instrument)));
                         */
                 Navigator.push(
@@ -624,7 +620,6 @@ class _SearchWidgetState extends State<SearchWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               user,
-                              //widget.account!,
                               instrumentObj,
                               analytics: widget.analytics,
                               observer: widget.observer,

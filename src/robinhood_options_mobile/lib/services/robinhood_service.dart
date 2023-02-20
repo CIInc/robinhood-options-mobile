@@ -18,6 +18,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/stock_order_store.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
@@ -45,7 +46,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
-class RobinhoodService {
+class RobinhoodService implements IBrokerageService {
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
@@ -58,7 +59,8 @@ class RobinhoodService {
   USERS & ACCOUNTS
   */
 
-  static Future<UserInfo> getUser(RobinhoodUser user) async {
+  @override
+  Future<UserInfo?> getUser(RobinhoodUser user) async {
     var url = '${Constants.robinHoodEndpoint}/user/';
     // debugPrint(result);
     /*
@@ -73,8 +75,12 @@ class RobinhoodService {
     return usr;
   }
 
-  static Future<List<Account>> getAccounts(
-      RobinhoodUser user, AccountStore store) async {
+  @override
+  Future<List<Account>> getAccounts(
+      RobinhoodUser user,
+      AccountStore store,
+      PortfolioStore? portfolioStore,
+      OptionPositionStore? optionPositionStore) async {
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/accounts/");
     //debugPrint(results);
@@ -82,9 +88,9 @@ class RobinhoodService {
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = Account.fromJson(result);
+      var op = Account.fromJson(result, user);
       accounts.add(op);
-      store.add(op);
+      store.addOrUpdate(op);
     }
     return accounts;
   }

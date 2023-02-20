@@ -52,12 +52,16 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var groupedOptionAggregatePositions =
-        filteredOptionPositions.groupListsBy((element) => element.symbol);
+    var groupedOptionAggregatePositions = {};
+    var contracts = 0;
+    if (filteredOptionPositions.isNotEmpty) {
+      groupedOptionAggregatePositions =
+          filteredOptionPositions.groupListsBy((element) => element.symbol);
+      contracts = filteredOptionPositions
+          .map((e) => e.quantity!.toInt())
+          .reduce((a, b) => a + b);
+    }
 
-    var contracts = filteredOptionPositions
-        .map((e) => e.quantity!.toInt())
-        .reduce((a, b) => a + b);
     /*
     filteredOptionPositions.sort((a, b) {
       int comp =
@@ -126,17 +130,19 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
-    double minimum, maximum;
+    double minimum = 0, maximum = 0;
     if (groupedOptionAggregatePositions.length == 1) {
       for (var op in groupedOptionAggregatePositions.values.first) {
         double? value = user.getDisplayValue(op);
         String? trailingText = user.getDisplayText(value);
-        data.add({
-          'domain':
-              '${formatCompactDate.format(op.legs.first.expirationDate!)} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.optionType}', // ${op.legs.first.positionType}
-          'measure': value,
-          'label': trailingText
-        });
+        if (op.legs.length > 0) {
+          data.add({
+            'domain':
+                '${formatCompactDate.format(op.legs.first.expirationDate!)} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.optionType}', // ${op.legs.first.positionType}
+            'measure': value,
+            'label': trailingText
+          });
+        }
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
         id: user.displayValue.toString(),
@@ -145,8 +151,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
         measureFn: (var d, _) => d['measure'],
         labelAccessorFn: (d, _) => d['label'],
       ));
-      var positionDisplayValues = groupedOptionAggregatePositions.values.first
-          .map((e) => user.getDisplayValue(e));
+      List<OptionAggregatePosition> oaps =
+          groupedOptionAggregatePositions.values.first;
+      Iterable<double> positionDisplayValues =
+          oaps.map((e) => user.getDisplayValue(e));
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -159,7 +167,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
       } else if (maximum < 0) {
         maximum = 0;
       }
-    } else {
+    } else if (groupedOptionAggregatePositions.length > 1) {
       for (var position in groupedOptionAggregatePositions.values) {
         double? value = user.getAggregateDisplayValue(position);
         String? trailingText;
@@ -447,7 +455,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                             ),
                           ]))),
                           */
-              if (user.displayValue != DisplayValue.lastPrice) ...[
+              if (user.displayValue != DisplayValue.lastPrice &&
+                  barChartSeriesList.isNotEmpty) ...[
                 SizedBox(
                     height: barChartSeriesList.first.data.length * 25 +
                         50, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
@@ -1082,9 +1091,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
         children: <Widget>[
           ListTile(
             title: Text(
-                '\$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.optionType.capitalize()} ${op.legs.first.positionType == 'long' ? '+' : '-'}${formatCompactNumber.format(op.quantity!)}'),
+                '\$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ""} ${op.legs.isNotEmpty ? op.legs.first.optionType.capitalize() : ""} ${op.legs.isNotEmpty ? (op.legs.first.positionType == 'long' ? '+' : '-') : ""}${formatCompactNumber.format(op.quantity!)}'),
             subtitle: Text(
-                '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
+                '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ""} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ""}'),
             trailing: Wrap(spacing: 8, children: [
               if (icon != null) ...[
                 icon,

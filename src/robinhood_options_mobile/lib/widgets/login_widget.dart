@@ -35,7 +35,7 @@ class LoginWidget extends StatefulWidget {
 }
 
 class _LoginWidgetState extends State<LoginWidget> {
-  String? source = 'Robinhood';
+  Source source = Source.robinhood;
 
   Future<http.Response>? authenticationResponse;
   Future<http.Response>? challengeResponse;
@@ -100,7 +100,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _login() {
-    if (source == 'TD Ameritrade') {
+    if (source == Source.tdAmeritrade) {
       TdAmeritradeService.login();
     } else {
       setState(() {
@@ -120,7 +120,7 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var userStore = Provider.of<UserStore>(context, listen: true);
+    //var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
           title: const Text("Login"),
@@ -162,11 +162,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                   _stopMonitoringClipboard();
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
-                      source == 'Robinhood'
+                      source == Source.robinhood
                           ? Constants.rhAuthEndpoint
                           : Constants.tdAuthEndpoint,
                       ' ',
-                      source == 'Robinhood'
+                      source == Source.robinhood
                           ? Constants.rhClientId
                           : Constants.tdClientId,
                       null,
@@ -175,22 +175,24 @@ class _LoginWidgetState extends State<LoginWidget> {
                   // debugPrint(jsonEncode(client));
                   var user = RobinhoodUser(source, userCtl.text,
                       client!.credentials.toJson(), client);
-                  user.save(userStore).then((value) {
-                    //Navigator.popUntil(context, ModalRoute.withName('/'));
-                    // This is being called twice, figure out root cause and not this workaround.
-                    if (!popped) {
-                      widget.analytics
-                          .logLogin(loginMethod: "Robinhood $challengeType");
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    user
+                        .save(Provider.of<UserStore>(context, listen: false))
+                        .then((value) {
+                      //Navigator.popUntil(context, ModalRoute.withName('/'));
+                      // This is being called twice, figure out root cause and not this workaround.
+                      if (!popped) {
+                        widget.analytics
+                            .logLogin(loginMethod: "Robinhood $challengeType");
                         Navigator.pop(context, user);
-                      });
-                      /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
+                        /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                       Future.delayed(Duration.zero, () {
                         Navigator.pop(context, user);
                       });
                       */
-                      popped = true;
-                    }
+                        popped = true;
+                      }
+                    });
                   });
                 } else {
                   if (authenticationSnapshot.connectionState ==
@@ -253,12 +255,12 @@ class _LoginWidgetState extends State<LoginWidget> {
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
                 label: const Text('Robinhood'),
-                selected: source == 'Robinhood',
+                selected: source == Source.robinhood,
                 labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
-                    source = 'Robinhood'; //selected ? 'Robinhood' : null;
+                    source = Source.robinhood;
                     //instrumentPosition = null;
                   });
                 },
@@ -268,21 +270,19 @@ class _LoginWidgetState extends State<LoginWidget> {
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
                 label: const Text('TD Ameritrade'),
-                selected: source == "TD Ameritrade",
+                selected: source == Source.robinhood,
                 labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
-                    source =
-                        'TD Ameritrade'; //selected ? "TD Ameritrade" : null;
-                    //instrumentPosition = null;
+                    source = Source.tdAmeritrade;
                   });
                 },
               ),
             ),
           ],
         ),
-        if (source == "Robinhood") ...[
+        if (source == Source.robinhood) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
@@ -334,7 +334,7 @@ class _LoginWidgetState extends State<LoginWidget> {
           ],
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
-        ] else if (source == "TD Ameritrade") ...[
+        ] else if (source == Source.tdAmeritrade) ...[
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
               child: SizedBox(

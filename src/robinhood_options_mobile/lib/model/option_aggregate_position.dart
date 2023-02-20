@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
@@ -73,6 +74,26 @@ class OptionAggregatePosition {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
             DateTime.tryParse(json['updated_at']),
         strategyCode = json['strategy_code'];
+
+  OptionAggregatePosition.fromTdAmeritradeJson(dynamic json, Account acct)
+      : id = json['instrument']['cusip'],
+        chain = '', // json['chain'],
+        account = acct.accountNumber, // json['account'],
+        symbol = json['instrument']['underlyingSymbol'], // json['symbol'],
+        strategy = json['instrument']['putCall'], // json['strategy'],
+        averageOpenPrice = json['averagePrice'],
+        legs = [], // OptionLeg.fromJsonArray(json['legs']),
+        quantity = json['longQuantity'],
+        intradayAverageOpenPrice =
+            null, // double.tryParse(json['intraday_average_open_price']),
+        intradayQuantity = null, // double.tryParse(json['intraday_quantity']),
+        direction = json['instrument']['putCall'], // json['direction'],
+        intradayDirection = '', // json['intraday_direction'],
+        tradeValueMultiplier =
+            null, // double.tryParse(json['trade_value_multiplier']),
+        createdAt = null, // DateTime.tryParse(json['created_at']),
+        updatedAt = null, // DateTime.tryParse(json['updated_at']),
+        strategyCode = ''; //json['strategy_code'];
 
   // Helpers
   double get marketValue {

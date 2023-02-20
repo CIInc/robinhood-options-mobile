@@ -13,9 +13,12 @@ class OptionPositionStore extends ChangeNotifier {
 
   double get equity => _items.isNotEmpty
       ? _items
-          .map((e) => e.legs.first.positionType == "long"
+          .map((e) => e.marketValue)
+          /*
+              e.legs.first.positionType == "long"
               ? e.marketValue
               : e.marketValue)
+              */
           .reduce((a, b) => a + b)
       : 0;
 

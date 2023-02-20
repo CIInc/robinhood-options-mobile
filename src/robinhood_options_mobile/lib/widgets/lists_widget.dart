@@ -4,7 +4,6 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -23,7 +22,7 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.user, this.account,
+  const ListsWidget(this.user,
       {Key? key,
       required this.analytics,
       required this.observer,
@@ -34,7 +33,6 @@ class ListsWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
-  final Account? account;
 
   @override
   State<ListsWidget> createState() => _ListsWidgetState();
@@ -638,7 +636,7 @@ class _ListsWidgetState extends State<ListsWidget>
               onTap: () {
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru, widget.account,
+                    builder: (context) => InstrumentWidget(ru,
                         watchLists[index].instrumentObj as Instrument)));
                         */
                 Navigator.push(
@@ -646,7 +644,6 @@ class _ListsWidgetState extends State<ListsWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               ru,
-                              //widget.account!,
                               watchLists[index].instrumentObj as Instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,

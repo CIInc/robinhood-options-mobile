@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/stock_order_store.dart';
@@ -48,7 +47,7 @@ class HistoryPage extends StatefulWidget {
   ];
   */
 
-  const HistoryPage(this.user, this.account,
+  const HistoryPage(this.user,
       {Key? key,
       required this.analytics,
       required this.observer,
@@ -59,7 +58,6 @@ class HistoryPage extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
-  final Account? account;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -640,7 +638,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
-                                          widget.account,
                                           optionOrder)));
                                           */
                               Navigator.push(
@@ -648,7 +645,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                             widget.user,
-                                            //widget.account!,
                                             optionOrder,
                                             analytics: widget.analytics,
                                             observer: widget.observer,
@@ -919,7 +915,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
-                                          widget.account,
                                           filteredPositionOrders![index])));
                                           */
                               Navigator.push(
@@ -927,7 +922,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                             widget.user,
-                                            //widget.account!,
                                             filteredPositionOrders![index],
                                             analytics: widget.analytics,
                                             observer: widget.observer,

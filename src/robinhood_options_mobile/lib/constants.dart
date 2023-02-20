@@ -3,6 +3,7 @@ class Constants {
   static const String appTitle = 'Investiomanus';
 
   // Robinhood constants
+  static const robinhoodName = 'Robinhood';
   static final robinHoodEndpoint = Uri.parse('https://api.robinhood.com');
   static final robinHoodNummusEndpoint =
       Uri.parse('https://nummus.robinhood.com');
@@ -16,6 +17,7 @@ class Constants {
   static const String rhClientId = 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS';
 
   // TD Ameritrade constants
+  static const tdName = 'TD Ameritrade';
   static final tdEndpoint = Uri.parse('https://api.tdameritrade.com/v1');
   static final tdAuthEndpoint = Uri.parse('https://auth.tdameritrade.com/auth');
   static final tdTokenEndpoint =

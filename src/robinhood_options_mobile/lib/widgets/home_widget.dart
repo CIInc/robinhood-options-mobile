@@ -30,7 +30,9 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/stock_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -107,8 +109,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
 //with AutomaticKeepAliveClientMixin<HomePage>
 {
+  // Where is DI?
+  late IBrokerageService service;
+
   Future<List<Account>>? futureAccounts;
-  List<Account>? accounts;
+  final List<Account>? accounts = [];
   Account? account;
 
   Future<List<ForexHolding>>? futureNummusHoldings;
@@ -210,6 +215,10 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     //super.build(context);
+
+    service = widget.user.source == Source.robinhood
+        ? RobinhoodService()
+        : TdAmeritradeService();
     /*
     return Navigator(
         key: widget.navigatorKey,
@@ -234,29 +243,33 @@ class _HomePageState extends State<HomePage>
   Widget _buildScaffold() {
     Provider.of<UserStore>(context, listen: true);
 
-    futureAccounts ??= RobinhoodService.getAccounts(
-        widget.user, Provider.of<AccountStore>(context, listen: false));
-
-    futurePortfolios ??= RobinhoodService.getPortfolios(
-        widget.user, Provider.of<PortfolioStore>(context, listen: false));
-    //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
-    futureNummusHoldings ??= RobinhoodService.getNummusHoldings(
-        widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-
-    futureOptionPositions ??= RobinhoodService.getOptionPositionStore(
+    futureAccounts ??= service.getAccounts(
         widget.user,
-        Provider.of<OptionPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
+        Provider.of<AccountStore>(context, listen: false),
+        Provider.of<PortfolioStore>(context, listen: false),
+        Provider.of<OptionPositionStore>(context, listen: false));
 
-    futureStockPositions ??= RobinhoodService.getStockPositionStore(
-        widget.user,
-        Provider.of<StockPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        Provider.of<QuoteStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
+    if (widget.user.source == Source.robinhood) {
+      futurePortfolios ??= RobinhoodService.getPortfolios(
+          widget.user, Provider.of<PortfolioStore>(context, listen: false));
+      //futureNummusAccounts ??= RobinhoodService.downloadNummusAccounts(widget.user);
+      futureNummusHoldings ??= RobinhoodService.getNummusHoldings(
+          widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1]);
 
+      futureOptionPositions ??= RobinhoodService.getOptionPositionStore(
+          widget.user,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1]);
+
+      futureStockPositions ??= RobinhoodService.getStockPositionStore(
+          widget.user,
+          Provider.of<StockPositionStore>(context, listen: false),
+          Provider.of<InstrumentStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1]);
+    }
     /*
     positionStoreStream ??= RobinhoodService.streamStockPositionStore(
         widget.user,
@@ -282,23 +295,30 @@ class _HomePageState extends State<HomePage>
         if (dataSnapshot.hasData) {
           List<dynamic> data = dataSnapshot.data as List<dynamic>;
           List<Account> accts = data[0] as List<Account>;
-          if (accounts != accts) {
-            accounts = accts;
-            account = accounts!.first;
-            /*
-            WidgetsBinding.instance.addPostFrameCallback(
-                (_) => widget.onAccountsChanged(accounts!));
-                */
+          for (var acct in accts) {
+            var existingAccount = accounts!.firstWhereOrNull((element) =>
+                element.userId == widget.user.id &&
+                element.accountNumber == acct.accountNumber);
+            if (existingAccount == null) {
+              accounts!.add(acct);
+              /*
+              WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => widget.onAccountsChanged(accounts!));
+                  */
+              account = acct;
+            }
           }
 
-          futurePortfolioHistoricals ??=
-              RobinhoodService.getPortfolioHistoricals(
-                  widget.user,
-                  Provider.of<PortfolioHistoricalsStore>(context,
-                      listen: false),
-                  account!.accountNumber,
-                  chartBoundsFilter,
-                  chartDateSpanFilter);
+          if (widget.user.source == Source.robinhood) {
+            futurePortfolioHistoricals ??=
+                RobinhoodService.getPortfolioHistoricals(
+                    widget.user,
+                    Provider.of<PortfolioHistoricalsStore>(context,
+                        listen: false),
+                    account!.accountNumber,
+                    chartBoundsFilter,
+                    chartDateSpanFilter);
+          }
           /*
           return MultiProvider(
               providers: [
@@ -352,7 +372,8 @@ class _HomePageState extends State<HomePage>
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
       (timer) async {
-        if (widget.user.refreshEnabled) {
+        if (widget.user.refreshEnabled &&
+            widget.user.source == Source.robinhood) {
           // animateChart = false;
           if (account != null) {
             await RobinhoodService.getPortfolioHistoricals(
@@ -504,15 +525,8 @@ class _HomePageState extends State<HomePage>
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-
-            Consumer<
-                PortfolioHistoricalsStore /*, PortfolioStore,
-                    ForexHoldingStore*/
-                >(builder: (context,
-                portfolioHistoricalsStore /*, portfolioStore,
-                    forexHoldingStore*/
-                ,
-                child) {
+            Consumer<PortfolioHistoricalsStore>(
+                builder: (context, portfolioHistoricalsStore, child) {
               /*
                 if (portfolioHistoricals != null) {
                   debugPrint(
@@ -1091,21 +1105,21 @@ class _HomePageState extends State<HomePage>
                   child: ShrinkWrappingViewport(
                       offset: ViewportOffset.zero(),
                       slivers: [
-                    if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                      /*
+                    //if (filteredOptionAggregatePositions.isNotEmpty) ...[
+                    /*
                       const SliverToBoxAdapter(
                           child: SizedBox(
                         height: 25.0,
                       )),
                       */
-                      OptionPositionsRowWidget(
-                        widget.user,
-                        //account!,
-                        filteredOptionAggregatePositions,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      )
-                    ],
+                    OptionPositionsRowWidget(
+                      widget.user,
+                      //account!,
+                      filteredOptionAggregatePositions,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    ),
+                    //],
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
@@ -2368,6 +2382,9 @@ class _HomePageState extends State<HomePage>
     double portfolioCash = 0.0;
     double cashPercent = 0.0;
     double cryptoPercent = 0.0;
+    if (account != null) {
+      portfolioCash = account.portfolioCash ?? 0;
+    }
     if (portfolioStore.items.isNotEmpty) {
       portfolioValue =
           (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
@@ -2375,16 +2392,15 @@ class _HomePageState extends State<HomePage>
           portfolioStore.items[0].marketValue! / portfolioValue;
       optionEquityPercent = optionPositionStore.equity / portfolioValue;
       positionEquityPercent = stockPositionStore.equity / portfolioValue;
-      if (account != null) {
-        portfolioCash = account.portfolioCash ?? 0;
-      }
       cashPercent = portfolioCash / portfolioValue;
       cryptoPercent = forexHoldingStore.equity / portfolioValue;
     }
 
     double changeInPeriod = 0;
     double changePercentInPeriod = 0;
-    if (portfolioStore.items.isNotEmpty) {
+    if (portfolioStore.items.isNotEmpty &&
+        portfolioStore.items[0].equity != null &&
+        portfolioStore.items[0].equityPreviousClose != null) {
       changeInPeriod = portfolioStore.items[0].equity! -
           portfolioStore.items[0].equityPreviousClose!;
       changePercentInPeriod =
@@ -2423,7 +2439,7 @@ class _HomePageState extends State<HomePage>
           //runSpacing: 5,
           children: [
             if (userInfo != null) ...[
-              Text(userInfo.profileName,
+              Text(userInfo.profileName, // ?? userInfo.username,
                   style: const TextStyle(fontSize: 22.0)),
               Wrap(spacing: 10, children: [
                 Text(formatCurrency.format(portfolioValue),

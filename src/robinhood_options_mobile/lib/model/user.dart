@@ -1,4 +1,5 @@
 class UserInfo {
+  // Robinhood
   final String url;
   final String id;
   final String idInfo;
@@ -9,6 +10,8 @@ class UserInfo {
   final String locality;
   final String profileName;
   final DateTime? createdAt;
+  // TD Ameritrade
+  final DateTime? lastLoginTime;
 
   UserInfo(
       this.url,
@@ -20,7 +23,8 @@ class UserInfo {
       this.lastName,
       this.locality,
       this.profileName,
-      this.createdAt);
+      this.createdAt,
+      this.lastLoginTime);
 
   UserInfo.fromJson(dynamic json)
       : url = json['url'],
@@ -32,5 +36,19 @@ class UserInfo {
         lastName = json['last_name'],
         locality = json['origin']['locality'],
         profileName = json['profile_name'],
-        createdAt = DateTime.tryParse(json['created_at']);
+        createdAt = DateTime.tryParse(json['created_at']),
+        lastLoginTime = null;
+
+  UserInfo.fromTdAmeritradeJson(dynamic json)
+      : url = '',
+        id = json['userId'],
+        idInfo = '',
+        username = json['userId'],
+        email = '',
+        firstName = '',
+        lastName = '',
+        locality = '',
+        profileName = json['userId'],
+        createdAt = null,
+        lastLoginTime = DateTime.tryParse(json['lastLoginTime']);
 }

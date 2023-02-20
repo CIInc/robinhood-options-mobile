@@ -115,4 +115,51 @@ class Portfolio {
         unwithdrawableGrants = double.tryParse(json['unwithdrawable_grants']),
         updatedAt = DateTime.now();
   // 2021-02-09T18:01:28.135813Z
+
+  Portfolio.fromTdAmeritradeJson(dynamic json)
+      : url = '',
+        account = json['securitiesAccount']['accountId'],
+        startDate = null, //DateTime.tryParse(json['start_date']),
+        marketValue = double.tryParse(json['securitiesAccount']
+                    ['currentBalances']['longOptionMarketValue']
+                .toString())! +
+            double.tryParse(json['securitiesAccount']['currentBalances']
+                    ['longMarketValue']
+                .toString())!,
+        equity = double.tryParse(json['securitiesAccount']['currentBalances']
+                ['liquidationValue']
+            .toString()), //double.tryParse(json['equity']),
+        extendedHoursMarketValue =
+            null, // json['extended_hours_market_value'] != null ? double.tryParse(json['extended_hours_market_value']) : null,
+        extendedHoursEquity =
+            null, // json['extended_hours_equity'] != null ? double.tryParse(json['extended_hours_equity']) : null,
+        extendedHoursPortfolioEquity =
+            null, // json['extended_hours_portfolio_equity'] != null ? double.tryParse(json['extended_hours_portfolio_equity']) : null,
+        lastCoreMarketValue =
+            null, // double.tryParse(json['last_core_market_value']),
+        lastCoreEquity = null, // double.tryParse(json['last_core_equity']),
+        lastCorePortfolioEquity =
+            null, // double.tryParse(json['last_core_portfolio_equity']),
+        excessMargin = null, // double.tryParse(json['excess_margin']),
+        excessMaintenance =
+            null, // double.tryParse(json['excess_maintenance']),
+        excessMarginWithUnclearedDeposits =
+            null, // double.tryParse(json['excess_margin_with_uncleared_deposits']),
+        excessMaintenanceWithUnclearedDeposits =
+            null, // double.tryParse(json['excess_maintenance_with_uncleared_deposits']),
+        equityPreviousClose =
+            null, // double.tryParse(json['securitiesAccount']['initialBalances']['longOptionMarketValue'].toString())! + double.tryParse(json['securitiesAccount']['initialBalances']['longStockValue'].toString())!,
+        portfolioEquityPreviousClose =
+            null, // double.tryParse(json['portfolio_equity_previous_close']),
+        adjustedEquityPreviousClose =
+            null, // double.tryParse(json['adjusted_equity_previous_close']),
+        adjustedPortfolioEquityPreviousClose =
+            null, // double.tryParse(json['adjusted_portfolio_equity_previous_close']),
+        withdrawableAmount =
+            null, // double.tryParse(json['withdrawable_amount']),
+        unwithdrawableDeposits =
+            null, // double.tryParse(json['unwithdrawable_deposits']),
+        unwithdrawableGrants =
+            null, // double.tryParse(json['unwithdrawable_grants']),
+        updatedAt = DateTime.now();
 }

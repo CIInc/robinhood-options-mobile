@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
@@ -53,10 +54,13 @@ class NavigationStatefulWidget extends StatefulWidget {
 
 /// This is the private State class that goes with NavigationStatefulWidget.
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
+  IBrokerageService robinhoodService = RobinhoodService();
+  IBrokerageService tdAmeritradeService = TdAmeritradeService();
+
   Future<List<RobinhoodUser>>? futureRobinhoodUsers;
   List<RobinhoodUser> robinhoodUsers = [];
   int currentUserIndex = 0;
-  Future<UserInfo>? futureUser;
+  Future<UserInfo?>? futureUser;
   UserInfo? userInfo;
   Future<List<Account>>? futureAccounts;
   List<Account>? accounts;
@@ -206,15 +210,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
   */
+  RobinhoodUser get currentUser => currentUserIndex < robinhoodUsers.length
+      ? robinhoodUsers[currentUserIndex]
+      : robinhoodUsers[0];
 
   @override
   Widget build(BuildContext context) {
     var userStore = Provider.of<UserStore>(context, listen: true);
     //var accountStore = Provider.of<AccountStore>(context, listen: true);
-
     if (userStore.items.isNotEmpty) {
       robinhoodUsers = userStore.items;
-      futureUser ??= RobinhoodService.getUser(robinhoodUsers[currentUserIndex]);
+      if (currentUser.source == Source.robinhood) {
+        futureUser ??= robinhoodService.getUser(currentUser);
+      } else if (currentUser.source == Source.tdAmeritrade) {
+        futureUser ??= tdAmeritradeService.getUser(currentUser);
+      }
       //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
       return FutureBuilder(
           future:
@@ -222,7 +232,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           builder: (context1, dataSnapshot) {
             if (dataSnapshot.hasData) {
               userInfo = dataSnapshot.data!;
-              widget.analytics.setUserId(id: userInfo?.username);
+              widget.analytics.setUserId(id: userInfo!.username);
+              if (currentUser.userName == '') {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  currentUser.userName = userInfo!.username;
+                  currentUser.save(userStore);
+                });
+              }
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -258,7 +274,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   _buildTabs() {
     tabPages = [
       HomePage(
-        robinhoodUsers[currentUserIndex], userInfo!,
+        currentUser, userInfo!,
         title: 'Investiomanus',
         navigatorKey: navigatorKeys[0],
         analytics: widget.analytics,
@@ -267,23 +283,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         //onAccountsChanged: _handleAccountChanged
       ),
       //const HomePage(title: 'Orders'),
-      SearchWidget(robinhoodUsers[currentUserIndex],
-          accounts != null ? accounts!.first : null,
+      SearchWidget(currentUser,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[1]),
-      ListsWidget(robinhoodUsers[currentUserIndex],
-          accounts != null ? accounts!.first : null,
+      ListsWidget(currentUser,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[2]),
-      HistoryPage(robinhoodUsers[currentUserIndex],
-          accounts != null ? accounts!.first : null,
+      HistoryPage(currentUser,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[3]),
-      UserWidget(robinhoodUsers[currentUserIndex], userInfo!,
-          accounts != null ? accounts!.first : null,
+      // TODO: Remove dependency from account ctor param
+      UserWidget(
+          currentUser, userInfo!, accounts != null ? accounts!.first : null,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[4]),
@@ -382,9 +396,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: robinhoodUsers.isEmpty ||
-                robinhoodUsers[currentUserIndex].userName == null ||
-                userInfo == null
+        children: robinhoodUsers
+                .isEmpty /* ||
+                currentUser.userName == null ||
+                userInfo == null*/
             ? <Widget>[
                 const DrawerHeader(
                   child: Text('Investiomanus', style: TextStyle(fontSize: 30)),
@@ -401,12 +416,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               ]
             : <Widget>[
                 UserAccountsDrawerHeader(
-                  accountName: Text(userInfo!.profileName),
-                  accountEmail: Text(userInfo!.email),
+                  accountName: Text(
+                      '${userInfo != null ? userInfo!.profileName : ''} (${currentUser.source == Source.robinhood ? Constants.robinhoodName : (currentUser.source == Source.tdAmeritrade ? Constants.tdName : '')})'),
+                  accountEmail: Text(currentUser.userName != null
+                      ? currentUser.userName!
+                      : ''), //userInfo!.email,
                   currentAccountPicture: CircleAvatar(
                       //backgroundColor: Colors.amber,
                       child: Text(
-                    '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
+                    userInfo != null &&
+                            userInfo!.firstName.isNotEmpty &&
+                            userInfo!.lastName.isNotEmpty
+                        ? userInfo!.firstName.substring(0, 1) +
+                            userInfo!.lastName.substring(0, 1)
+                        : '',
                     style: const TextStyle(
                         fontWeight: FontWeight.bold, fontSize: 32),
                   )),
@@ -439,16 +462,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         leading: CircleAvatar(
                             //backgroundColor: Colors.amber,
                             child: Text(
-                          robinhoodUsers[userIndex].userName!.substring(0, 1),
+                          robinhoodUsers[userIndex].userName != null &&
+                                  robinhoodUsers[userIndex].userName!.isNotEmpty
+                              ? robinhoodUsers[userIndex]
+                                  .userName!
+                                  .substring(0, 1)
+                                  .toUpperCase()
+                              : '',
                         )),
                         title: Text(
-                            '${robinhoodUsers[userIndex].userName!} (${robinhoodUsers[userIndex].source!})'),
+                            '${robinhoodUsers[userIndex].userName != null ? robinhoodUsers[userIndex].userName! : ''} (${robinhoodUsers[userIndex].source == Source.robinhood ? Constants.robinhoodName : (robinhoodUsers[userIndex].source == Source.tdAmeritrade ? Constants.tdName : '')})'),
                         //selected: userInfo!.profileName == userInfo!.profileName,
                         onTap: () {
                           _showDrawerContents = false;
                           //Navigator.pop(context); // close the drawer
                           setState(() {
                             currentUserIndex = userIndex;
+                            futureUser = null;
+                            //userInfo = null;
                           });
                           // _onPageChanged(4);
                         },
@@ -533,7 +564,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           //useRootNavigator: true,
                           //constraints: const BoxConstraints(maxHeight: 200),
                           builder: (_) => MoreMenuBottomSheet(
-                                robinhoodUsers[currentUserIndex],
+                                currentUser,
                                 /*
                     chainSymbols: chainSymbols,
                     positionSymbols: positionSymbols,
@@ -595,7 +626,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   loggedIn() {
     return robinhoodUsers.isNotEmpty &&
-        robinhoodUsers[currentUserIndex].userName != null &&
+        currentUser.userName != null &&
         userInfo != null;
   }
 
@@ -651,7 +682,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           onPressed: () async {
             Navigator.pop(context, 'dialog');
 
-            await robinhoodUsers[currentUserIndex].clearUserFromStore(
+            await currentUser.clearUserFromStore(
                 Provider.of<UserStore>(context, listen: false));
 
             // Future.delayed(const Duration(milliseconds: 1), () async {
@@ -665,6 +696,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             //if (!mounted) return;
             setState(() {
               initTabs();
+              currentUserIndex = 0;
               futureRobinhoodUsers =
                   null; // RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
               futureUser = null;

@@ -21,25 +21,31 @@ enum DisplayValue {
   totalReturn
 }
 
+enum Source { robinhood, tdAmeritrade }
+
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
 class RobinhoodUser {
-  final String? source;
-  final String? userName;
+  final String id = DateTime.now().microsecondsSinceEpoch.toString();
+  final Source source;
+  late String? userName;
   final String? credentials;
   oauth2.Client? oauth2Client;
-  bool refreshEnabled = true;
+  bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.list;
   DisplayValue? displayValue = DisplayValue.marketValue;
   bool showGreeks = false;
+  // UserInfo? userInfo;
 
   RobinhoodUser(
       this.source, this.userName, this.credentials, this.oauth2Client);
 
   RobinhoodUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'],
+      : source = json['source'] == 'Robinhood'
+            ? Source.robinhood
+            : Source.tdAmeritrade,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -51,7 +57,7 @@ class RobinhoodUser {
         showGreeks = json['showGreeks'] ?? true;
 
   Map<String, dynamic> toJson() => {
-        'source': source,
+        'source': source.toString(),
         'userName': userName,
         'credentials': credentials,
         'refreshEnabled': refreshEnabled,
@@ -163,6 +169,9 @@ class RobinhoodUser {
   double? getAggregateDisplayValue(List<OptionAggregatePosition> ops,
       {DisplayValue? displayValue}) {
     double value = 0;
+    if (ops.isEmpty) {
+      return value;
+    }
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         return null;
@@ -174,10 +183,12 @@ class RobinhoodUser {
             */
       case DisplayValue.marketValue:
         value = ops
-            .map((OptionAggregatePosition e) =>
+            .map((OptionAggregatePosition e) => e.marketValue)
+            /*
                 e.legs.first.positionType == "long"
                     ? e.marketValue
                     : e.marketValue)
+                    */
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturn:
