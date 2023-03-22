@@ -89,3 +89,7 @@
   - [ ] Twitter
 ### Machine Learning
   - [ ] Machine learning target price model service
+
+## Notes
+
+- [App Launcher Icon](https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuoswQXrdH%2FCwm4h0a9oVu2V0rSJj%2F910ipfk8RLyvax46pBpgVphdHy0A40EZXVYqIJ1TfCzjqmMF5IGQ1bnkFDB9zyJkSJNxk%2FunmdsFTrXvme5gJ4DR1nrXLMrhUNdn7W14qVCMVAp5p1y0aacKJTEM9TxVCF6NwiwyI5T4vGrA9ndFZT9o34hxRvZ5FDeuUJPJrI3JSkvUl%2FU4bZ9AAfiKa7xAAAA)

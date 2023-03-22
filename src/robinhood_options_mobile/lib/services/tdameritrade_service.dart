@@ -160,8 +160,8 @@ class TdAmeritradeService implements IBrokerageService {
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
     if (user.oauth2Client!.credentials.isExpired) {
-      //TdAmeritradeService.login();
-      //return null;
+      TdAmeritradeService.login();
+      return null;
     }
     String responseStr = await user.oauth2Client!.read(Uri.parse(url));
     debugPrint(

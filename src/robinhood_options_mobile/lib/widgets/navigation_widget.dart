@@ -57,7 +57,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   IBrokerageService robinhoodService = RobinhoodService();
   IBrokerageService tdAmeritradeService = TdAmeritradeService();
 
-  Future<List<RobinhoodUser>>? futureRobinhoodUsers;
   List<RobinhoodUser> robinhoodUsers = [];
   int currentUserIndex = 0;
   Future<UserInfo?>? futureUser;
@@ -92,7 +91,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
     var userStore = Provider.of<UserStore>(context, listen: false);
     if (userStore.items.isEmpty) {
-      futureRobinhoodUsers ??= RobinhoodUser.loadUserFromStore(userStore);
+      RobinhoodUser.loadUserIntoStore(userStore).then((value) => {
+            currentUserIndex =
+                value.indexWhere((element) => element.defaultUser)
+          });
     }
 
     loadDeepLinks(userStore);
@@ -142,8 +144,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           link!.replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
       debugPrint('code:$code');
       var user = await TdAmeritradeService.getAccessToken(code);
+      // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
+      var userInfo = await tdAmeritradeService.getUser(user!);
+      user.userName = userInfo!.username;
       debugPrint('result:${jsonEncode(user)}');
-      await user!.save(userStore);
+      await user.save(userStore);
+      setState(() {
+        futureUser = null;
+      });
       /*
       var grant = AuthorizationCodeGrant(Constants.tdClientId,
           Constants.tdAuthEndpoint, Constants.tdTokenEndpoint);
@@ -233,12 +241,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             if (dataSnapshot.hasData) {
               userInfo = dataSnapshot.data!;
               widget.analytics.setUserId(id: userInfo!.username);
-              if (currentUser.userName == '') {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  currentUser.userName = userInfo!.username;
-                  currentUser.save(userStore);
-                });
-              }
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
                     userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
@@ -476,6 +478,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         onTap: () {
                           _showDrawerContents = false;
                           //Navigator.pop(context); // close the drawer
+                          // Reset defaultUser on app open.
+                          for (var u in robinhoodUsers) {
+                            u.defaultUser = false;
+                          }
+                          robinhoodUsers[userIndex].defaultUser = true;
                           setState(() {
                             currentUserIndex = userIndex;
                             futureUser = null;
@@ -644,9 +651,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       // TODO: see if setState is actually needed, Provider pattern is already listening.
       setState(() {
         futureUser = null;
-        //futureRobinhoodUsers = null;
-        //futureRobinhoodUsers = RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
-        //user = null;
       });
 
       //Navigator.pop(context); //, 'login'
@@ -697,8 +701,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             setState(() {
               initTabs();
               currentUserIndex = 0;
-              futureRobinhoodUsers =
-                  null; // RobinhoodUser.loadUserFromStore(Provider.of<UserStore>(context, listen: false));
               futureUser = null;
             });
 

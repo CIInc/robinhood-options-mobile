@@ -33,6 +33,7 @@ class RobinhoodUser {
   late String? userName;
   final String? credentials;
   oauth2.Client? oauth2Client;
+  bool defaultUser = true;
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.list;
   DisplayValue? displayValue = DisplayValue.marketValue;
@@ -43,7 +44,7 @@ class RobinhoodUser {
       this.source, this.userName, this.credentials, this.oauth2Client);
 
   RobinhoodUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'] == 'Robinhood'
+      : source = json['source'] == 'Source.robinhood'
             ? Source.robinhood
             : Source.tdAmeritrade,
         userName = json['userName'],
@@ -74,7 +75,7 @@ class RobinhoodUser {
     //await Store.writeFile(Constants.cacheFilename, contents);
   }
 
-  static Future<List<RobinhoodUser>> loadUserFromStore(UserStore store) async {
+  static Future<List<RobinhoodUser>> loadUserIntoStore(UserStore store) async {
     // await Store.deleteFile(Constants.cacheFilename);
     debugPrint('Loading cache.');
 

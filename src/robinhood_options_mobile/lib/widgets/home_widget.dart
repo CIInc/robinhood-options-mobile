@@ -7,6 +7,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'dart:math' as math;
 
@@ -2439,34 +2440,44 @@ class _HomePageState extends State<HomePage>
           //runSpacing: 5,
           children: [
             if (userInfo != null) ...[
-              Text(userInfo.profileName, // ?? userInfo.username,
-                  style: const TextStyle(fontSize: 22.0)),
-              Wrap(spacing: 10, children: [
-                Text(formatCurrency.format(portfolioValue),
-                    style:
-                        const TextStyle(fontSize: 17.0, color: Colors.white70)),
-                //style: const TextStyle(fontSize: 20.0),
-                //textAlign: TextAlign.right
-                Wrap(alignment: WrapAlignment.center, children: [
-                  Icon(
-                      changeInPeriod > 0
-                          ? Icons.trending_up
-                          : (changeInPeriod < 0
-                              ? Icons.trending_down
-                              : Icons.trending_flat),
-                      color: (changeInPeriod > 0
-                          ? Colors.green
-                          : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                      size: 20.0),
-                  Text(formatPercentage.format(changePercentInPeriod.abs()),
-                      style: const TextStyle(
-                          fontSize: 17.0, color: Colors.white70)),
-                ]),
-                Text(
-                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                    style:
-                        const TextStyle(fontSize: 17.0, color: Colors.white70)),
-              ]),
+              Text(
+                  "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
+                  style:
+                      const TextStyle(fontSize: 17.0, color: Colors.white70)),
+              Wrap(
+                  spacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  children: [
+                    Text(formatCurrency.format(portfolioValue),
+                        style: const TextStyle(fontSize: 20.0)),
+                    //style: const TextStyle(fontSize: 20.0),
+                    //textAlign: TextAlign.right
+                    Wrap(
+                        spacing: 2,
+                        //crossAxisAlignment: WrapCrossAlignment.center,
+                        //alignment: WrapAlignment.center,
+                        children: [
+                          Icon(
+                              changeInPeriod > 0
+                                  ? Icons.trending_up
+                                  : (changeInPeriod < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              color: (changeInPeriod > 0
+                                  ? Colors.green
+                                  : (changeInPeriod < 0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                              size: 20.0),
+                          Text(
+                              formatPercentage
+                                  .format(changePercentInPeriod.abs()),
+                              style: const TextStyle(fontSize: 17.0)),
+                        ]),
+                    Text(
+                        "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                        style: const TextStyle(fontSize: 17.0)),
+                  ]),
             ]
           ]),
       flexibleSpace: LayoutBuilder(
@@ -3013,16 +3024,16 @@ class _HomePageState extends State<HomePage>
         widget.user, Provider.of<PortfolioStore>(context, listen: false));
     */
 
+    Provider.of<AccountStore>(context, listen: false).removeAll();
+    Provider.of<PortfolioStore>(context, listen: false).removeAll();
+    Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+    Provider.of<OptionPositionStore>(context, listen: false).removeAll();
+    Provider.of<StockPositionStore>(context, listen: false).removeAll();
     setState(() {
-      Provider.of<AccountStore>(context, listen: false).removeAll();
       futureAccounts = null;
-      Provider.of<PortfolioStore>(context, listen: false).removeAll();
       futurePortfolios = null;
-      Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
       futureNummusHoldings = null;
-      Provider.of<OptionPositionStore>(context, listen: false).removeAll();
       futureOptionPositions = null;
-      Provider.of<StockPositionStore>(context, listen: false).removeAll();
       futureStockPositions = null;
       /*
       futureAccounts = Future.value(accounts);

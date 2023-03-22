@@ -54,6 +54,9 @@ class OptionPositionStore extends ChangeNotifier {
 
   void sort() {
     _items.sort((a, b) {
+      if (a.legs.isEmpty) {
+        return 0;
+      }
       int comp =
           a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
       if (comp != 0) return comp;

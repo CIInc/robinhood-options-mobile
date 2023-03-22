@@ -650,9 +650,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
                         op.symbol,
                       ))),
           title: Text(
-              '${op.symbol} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.positionType} ${op.legs.first.optionType} x ${formatCompactNumber.format(op.quantity!)}'),
+              '${op.symbol} \$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.isNotEmpty ? op.legs.first.positionType : ''} ${op.legs.isNotEmpty ? op.legs.first.optionType : ''} x ${formatCompactNumber.format(op.quantity!)}'),
           subtitle: Text(
-              '${op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires"} ${formatDate.format(op.legs.first.expirationDate!)}'),
+              '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ''} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ''}'),
           trailing: Wrap(spacing: 8, children: [
             if (icon != null) ...[
               icon,
