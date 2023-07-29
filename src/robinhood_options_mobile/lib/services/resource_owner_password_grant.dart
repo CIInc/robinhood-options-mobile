@@ -151,7 +151,7 @@ Future<http.Response> login(
     String? challengeId,
     String? mfaCode,
     String? expiresIn,
-    //Iterable<String>? scopes,
+    Iterable<String>? scopes,
     bool basicAuth = true,
     http.Client? httpClient,
     String? delimiter}) async {
@@ -178,11 +178,9 @@ Future<http.Response> login(
     body['device_token'] = deviceToken;
   }
 
-  /*
   if (scopes != null && scopes.isNotEmpty) {
     body['scope'] = scopes.join(delimiter);
   }
-  */
 
   if (expiresIn != null) {
     body['expires_in'] = expiresIn;
@@ -221,7 +219,7 @@ Future<http.Response> respondChallenge(String id, String mfaCode) {
 Client generateClient(
   http.Response response,
   Uri authorizationEndpoint,
-  //Iterable<String>? scopes,
+  Iterable<String>? scopes,
   String delimiter,
   //Map<String, dynamic> Function(MediaType? contentType, String body)? getParameters,
   String identifier,
@@ -230,12 +228,8 @@ Client generateClient(
   CredentialsRefreshedCallback? onCredentialsRefreshed,
 ) {
   var startTime = DateTime.now();
-  var credentials = handleAccessTokenResponse(
-      response,
-      authorizationEndpoint,
-      startTime,
-      null, // scopes as List<String>,
-      delimiter
+  var credentials = handleAccessTokenResponse(response, authorizationEndpoint,
+      startTime, scopes as List<String>, delimiter
       //getParameters: getParameters);
       );
   return Client(credentials,

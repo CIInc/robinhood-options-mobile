@@ -113,7 +113,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                 ? smsCtl.text
                 : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
             challengeType: challengeType,
-            challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
+            challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null,
+            scopes: ['internal']);
       });
     }
   }
@@ -165,6 +166,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       source == Source.robinhood
                           ? Constants.rhAuthEndpoint
                           : Constants.tdAuthEndpoint,
+                      ['internal'],
                       ' ',
                       source == Source.robinhood
                           ? Constants.rhClientId

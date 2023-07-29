@@ -92,8 +92,8 @@ class TdAmeritradeService implements IBrokerageService {
     return accessToken;
     */
 
-    final client = generateClient(response, Constants.tdAuthEndpoint, ' ',
-        Constants.tdClientId, null, null, null);
+    final client = generateClient(response, Constants.tdAuthEndpoint,
+        ['internal'], ' ', Constants.tdClientId, null, null, null);
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user = RobinhoodUser(
