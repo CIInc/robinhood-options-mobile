@@ -678,21 +678,72 @@ class _HomePageState extends State<HomePage>
                       child: Column(
                         children: [
                           ListTile(
-                            title: /*const Text(
-                      "Portfolio",
-                      style: TextStyle(fontSize: 19.0),)
-                      */
-                                Wrap(
-                              children: [
-                                /*
-                                  const Text(
-                                    "Portfolio",
-                                    style: TextStyle(fontSize: 19.0),
-                                  ),
+                              title: const Text(
+                                "Portfolio",
+                                style: TextStyle(fontSize: 19.0),
+                              ),
+                              subtitle: Text(
+                                  // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+                                  '${formatLongDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                  style: const TextStyle(fontSize: 12.0)),
+                              trailing: Wrap(spacing: 8, children: [
+                                Text(
+                                  formatCurrency.format(selection != null
+                                      ? selection!.adjustedCloseEquity
+                                      : close),
+                                  style: const TextStyle(fontSize: 21.0),
+                                  textAlign: TextAlign.right,
+                                )
+                              ])
+                              /*
+                              Wrap(
+                                children: [
+                                  Text(
+                                      formatCurrency.format(selection != null
+                                          ? selection!.adjustedCloseEquity
+                                          : close),
+                                      style: TextStyle(
+                                          fontSize: 19, color: textColor)),
                                   Container(
                                     width: 10,
                                   ),
-                                  */
+                                  Icon(
+                                    changeInPeriod > 0
+                                        ? Icons.trending_up
+                                        : (changeInPeriod < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (changeInPeriod > 0
+                                        ? Colors.green
+                                        : (changeInPeriod < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    //size: 16.0
+                                  ),
+                                  Container(
+                                    width: 2,
+                                  ),
+                                  Text(
+                                      formatPercentage
+                                          //.format(selection!.netReturn!.abs()),
+                                          .format(changePercentInPeriod.abs()),
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                  Container(
+                                    width: 10,
+                                  ),
+                                  Text(
+                                      "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                ],
+                              )*/
+                              ),
+                          /*
+                          ListTile(
+                            title: 
+                                Wrap(
+                              children: [
                                 Text(
                                     formatCurrency.format(selection != null
                                         ? selection!.adjustedCloseEquity
@@ -736,7 +787,9 @@ class _HomePageState extends State<HomePage>
                             subtitle: Text(
                                 '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                                 style: const TextStyle(fontSize: 12.0)),
-                            /*
+                          )
+                          */
+                          /*
                     trailing: Wrap(
                       children: [
                         Text(
@@ -777,7 +830,6 @@ class _HomePageState extends State<HomePage>
                       ],
                     ),
                     */
-                          ),
                           /*
                   Wrap(
                     children: [
@@ -823,8 +875,10 @@ class _HomePageState extends State<HomePage>
                 SizedBox(
                     height: 240,
                     child: Padding(
-                      //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      padding: const EdgeInsets.all(10.0),
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                      //padding: const EdgeInsets.all(10.0),
                       child: historicalChart,
                     )),
                 SizedBox(

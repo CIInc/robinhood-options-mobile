@@ -218,9 +218,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
   */
-  RobinhoodUser get currentUser => currentUserIndex < robinhoodUsers.length
-      ? robinhoodUsers[currentUserIndex]
-      : robinhoodUsers[0];
+  RobinhoodUser get currentUser =>
+      currentUserIndex >= 0 && currentUserIndex < robinhoodUsers.length
+          ? robinhoodUsers[currentUserIndex]
+          : robinhoodUsers[0];
 
   @override
   Widget build(BuildContext context) {
