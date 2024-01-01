@@ -1,4 +1,4 @@
-# Investiomanus
+# Investing Mobile
 
 ## Use Cases
 - A better options UI view for Robinhood users.

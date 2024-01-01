@@ -48,7 +48,7 @@ class _ListsWidgetState extends State<ListsWidget>
   final BannerAd myBanner = BannerAd(
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // investiomanus Home banner
+    // Home banner
     adUnitId: 'ca-app-pub-9947876916436144/1275427761',
     size: AdSize.largeBanner,
     request: const AdRequest(),
@@ -515,7 +515,7 @@ class _ListsWidgetState extends State<ListsWidget>
             maxCrossAxisExtent: 150.0,
             mainAxisSpacing: 6.0,
             crossAxisSpacing: 2.0,
-            childAspectRatio: 1.3,
+            childAspectRatio: 1.22,
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {

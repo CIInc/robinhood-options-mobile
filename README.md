@@ -1,4 +1,4 @@
-# Investiomanus
+# Investing Mobile
 
 This repository implements the Robinhood API to provide an options focused Android and iOS mobile app using the Flutter SDK.
 

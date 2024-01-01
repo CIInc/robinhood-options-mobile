@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cidevelop.robinhood_options_mobile">
    <application
-        android:label="Investiomanus"
+        android:label="Investing Mobile"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -42,7 +42,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="investiomanus" />
+                <data android:scheme="investing-mobile" />
             </intent-filter>
     <!-- Previously existed
             <intent-filter android:autoVerify="true">

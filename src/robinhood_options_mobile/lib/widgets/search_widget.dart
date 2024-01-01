@@ -50,7 +50,7 @@ class _SearchWidgetState extends State<SearchWidget>
   final BannerAd myBanner = BannerAd(
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // investiomanus Home banner
+    // Home banner
     adUnitId: 'ca-app-pub-9947876916436144/1275427761',
     //adUnitId: 'ca-app-pub-9947876916436144/4945883922',
     size: AdSize.mediumRectangle, //.fluid,
@@ -284,7 +284,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 200.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.5,
+                                childAspectRatio: 1.36,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -322,7 +322,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 200.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.5,
+                                childAspectRatio: 1.36,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -358,7 +358,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 150.0,
                                 mainAxisSpacing: 6.0,
                                 crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.3,
+                                childAspectRatio: 1.5,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -396,7 +396,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 150.0,
                                 mainAxisSpacing: 6.0,
                                 crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.3,
+                                childAspectRatio: 1.22,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -439,49 +439,51 @@ class _SearchWidgetState extends State<SearchWidget>
         child: Padding(
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                Text(movers[index].symbol,
-                    style: const TextStyle(fontSize: 16.0)),
-                Wrap(
-                  children: [
-                    Icon(
-                        movers[index].marketHoursPriceMovement! > 0
-                            ? Icons.trending_up
-                            : (movers[index].marketHoursPriceMovement! < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (movers[index].marketHoursPriceMovement! > 0
-                            ? Colors.green
-                            : (movers[index].marketHoursPriceMovement! < 0
-                                ? Colors.red
-                                : Colors.grey)),
-                        size: 20),
-                    Container(
-                      width: 2,
-                    ),
-                    Text(
-                        formatPercentage.format(
-                            movers[index].marketHoursPriceMovement!.abs() /
-                                100),
-                        style: const TextStyle(fontSize: 16.0)),
-                    Container(
-                      width: 10,
-                    ),
-                    Text(
-                        formatCurrency
-                            .format(movers[index].marketHoursLastPrice),
-                        style: const TextStyle(fontSize: 16.0)),
-                  ],
-                ),
-                Container(
-                  height: 5,
-                ),
-                Wrap(children: [
-                  Text(movers[index].description,
-                      style: const TextStyle(fontSize: 12.0),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis)
-                ]),
+              child: Column(
+                //mainAxisSize: MainAxisSize.min, 
+                children: <Widget>[
+                  Text(movers[index].symbol,
+                      style: const TextStyle(fontSize: 16.0)),
+                  Wrap(
+                    children: [
+                      Icon(
+                          movers[index].marketHoursPriceMovement! > 0
+                              ? Icons.trending_up
+                              : (movers[index].marketHoursPriceMovement! < 0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color: (movers[index].marketHoursPriceMovement! > 0
+                              ? Colors.green
+                              : (movers[index].marketHoursPriceMovement! < 0
+                                  ? Colors.red
+                                  : Colors.grey)),
+                          size: 20),
+                      Container(
+                        width: 2,
+                      ),
+                      Text(
+                          formatPercentage.format(
+                              movers[index].marketHoursPriceMovement!.abs() /
+                                  100),
+                          style: const TextStyle(fontSize: 16.0)),
+                      Container(
+                        width: 10,
+                      ),
+                      Text(
+                          formatCurrency
+                              .format(movers[index].marketHoursLastPrice),
+                          style: const TextStyle(fontSize: 16.0)),
+                    ],
+                  ),
+                  Container(
+                    height: 5,
+                  ),
+                  Wrap(children: [
+                    Text(movers[index].description,
+                        style: const TextStyle(fontSize: 12.0),
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis)
+                  ]),
               ]),
               onTap: () async {
                 var instrument = await RobinhoodService.getInstrument(

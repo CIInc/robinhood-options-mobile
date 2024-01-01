@@ -19,7 +19,7 @@ class InitialWidget extends StatelessWidget {
             spacing: 20,
             //runSpacing: 5,
             children: const [
-              Text('Investiomanus', style: TextStyle(fontSize: 20.0)),
+              Text('Investing Mobile', style: TextStyle(fontSize: 20.0)),
               Text(
                 "",
                 style: TextStyle(fontSize: 16.0, color: Colors.white70),

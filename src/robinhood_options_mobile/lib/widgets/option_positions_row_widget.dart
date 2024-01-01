@@ -613,8 +613,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
     double value = user.getDisplayValue(op,
-        displayValue:
-            user.showGreeks ? DisplayValue.marketValue : user.displayValue);
+        displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
     String opTrailingText = user.getDisplayText(value);
     Icon? icon = (user.showGreeks ||
             user.displayValue == DisplayValue.lastPrice ||
@@ -948,8 +947,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
     List<Widget> cards = [];
 
     double? value = user.getAggregateDisplayValue(ops,
-        displayValue:
-            user.showGreeks ? DisplayValue.marketValue : user.displayValue);
+        displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
     String? trailingText;
     Icon? icon;
     if (value != null) {
@@ -1067,16 +1065,18 @@ class OptionPositionsRowWidget extends StatelessWidget {
               summaryLabelFontSize)
         ]
       ]));
+      /*
       cards.add(
         const Divider(
           height: 10,
+          color: Colors.transparent,
         ),
       );
+      */
     }
     for (OptionAggregatePosition op in ops) {
       double value = user.getDisplayValue(op,
-          displayValue:
-              user.showGreeks ? DisplayValue.marketValue : user.displayValue);
+          displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
       String trailingText = user.getDisplayText(value);
       Icon? icon = (user.showGreeks ||
               user.displayValue == DisplayValue.lastPrice ||
@@ -1175,9 +1175,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 op.optionInstrument!.optionMarketData!.openInterest,
                 greekValueFontSize,
                 greekLabelFontSize),
+            /*
             const Divider(
               height: 10,
+              color: Colors.transparent,
             ),
+            */
           ],
         ],
       ));

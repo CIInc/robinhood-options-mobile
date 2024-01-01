@@ -35,7 +35,7 @@ class RobinhoodUser {
   oauth2.Client? oauth2Client;
   bool defaultUser = true;
   bool refreshEnabled = false;
-  OptionsView optionsView = OptionsView.list;
+  OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
   bool showGreeks = false;
   // UserInfo? userInfo;

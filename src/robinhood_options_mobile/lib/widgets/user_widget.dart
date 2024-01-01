@@ -43,7 +43,7 @@ class _UserWidgetState extends State<UserWidget> {
   final BannerAd myBanner = BannerAd(
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // investiomanus Home banner
+    // Home banner
     adUnitId: 'ca-app-pub-9947876916436144/1275427761',
     size: AdSize.banner,
     request: const AdRequest(),

@@ -1,6 +1,6 @@
 class Constants {
   // App constants
-  static const String appTitle = 'Investiomanus';
+  static const String appTitle = 'Investing Mobile';
 
   // Robinhood constants
   static const robinhoodName = 'Robinhood';

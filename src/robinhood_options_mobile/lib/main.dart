@@ -196,7 +196,7 @@ class MyApp extends StatelessWidget {
             )
           ],
           child: MaterialApp(
-            title: 'Investiomanus',
+            title: 'Investing Mobile',
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,

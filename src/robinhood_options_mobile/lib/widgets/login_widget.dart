@@ -272,7 +272,7 @@ class _LoginWidgetState extends State<LoginWidget> {
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
                 label: const Text('TD Ameritrade'),
-                selected: source == Source.robinhood,
+                selected: source == Source.tdAmeritrade,
                 labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
@@ -292,7 +292,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 decoration: InputDecoration(
                     isDense: true,
                     contentPadding: const EdgeInsets.all(10),
-                    hintText: '$source username or email'),
+                    hintText: 'Robinhood username or email'),
                 style: const TextStyle(fontSize: 18.0, height: 2.0)),
           ),
           Padding(
@@ -302,7 +302,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 decoration: InputDecoration(
                     isDense: true,
                     contentPadding: const EdgeInsets.all(10),
-                    hintText: '$source password'),
+                    hintText: 'Robinhood password'),
                 obscureText: true,
                 style: const TextStyle(fontSize: 18.0, height: 2.0)),
           ),

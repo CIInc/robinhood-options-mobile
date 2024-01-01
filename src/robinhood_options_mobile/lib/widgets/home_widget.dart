@@ -165,7 +165,7 @@ class _HomePageState extends State<HomePage>
   final BannerAd myBanner = BannerAd(
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // investiomanus Home banner
+    // Home banner
     adUnitId: 'ca-app-pub-9947876916436144/1275427761',
     size: AdSize.banner,
     request: const AdRequest(),
@@ -685,7 +685,8 @@ class _HomePageState extends State<HomePage>
                               subtitle: Text(
                                   // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
                                   '${formatLongDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                  style: const TextStyle(fontSize: 12.0)),
+                                  style: const TextStyle(fontSize: 10.0),
+                                  overflow: TextOverflow.ellipsis,),
                               trailing: Wrap(spacing: 8, children: [
                                 Text(
                                   formatCurrency.format(selection != null
@@ -2503,7 +2504,7 @@ class _HomePageState extends State<HomePage>
                   crossAxisAlignment: WrapCrossAlignment.end,
                   children: [
                     Text(formatCurrency.format(portfolioValue),
-                        style: const TextStyle(fontSize: 20.0)),
+                        style: const TextStyle(fontSize: 19.0)),
                     //style: const TextStyle(fontSize: 20.0),
                     //textAlign: TextAlign.right
                     Wrap(
@@ -2522,15 +2523,15 @@ class _HomePageState extends State<HomePage>
                                   : (changeInPeriod < 0
                                       ? Colors.red
                                       : Colors.grey)),
-                              size: 20.0),
+                              size: 19.0),
                           Text(
                               formatPercentage
                                   .format(changePercentInPeriod.abs()),
-                              style: const TextStyle(fontSize: 17.0)),
+                              style: const TextStyle(fontSize: 16.0)),
                         ]),
                     Text(
                         "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                        style: const TextStyle(fontSize: 17.0)),
+                        style: const TextStyle(fontSize: 16.0)),
                   ]),
             ]
           ]),
@@ -2897,23 +2898,25 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
-                        width: 70,
+                        width:64,
                         child: Text(
                           "Options",
                           style: TextStyle(fontSize: 11.0),
                         ),
                       )
                     ]),
+                    /*
                 Container(
                   width: 3,
                 ),
+                */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 40,
+                      width: 50,
                       child: Text(formatPercentage.format(optionEquityPercent),
                           style: const TextStyle(fontSize: 12.0),
                           textAlign: TextAlign.right))
@@ -2940,23 +2943,25 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
-                        width: 70,
+                        width: 64,
                         child: Text(
                           "Stocks",
                           style: TextStyle(fontSize: 11.0),
                         ),
                       )
                     ]),
+                    /*
                 Container(
                   width: 3,
                 ),
+                */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 40,
+                      width: 50,
                       child: Text(
                           formatPercentage.format(positionEquityPercent),
                           style: const TextStyle(fontSize: 12.0),
@@ -2984,22 +2989,24 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
-                          width: 70,
+                          width: 64,
                           child: Text(
                             "Crypto",
                             style: TextStyle(fontSize: 11.0),
                           )),
                     ]),
+                    /*
                 Container(
                   width: 3,
                 ),
+                */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 40,
+                      width: 50,
                       child: Text(formatPercentage.format(cryptoPercent),
                           style: const TextStyle(fontSize: 12.0),
                           textAlign: TextAlign.right))
@@ -3025,22 +3032,24 @@ class _HomePageState extends State<HomePage>
                 Container(
                   width: 10,
                 ),
-                Column(
+                const Column(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
+                    children: [
                       SizedBox(
-                          width: 70,
+                          width: 64,
                           child: Text(
                             "Cash",
                             style: TextStyle(fontSize: 11.0),
                           )),
                     ]),
+                    /*
                 Container(
                   width: 3,
                 ),
+                */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 40,
+                      width: 50,
                       child: Text(formatPercentage.format(cashPercent),
                           style: const TextStyle(fontSize: 12.0),
                           textAlign: TextAlign.right))

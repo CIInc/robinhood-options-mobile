@@ -628,7 +628,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       changePercentInPeriod = changeInPeriod / close;
                     }
                     return SizedBox(
-                        height: 36,
+                        height: 43,
                         child: Center(
                             child: Column(
                           children: [
@@ -677,7 +677,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             Text(
                                 '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                                 style:
-                                    TextStyle(fontSize: 10, color: textColor)),
+                                    TextStyle(fontSize: 10, color: textColor),),
                           ],
                         )));
                   }),

@@ -101,7 +101,7 @@ class _HistoryPageState extends State<HistoryPage>
   final BannerAd myBanner = BannerAd(
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // investiomanus Home banner
+    // Home banner
     adUnitId: 'ca-app-pub-9947876916436144/1275427761',
     size: AdSize.mediumRectangle,
     request: const AdRequest(),
@@ -1270,7 +1270,7 @@ class _HistoryPageState extends State<HistoryPage>
       }
       if (shareLink) {
         ordersText +=
-            "\n\nClick the link to import this data into Investiomanus: https://robinhood-options-mobile.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
+            "\n\nClick the link to import this data into Investing Mobile: https://robinhood-options-mobile.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}";
       }
       /*
 adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://robinhood-options-mobile.web.app/?options=123"

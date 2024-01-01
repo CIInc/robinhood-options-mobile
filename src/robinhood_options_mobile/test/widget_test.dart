@@ -14,7 +14,7 @@ void main() {
   testWidgets('Application opens', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
-    expect(find.text('Investiomanus'), findsOneWidget);
+    expect(find.text('Investing Mobile'), findsOneWidget);
   });
 
   testWidgets('Home Menu opens Drawer', (WidgetTester tester) async {
@@ -73,7 +73,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pump();
-    expect(find.text('Investiomanus'), findsOneWidget);
+    expect(find.text('Investing Mobile'), findsOneWidget);
   });
   */
 }
