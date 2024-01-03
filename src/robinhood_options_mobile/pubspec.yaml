@@ -36,29 +36,29 @@ dependencies:
   shared_preferences: ^2.0.15
   #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
   provider: ^6.0.5
-  intl: ^0.17.0
+  intl: ^0.18.1
   decimal: ^2.3.2
   csv: ^5.0.1
-  permission_handler: ^10.2.0
+  permission_handler: ^11.1.0
   # TODO: Check if used
   #open_file: ^3.2.1
   # rxdart: ^0.27.2
   flutter_sticky_header: ^0.6.5
-  charts_flutter: ^0.12.0
+  community_charts_flutter: ^1.0.2
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
   url_launcher: ^6.1.9  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^4.5.3
-  uuid: ^3.0.7
+  share_plus: ^7.2.1
+  uuid: ^4.2.2
   material_color_utilities: ^0.5.0
   dynamic_color: ^1.5.4
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.17.0
-  http: ^0.13.5
-  google_mobile_ads: ^2.3.0
-  flutter_web_auth_2: ^2.0.4
+  http: ^1.1.2
+  google_mobile_ads: ^4.0.0
+  flutter_web_auth_2: ^3.1.1
   uni_links: ^0.5.1
 
 dev_dependencies:
@@ -70,7 +70,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^2.0.1
+  flutter_lints: ^3.0.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

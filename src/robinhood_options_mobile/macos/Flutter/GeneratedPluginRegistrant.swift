@@ -10,7 +10,7 @@ import firebase_analytics
 import firebase_core
 import flutter_web_auth_2
 import path_provider_foundation
-import share_plus_macos
+import share_plus
 import shared_preferences_foundation
 import url_launcher_macos
 import window_to_front

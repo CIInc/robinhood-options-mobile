@@ -1,9 +1,11 @@
+import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -49,7 +51,7 @@ class _ListsWidgetState extends State<ListsWidget>
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
     // Home banner
-    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
     size: AdSize.largeBanner,
     request: const AdRequest(),
     listener: const BannerAdListener(),

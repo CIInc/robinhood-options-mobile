@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
+
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/stock_order_store.dart';
@@ -102,7 +105,7 @@ class _HistoryPageState extends State<HistoryPage>
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
     // Home banner
-    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
     size: AdSize.mediumRectangle,
     request: const AdRequest(),
     listener: const BannerAdListener(),

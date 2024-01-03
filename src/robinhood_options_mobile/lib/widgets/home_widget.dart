@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,8 @@ import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
+//import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -166,7 +168,7 @@ class _HomePageState extends State<HomePage>
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
     // Home banner
-    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
     size: AdSize.banner,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -579,8 +581,8 @@ class _HomePageState extends State<HomePage>
               EquityHistorical? lastHistorical;
               double open = 0;
               double close = 0;
-              double changeInPeriod = 0;
-              double changePercentInPeriod = 0;
+              // double changeInPeriod = 0;
+              // double changePercentInPeriod = 0;
 
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
@@ -588,8 +590,8 @@ class _HomePageState extends State<HomePage>
               open = portfolioHistoricals!.adjustedPreviousCloseEquity ??
                   firstHistorical.adjustedOpenEquity!;
               close = lastHistorical.adjustedCloseEquity!;
-              changeInPeriod = close - open;
-              changePercentInPeriod = changeInPeriod / close;
+              // changeInPeriod = close - open;
+              // changePercentInPeriod = changeInPeriod / close;
 
               // Override the portfolio API with current historical data.
               //portfolioValue = close;
@@ -662,15 +664,14 @@ class _HomePageState extends State<HomePage>
                 Consumer<PortfolioHistoricalsSelectionStore>(
                     builder: (context, value, child) {
                   selection = value.selection;
-                  if (selection != null) {
-                    changeInPeriod = selection!.adjustedCloseEquity! -
-                        open; // portfolios![0].equityPreviousClose!;
-                    changePercentInPeriod =
-                        changeInPeriod / selection!.adjustedCloseEquity!;
-                  } else {
-                    changeInPeriod = close - open;
-                    changePercentInPeriod = changeInPeriod / close;
-                  }
+                  // if (selection != null) {
+                  //   changeInPeriod = selection!.adjustedCloseEquity! -
+                  //       open; // portfolios![0].equityPreviousClose!;
+                  //   changePercentInPeriod = changeInPeriod / selection!.adjustedCloseEquity!;
+                  // } else {
+                  //   changeInPeriod = close - open;
+                  //   changePercentInPeriod = changeInPeriod / close;
+                  // }
 
                   //return Text(value.selection!.beginsAt.toString());
                   return SizedBox(

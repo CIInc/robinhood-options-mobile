@@ -1,5 +1,6 @@
-/// Example of a stacked area chart.
-import 'package:charts_flutter/flutter.dart' as charts;
+//import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+
 import 'package:flutter/material.dart';
 
 class BarChart extends StatefulWidget {

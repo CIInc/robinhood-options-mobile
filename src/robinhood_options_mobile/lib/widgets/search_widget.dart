@@ -1,9 +1,11 @@
+import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
@@ -51,7 +53,7 @@ class _SearchWidgetState extends State<SearchWidget>
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
     // Home banner
-    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    adUnitId: Platform.isAndroid ? Constants.searchBannerAndroidAdUnit : Constants.searchBanneriOSAdUnit,
     //adUnitId: 'ca-app-pub-9947876916436144/4945883922',
     size: AdSize.mediumRectangle, //.fluid,
     request: const AdRequest(),
@@ -266,8 +268,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -304,8 +306,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "S&P Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -342,8 +344,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "Top Movers",
                                       style: TextStyle(fontSize: 19.0),
@@ -380,8 +382,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             //elevation: 2,
                             child: Container(
                                 alignment: Alignment.centerLeft,
-                                child: ListTile(
-                                  title: Wrap(children: const [
+                                child: const ListTile(
+                                  title: Wrap(children: [
                                     Text(
                                       "100 Most Popular",
                                       style: TextStyle(fontSize: 19.0),

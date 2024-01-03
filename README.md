@@ -33,9 +33,19 @@ Once you see a "No issues found!" message, you are ready to start running the ap
 ## Run & Debug
 
 In VS Code, ```F5``` key, the ```Run``` icon, or from the ```Run``` menu to start debugging.
-If prompted choose the ```Dart & Flutter``` configuration.
+If prompted choose the ```Flutter``` configuration.
 
-### Device
+**Debugging Notes**
+- For error `Exception: Error running pod install`, run the following commands:
+    ```bash
+    rm ./ios/Pods
+    rm ./ios/Podfile.lock
+    flutter clean
+    flutter pub get
+    flutter run
+    ```
+
+### Android Device
 
 1. Enable USB debugging on your Android device.
 2. Plug in your device. 
@@ -45,6 +55,18 @@ Navigate to the project directory and run the flutter command.
     ```bash
     cd src/robinhood_options_mobile
     flutter run
+    ```
+
+### iOS Device
+
+1. Enable developer on your iOS device.
+2. Open ```Devices and Simulators``` window in XCode and ensure that your device is paired and connected. 
+3. Open the command palette (```Ctrl+Shift+P```) and enter ```Flutter: Select Device```  
+Or  
+Navigate to the project directory and run the flutter command.
+    ```bash
+    cd src/robinhood_options_mobile
+    flutter run --release
     ```
 
 
@@ -77,14 +99,16 @@ Select a mobile emulator from the device selector. *Note that this is not workin
 
 ## Publish
 
-### Build app bundle
+### Android
+
+#### Build app bundle
 
 ```bash
 cd src/robinhood_options_mobile
 flutter build appbundle
 ```
 
-### Generate APKs
+#### Generate APKs
 
 This command generates an .apk file used to publish an installation file.
 
@@ -92,6 +116,21 @@ This command generates an .apk file used to publish an installation file.
 cd src/robinhood_options_mobile
 flutter build apk --release
 ```
+
+### iOS
+
+#### Build IPA
+
+```bash
+cd src/robinhood_options_mobile
+flutter build ipa
+```
+
+#### Upload to App Store
+
+1. Install [Transporter App](https://apps.apple.com/us/app/transporter/id1450874784)
+2. Add ipa file from `./build/ios/ipa/`
+3. `Verify` and `Deliver`
 
 ## Test
 

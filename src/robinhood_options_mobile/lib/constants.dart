@@ -34,4 +34,10 @@ class Constants {
   static const flexibleSpaceBarBackground =
       'https://source.unsplash.com/featured/?stocks'; //,markets,invest,crypto
   //'https://source.unsplash.com/daily?code';
+
+  // Admob Ads
+  static const String homeBannerAndroidAdUnit = 'ca-app-pub-9947876916436144/1275427761';
+  static const String homeBanneriOSAdUnit = 'ca-app-pub-9947876916436144/4399579279';
+  static const String searchBannerAndroidAdUnit = 'ca-app-pub-9947876916436144/1275427761';
+  static const String searchBanneriOSAdUnit = 'ca-app-pub-9947876916436144/3130729634';
 }

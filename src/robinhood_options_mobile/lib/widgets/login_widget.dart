@@ -289,9 +289,9 @@ class _LoginWidgetState extends State<LoginWidget> {
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
                 controller: userCtl,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.all(10),
+                    contentPadding: EdgeInsets.all(10),
                     hintText: 'Robinhood username or email'),
                 style: const TextStyle(fontSize: 18.0, height: 2.0)),
           ),
@@ -299,9 +299,9 @@ class _LoginWidgetState extends State<LoginWidget> {
             padding: const EdgeInsets.fromLTRB(30, 15, 30, 15),
             child: TextField(
                 controller: passCtl,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.all(10),
+                    contentPadding: EdgeInsets.all(10),
                     hintText: 'Robinhood password'),
                 obscureText: true,
                 style: const TextStyle(fontSize: 18.0, height: 2.0)),

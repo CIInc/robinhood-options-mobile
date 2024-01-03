@@ -1,7 +1,9 @@
+import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -44,7 +46,7 @@ class _UserWidgetState extends State<UserWidget> {
     // Test Banner Ad
     //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
     // Home banner
-    adUnitId: 'ca-app-pub-9947876916436144/1275427761',
+    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
     size: AdSize.banner,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -94,8 +96,8 @@ class _UserWidgetState extends State<UserWidget> {
             title: Text('Manage Accounts', style: TextStyle(fontSize: 20.0)),
             actions: [],
           ),
-          SliverToBoxAdapter(
-              child: Column(children: const [
+          const SliverToBoxAdapter(
+              child: Column(children: [
             ListTile(
               title: Text(
                 "User",
@@ -109,8 +111,8 @@ class _UserWidgetState extends State<UserWidget> {
             height: 25.0,
           )),
           if (widget.account != null) ...[
-            SliverToBoxAdapter(
-                child: Column(children: const [
+            const SliverToBoxAdapter(
+                child: Column(children: [
               ListTile(
                 title: Text(
                   "Accounts",

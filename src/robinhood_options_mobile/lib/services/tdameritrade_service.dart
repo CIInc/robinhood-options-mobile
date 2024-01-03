@@ -28,7 +28,7 @@ class TdAmeritradeService implements IBrokerageService {
           url: url,
           //"https://accounts.spotify.com/de/authorize?client_id=78ca499b2577406ba7c364d1682b4a6c&response_type=code&redirect_uri=https://partyai/callback&scope=user-read-private%20user-read-email&state=34fFs29kd09",
           callbackUrlScheme: 'https', //"https://127.0.0.1:8080",
-          preferEphemeral: true);
+          options: const FlutterWebAuth2Options(preferEphemeral: true));
     } on PlatformException {
       // Handle exception by warning the user their action did not succeed
       return null;
