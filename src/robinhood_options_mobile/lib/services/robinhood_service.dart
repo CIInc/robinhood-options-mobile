@@ -297,7 +297,7 @@ class RobinhoodService implements IBrokerageService {
 
         //if ((withQuantity && op.quantity! > 0) ||
         //    (!withQuantity && op.quantity == 0)) {
-        store.add(op);
+        store.addOrUpdate(op);
       }
       var instrumentIds = store.items.map((e) => e.instrumentId).toList();
       var instrumentObjs =
