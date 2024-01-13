@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -48,10 +49,7 @@ class _ListsWidgetState extends State<ListsWidget>
   SortDirection? _sortDirection = SortDirection.desc;
 
   final BannerAd myBanner = BannerAd(
-    // Test Banner Ad
-    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // Home banner
-    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
+    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
     size: AdSize.largeBanner,
     request: const AdRequest(),
     listener: const BannerAdListener(),

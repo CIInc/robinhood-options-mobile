@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
@@ -43,10 +44,7 @@ class _UserWidgetState extends State<UserWidget> {
   _UserWidgetState();
 
   final BannerAd myBanner = BannerAd(
-    // Test Banner Ad
-    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // Home banner
-    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
+    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
     size: AdSize.banner,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -137,8 +135,9 @@ class _UserWidgetState extends State<UserWidget> {
   }
 
   Widget userWidget(UserInfo user) {
-    Color primaryColor = Theme.of(context).colorScheme.primary;
-    Color secondaryColor = Theme.of(context).colorScheme.secondary;
+    ThemeData themeData = Theme.of(context);
+    Color primaryColor = themeData.colorScheme.primary;
+    Color secondaryColor = themeData.colorScheme.secondary;
     return SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -174,12 +173,22 @@ class _UserWidgetState extends State<UserWidget> {
       ),
       ListTile(
         title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
-        trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor)),
+        trailing: Icon(Icons.palette, color: primaryColor,)
+        // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
       ),
       ListTile(
         title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
-        trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor)),
+        trailing: Icon(Icons.palette, color: secondaryColor,)
+        // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
       ),
+      /*
+      ListTile(
+        title: const Text("Text Theme", style: TextStyle(fontSize: 14)),
+        subtitle: Text(themeData.textTheme.bodyMedium.toString()),
+        trailing: Icon(Icons.palette, color: themeData.textTheme.bodyMedium!.color)
+        // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
+      ),
+      */
       /*
         ListTile(
           title: const Text("Id Info", style: const TextStyle(fontSize: 14)),

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -112,8 +114,19 @@ class MyApp extends StatelessWidget {
         //future: DynamicColorPlugin.getCorePalette(),
         //builder: (CorePalette? corePalette) {
         builder: (ColorScheme? colorScheme, ColorScheme? darkColorScheme) {
-      ColorScheme colorScheme = const ColorScheme.light();
-      ColorScheme darkColorScheme = const ColorScheme.dark();
+      // Platform.isAndroid
+      ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS ? 
+        const ColorScheme.light(
+          primary: Colors.purple,
+          secondary: Colors.indigoAccent
+        ) :
+        const ColorScheme.light();
+      ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS ? 
+        const ColorScheme.dark(
+          primary: Colors.purple,
+          secondary: Colors.indigoAccent
+        ) :
+        const ColorScheme.dark();
       /*
       if (corePalette != null) {
         colorScheme = colorScheme.copyWith(
@@ -136,9 +149,17 @@ class MyApp extends StatelessWidget {
       }
       */
       ThemeData lightTheme =
-          ThemeData(colorScheme: colorScheme); //, useMaterial3: true
+          ThemeData(colorScheme: colorScheme
+          // , textTheme: Typography.blackCupertino);
+          , useMaterial3: true
+          , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
+          );
       ThemeData darkTheme =
-          ThemeData(colorScheme: darkColorScheme); //, useMaterial3: true
+          ThemeData(colorScheme: darkColorScheme
+          // , textTheme: Typography.whiteHelsinki,
+          // , useMaterial3: true
+          // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
+          );
       //lightTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
       //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
       return MultiProvider(

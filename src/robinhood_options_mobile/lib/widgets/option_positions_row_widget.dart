@@ -988,7 +988,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
               child: ops.first.logoUrl != null
                   ? CircleAvatar(
                       radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      // foregroundColor: Theme.of(context).colorScheme.primary,
                       child: Image.network(
                         ops.first.logoUrl!,
                         width: 40,
@@ -1000,11 +1000,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       ))
                   : CircleAvatar(
                       radius: 25,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      // foregroundColor: Theme.of(context).colorScheme.primary,
                       child: Text(
                         ops.first.symbol,
                       ))),
-          title: Text(ops.first.symbol),
+          // title: Text(ops.first.symbol),
+          title: Text(ops.first.instrumentObj != null ? ops.first.instrumentObj!.simpleName ?? ops.first.instrumentObj!.name : ""),
           subtitle: Text("${ops.length} positions, $contracts contracts"),
           trailing: Wrap(spacing: 8, children: [
             if (icon != null) ...[

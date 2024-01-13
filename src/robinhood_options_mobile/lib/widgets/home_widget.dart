@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
@@ -165,30 +166,25 @@ class _HomePageState extends State<HomePage>
   Timer? refreshTriggerTime;
 
   final BannerAd myBanner = BannerAd(
-    // Test Banner Ad
-    //adUnitId: 'ca-app-pub-3940256099942544/6300978111',
-    // Home banner
-    adUnitId: Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit,
+    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
     size: AdSize.banner,
     request: const AdRequest(),
-    listener: const BannerAdListener(),
-  );
-
-  final BannerAdListener listener = BannerAdListener(
-    // Called when an ad is successfully received.
-    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-    // Called when an ad request failed.
-    onAdFailedToLoad: (Ad ad, LoadAdError error) {
-      // Dispose the ad here to free resources.
-      ad.dispose();
-      debugPrint('Ad failed to load: $error');
-    },
-    // Called when an ad opens an overlay that covers the screen.
-    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-    // Called when an ad removes an overlay that covers the screen.
-    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-    // Called when an impression occurs on the ad.
-    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+    listener: BannerAdListener(
+      // Called when an ad is successfully received.
+      onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
+      // Called when an ad request failed.
+      onAdFailedToLoad: (Ad ad, LoadAdError error) {
+        // Dispose the ad here to free resources.
+        ad.dispose();
+        debugPrint('Ad failed to load: $error');
+      },
+      // Called when an ad opens an overlay that covers the screen.
+      onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
+      // Called when an ad removes an overlay that covers the screen.
+      onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
+      // Called when an impression occurs on the ad.
+      onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+    ) // const BannerAdListener(),
   );
 
   _HomePageState();
@@ -2503,7 +2499,7 @@ class _HomePageState extends State<HomePage>
               Text(
                   "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
                   style:
-                      const TextStyle(fontSize: 17.0, color: Colors.white70)),
+                      const TextStyle(fontSize: 17.0)), //, color: Colors.white70
               Wrap(
                   spacing: 10,
                   crossAxisAlignment: WrapCrossAlignment.end,
@@ -2937,6 +2933,7 @@ class _HomePageState extends State<HomePage>
                       width: 50,
                       child: Text(formatPercentage.format(optionEquityPercent),
                           style: const TextStyle(fontSize: 12.0),
+                          // , color: Theme.of(context).textTheme.bodyMedium!.color
                           textAlign: TextAlign.right))
                 ]),
                 Container(
@@ -3240,9 +3237,7 @@ class _HomePageState extends State<HomePage>
                 child: instrument.logoUrl != null
                     ? CircleAvatar(
                         radius: 25,
-                        foregroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary, //.onBackground,
+                        // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
                         //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                         child: Image.network(
                           instrument.logoUrl!,
@@ -3256,7 +3251,7 @@ class _HomePageState extends State<HomePage>
                         ))
                     : CircleAvatar(
                         radius: 25,
-                        foregroundColor: Theme.of(context).colorScheme.primary,
+                        // foregroundColor: Theme.of(context).colorScheme.primary,
                         child: Text(
                           instrument.symbol,
                         )))
@@ -3355,7 +3350,7 @@ class _HomePageState extends State<HomePage>
             tag: 'logo_crypto_${holdings[index].currencyCode}',
             child: CircleAvatar(
                 radius: 25,
-                foregroundColor: Theme.of(context).colorScheme.primary,
+                // foregroundColor: Theme.of(context).colorScheme.primary,
                 child: Text(
                   holdings[index].currencyCode,
                 ))),

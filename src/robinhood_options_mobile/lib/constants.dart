@@ -36,6 +36,8 @@ class Constants {
   //'https://source.unsplash.com/daily?code';
 
   // Admob Ads
+  static const String testAdUnit = 'ca-app-pub-3940256099942544/2934735716';
+  // grassart.aymeric@gmail
   static const String homeBannerAndroidAdUnit = 'ca-app-pub-9947876916436144/1275427761';
   static const String homeBanneriOSAdUnit = 'ca-app-pub-9947876916436144/4399579279';
   static const String searchBannerAndroidAdUnit = 'ca-app-pub-9947876916436144/1275427761';
