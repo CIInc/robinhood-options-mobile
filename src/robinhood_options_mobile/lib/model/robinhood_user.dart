@@ -37,7 +37,7 @@ class RobinhoodUser {
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
-  bool showGreeks = false;
+  bool showPositionDetails = true;
   // UserInfo? userInfo;
 
   RobinhoodUser(
@@ -55,7 +55,7 @@ class RobinhoodUser {
                 ? OptionsView.list
                 : OptionsView.grouped,
         displayValue = parseDisplayValue(json['displayValue']),
-        showGreeks = json['showGreeks'] ?? true;
+        showPositionDetails = json['showPositionDetails'] ?? true;
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
@@ -64,7 +64,7 @@ class RobinhoodUser {
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
         'displayValue': displayValue.toString(),
-        'showGreeks': showGreeks,
+        'showPositionDetails': showPositionDetails,
       };
 
   Future save(UserStore store) async {
@@ -370,9 +370,9 @@ class RobinhoodUser {
     return value;
   }
 
-  double getPositionDisplayValue(StockPosition op) {
+  double getPositionDisplayValue(StockPosition op, {DisplayValue? displayValue}) {
     double value = 0;
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         value = op.instrumentObj != null && op.instrumentObj!.quoteObj != null
             ? op.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
@@ -399,9 +399,9 @@ class RobinhoodUser {
     return value;
   }
 
-  double getCryptoDisplayValue(ForexHolding op) {
+  double getCryptoDisplayValue(ForexHolding op, {DisplayValue? displayValue}) {
     double value = 0;
-    switch (displayValue) {
+    switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
         value = op.quoteObj!.markPrice!;
         break;

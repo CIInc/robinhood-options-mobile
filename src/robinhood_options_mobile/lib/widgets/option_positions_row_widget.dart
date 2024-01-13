@@ -117,7 +117,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         ivAvg,
         chanceAvg,
         openInterestAvg;
-    if (user.showGreeks && groupedOptionAggregatePositions.length == 1) {
+    if (user.showPositionDetails && groupedOptionAggregatePositions.length == 1) {
       var results = _calculateGreekAggregates(filteredOptionPositions);
       deltaAvg = results[0];
       gammaAvg = results[1];
@@ -468,7 +468,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     )),
               ],
               /*
-              if (user.showGreeks &&
+              if (user.showPositionDetails &&
                   groupedOptionAggregatePositions.length == 1) ...[
                 _buildDetailScrollRow(
                     groupedOptionAggregatePositions.values.first,
@@ -614,9 +614,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
     double value = user.getDisplayValue(op,
-        displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
+        displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
     String opTrailingText = user.getDisplayText(value);
-    Icon? icon = (user.showGreeks ||
+    Icon? icon = (user.showPositionDetails ||
             user.displayValue == DisplayValue.lastPrice ||
             user.displayValue == DisplayValue.marketValue)
         ? null
@@ -686,7 +686,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                         )));
           },
         ),
-        if (user.showGreeks) ...[
+        if (user.showPositionDetails) ...[
           _buildDetailScrollRow(
               [op],
               op.optionInstrument!.optionMarketData!.delta!,
@@ -948,12 +948,12 @@ class OptionPositionsRowWidget extends StatelessWidget {
     List<Widget> cards = [];
 
     double? value = user.getAggregateDisplayValue(ops,
-        displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
+        displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
     String? trailingText;
     Icon? icon;
     if (value != null) {
       trailingText = user.getDisplayText(value);
-      icon = (user.showGreeks ||
+      icon = (user.showPositionDetails ||
               user.displayValue == DisplayValue.lastPrice ||
               user.displayValue == DisplayValue.marketValue)
           ? null
@@ -968,7 +968,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         ivAvg,
         chanceAvg,
         openInterestAvg;
-    if (user.showGreeks) {
+    if (user.showPositionDetails) {
       var results = _calculateGreekAggregates(ops);
       deltaAvg = results[0];
       gammaAvg = results[1];
@@ -1049,7 +1049,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             //futureFromInstrument.then((value) => setState(() {}));
           },
         ),
-        if (user.showGreeks && ops.length > 1) ...[
+        if (user.showPositionDetails && ops.length > 1) ...[
           _buildDetailScrollRow(
               ops,
               deltaAvg,
@@ -1077,9 +1077,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
     }
     for (OptionAggregatePosition op in ops) {
       double value = user.getDisplayValue(op,
-          displayValue: user.displayValue); // Why was this here? user.showGreeks ? DisplayValue.marketValue : user.displayValue
+          displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
       String trailingText = user.getDisplayText(value);
-      Icon? icon = (user.showGreeks ||
+      Icon? icon = (user.showPositionDetails ||
               user.displayValue == DisplayValue.lastPrice ||
               user.displayValue == DisplayValue.marketValue)
           ? null
@@ -1158,7 +1158,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                           )));
             },
           ),
-          if (user.showGreeks &&
+          if (user.showPositionDetails &&
               op.optionInstrument != null &&
               op.optionInstrument!.optionMarketData != null) ...[
             _buildDetailScrollRow(

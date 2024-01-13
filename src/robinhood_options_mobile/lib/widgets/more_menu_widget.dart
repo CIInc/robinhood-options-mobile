@@ -106,32 +106,32 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             ),
             SwitchListTile(
               //leading: Icon(Icons.functions),
-              title: const Text("Group Options by Stock"),
-              value: widget.user.optionsView == OptionsView.grouped,
+              title: const Text("Show Position Details"),
+              value: widget.user.showPositionDetails,
               onChanged: (bool value) {
                 setState(() {
-                  widget.user.optionsView =
-                      value ? OptionsView.grouped : OptionsView.list;
-                  //widget.user.showGreeks = value;
+                  widget.user.showPositionDetails = value;
                 });
                 _onSettingsChanged();
               },
-              secondary: const Icon(Icons.view_module),
+              secondary: const Icon(Icons.functions),
             ),
             const Divider(
               height: 10,
             ),
             SwitchListTile(
               //leading: Icon(Icons.functions),
-              title: const Text("Show Market Data & Greeks"),
-              value: widget.user.showGreeks,
+              title: const Text("Group Options by Stock"),
+              value: widget.user.optionsView == OptionsView.grouped,
               onChanged: (bool value) {
                 setState(() {
-                  widget.user.showGreeks = value;
+                  widget.user.optionsView =
+                      value ? OptionsView.grouped : OptionsView.list;
+                  //widget.user.showPositionDetails = value;
                 });
                 _onSettingsChanged();
               },
-              secondary: const Icon(Icons.functions),
+              secondary: const Icon(Icons.view_module),
             ),
             const Divider(
               height: 10,
@@ -297,6 +297,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             ],
 
             const Divider(
+              color: Colors.transparent,
               height: 10,
             ),
             if (widget.user.userName != null) ...[

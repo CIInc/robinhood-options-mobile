@@ -1394,132 +1394,7 @@ class _HomePageState extends State<HomePage>
               )),
         ],
         */
-                      SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 5),
-                              child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    /*
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(marketValueText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                              //Container(height: 5),
-                                              //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                              const Text("Market Value",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      */
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Wrap(spacing: 8, children: [
-                                              todayIcon,
-                                              Text(todayReturnText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize))
-                                            ]),
-                                            /*
-                                            Text(todayReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                                        */
-                                            /*
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                            const Text("Return Today",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Text(todayReturnPercentText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                            const Text("Return Today %",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Wrap(spacing: 8, children: [
-                                              totalIcon,
-                                              Text(totalReturnText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize))
-                                            ]),
-                                            /*
-                                            Text(totalReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                                        */
-                                            /*
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                            //Container(height: 5),
-                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                            const Text("Total Return",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Text(totalReturnPercentText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-
-                                            //Container(height: 5),
-                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                            const Text("Total Return %",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                  ])))
+                      buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
                     ])),
                     if (widget.user.displayValue != DisplayValue.lastPrice &&
                         barChartSeriesList.isNotEmpty &&
@@ -1947,6 +1822,135 @@ class _HomePageState extends State<HomePage>
             )),
           ]), //controller: _controller,
     );
+  }
+
+  SingleChildScrollView buildDetailScrollView(Icon todayIcon, String todayReturnText, String todayReturnPercentText, Icon totalIcon, String totalReturnText, String totalReturnPercentText) {
+    return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 5),
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  /*
+                                    Padding(
+                                      padding: const EdgeInsets.all(
+                                          summaryEgdeInset), //.symmetric(horizontal: 6),
+                                      child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: <Widget>[
+                                            Text(marketValueText,
+                                                style: const TextStyle(
+                                                    fontSize:
+                                                        summaryValueFontSize)),
+                                            //Container(height: 5),
+                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                            const Text("Market Value",
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        summaryLabelFontSize)),
+                                          ]),
+                                    ),
+                                    */
+                                  Padding(
+                                    padding: const EdgeInsets.all(
+                                        summaryEgdeInset), //.symmetric(horizontal: 6),
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Wrap(spacing: 8, children: [
+                                            todayIcon,
+                                            Text(todayReturnText,
+                                                style: const TextStyle(
+                                                    fontSize:
+                                                        summaryValueFontSize))
+                                          ]),
+                                          /*
+                                          Text(todayReturnText,
+                                              style: const TextStyle(
+                                                  fontSize:
+                                                      summaryValueFontSize)),
+                                                      */
+                                          /*
+                                  Text(todayReturnPercentText,
+                                      style: const TextStyle(
+                                          fontSize: summaryValueFontSize)),
+                                          */
+                                          const Text("Return Today",
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize)),
+                                        ]),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(
+                                        summaryEgdeInset), //.symmetric(horizontal: 6),
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Text(todayReturnPercentText,
+                                              style: const TextStyle(
+                                                  fontSize:
+                                                      summaryValueFontSize)),
+                                          const Text("Return Today %",
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize)),
+                                        ]),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(
+                                        summaryEgdeInset), //.symmetric(horizontal: 6),
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Wrap(spacing: 8, children: [
+                                            totalIcon,
+                                            Text(totalReturnText,
+                                                style: const TextStyle(
+                                                    fontSize:
+                                                        summaryValueFontSize))
+                                          ]),
+                                          /*
+                                          Text(totalReturnText,
+                                              style: const TextStyle(
+                                                  fontSize:
+                                                      summaryValueFontSize)),
+                                                      */
+                                          /*
+                                  Text(totalReturnPercentText,
+                                      style: const TextStyle(
+                                          fontSize: summaryValueFontSize)),
+                                          */
+                                          //Container(height: 5),
+                                          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                          const Text("Total Return",
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize)),
+                                        ]),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(
+                                        summaryEgdeInset), //.symmetric(horizontal: 6),
+                                    child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Text(totalReturnPercentText,
+                                              style: const TextStyle(
+                                                  fontSize:
+                                                      summaryValueFontSize)),
+
+                                          //Container(height: 5),
+                                          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                                          const Text("Total Return %",
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      summaryLabelFontSize)),
+                                        ]),
+                                  ),
+                                ])));
   }
 
   Widget portfoliosWidget(List<Portfolio> portfolios) {
@@ -2571,6 +2575,12 @@ class _HomePageState extends State<HomePage>
         final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
         const fadeEnd = 1.0;
         final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+        /*
+        var shades = PieChart.makeShades(
+            charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            4);
+        */
         return FlexibleSpaceBar(
             /*
             titlePadding:
@@ -2597,6 +2607,7 @@ class _HomePageState extends State<HomePage>
                 height: 180,
                 width: 180,
                 child: Padding(
+                  //padding: EdgeInsets.zero,
                   //padding: EdgeInsets.symmetric(horizontal: 12.0),
                   //padding: const EdgeInsets.all(10.0),
                   padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
@@ -2604,21 +2615,27 @@ class _HomePageState extends State<HomePage>
                     [
                       charts.Series<PieChartData, String>(
                         id: 'Portfolio Breakdown',
+                        //colorFn: (_, index) => shades[index!],
                         //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                        // colorFn: (_, index) => charts.MaterialPalette.cyan
+                        //     .makeShades(4)[index!],
+                        // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                        //     Theme.of(context).colorScheme.primary),
                         domainFn: (PieChartData val, index) => val.label,
                         measureFn: (PieChartData val, index) => val.value,
                         data: data,
                       ),
                     ],
-                    renderer: new charts.ArcRendererConfig(
-                        arcWidth: 60,
+                    animate: false,
+                    renderer: charts.ArcRendererConfig(
+                        //arcWidth: 60,
                         arcRendererDecorators: [
                           new charts.ArcLabelDecorator()
                         ]),
                     onSelected: (_) {},
                   ),
                 )),
-                */
+            */
             title: Opacity(
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
@@ -3178,6 +3195,37 @@ class _HomePageState extends State<HomePage>
         ? null
         : widget.user.getDisplayIcon(value);
 
+    double? totalReturn = widget.user
+        .getPositionDisplayValue(positions[index],
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.user.getDisplayText(totalReturn!,
+        displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = widget.user
+        .getPositionDisplayValue(positions[index],
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.user.getDisplayText(
+        totalReturnPercent!,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = widget.user
+        .getPositionDisplayValue(positions[index],
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.user.getDisplayText(todayReturn!,
+        displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = widget.user
+        .getPositionDisplayValue(positions[index],
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.user.getDisplayText(
+        todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon =
+        widget.user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon =
+        widget.user.getDisplayIcon(totalReturn, size: 21.0);
+
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
@@ -3214,7 +3262,8 @@ class _HomePageState extends State<HomePage>
                         )))
             : null,
         title: Text(
-            instrument != null ? instrument.simpleName ?? instrument.name : ""),
+            instrument != null ? instrument.simpleName ?? instrument.name : "",
+            overflow: TextOverflow.ellipsis,),
         subtitle: Text("${positions[index].quantity} shares"),
         //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
         /*
@@ -3253,7 +3302,10 @@ class _HomePageState extends State<HomePage>
           // Refresh in case settings were updated.
           futureFromInstrument.then((value) => setState(() {}));
         },
-      )
+      ),
+      if (widget.user.showPositionDetails) ...[
+        buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
+      ]
     ]));
   }
 
@@ -3264,6 +3316,37 @@ class _HomePageState extends State<HomePage>
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
         : widget.user.getDisplayIcon(value);
+    
+    double? totalReturn = widget.user
+        .getCryptoDisplayValue(holdings[index],
+            displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.user.getDisplayText(totalReturn!,
+        displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = widget.user
+        .getCryptoDisplayValue(holdings[index],
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.user.getDisplayText(
+        totalReturnPercent!,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = widget.user
+        .getCryptoDisplayValue(holdings[index],
+            displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.user.getDisplayText(todayReturn!,
+        displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = widget.user
+        .getCryptoDisplayValue(holdings[index],
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.user.getDisplayText(
+        todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon =
+        widget.user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon =
+        widget.user.getDisplayIcon(totalReturn, size: 21.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -3344,7 +3427,10 @@ class _HomePageState extends State<HomePage>
                   ));
                   */
         },
-      )
+      ),
+      if (widget.user.showPositionDetails) ...[
+        buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
+      ]
     ]));
   }
 

@@ -137,6 +137,8 @@ class _UserWidgetState extends State<UserWidget> {
   }
 
   Widget userWidget(UserInfo user) {
+    Color primaryColor = Theme.of(context).colorScheme.primary;
+    Color secondaryColor = Theme.of(context).colorScheme.secondary;
     return SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -169,6 +171,14 @@ class _UserWidgetState extends State<UserWidget> {
       ListTile(
         title: const Text("Id", style: TextStyle(fontSize: 14)),
         trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
+      ),
+      ListTile(
+        title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
+        trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor)),
+      ),
+      ListTile(
+        title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
+        trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor)),
       ),
       /*
         ListTile(
