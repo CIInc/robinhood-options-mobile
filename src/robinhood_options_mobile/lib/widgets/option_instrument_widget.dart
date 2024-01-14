@@ -420,9 +420,17 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   Consumer<InstrumentHistoricalsSelectionStore>(
                       builder: (context, value, child) {
                     selection = value.selection;
+                    if (selection != null) {
+                      changeInPeriod = selection!.closePrice! - open;
+                      changePercentInPeriod =
+                          changeInPeriod / selection!.closePrice!;
+                    } else {
+                      changeInPeriod = close - open;
+                      changePercentInPeriod = changeInPeriod / close;
+                    }
 
                     return SizedBox(
-                        height: 36,
+                        height: 43,
                         child: Center(
                             child: Column(
                           children: [
@@ -1430,7 +1438,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     optionInstrument ??= widget.optionInstrument;
     //if (optionInstrument != null) {
     return SliverAppBar(
-        title: Wrap(spacing: 20, children: [
+        title: Align(alignment: Alignment.centerLeft, child: 
+        Wrap(spacing: 20, children: [
           Wrap(
               crossAxisAlignment: WrapCrossAlignment.end,
               //runAlignment: WrapAlignment.end,
@@ -1438,10 +1447,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               spacing: 10,
               //runSpacing: 5,
               children: [
-                Text(optionInstrument.chainSymbol),
-                Text("\$${optionInstrument.strikePrice}"),
-                Text(optionInstrument.type.toUpperCase()),
-                Text(formatDate.format(optionInstrument.expirationDate!)),
+                Text(optionInstrument.chainSymbol, style: const TextStyle(fontSize: 17.0)),
+                Text("\$${optionInstrument.strikePrice}", style: const TextStyle(fontSize: 17.0)),
+                Text(optionInstrument.type.toUpperCase(), style: const TextStyle(fontSize: 17.0)),
+                Text(formatDate.format(optionInstrument.expirationDate!), style: const TextStyle(fontSize: 17.0)),
               ]),
           if (optionInstrument.optionMarketData != null) ...[
             Wrap(spacing: 10, children: [
@@ -1481,7 +1490,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   textAlign: TextAlign.right)
             ])
           ],
-        ]),
+        ])),
         expandedHeight: optionPosition != null ? 240 : 160,
         floating: false,
         pinned: true,
@@ -1978,7 +1987,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               },
             ),
             if (optionPosition != null) ...[
-              Container(width: 50),
+              const Expanded(child: SizedBox()),
               TextButton(
                   child: Text(optionPosition.direction == "debit"
                       ? "BUY TO OPEN"

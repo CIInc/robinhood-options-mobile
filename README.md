@@ -97,6 +97,11 @@ Select a mobile emulator from the device selector. *Note that this is not workin
     Installing build\app\outputs\flutter-apk\app.apk...                 5.2s
     ```
 
+## Generate Icons
+
+1. Replace src/robinhood_options_mobile/icon.png with latest icon PNG image at the maximum possible resolution (1024x1024?).
+2. Run `flutter pub run flutter_launcher_icons` in the project directory to generate all icons for iOS and Android.
+
 ## Publish
 
 ### Android

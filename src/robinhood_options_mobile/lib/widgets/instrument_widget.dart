@@ -2551,18 +2551,33 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget headerTitle(Instrument instrument, QuoteStore store) {
     var quoteObj = store.items
         .firstWhereOrNull((element) => element.symbol == instrument.symbol);
-    return Wrap(
+    return Align(alignment: Alignment.centerLeft, child: 
+      Wrap(
         crossAxisAlignment: WrapCrossAlignment.end,
         //runAlignment: WrapAlignment.end,
         //alignment: WrapAlignment.end,
         spacing: 20,
         //runSpacing: 5,
         children: [
-          Text(
-            instrument.symbol, // ${optionPosition.strategy.split('_').first}
-            //style: const TextStyle(fontSize: 20.0)
-          ),
-          if (quoteObj != null) ...[
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            //runAlignment: WrapAlignment.end,
+            //alignment: WrapAlignment.end,
+            spacing: 10,
+            //runSpacing: 5,
+            children: [
+              Text(
+                instrument.symbol, // ${optionPosition.strategy.split('_').first}
+                //style: const TextStyle(fontSize: 20.0)
+                style: const TextStyle(fontSize: 17.0)
+              ),
+              Text(
+                instrument.simpleName ?? instrument.name, // ${optionPosition.strategy.split('_').first}
+                //style: const TextStyle(fontSize: 20.0)
+                style: const TextStyle(fontSize: 17.0)
+              ),
+          ]),
+         if (quoteObj != null) ...[
             Wrap(spacing: 10, children: [
               Text(formatCurrency.format(quoteObj.lastTradePrice),
                   //style: const TextStyle(fontSize: 15.0)
@@ -2596,7 +2611,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   textAlign: TextAlign.right)
             ])
           ],
-        ]);
+        ]),);
   }
 
   Iterable<Widget> get headerWidgets sync* {

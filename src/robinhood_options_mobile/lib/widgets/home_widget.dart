@@ -2472,7 +2472,7 @@ class _HomePageState extends State<HomePage>
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 240.0, //280.0,
+      expandedHeight: 200.0, //240.0, //280.0,
       //collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
@@ -2655,21 +2655,7 @@ class _HomePageState extends State<HomePage>
           icon: const Icon(Icons.more_vert),
           // icon: const Icon(Icons.settings),
           onPressed: () {
-            showModalBottomSheet<void>(
-                context: context,
-                //isScrollControlled: true,
-                //useRootNavigator: true,
-                //constraints: const BoxConstraints(maxHeight: 200),
-                builder: (_) => MoreMenuBottomSheet(widget.user,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                    chainSymbols: chainSymbols,
-                    positionSymbols: positionSymbols,
-                    cryptoSymbols: cryptoSymbols,
-                    optionSymbolFilters: optionSymbolFilters,
-                    stockSymbolFilters: stockSymbolFilters,
-                    cryptoFilters: cryptoFilters,
-                    onSettingsChanged: _onSettingsChanged));
+            showSettings();
           },
         ),
         /*
@@ -3169,6 +3155,24 @@ class _HomePageState extends State<HomePage>
     */
   }
 
+  showSettings() {
+    showModalBottomSheet<void>(
+        context: context,
+        //isScrollControlled: true,
+        //useRootNavigator: true,
+        //constraints: const BoxConstraints(maxHeight: 200),
+        builder: (_) => MoreMenuBottomSheet(widget.user,
+            analytics: widget.analytics,
+            observer: widget.observer,
+            chainSymbols: chainSymbols,
+            positionSymbols: positionSymbols,
+            cryptoSymbols: cryptoSymbols,
+            optionSymbolFilters: optionSymbolFilters,
+            stockSymbolFilters: stockSymbolFilters,
+            cryptoFilters: cryptoFilters,
+            onSettingsChanged: _onSettingsChanged));
+  }
+
   void _onSettingsChanged(dynamic settings) {
     setState(() {
       hasQuantityFilters = settings['hasQuantityFilters'];
@@ -3265,7 +3269,8 @@ class _HomePageState extends State<HomePage>
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: Wrap(spacing: 8, children: [
+        trailing: //GestureDetector(child: 
+        Wrap(spacing: 8, children: [
           if (icon != null) ...[
             icon,
           ],
@@ -3275,6 +3280,7 @@ class _HomePageState extends State<HomePage>
             textAlign: TextAlign.right,
           )
         ]),
+        //, onTap: () => showSettings()),
         // isThreeLine: true,
         onTap: () {
           /* For navigation within this tab, uncomment
@@ -3428,7 +3434,7 @@ class _HomePageState extends State<HomePage>
       ]
     ]));
   }
-
+  
   /*
   _buildLogin() {
     return Column(
