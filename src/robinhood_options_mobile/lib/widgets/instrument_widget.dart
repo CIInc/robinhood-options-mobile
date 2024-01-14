@@ -521,8 +521,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   instrument.instrumentHistoricalsObj!.historicals[0];
               lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
                   instrument.instrumentHistoricalsObj!.historicals.length - 1];
-              open = instrument.instrumentHistoricalsObj!.previousClosePrice ??
-                  firstHistorical.openPrice!;
+              open = firstHistorical.openPrice!; // instrument.instrumentHistoricalsObj!.previousClosePrice ??
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
               changePercentInPeriod = changeInPeriod / close;

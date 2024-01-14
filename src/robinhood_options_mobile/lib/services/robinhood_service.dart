@@ -95,6 +95,185 @@ class RobinhoodService implements IBrokerageService {
     return accounts;
   }
 
+  // TODO: https://api.robinhood.com/inbox/threads/
+  
+  // TODO: https://api.robinhood.com/midlands/notifications/stack/
+  /*
+{
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "card_id": "ddf40f4b6d8c2f3977d8de46c298d9da",
+            "load_id": "e3d803f2-2aac-47f6-aa4e-87c4bb2db672",
+            "category": 8,
+            "type": "holiday_premarket",
+            "title": "Upcoming market closure",
+            "message": "The markets will be closed on January 15 for Martin Luther King Jr. Day.",
+            "call_to_action": "Learn more",
+            "action": "robinhood://web?url=https%3A%2F%2Frobinhood.com%2Fsupport%2Farticles%2Fstock-market-holidays",
+            "icon": "alert",
+            "fixed": false,
+            "time": "2024-01-12T08:00:00Z",
+            "show_if_unsupported": true,
+            "url": "https://api.robinhood.com/notifications/stack/64e91ef0de14a5d73498a9db0c329b1d-8beba8449abc06fa337de106ed976382/",
+            "side_image": null,
+            "font_size": "normal"
+        },
+        {
+            "card_id": "f82b044d3bc4b5e0259b5a88807be614",
+            "load_id": "e3d803f2-2aac-47f6-aa4e-87c4bb2db672",
+            "category": 5,
+            "type": "hudson_24H_TOF_MAT_S1_0124",
+            "title": "Did you know?",
+            "message": "Stay on top of market movements this earnings season with the 24 Hour Market. Limitations and risks apply.",
+            "call_to_action": "Access the market",
+            "action": "robinhood://lists?owner_type=robinhood&id=4ef6b14b-e876-4127-9b9c-29703a8a8559&source=card_lcm_24h_earnings-1_0124",
+            "icon": "lightbulb",
+            "fixed": false,
+            "time": null,
+            "show_if_unsupported": false,
+            "url": "https://api.robinhood.com/notifications/stack/0b23af0f8a00fe67902f8db6a6a74507-2e5bd5432b4281bf88809d58ab559fab-hudson_24H_TOF_MAT_S1_0124--equities/",
+            "side_image": {
+                "asset": "24h_calendar",
+                "android": {
+                    "asset_path": "android_24h_calendar",
+                    "width": 104
+                },
+                "ios": {
+                    "asset_path": "ios_24h_calendar",
+                    "width": 104
+                }
+            },
+            "font_size": "normal"
+        },
+        {
+            "card_id": "e45bfc81c88ad9d5f5189ca7b9b6dc1f",
+            "load_id": "e3d803f2-2aac-47f6-aa4e-87c4bb2db672",
+            "category": 5,
+            "type": "advanced_indicator_alerts",
+            "title": "New feature",
+            "message": "Set custom alerts for technical indicators like MA, RSI, and more.",
+            "call_to_action": "Get started",
+            "action": "robinhood://equity_advanced_alerts_onboarding",
+            "icon": "star",
+            "fixed": false,
+            "time": null,
+            "show_if_unsupported": false,
+            "url": "https://api.robinhood.com/notifications/stack/58998c7d765dbca5e8ee15dd92d839b9-d41d8cd98f00b204e9800998ecf8427e--equities/",
+            "side_image": {
+                "asset": "advanced_indicator_alerts",
+                "android": {
+                    "asset_path": "android_advanced_indicator_alerts",
+                    "width": 104
+                },
+                "ios": {
+                    "asset_path": "ios_advanced_indicator_alerts",
+                    "width": 104
+                }
+            },
+            "font_size": "large"
+        },
+        {
+            "card_id": "8946fae1ee86d36e53c2f65737c9bd09",
+            "load_id": "e3d803f2-2aac-47f6-aa4e-87c4bb2db672",
+            "category": 5,
+            "type": "screener_launch_v2",
+            "title": "New feature",
+            "message": "Filter and focus your search for new investments with stock screeners",
+            "call_to_action": "Create a screener",
+            "action": "robinhood://screener_detail?source=home_card",
+            "icon": "star",
+            "fixed": false,
+            "time": null,
+            "show_if_unsupported": false,
+            "url": "https://api.robinhood.com/notifications/stack/f8624676fcac372f753b494cb6a65eb6-d41d8cd98f00b204e9800998ecf8427e--equities/",
+            "side_image": {
+                "asset": "screener_launch",
+                "android": {
+                    "asset_path": "android_screener_launch",
+                    "width": 88
+                },
+                "ios": {
+                    "asset_path": "ios_screener_launch",
+                    "width": 102
+                }
+            },
+            "font_size": "normal"
+        }
+    ]
+}  
+  */
+
+  // TODO: https://bonfire.robinhood.com/gold/sweep_flow_splash/
+  /*
+{
+    "sweep_section": {
+        "section_header": {
+            "display_title": "Cash",
+            "info_tag": {
+                "label": "5.25% APY with Gold",
+                "style": "gold"
+            },
+            "icon_dialog": {
+                "title": "How it works",
+                "message": "You're earning interest on uninvested brokerage cash with cash sweep. Your cash is protected with FDIC insurance at partner banks up to $2.25 million while it earns money.\n\nThis interest is earned once the cash is swept from your brokerage account to accounts at our partner banks: Goldman Sachs Bank USA, HSBC Bank USA, N.A., Wells Fargo Bank, N.A., Citibank, N.A., Bank of Baroda, U.S. Bank, N.A., Bank of India, Truist Bank, M&T Bank, First Horizon Bank, EagleBank and CIBC Bank USA. If you have money in another account at the same bank, that could impact your FDIC coverage. \n\nCurrently, you can earn up to 5.25% APY, which is 8x more than the national average savings rate (source: Bankrate, as of Nov 2, 2023). Rates may change. Neither Robinhood Financial LLC nor any of its affiliates are banks.",
+                "logging_identifier": null
+            }
+        },
+        "upsell_banner": null,
+        "upsell_banner_v2": null,
+        "data_rows": [
+            {
+                "display_title": "Interest accrued this month",
+                "icon_dialog": null,
+                "display_subtitle": "Next payday is January 31",
+                "display_value": "$10.31"
+            },
+            {
+                "display_title": "Lifetime interest paid",
+                "icon_dialog": null,
+                "display_subtitle": null,
+                "display_value": "$276.67"
+            },
+            {
+                "display_title": "Cash earning interest",
+                "icon_dialog": {
+                    "title": "What is cash earning interest?",
+                    "message": "This is how much of your cash that has been moved to program banks to earn interest while you plan your next investment. It might not match your current brokerage account cash balance if you recently signed up to earn interest on your uninvested cash or took an action, like a trade or bank transfer. Changes can take up to 2 business days to reflect.",
+                    "logging_identifier": null
+                },
+                "display_subtitle": null,
+                "display_value": "$4,879.31"
+            }
+        ],
+        "cta": {
+            "sdui_component_type": "TEXT_BUTTON",
+            "current_platform": null,
+            "skip_compatibility_check": null,
+            "label": "Deposit cash",
+            "action": {
+                "sdui_action_type": "deeplink",
+                "uri": "robinhood://transfer_funds?from_account_type=ach_relationship&to_account_type=brokerage"
+            },
+            "icon": null,
+            "is_enabled": true,
+            "color": null,
+            "size": "MEDIUM",
+            "logging_action_identifier": null,
+            "logging_identifier": null
+        }
+    },
+    "sweep_section_v2": null,
+    "show_cards": true
+}
+  */
+
+  // TODO: https://bonfire.robinhood.com/portfolio/[account]/positions_v2?instrument_type=EQUITY&positions_location=HOME_TAB
+
+  // TODO: https://bonfire.robinhood.com/screeners/presets/
+  // TODO: https://bonfire.robinhood.com/screeners?include_filters=false
+
   /*
   PORTFOLIOS
   */
@@ -140,6 +319,7 @@ class RobinhoodService implements IBrokerageService {
     String? span = rtn[0];
     String? interval = rtn[1];
 
+    // TODO: https://bonfire.robinhood.com/portfolio/performance/5QR24141?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
     // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
     var result = await RobinhoodService.getJson(user,
         "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
@@ -1710,6 +1890,7 @@ WATCHLIST
     List<Watchlist> list = [];
     // https://api.robinhood.com/midlands/lists/default/
     // https://api.robinhood.com/midlands/lists/items/ (not working)
+    // TODO: https://api.robinhood.com/discovery/lists/user_items/
     var watchlistsUrl =
         "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
     var userItemsJson = await getJson(user, watchlistsUrl);
@@ -1966,8 +2147,15 @@ def subscription_url():
 
 def wiretransfers_url():
     return('https://api.robinhood.com/wire/transfers')
+*/
 
-# TODO: Markets
+// TODO: https://bonfire.robinhood.com/market_indices?keys=nasdaq
+
+// TODO: https://bonfire.robinhood.com/market_indices?keys=sp_500
+
+/*
+
+# Markets
 
 // https://api.robinhood.com/markets/
 // {"next":null,"previous":null,"results":[{"url":"https:\/\/api.robinhood.com\/markets\/IEXG\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/IEXG\/hours\/2023-02-09\/","mic":"IEXG","operating_mic":"IEXG","acronym":"IEX","name":"IEX Market","city":"New York","country":"US - United States of America","timezone":"US\/Eastern","website":"www.iextrading.com"},{"url":"https:\/\/api.robinhood.com\/markets\/OTCM\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/OTCM\/hours\/2023-02-09\/","mic":"OTCM","operating_mic":"OTCM","acronym":"OTCM","name":"Otc Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.otcmarkets.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XASE\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XASE\/hours\/2023-02-09\/","mic":"XASE","operating_mic":"XNYS","acronym":"AMEX","name":"NYSE Mkt Llc","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/ARCX\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/ARCX\/hours\/2023-02-09\/","mic":"ARCX","operating_mic":"XNYS","acronym":"NYSE","name":"NYSE Arca","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNYS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNYS\/hours\/2023-02-09\/","mic":"XNYS","operating_mic":"XNYS","acronym":"NYSE","name":"New York Stock Exchange, Inc.","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNAS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNAS\/hours\/2023-02-09\/","mic":"XNAS","operating_mic":"XNAS","acronym":"NASDAQ","name":"NASDAQ - All Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nasdaq.com"},{"url":"https:\/\/api.robinhood.com\/markets\/BATS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/BATS\/hours\/2023-02-09\/","mic":"BATS","operating_mic":"BATS","acronym":"BATS","name":"BATS Exchange","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.batstrading.com"}]}

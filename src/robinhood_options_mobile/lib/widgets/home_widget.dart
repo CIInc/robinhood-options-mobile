@@ -583,8 +583,7 @@ class _HomePageState extends State<HomePage>
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
-              open = portfolioHistoricals!.adjustedPreviousCloseEquity ??
-                  firstHistorical.adjustedOpenEquity!;
+              open = firstHistorical.adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
               close = lastHistorical.adjustedCloseEquity!;
               // changeInPeriod = close - open;
               // changePercentInPeriod = changeInPeriod / close;

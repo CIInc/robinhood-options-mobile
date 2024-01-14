@@ -74,7 +74,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec:
               const charts.BasicNumericTickProviderSpec(zeroBound: false)),
-      domainAxis: charts.DateTimeAxisSpec(
+      domainAxis: charts.DateTimeAxisSpec( // EndPointsTimeAxisSpec
           //showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor))
@@ -97,13 +97,13 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             eventTrigger: charts.SelectionTrigger.tapAndDrag,
             onChangeCallback: _onSliderChange),
             */
-        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.pressHold),
+        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
         charts.LinePointHighlighter(
             showHorizontalFollowLine:
-                charts.LinePointHighlighterFollowLineType.none,
+                charts.LinePointHighlighterFollowLineType.all, // .none
             showVerticalFollowLine:
                 charts.LinePointHighlighterFollowLineType.all,
-            dashPattern: const [10],
+            dashPattern: const [], // const [10],
             defaultRadiusPx: 5),
         /*
         charts.InitialSelection(selectedDataConfig: [
