@@ -26,11 +26,10 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
   const ListsWidget(this.user,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.navigatorKey})
-      : super(key: key);
+      this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -49,7 +48,11 @@ class _ListsWidgetState extends State<ListsWidget>
   SortDirection? _sortDirection = SortDirection.desc;
 
   final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
+    adUnitId: kDebugMode
+        ? Constants.testAdUnit
+        : (Platform.isAndroid
+            ? Constants.homeBannerAndroidAdUnit
+            : Constants.homeBanneriOSAdUnit),
     size: AdSize.largeBanner,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -88,20 +91,15 @@ class _ListsWidgetState extends State<ListsWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    /* For navigation within this tab, uncomment
-    return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: Scaffold(
-          //appBar: _buildFlowAppBar(),
-          body: Navigator(
-              key: widget.navigatorKey,
-              onGenerateRoute: (_) =>
-                  MaterialPageRoute(builder: (_) => _buildPage()))),
-    );
-    */
-
-    return WillPopScope(
-        onWillPop: () => Future.value(false), child: _buildPage());
+    return PopScope(
+        canPop: false, //When false, blocks the current route from being popped.
+        onPopInvoked: (didPop) {
+          //do your logic here
+          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
+          // do your logic ends
+          return;
+        },
+        child: _buildPage());
   }
 
   Widget _buildPage() {

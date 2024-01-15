@@ -52,11 +52,10 @@ class HistoryPage extends StatefulWidget {
   */
 
   const HistoryPage(this.user,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.navigatorKey})
-      : super(key: key);
+      this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -103,7 +102,11 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareLink = true;
 
   final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
+    adUnitId: kDebugMode
+        ? Constants.testAdUnit
+        : (Platform.isAndroid
+            ? Constants.homeBannerAndroidAdUnit
+            : Constants.homeBanneriOSAdUnit),
     size: AdSize.mediumRectangle,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -145,19 +148,15 @@ class _HistoryPageState extends State<HistoryPage>
         onGenerateRoute: (_) =>
             MaterialPageRoute(builder: (_) => _buildScaffold()));
             */
-    /* For navigation within this tab, uncomment
-    return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: Scaffold(
-          //appBar: _buildFlowAppBar(),
-          body: Navigator(
-              key: widget.navigatorKey,
-              onGenerateRoute: (_) =>
-                  MaterialPageRoute(builder: (_) => _buildScaffold()))),
-    );
-    */
-    return WillPopScope(
-        onWillPop: () => Future.value(false), child: _buildScaffold());
+    return PopScope(
+        canPop: false, //When false, blocks the current route from being popped.
+        onPopInvoked: (didPop) {
+          //do your logic here
+          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
+          // do your logic ends
+          return;
+        },
+        child: _buildScaffold());
   }
 
   Widget _buildScaffold() {

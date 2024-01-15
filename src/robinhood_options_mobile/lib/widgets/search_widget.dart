@@ -24,11 +24,10 @@ class SearchWidget extends StatefulWidget {
   final RobinhoodUser user;
 
   const SearchWidget(this.user,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.navigatorKey})
-      : super(key: key);
+      this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -51,7 +50,11 @@ class _SearchWidgetState extends State<SearchWidget>
   InstrumentStore? instrumentStore;
 
   final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.searchBannerAndroidAdUnit : Constants.searchBanneriOSAdUnit),
+    adUnitId: kDebugMode
+        ? Constants.testAdUnit
+        : (Platform.isAndroid
+            ? Constants.searchBannerAndroidAdUnit
+            : Constants.searchBanneriOSAdUnit),
     // size: AdSize.fluid,
     size: AdSize.mediumRectangle,
     request: const AdRequest(),
@@ -90,19 +93,15 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget build(BuildContext context) {
     super.build(context);
 
-    /* For navigation within this tab, uncomment
-    return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: Scaffold(
-          //appBar: _buildFlowAppBar(),
-          body: Navigator(
-              key: widget.navigatorKey,
-              onGenerateRoute: (_) =>
-                  MaterialPageRoute(builder: (_) => _buildScaffold()))),
-    );
-    */
-    return WillPopScope(
-        onWillPop: () => Future.value(false), child: _buildScaffold());
+    return PopScope(
+        canPop: false, //When false, blocks the current route from being popped.
+        onPopInvoked: (didPop) {
+          //do your logic here
+          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
+          // do your logic ends
+          return;
+        },
+        child: _buildScaffold());
   }
 
   Widget _buildScaffold() {
@@ -438,51 +437,51 @@ class _SearchWidgetState extends State<SearchWidget>
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
               child: Column(
-                //mainAxisSize: MainAxisSize.min, 
-                children: <Widget>[
-                  Text(movers[index].symbol,
-                      style: const TextStyle(fontSize: 16.0)),
-                  Wrap(
-                    children: [
-                      Icon(
-                          movers[index].marketHoursPriceMovement! > 0
-                              ? Icons.trending_up
-                              : (movers[index].marketHoursPriceMovement! < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (movers[index].marketHoursPriceMovement! > 0
-                              ? Colors.green
-                              : (movers[index].marketHoursPriceMovement! < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          size: 20),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage.format(
-                              movers[index].marketHoursPriceMovement!.abs() /
-                                  100),
-                          style: const TextStyle(fontSize: 16.0)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          formatCurrency
-                              .format(movers[index].marketHoursLastPrice),
-                          style: const TextStyle(fontSize: 16.0)),
-                    ],
-                  ),
-                  Container(
-                    height: 5,
-                  ),
-                  Wrap(children: [
-                    Text(movers[index].description,
-                        style: const TextStyle(fontSize: 12.0),
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis)
+                  //mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(movers[index].symbol,
+                        style: const TextStyle(fontSize: 16.0)),
+                    Wrap(
+                      children: [
+                        Icon(
+                            movers[index].marketHoursPriceMovement! > 0
+                                ? Icons.trending_up
+                                : (movers[index].marketHoursPriceMovement! < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (movers[index].marketHoursPriceMovement! > 0
+                                ? Colors.green
+                                : (movers[index].marketHoursPriceMovement! < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 20),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            formatPercentage.format(
+                                movers[index].marketHoursPriceMovement!.abs() /
+                                    100),
+                            style: const TextStyle(fontSize: 16.0)),
+                        Container(
+                          width: 10,
+                        ),
+                        Text(
+                            formatCurrency
+                                .format(movers[index].marketHoursLastPrice),
+                            style: const TextStyle(fontSize: 16.0)),
+                      ],
+                    ),
+                    Container(
+                      height: 5,
+                    ),
+                    Wrap(children: [
+                      Text(movers[index].description,
+                          style: const TextStyle(fontSize: 12.0),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis)
+                    ]),
                   ]),
-              ]),
               onTap: () async {
                 var instrument = await RobinhoodService.getInstrument(
                     widget.user, instrumentStore!, movers[index].instrumentUrl);

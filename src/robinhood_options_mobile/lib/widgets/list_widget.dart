@@ -25,11 +25,10 @@ class ListWidget extends StatefulWidget {
       this.user,
       //this.account,
       this.listKey,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.navigatorKey})
-      : super(key: key);
+      this.navigatorKey});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -63,18 +62,6 @@ class _ListWidgetState extends State<ListWidget>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    /* For navigation within this tab, uncomment
-    return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: Scaffold(
-          //appBar: _buildFlowAppBar(),
-          body: Navigator(
-              key: widget.navigatorKey,
-              onGenerateRoute: (_) =>
-                  MaterialPageRoute(builder: (_) => _buildPage()))),
-    );
-    */
     return _buildPage();
   }
 

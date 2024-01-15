@@ -5,7 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
@@ -40,10 +41,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
     this.user,
     //this.account,
     this.filteredOptionPositions, {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -117,7 +118,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
         ivAvg,
         chanceAvg,
         openInterestAvg;
-    if (user.showPositionDetails && groupedOptionAggregatePositions.length == 1) {
+    if (user.showPositionDetails &&
+        groupedOptionAggregatePositions.length == 1) {
       var results = _calculateGreekAggregates(filteredOptionPositions);
       deltaAvg = results[0];
       gammaAvg = results[1];
@@ -614,7 +616,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
     double value = user.getDisplayValue(op,
-        displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+        displayValue: user
+            .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
     String opTrailingText = user.getDisplayText(value);
     Icon? icon = (user.showPositionDetails ||
             user.displayValue == DisplayValue.lastPrice ||
@@ -948,7 +951,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
     List<Widget> cards = [];
 
     double? value = user.getAggregateDisplayValue(ops,
-        displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+        displayValue: user
+            .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
     String? trailingText;
     Icon? icon;
     if (value != null) {
@@ -1005,7 +1009,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
                         ops.first.symbol,
                       ))),
           // title: Text(ops.first.symbol),
-          title: Text(ops.first.instrumentObj != null ? ops.first.instrumentObj!.simpleName ?? ops.first.instrumentObj!.name : ""),
+          title: Text(ops.first.instrumentObj != null
+              ? ops.first.instrumentObj!.simpleName ??
+                  ops.first.instrumentObj!.name
+              : ""),
           subtitle: Text("${ops.length} positions, $contracts contracts"),
           trailing: Wrap(spacing: 8, children: [
             if (icon != null) ...[
@@ -1078,7 +1085,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
     }
     for (OptionAggregatePosition op in ops) {
       double value = user.getDisplayValue(op,
-          displayValue: user.displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+          displayValue: user
+              .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
       String trailingText = user.getDisplayText(value);
       Icon? icon = (user.showPositionDetails ||
               user.displayValue == DisplayValue.lastPrice ||

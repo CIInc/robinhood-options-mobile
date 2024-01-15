@@ -8,7 +8,8 @@ import 'package:collection/collection.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -79,14 +80,14 @@ class HomePage extends StatefulWidget {
     this.user,
     this.userInfo, // this.account,
     {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
     this.title,
     this.navigatorKey,
     //required this.onUserChanged,
     //required this.onAccountsChanged
-  }) : super(key: key);
+  });
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -166,26 +167,30 @@ class _HomePageState extends State<HomePage>
   Timer? refreshTriggerTime;
 
   final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
-    size: AdSize.banner,
-    request: const AdRequest(),
-    listener: BannerAdListener(
-      // Called when an ad is successfully received.
-      onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-      // Called when an ad request failed.
-      onAdFailedToLoad: (Ad ad, LoadAdError error) {
-        // Dispose the ad here to free resources.
-        ad.dispose();
-        debugPrint('Ad failed to load: $error');
-      },
-      // Called when an ad opens an overlay that covers the screen.
-      onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-      // Called when an ad removes an overlay that covers the screen.
-      onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-      // Called when an impression occurs on the ad.
-      onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
-    ) // const BannerAdListener(),
-  );
+      adUnitId: kDebugMode
+          ? Constants.testAdUnit
+          : (Platform.isAndroid
+              ? Constants.homeBannerAndroidAdUnit
+              : Constants.homeBanneriOSAdUnit),
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        // Called when an ad is successfully received.
+        onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
+        // Called when an ad request failed.
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          // Dispose the ad here to free resources.
+          ad.dispose();
+          debugPrint('Ad failed to load: $error');
+        },
+        // Called when an ad opens an overlay that covers the screen.
+        onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
+        // Called when an ad removes an overlay that covers the screen.
+        onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
+        // Called when an impression occurs on the ad.
+        onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
+      ) // const BannerAdListener(),
+      );
 
   _HomePageState();
 
@@ -224,19 +229,15 @@ class _HomePageState extends State<HomePage>
         onGenerateRoute: (_) =>
             MaterialPageRoute(builder: (_) => _buildScaffold()));
             */
-    /* For navigation within this tab, uncomment
-    return WillPopScope(
-      onWillPop: () => Future.value(false),
-      child: Scaffold(
-          //appBar: _buildFlowAppBar(),
-          body: Navigator(
-              key: widget.navigatorKey,
-              onGenerateRoute: (_) =>
-                  MaterialPageRoute(builder: (_) => _buildScaffold()))),
-    );
-    */
-    return WillPopScope(
-        onWillPop: () => Future.value(false), child: _buildScaffold());
+    return PopScope(
+        canPop: false, //When false, blocks the current route from being popped.
+        onPopInvoked: (didPop) {
+          //do your logic here
+          // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
+          // do your logic ends
+          return;
+        },
+        child: _buildScaffold());
   }
 
   Widget _buildScaffold() {
@@ -583,7 +584,8 @@ class _HomePageState extends State<HomePage>
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
-              open = firstHistorical.adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+              open = firstHistorical
+                  .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
               close = lastHistorical.adjustedCloseEquity!;
               // changeInPeriod = close - open;
               // changePercentInPeriod = changeInPeriod / close;
@@ -591,6 +593,7 @@ class _HomePageState extends State<HomePage>
               // Override the portfolio API with current historical data.
               //portfolioValue = close;
 
+              /*
               var brightness = MediaQuery.of(context).platformBrightness;
               var textColor = Theme.of(context).colorScheme.background;
               if (brightness == Brightness.dark) {
@@ -598,6 +601,7 @@ class _HomePageState extends State<HomePage>
               } else {
                 textColor = Colors.grey.shade800;
               }
+              */
               TimeSeriesChart historicalChart = TimeSeriesChart(
                   [
                     charts.Series<EquityHistorical, DateTime>(
@@ -679,10 +683,13 @@ class _HomePageState extends State<HomePage>
                                 style: TextStyle(fontSize: 19.0),
                               ),
                               subtitle: Text(
-                                  // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                                  '${formatLongDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                  style: const TextStyle(fontSize: 10.0),
-                                  overflow: TextOverflow.ellipsis,),
+                                // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+                                formatLongDate.format(selection != null
+                                    ? selection!.beginsAt!.toLocal()
+                                    : lastHistorical!.beginsAt!.toLocal()),
+                                style: const TextStyle(fontSize: 10.0),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               trailing: Wrap(spacing: 8, children: [
                                 Text(
                                   formatCurrency.format(selection != null
@@ -1389,7 +1396,13 @@ class _HomePageState extends State<HomePage>
               )),
         ],
         */
-                      buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
+                      buildDetailScrollView(
+                          todayIcon,
+                          todayReturnText,
+                          todayReturnPercentText,
+                          totalIcon,
+                          totalReturnText,
+                          totalReturnPercentText)
                     ])),
                     if (widget.user.displayValue != DisplayValue.lastPrice &&
                         barChartSeriesList.isNotEmpty &&
@@ -1819,16 +1832,19 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  SingleChildScrollView buildDetailScrollView(Icon todayIcon, String todayReturnText, String todayReturnPercentText, Icon totalIcon, String totalReturnText, String totalReturnPercentText) {
+  SingleChildScrollView buildDetailScrollView(
+      Icon todayIcon,
+      String todayReturnText,
+      String todayReturnPercentText,
+      Icon totalIcon,
+      String totalReturnText,
+      String totalReturnPercentText) {
     return SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 5),
-                            child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  /*
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              /*
                                     Padding(
                                       padding: const EdgeInsets.all(
                                           summaryEgdeInset), //.symmetric(horizontal: 6),
@@ -1848,104 +1864,84 @@ class _HomePageState extends State<HomePage>
                                           ]),
                                     ),
                                     */
-                                  Padding(
-                                    padding: const EdgeInsets.all(
-                                        summaryEgdeInset), //.symmetric(horizontal: 6),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Wrap(spacing: 8, children: [
-                                            todayIcon,
-                                            Text(todayReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize))
-                                          ]),
-                                          /*
+              Padding(
+                padding: const EdgeInsets.all(
+                    summaryEgdeInset), //.symmetric(horizontal: 6),
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Wrap(spacing: 8, children: [
+                    todayIcon,
+                    Text(todayReturnText,
+                        style: const TextStyle(fontSize: summaryValueFontSize))
+                  ]),
+                  /*
                                           Text(todayReturnText,
                                               style: const TextStyle(
                                                   fontSize:
                                                       summaryValueFontSize)),
                                                       */
-                                          /*
+                  /*
                                   Text(todayReturnPercentText,
                                       style: const TextStyle(
                                           fontSize: summaryValueFontSize)),
                                           */
-                                          const Text("Return Today",
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      summaryLabelFontSize)),
-                                        ]),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(
-                                        summaryEgdeInset), //.symmetric(horizontal: 6),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Text(todayReturnPercentText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
-                                          const Text("Return Today %",
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      summaryLabelFontSize)),
-                                        ]),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(
-                                        summaryEgdeInset), //.symmetric(horizontal: 6),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Wrap(spacing: 8, children: [
-                                            totalIcon,
-                                            Text(totalReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize))
-                                          ]),
-                                          /*
+                  const Text("Return Today",
+                      style: TextStyle(fontSize: summaryLabelFontSize)),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(
+                    summaryEgdeInset), //.symmetric(horizontal: 6),
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Text(todayReturnPercentText,
+                      style: const TextStyle(fontSize: summaryValueFontSize)),
+                  const Text("Return Today %",
+                      style: TextStyle(fontSize: summaryLabelFontSize)),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(
+                    summaryEgdeInset), //.symmetric(horizontal: 6),
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Wrap(spacing: 8, children: [
+                    totalIcon,
+                    Text(totalReturnText,
+                        style: const TextStyle(fontSize: summaryValueFontSize))
+                  ]),
+                  /*
                                           Text(totalReturnText,
                                               style: const TextStyle(
                                                   fontSize:
                                                       summaryValueFontSize)),
                                                       */
-                                          /*
+                  /*
                                   Text(totalReturnPercentText,
                                       style: const TextStyle(
                                           fontSize: summaryValueFontSize)),
                                           */
-                                          //Container(height: 5),
-                                          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                          const Text("Total Return",
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      summaryLabelFontSize)),
-                                        ]),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(
-                                        summaryEgdeInset), //.symmetric(horizontal: 6),
-                                    child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Text(totalReturnPercentText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
+                  //Container(height: 5),
+                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                  const Text("Total Return",
+                      style: TextStyle(fontSize: summaryLabelFontSize)),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(
+                    summaryEgdeInset), //.symmetric(horizontal: 6),
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                  Text(totalReturnPercentText,
+                      style: const TextStyle(fontSize: summaryValueFontSize)),
 
-                                          //Container(height: 5),
-                                          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                          const Text("Total Return %",
-                                              style: TextStyle(
-                                                  fontSize:
-                                                      summaryLabelFontSize)),
-                                        ]),
-                                  ),
-                                ])));
+                  //Container(height: 5),
+                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                  const Text("Total Return %",
+                      style: TextStyle(fontSize: summaryLabelFontSize)),
+                ]),
+              ),
+            ])));
   }
 
   Widget portfoliosWidget(List<Portfolio> portfolios) {
@@ -2497,8 +2493,8 @@ class _HomePageState extends State<HomePage>
             if (userInfo != null) ...[
               Text(
                   "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
-                  style:
-                      const TextStyle(fontSize: 17.0)), //, color: Colors.white70
+                  style: const TextStyle(
+                      fontSize: 17.0)), //, color: Colors.white70
               Wrap(
                   spacing: 10,
                   crossAxisAlignment: WrapCrossAlignment.end,
@@ -2901,14 +2897,14 @@ class _HomePageState extends State<HomePage>
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width:64,
+                        width: 64,
                         child: Text(
                           "Options",
                           style: TextStyle(fontSize: 11.0),
                         ),
                       )
                     ]),
-                    /*
+                /*
                 Container(
                   width: 3,
                 ),
@@ -2954,7 +2950,7 @@ class _HomePageState extends State<HomePage>
                         ),
                       )
                     ]),
-                    /*
+                /*
                 Container(
                   width: 3,
                 ),
@@ -2999,7 +2995,7 @@ class _HomePageState extends State<HomePage>
                             style: TextStyle(fontSize: 11.0),
                           )),
                     ]),
-                    /*
+                /*
                 Container(
                   width: 3,
                 ),
@@ -3042,7 +3038,7 @@ class _HomePageState extends State<HomePage>
                             style: TextStyle(fontSize: 11.0),
                           )),
                     ]),
-                    /*
+                /*
                 Container(
                   width: 3,
                 ),
@@ -3195,36 +3191,32 @@ class _HomePageState extends State<HomePage>
         ? null
         : widget.user.getDisplayIcon(value);
 
-    double? totalReturn = widget.user
-        .getPositionDisplayValue(positions[index],
-            displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user.getDisplayText(totalReturn!,
+    double? totalReturn = widget.user.getPositionDisplayValue(positions[index],
         displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.user
+        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user
-        .getPositionDisplayValue(positions[index],
-            displayValue: DisplayValue.totalReturnPercent);
+    double? totalReturnPercent = widget.user.getPositionDisplayValue(
+        positions[index],
+        displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
-        totalReturnPercent!,
+        totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user
-        .getPositionDisplayValue(positions[index],
-            displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user.getDisplayText(todayReturn!,
+    double? todayReturn = widget.user.getPositionDisplayValue(positions[index],
         displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.user
+        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user
-        .getPositionDisplayValue(positions[index],
-            displayValue: DisplayValue.todayReturnPercent);
+    double? todayReturnPercent = widget.user.getPositionDisplayValue(
+        positions[index],
+        displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
-        todayReturnPercent!,
+        todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon =
-        widget.user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon =
-        widget.user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 21.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -3260,16 +3252,17 @@ class _HomePageState extends State<HomePage>
                         )))
             : null,
         title: Text(
-            instrument != null ? instrument.simpleName ?? instrument.name : "",
-            overflow: TextOverflow.ellipsis,),
+          instrument != null ? instrument.simpleName ?? instrument.name : "",
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Text("${positions[index].quantity} shares"),
         //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
         /*
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: //GestureDetector(child: 
-        Wrap(spacing: 8, children: [
+        trailing: //GestureDetector(child:
+            Wrap(spacing: 8, children: [
           if (icon != null) ...[
             icon,
           ],
@@ -3304,7 +3297,13 @@ class _HomePageState extends State<HomePage>
         },
       ),
       if (widget.user.showPositionDetails) ...[
-        buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
+        buildDetailScrollView(
+            todayIcon,
+            todayReturnText,
+            todayReturnPercentText,
+            totalIcon,
+            totalReturnText,
+            totalReturnPercentText)
       ]
     ]));
   }
@@ -3316,37 +3315,33 @@ class _HomePageState extends State<HomePage>
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
         : widget.user.getDisplayIcon(value);
-    
-    double? totalReturn = widget.user
-        .getCryptoDisplayValue(holdings[index],
-            displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user.getDisplayText(totalReturn!,
-        displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user
-        .getCryptoDisplayValue(holdings[index],
-            displayValue: DisplayValue.totalReturnPercent);
+    double? totalReturn = widget.user.getCryptoDisplayValue(holdings[index],
+        displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.user
+        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = widget.user.getCryptoDisplayValue(
+        holdings[index],
+        displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
-        totalReturnPercent!,
+        totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user
-        .getCryptoDisplayValue(holdings[index],
-            displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user.getDisplayText(todayReturn!,
+    double? todayReturn = widget.user.getCryptoDisplayValue(holdings[index],
         displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.user
+        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user
-        .getCryptoDisplayValue(holdings[index],
-            displayValue: DisplayValue.todayReturnPercent);
+    double? todayReturnPercent = widget.user.getCryptoDisplayValue(
+        holdings[index],
+        displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
-        todayReturnPercent!,
+        todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon =
-        widget.user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon =
-        widget.user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 21.0);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 21.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -3429,11 +3424,17 @@ class _HomePageState extends State<HomePage>
         },
       ),
       if (widget.user.showPositionDetails) ...[
-        buildDetailScrollView(todayIcon, todayReturnText, todayReturnPercentText, totalIcon, totalReturnText, totalReturnPercentText)
+        buildDetailScrollView(
+            todayIcon,
+            todayReturnText,
+            todayReturnPercentText,
+            totalIcon,
+            totalReturnText,
+            totalReturnPercentText)
       ]
     ]));
   }
-  
+
   /*
   _buildLogin() {
     return Column(

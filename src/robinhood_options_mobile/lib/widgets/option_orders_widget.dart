@@ -18,10 +18,10 @@ class OptionOrdersWidget extends StatefulWidget {
     //this.account,
     this.optionOrders,
     this.orderFilters, {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

@@ -23,11 +23,11 @@ class UserWidget extends StatefulWidget {
     this.user,
     this.userInfo,
     this.account, {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
     this.navigatorKey,
-  }) : super(key: key);
+  });
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -44,7 +44,11 @@ class _UserWidgetState extends State<UserWidget> {
   _UserWidgetState();
 
   final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode ? Constants.testAdUnit : (Platform.isAndroid ? Constants.homeBannerAndroidAdUnit : Constants.homeBanneriOSAdUnit),
+    adUnitId: kDebugMode
+        ? Constants.testAdUnit
+        : (Platform.isAndroid
+            ? Constants.homeBannerAndroidAdUnit
+            : Constants.homeBanneriOSAdUnit),
     size: AdSize.banner,
     request: const AdRequest(),
     listener: const BannerAdListener(),
@@ -172,15 +176,21 @@ class _UserWidgetState extends State<UserWidget> {
         trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
       ),
       ListTile(
-        title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
-        trailing: Icon(Icons.palette, color: primaryColor,)
-        // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
-      ),
+          title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
+          trailing: Icon(
+            Icons.palette,
+            color: primaryColor,
+          )
+          // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
+          ),
       ListTile(
-        title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
-        trailing: Icon(Icons.palette, color: secondaryColor,)
-        // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
-      ),
+          title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
+          trailing: Icon(
+            Icons.palette,
+            color: secondaryColor,
+          )
+          // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
+          ),
       /*
       ListTile(
         title: const Text("Text Theme", style: TextStyle(fontSize: 14)),

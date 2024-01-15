@@ -9,7 +9,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 class MoreMenuBottomSheet extends StatefulWidget {
   const MoreMenuBottomSheet(
     this.user, {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
     this.chainSymbols,
@@ -19,7 +19,7 @@ class MoreMenuBottomSheet extends StatefulWidget {
     this.stockSymbolFilters,
     this.cryptoFilters,
     required this.onSettingsChanged,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

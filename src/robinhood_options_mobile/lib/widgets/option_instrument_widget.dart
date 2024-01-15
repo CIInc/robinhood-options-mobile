@@ -5,7 +5,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 
@@ -43,12 +44,11 @@ class OptionInstrumentWidget extends StatefulWidget {
       this.user,
       //this.account,
       this.optionInstrument,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
       this.optionPosition,
-      this.heroTag})
-      : super(key: key);
+      this.heroTag});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -1438,59 +1438,68 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     optionInstrument ??= widget.optionInstrument;
     //if (optionInstrument != null) {
     return SliverAppBar(
-        title: Align(alignment: Alignment.centerLeft, child: 
-        Wrap(spacing: 20, children: [
-          Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 10,
-              //runSpacing: 5,
-              children: [
-                Text(optionInstrument.chainSymbol, style: const TextStyle(fontSize: 17.0)),
-                Text("\$${optionInstrument.strikePrice}", style: const TextStyle(fontSize: 17.0)),
-                Text(optionInstrument.type.toUpperCase(), style: const TextStyle(fontSize: 17.0)),
-                Text(formatDate.format(optionInstrument.expirationDate!), style: const TextStyle(fontSize: 17.0)),
-              ]),
-          if (optionInstrument.optionMarketData != null) ...[
-            Wrap(spacing: 10, children: [
-              Text(
-                  formatCurrency.format(optionInstrument
-                      .optionMarketData!.adjustedMarkPrice), //lastTradePrice
-                  //style: const TextStyle(fontSize: 15.0)
-                  style:
-                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              Wrap(children: [
-                Icon(
-                    optionInstrument.optionMarketData!.changeToday > 0
-                        ? Icons.trending_up
-                        : (optionInstrument.optionMarketData!.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (optionInstrument.optionMarketData!.changeToday > 0
-                        ? Colors.lightGreenAccent
-                        : (optionInstrument.optionMarketData!.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey)),
-                    size: 20.0),
-                Container(
-                  width: 2,
-                ),
-                Text(
-                    formatPercentage.format(
-                        optionInstrument.optionMarketData!.changePercentToday),
-                    //style: const TextStyle(fontSize: 15.0)
-                    style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              ]),
-              Text(
-                  "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
-                  //style: const TextStyle(fontSize: 12.0),
-                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
-                  textAlign: TextAlign.right)
-            ])
-          ],
-        ])),
+        title: Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(spacing: 20, children: [
+              Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  //runAlignment: WrapAlignment.end,
+                  //alignment: WrapAlignment.end,
+                  spacing: 10,
+                  //runSpacing: 5,
+                  children: [
+                    Text(optionInstrument.chainSymbol,
+                        style: const TextStyle(fontSize: 17.0)),
+                    Text("\$${optionInstrument.strikePrice}",
+                        style: const TextStyle(fontSize: 17.0)),
+                    Text(optionInstrument.type.toUpperCase(),
+                        style: const TextStyle(fontSize: 17.0)),
+                    Text(formatDate.format(optionInstrument.expirationDate!),
+                        style: const TextStyle(fontSize: 17.0)),
+                  ]),
+              if (optionInstrument.optionMarketData != null) ...[
+                Wrap(spacing: 10, children: [
+                  Text(
+                      formatCurrency.format(optionInstrument.optionMarketData!
+                          .adjustedMarkPrice), //lastTradePrice
+                      //style: const TextStyle(fontSize: 15.0)
+                      style: const TextStyle(
+                          fontSize: 16.0, color: Colors.white70)),
+                  Wrap(children: [
+                    Icon(
+                        optionInstrument.optionMarketData!.changeToday > 0
+                            ? Icons.trending_up
+                            : (optionInstrument.optionMarketData!.changeToday <
+                                    0
+                                ? Icons.trending_down
+                                : Icons.trending_flat),
+                        color: (optionInstrument.optionMarketData!.changeToday >
+                                0
+                            ? Colors.lightGreenAccent
+                            : (optionInstrument.optionMarketData!.changeToday <
+                                    0
+                                ? Colors.red
+                                : Colors.grey)),
+                        size: 20.0),
+                    Container(
+                      width: 2,
+                    ),
+                    Text(
+                        formatPercentage.format(optionInstrument
+                            .optionMarketData!.changePercentToday),
+                        //style: const TextStyle(fontSize: 15.0)
+                        style: const TextStyle(
+                            fontSize: 16.0, color: Colors.white70)),
+                  ]),
+                  Text(
+                      "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
+                      //style: const TextStyle(fontSize: 12.0),
+                      style: const TextStyle(
+                          fontSize: 16.0, color: Colors.white70),
+                      textAlign: TextAlign.right)
+                ])
+              ],
+            ])),
         expandedHeight: optionPosition != null ? 240 : 160,
         floating: false,
         pinned: true,

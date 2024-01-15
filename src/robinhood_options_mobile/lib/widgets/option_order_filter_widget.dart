@@ -3,10 +3,10 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 
 class OptionOrderFilterBottomSheet extends StatefulWidget {
   const OptionOrderFilterBottomSheet({
-    Key? key,
+    super.key,
     this.orderSymbols,
     this.optionAggregatePositions,
-  }) : super(key: key);
+  });
 
   final List<String>? orderSymbols;
   final List<OptionAggregatePosition>? optionAggregatePositions;

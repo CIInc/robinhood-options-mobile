@@ -17,13 +17,12 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 class TradeOptionWidget extends StatefulWidget {
   const TradeOptionWidget(this.user,
       //this.account,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
       this.optionPosition,
       this.optionInstrument,
-      this.positionType = "Buy"})
-      : super(key: key);
+      this.positionType = "Buy"});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

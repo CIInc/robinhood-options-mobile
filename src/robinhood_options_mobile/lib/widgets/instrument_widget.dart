@@ -26,7 +26,8 @@ import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -54,11 +55,10 @@ class InstrumentWidget extends StatefulWidget {
       this.user,
       //this.account,
       this.instrument,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.heroTag})
-      : super(key: key);
+      this.heroTag});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -521,7 +521,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   instrument.instrumentHistoricalsObj!.historicals[0];
               lastHistorical = instrument.instrumentHistoricalsObj!.historicals[
                   instrument.instrumentHistoricalsObj!.historicals.length - 1];
-              open = firstHistorical.openPrice!; // instrument.instrumentHistoricalsObj!.previousClosePrice ??
+              open = firstHistorical
+                  .openPrice!; // instrument.instrumentHistoricalsObj!.previousClosePrice ??
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
               changePercentInPeriod = changeInPeriod / close;
@@ -675,9 +676,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               ],
                             ),
                             Text(
-                                '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                style:
-                                    TextStyle(fontSize: 10, color: textColor),),
+                              '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                              style: TextStyle(fontSize: 10, color: textColor),
+                            ),
                           ],
                         )));
                   }),
@@ -846,86 +847,91 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
             return SliverToBoxAdapter(
                 child: Card(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: <
-                        Widget>[
-              const ListTile(
-                  title:
-                      Text("Stock Position", style: TextStyle(fontSize: 20))),
-              ListTile(
-                title: const Text("Quantity"),
-                trailing: Text(formatCompactNumber.format(position.quantity!),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                title: const Text("Average Cost"),
-                trailing: Text(formatCurrency.format(position.averageBuyPrice),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                title: const Text("Total Cost"),
-                trailing: Text(formatCurrency.format(position.totalCost),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                title: const Text("Market Value"),
-                trailing: Text(formatCurrency.format(position.marketValue),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                  title: const Text("Return"),
-                  trailing: Wrap(children: [
-                    position.trendingIcon,
-                    Container(
-                      width: 2,
-                    ),
-                    Text(formatCurrency.format(position.gainLoss), //.abs()
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                  const ListTile(
+                      title: Text("Stock Position",
+                          style: TextStyle(fontSize: 20))),
+                  ListTile(
+                    title: const Text("Quantity"),
+                    trailing: Text(
+                        formatCompactNumber.format(position.quantity!),
                         style: const TextStyle(fontSize: 18)),
-                  ])
+                  ),
+                  ListTile(
+                    title: const Text("Average Cost"),
+                    trailing: Text(
+                        formatCurrency.format(position.averageBuyPrice),
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                  ListTile(
+                    title: const Text("Total Cost"),
+                    trailing: Text(formatCurrency.format(position.totalCost),
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                  ListTile(
+                    title: const Text("Market Value"),
+                    trailing: Text(formatCurrency.format(position.marketValue),
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                  ListTile(
+                      title: const Text("Return"),
+                      trailing: Wrap(children: [
+                        position.trendingIcon,
+                        Container(
+                          width: 2,
+                        ),
+                        Text(formatCurrency.format(position.gainLoss), //.abs()
+                            style: const TextStyle(fontSize: 18)),
+                      ])
 
-                  /*
+                      /*
           trailing: Text(formatCurrency.format(position!.gainLoss),
               style: const TextStyle(fontSize: 18)),
               */
-                  ),
-              ListTile(
-                title: const Text("Return %"),
-                trailing: Text(
-                    formatPercentage.format(position.gainLossPercent),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                  title: const Text("Return Today"),
-                  trailing: Wrap(children: [
-                    position.trendingIconToday,
-                    Container(
-                      width: 2,
-                    ),
-                    Text(formatCurrency.format(position.gainLossToday), //.abs()
+                      ),
+                  ListTile(
+                    title: const Text("Return %"),
+                    trailing: Text(
+                        formatPercentage.format(position.gainLossPercent),
                         style: const TextStyle(fontSize: 18)),
-                  ])
+                  ),
+                  ListTile(
+                      title: const Text("Return Today"),
+                      trailing: Wrap(children: [
+                        position.trendingIconToday,
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            formatCurrency
+                                .format(position.gainLossToday), //.abs()
+                            style: const TextStyle(fontSize: 18)),
+                      ])
 
-                  /*
+                      /*
           trailing: Text(formatCurrency.format(position!.gainLoss),
               style: const TextStyle(fontSize: 18)),
               */
+                      ),
+                  ListTile(
+                    title: const Text("Return Today %"),
+                    trailing: Text(
+                        formatPercentage.format(position.gainLossPercentToday),
+                        style: const TextStyle(fontSize: 18)),
                   ),
-              ListTile(
-                title: const Text("Return Today %"),
-                trailing: Text(
-                    formatPercentage.format(position.gainLossPercentToday),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                title: const Text("Created"),
-                trailing: Text(formatDate.format(position.createdAt!),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-              ListTile(
-                title: const Text("Updated"),
-                trailing: Text(formatDate.format(position.updatedAt!),
-                    style: const TextStyle(fontSize: 18)),
-              ),
-            ])));
+                  ListTile(
+                    title: const Text("Created"),
+                    trailing: Text(formatDate.format(position.createdAt!),
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                  ListTile(
+                    title: const Text("Updated"),
+                    trailing: Text(formatDate.format(position.updatedAt!),
+                        style: const TextStyle(fontSize: 18)),
+                  ),
+                ])));
           }),
           Consumer<OptionPositionStore>(
               builder: (context, optionPositionStore, child) {
@@ -1798,21 +1804,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   Widget _buildSplitsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
-        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: const [
-      SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Splits",
-            style: TextStyle(fontSize: 19.0),
-          ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
+        child: ShrinkWrappingViewport(
+            offset: ViewportOffset.zero(),
+            slivers: const [
+          SliverToBoxAdapter(
+              child: Column(children: [
+            ListTile(
+              title: Text(
+                "Splits",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            )
+          ])),
+          SliverToBoxAdapter(
+              child: Card(
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
             /*
           for (var split in instrument.splitsObj!) ...[
             ListTile(
@@ -1896,7 +1903,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ],
               */
           ])))
-    ]));
+        ]));
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
@@ -2550,67 +2557,71 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget headerTitle(Instrument instrument, QuoteStore store) {
     var quoteObj = store.items
         .firstWhereOrNull((element) => element.symbol == instrument.symbol);
-    return Align(alignment: Alignment.centerLeft, child: 
-      Wrap(
-        crossAxisAlignment: WrapCrossAlignment.end,
-        //runAlignment: WrapAlignment.end,
-        //alignment: WrapAlignment.end,
-        spacing: 20,
-        //runSpacing: 5,
-        children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            //runAlignment: WrapAlignment.end,
-            //alignment: WrapAlignment.end,
-            spacing: 10,
-            //runSpacing: 5,
-            children: [
-              Text(
-                instrument.symbol, // ${optionPosition.strategy.split('_').first}
-                //style: const TextStyle(fontSize: 20.0)
-                style: const TextStyle(fontSize: 17.0)
-              ),
-              Text(
-                instrument.simpleName ?? instrument.name, // ${optionPosition.strategy.split('_').first}
-                //style: const TextStyle(fontSize: 20.0)
-                style: const TextStyle(fontSize: 17.0)
-              ),
-          ]),
-         if (quoteObj != null) ...[
-            Wrap(spacing: 10, children: [
-              Text(formatCurrency.format(quoteObj.lastTradePrice),
-                  //style: const TextStyle(fontSize: 15.0)
-                  style:
-                      const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              Wrap(children: [
-                Icon(
-                    quoteObj.changeToday > 0
-                        ? Icons.trending_up
-                        : (quoteObj.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (quoteObj.changeToday > 0
-                        ? Colors.lightGreenAccent
-                        : (quoteObj.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey)),
-                    size: 20.0),
-                Container(
-                  width: 2,
-                ),
-                Text(formatPercentage.format(quoteObj.changePercentToday),
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.end,
+          //runAlignment: WrapAlignment.end,
+          //alignment: WrapAlignment.end,
+          spacing: 20,
+          //runSpacing: 5,
+          children: [
+            Wrap(
+                crossAxisAlignment: WrapCrossAlignment.end,
+                //runAlignment: WrapAlignment.end,
+                //alignment: WrapAlignment.end,
+                spacing: 10,
+                //runSpacing: 5,
+                children: [
+                  Text(
+                      instrument
+                          .symbol, // ${optionPosition.strategy.split('_').first}
+                      //style: const TextStyle(fontSize: 20.0)
+                      style: const TextStyle(fontSize: 17.0)),
+                  Text(
+                      instrument.simpleName ??
+                          instrument
+                              .name, // ${optionPosition.strategy.split('_').first}
+                      //style: const TextStyle(fontSize: 20.0)
+                      style: const TextStyle(fontSize: 17.0)),
+                ]),
+            if (quoteObj != null) ...[
+              Wrap(spacing: 10, children: [
+                Text(formatCurrency.format(quoteObj.lastTradePrice),
                     //style: const TextStyle(fontSize: 15.0)
                     style:
                         const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              ]),
-              Text(
-                  "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
-                  //style: const TextStyle(fontSize: 12.0),
-                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
-                  textAlign: TextAlign.right)
-            ])
-          ],
-        ]),);
+                Wrap(children: [
+                  Icon(
+                      quoteObj.changeToday > 0
+                          ? Icons.trending_up
+                          : (quoteObj.changeToday < 0
+                              ? Icons.trending_down
+                              : Icons.trending_flat),
+                      color: (quoteObj.changeToday > 0
+                          ? Colors.lightGreenAccent
+                          : (quoteObj.changeToday < 0
+                              ? Colors.red
+                              : Colors.grey)),
+                      size: 20.0),
+                  Container(
+                    width: 2,
+                  ),
+                  Text(formatPercentage.format(quoteObj.changePercentToday),
+                      //style: const TextStyle(fontSize: 15.0)
+                      style: const TextStyle(
+                          fontSize: 16.0, color: Colors.white70)),
+                ]),
+                Text(
+                    "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
+                    //style: const TextStyle(fontSize: 12.0),
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70),
+                    textAlign: TextAlign.right)
+              ])
+            ],
+          ]),
+    );
   }
 
   Iterable<Widget> get headerWidgets sync* {

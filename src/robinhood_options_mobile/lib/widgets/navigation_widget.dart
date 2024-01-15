@@ -39,10 +39,10 @@ import 'package:uni_links/uni_links.dart';
 class NavigationStatefulWidget extends StatefulWidget {
   //const NavigationStatefulWidget({Key? key}) : super(key: key);
   const NavigationStatefulWidget({
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
@@ -298,9 +298,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[3]),
-      // TODO: Remove dependency from account ctor param
-      UserWidget(
-          currentUser, userInfo!, accounts != null ? accounts!.first : null,
+      UserWidget(currentUser, userInfo!,
+          accounts?.first, //accounts != null ? accounts!.first : null,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[4]),
@@ -310,11 +309,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
 
   buildScaffold({Widget? widget}) {
-    /*
-    return WillPopScope(
-        onWillPop: () async =>
-            !await navigatorKeys[_pageIndex]!.currentState!.maybePop(),
-        child: */
     return Scaffold(
       /*
       appBar: AppBar(
@@ -392,7 +386,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             //onTap: _onIndexedViewChanged,
           )),
     );
-    //);
   }
 
   _buildDrawer() {
@@ -405,7 +398,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 userInfo == null*/
             ? <Widget>[
                 const DrawerHeader(
-                  child: Text('Investing Mobile', style: TextStyle(fontSize: 30)),
+                  child:
+                      Text('Investing Mobile', style: TextStyle(fontSize: 30)),
                   //decoration: BoxDecoration(color: Colors.green)
                 ),
                 ListTile(

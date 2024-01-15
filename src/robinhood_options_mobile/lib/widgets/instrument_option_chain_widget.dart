@@ -27,11 +27,10 @@ class InstrumentOptionChainWidget extends StatefulWidget {
       this.user,
       //this.account,
       this.instrument,
-      {Key? key,
+      {super.key,
       required this.analytics,
       required this.observer,
-      this.optionPosition})
-      : super(key: key);
+      this.optionPosition});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

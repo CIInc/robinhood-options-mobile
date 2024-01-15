@@ -22,10 +22,10 @@ import 'package:robinhood_options_mobile/services/resource_owner_password_grant.
 
 class LoginWidget extends StatefulWidget {
   const LoginWidget({
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

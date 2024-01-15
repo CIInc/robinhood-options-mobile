@@ -1,5 +1,6 @@
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -14,13 +15,12 @@ class TimeSeriesChart extends StatefulWidget {
   final void Function(dynamic) onSelected;
 
   const TimeSeriesChart(this.seriesList,
-      {Key? key,
+      {super.key,
       this.animate = true,
       required this.onSelected,
       this.open,
       this.close,
-      this.hiddenSeries})
-      : super(key: key);
+      this.hiddenSeries});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -74,7 +74,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec:
               const charts.BasicNumericTickProviderSpec(zeroBound: false)),
-      domainAxis: charts.DateTimeAxisSpec( // EndPointsTimeAxisSpec
+      domainAxis: charts.DateTimeAxisSpec(
+          // EndPointsTimeAxisSpec
           //showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor))
@@ -97,7 +98,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             eventTrigger: charts.SelectionTrigger.tapAndDrag,
             onChangeCallback: _onSliderChange),
             */
-        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
+        charts.SelectNearest(
+            eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
         charts.LinePointHighlighter(
             showHorizontalFollowLine:
                 charts.LinePointHighlighterFollowLineType.all, // .none

@@ -24,10 +24,10 @@ class PositionOrderWidget extends StatefulWidget {
     this.user,
     //this.account,
     this.positionOrder, {
-    Key? key,
+    super.key,
     required this.analytics,
     required this.observer,
-  }) : super(key: key);
+  });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

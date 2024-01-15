@@ -1,5 +1,6 @@
 //import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:flutter/material.dart';
 
 class PieChartData {
@@ -16,13 +17,12 @@ class PieChart extends StatefulWidget {
   final void Function(dynamic) onSelected;
 
   const PieChart(this.seriesList,
-      {Key? key,
+      {super.key,
       this.animate = true,
       this.renderer,
       required this.onSelected,
       //this.staticNumericTicks,
-      this.hiddenSeries})
-      : super(key: key);
+      this.hiddenSeries});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DisclaimerWidget extends StatelessWidget {
-  const DisclaimerWidget({Key? key}) : super(key: key);
+  const DisclaimerWidget({super.key});
 
   @override
   Widget build(BuildContext context) {

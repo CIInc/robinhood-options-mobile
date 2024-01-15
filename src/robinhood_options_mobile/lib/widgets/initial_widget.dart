@@ -3,7 +3,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 
 class InitialWidget extends StatelessWidget {
   final Widget? child;
-  const InitialWidget({Key? key, this.child}) : super(key: key);
+  const InitialWidget({super.key, this.child});
 
   @override
   Widget build(BuildContext context) {
