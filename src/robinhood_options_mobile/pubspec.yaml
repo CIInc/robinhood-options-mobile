@@ -117,6 +117,8 @@ flutter:
   # see https://flutter.dev/custom-fonts/#from-packages
 
 flutter_icons:
+  # Generated from https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuougIL36BwS9iUi2pl2xW0bXKiL%2Bd5spXpLHS8j38sKdYuEZ5gVL6XbqeWAYR3HmBs7vY5goZR3PXBssOyoxo0HoZKxGTjzaMPprmfBu0PrTc6oX0EmUVNdav1%2BUwWqz2ZFz1ctKsTA5lYVyIKsnlJJlgllvG6Tg%2BwpU2UrOMnx1ZLe4FeX%2BqF9IhR17%2BnohdZE10SC2RP3wDBptkmA1vMy1PrjF5f0BVnZtHwQBAAA%3D
+  # Used AppIcon~ios-marketing.png
   image_path: "icon.png" 
   android: true
   ios: true
