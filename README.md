@@ -35,16 +35,6 @@ Once you see a "No issues found!" message, you are ready to start running the ap
 In VS Code, ```F5``` key, the ```Run``` icon, or from the ```Run``` menu to start debugging.
 If prompted choose the ```Flutter``` configuration.
 
-**Debugging Notes**
-- For error `Exception: Error running pod install`, run the following commands:
-    ```bash
-    rm ./ios/Pods
-    rm ./ios/Podfile.lock
-    flutter clean
-    flutter pub get
-    flutter run
-    ```
-
 ### Android Device
 
 1. Enable USB debugging on your Android device.
@@ -56,6 +46,23 @@ Navigate to the project directory and run the flutter command.
     cd src/robinhood_options_mobile
     flutter run
     ```
+
+#### Debugging Notes
+
+##### Wireless debugging
+
+- On device, open Settings > System > Developer options.
+    - Enable USB debugging & Wireless debugging.
+- Connect device to computer over USB. Accept pairing notification on device.
+- Open Android Studio > Tools > Device Manager and pair device.
+- Run these commands to connect wirelessly:
+    ```bash
+    $ ${HOME}/AppData/Local/Android/Sdk/platform-tools/adb tcpip 5555
+    restarting in TCP mode port: 5555
+    $ ${HOME}/AppData/Local/Android/Sdk/platform-tools/adb connect 192.168.86.36
+    connected to 192.168.86.36:5555
+    ```
+- Unplug device and start debugging.
 
 ### iOS Device
 
@@ -69,6 +76,15 @@ Navigate to the project directory and run the flutter command.
     flutter run --release
     ```
 
+**Debugging Notes**
+- For error `Exception: Error running pod install`, run the following commands:
+    ```bash
+    rm ./ios/Pods
+    rm ./ios/Podfile.lock
+    flutter clean
+    flutter pub get
+    flutter run
+    ```
 
 ### Web
 

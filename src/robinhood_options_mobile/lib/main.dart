@@ -103,65 +103,30 @@ class MyApp extends StatelessWidget {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-    /*
-    ThemeData lightTheme, darkTheme;
-    lightTheme =
-        ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
-    darkTheme =
-        ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
-    */
     return DynamicColorBuilder(
-        //future: DynamicColorPlugin.getCorePalette(),
-        //builder: (CorePalette? corePalette) {
-        builder: (ColorScheme? colorScheme, ColorScheme? darkColorScheme) {
+        builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
       // Platform.isAndroid
-      ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS ? 
-        const ColorScheme.light(
-          primary: Colors.purple,
-          secondary: Colors.indigoAccent
-        ) :
-        const ColorScheme.light();
-      ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS ? 
-        const ColorScheme.dark(
-          primary: Colors.purple,
-          secondary: Colors.indigoAccent
-        ) :
-        const ColorScheme.dark();
-      /*
-      if (corePalette != null) {
-        colorScheme = colorScheme.copyWith(
-          primary: Color(corePalette.primary.get(40)),
-        );
-        darkColorScheme = darkColorScheme.copyWith(
-          primary: Color(corePalette.primary.get(80)),
-        );
-        colorScheme = colorScheme.harmonized();
-        darkColorScheme = darkColorScheme.harmonized();
-      }
-      */
-      /* else {
-        colorScheme = colorScheme.copyWith(
-          primary: Colors.teal,
-        );
-        darkColorScheme = darkColorScheme.copyWith(
-          primary: Colors.teal,
-        );
-      }
-      */
-      ThemeData lightTheme =
-          ThemeData(colorScheme: colorScheme
+      ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
+          ? const ColorScheme.light(
+              primary: Colors.purple, secondary: Colors.indigoAccent)
+          : lightDynamic ?? const ColorScheme.light();
+      ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
+          ? const ColorScheme.dark(
+              primary: Colors.purple, secondary: Colors.indigoAccent)
+          : darkDynamic ?? const ColorScheme.dark();
+      ThemeData lightTheme = ThemeData(
+          colorScheme: colorScheme
           // , textTheme: Typography.blackCupertino);
-          , useMaterial3: true
-          , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
-          );
-      ThemeData darkTheme =
-          ThemeData(colorScheme: darkColorScheme
+          ,
+          useMaterial3: true,
+          appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary));
+      ThemeData darkTheme = ThemeData(
+          colorScheme: darkColorScheme
           // , textTheme: Typography.whiteHelsinki,
-          // , useMaterial3: true
+          ,
+          useMaterial3: true
           // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
           );
-      //lightTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.light);
-      //darkTheme = ThemeData(primarySwatch: Colors.teal, brightness: Brightness.dark);
       return MultiProvider(
           providers: [
             ChangeNotifierProvider(
@@ -223,27 +188,27 @@ class MyApp extends StatelessWidget {
             darkTheme: darkTheme,
             themeMode: ThemeMode.system,
             /*
-        theme: ThemeData(
-          // This is the theme of your application.
-          //
-          // Try running your application with "flutter run". You'll see the
-          // application has a blue toolbar. Then, without quitting the app, try
-          // changing the primarySwatch below to Colors.green and then invoke
-          // "hot reload" (press "r" in the console where you ran "flutter run",
-          // or simply save your changes to "hot reload" in a Flutter IDE).
-          // Notice that the counter didn't reset back to zero; the application
-          // is not restarted.
-          primarySwatch: Colors.blue,
-        ), */
+            theme: ThemeData(
+              // This is the theme of your application.
+              //
+              // Try running your application with "flutter run". You'll see the
+              // application has a blue toolbar. Then, without quitting the app, try
+              // changing the primarySwatch below to Colors.green and then invoke
+              // "hot reload" (press "r" in the console where you ran "flutter run",
+              // or simply save your changes to "hot reload" in a Flutter IDE).
+              // Notice that the counter didn't reset back to zero; the application
+              // is not restarted.
+              primarySwatch: Colors.blue,
+            ), */
             // home: OptionPositionsWidget()
             routes: {
               '/': (context) => NavigationStatefulWidget(
                   analytics: analytics, observer: observer),
               /*
-              '/login-callback': (context) => SearchWidget(
-                  new RobinhoodUser(null, null, null, null), null,
-                  analytics: analytics, observer: observer)
-                  */
+                  '/login-callback': (context) => SearchWidget(
+                      new RobinhoodUser(null, null, null, null), null,
+                      analytics: analytics, observer: observer)
+                      */
             },
             //home: NavigationStatefulWidget(analytics: analytics, observer: observer),
           ));
