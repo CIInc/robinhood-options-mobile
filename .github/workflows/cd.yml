@@ -49,17 +49,32 @@ jobs:
         run: flutter test
         continue-on-error: true
 
-      - name: Build APK
+      - name: Build Android APK
         run: flutter build apk --release
         continue-on-error: false
 
-      - name: Upload APK Build Artifact
+      - name: Upload Android APK Build Artifact
         uses: actions/upload-artifact@v2.2.4
         with:
           # Artifact name
           name: release-apk
           # A file, directory or wildcard pattern that describes what to upload
           path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+          # The desired behavior if no files are found using the provided path.
+        continue-on-error: false
+
+      - name: Build iOS IPA
+        id: build-ipa
+        run: flutter build ipa
+        continue-on-error: false
+
+      - name: Upload iOS IPA Build Artifact
+        uses: actions/upload-artifact@v2.2.4
+        with:
+          # Artifact name
+          name: release-ipa
+          # A file, directory or wildcard pattern that describes what to upload
+          path: src/robinhood_options_mobile/build/ios/ipa/robinhood_options_mobile.ipa
           # The desired behavior if no files are found using the provided path.
         continue-on-error: false
 

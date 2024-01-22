@@ -112,6 +112,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage>
+with WidgetsBindingObserver
 //with AutomaticKeepAliveClientMixin<HomePage>
 {
   // Where is DI?
@@ -165,6 +166,7 @@ class _HomePageState extends State<HomePage>
   List<bool> hasQuantityFilters = [true, false];
 
   Timer? refreshTriggerTime;
+  AppLifecycleState? _notification; 
 
   final BannerAd myBanner = BannerAd(
       adUnitId: kDebugMode
@@ -200,10 +202,21 @@ class _HomePageState extends State<HomePage>
   */
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() {
+      _notification = state;
+      if (state == AppLifecycleState.resumed) {
+        _refresh();
+      }
+    });
+  }
+
+  @override
   void initState() {
     super.initState();
 
     _startRefreshTimer();
+    WidgetsBinding.instance.addObserver(this);
 
     widget.analytics.setCurrentScreen(
       screenName: 'Home',
@@ -212,6 +225,7 @@ class _HomePageState extends State<HomePage>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _stopRefreshTimer();
     super.dispose();
   }
@@ -372,39 +386,7 @@ class _HomePageState extends State<HomePage>
     refreshTriggerTime = Timer.periodic(
       const Duration(milliseconds: 15000),
       (timer) async {
-        if (widget.user.refreshEnabled &&
-            widget.user.source == Source.robinhood) {
-          // animateChart = false;
-          if (account != null) {
-            await RobinhoodService.getPortfolioHistoricals(
-                widget.user,
-                Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-                account!.accountNumber,
-                chartBoundsFilter,
-                chartDateSpanFilter);
-          }
-          if (!mounted) return;
-          await RobinhoodService.refreshOptionMarketData(
-              widget.user,
-              Provider.of<OptionPositionStore>(context, listen: false),
-              Provider.of<OptionInstrumentStore>(context, listen: false));
-
-          if (!mounted) return;
-          await RobinhoodService.refreshPositionQuote(
-              widget.user,
-              Provider.of<StockPositionStore>(context, listen: false),
-              Provider.of<QuoteStore>(context, listen: false));
-
-          if (!mounted) return;
-          await RobinhoodService.getPortfolios(
-              widget.user, Provider.of<PortfolioStore>(context, listen: false));
-
-          if (!mounted) return;
-          await RobinhoodService.refreshNummusHoldings(
-            widget.user,
-            Provider.of<ForexHoldingStore>(context, listen: false),
-          );
-        }
+        await _refresh();
       },
     );
   }
@@ -413,6 +395,44 @@ class _HomePageState extends State<HomePage>
     if (refreshTriggerTime != null) {
       refreshTriggerTime!.cancel();
     }
+  }
+
+  _refresh() async {
+    if (widget.user.refreshEnabled &&
+        widget.user.source == Source.robinhood &&
+        (_notification == null || _notification == AppLifecycleState.resumed)) {
+      // animateChart = false;
+      if (account != null) {
+        await RobinhoodService.getPortfolioHistoricals(
+            widget.user,
+            Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+            account!.accountNumber,
+            chartBoundsFilter,
+            chartDateSpanFilter);
+      }
+      if (!mounted) return;
+      await RobinhoodService.refreshOptionMarketData(
+          widget.user,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<OptionInstrumentStore>(context, listen: false));
+
+      if (!mounted) return;
+      await RobinhoodService.refreshPositionQuote(
+          widget.user,
+          Provider.of<StockPositionStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false));
+
+      if (!mounted) return;
+      await RobinhoodService.getPortfolios(
+          widget.user, Provider.of<PortfolioStore>(context, listen: false));
+
+      if (!mounted) return;
+      await RobinhoodService.refreshNummusHoldings(
+        widget.user,
+        Provider.of<ForexHoldingStore>(context, listen: false),
+      );
+    }
+
   }
 
   _onChartSelection(dynamic historical) {
@@ -2477,88 +2497,114 @@ class _HomePageState extends State<HomePage>
       floating: false,
       pinned: true,
       snap: false,
+      /*
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: AppBar( )
+        ),
+        */
       //leading: Container(),
       /*IconButton(
         icon: const Icon(Icons.menu),
         tooltip: 'Menu',
         onPressed: () {/* ... */},
       ),*/
-      title: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
-          //runAlignment: WrapAlignment.end,
-          //alignment: WrapAlignment.end,
-          spacing: 20,
-          //runSpacing: 5,
-          children: [
-            if (userInfo != null) ...[
-              Text(
-                  "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
-                  style: const TextStyle(
-                      fontSize: 17.0)), //, color: Colors.white70
-              Wrap(
-                  spacing: 10,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  children: [
-                    Text(formatCurrency.format(portfolioValue),
-                        style: const TextStyle(fontSize: 19.0)),
-                    //style: const TextStyle(fontSize: 20.0),
-                    //textAlign: TextAlign.right
-                    Wrap(
-                        spacing: 2,
-                        //crossAxisAlignment: WrapCrossAlignment.center,
-                        //alignment: WrapAlignment.center,
-                        children: [
-                          Icon(
-                              changeInPeriod > 0
-                                  ? Icons.trending_up
-                                  : (changeInPeriod < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (changeInPeriod > 0
-                                  ? Colors.green
-                                  : (changeInPeriod < 0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                              size: 19.0),
-                          Text(
-                              formatPercentage
-                                  .format(changePercentInPeriod.abs()),
-                              style: const TextStyle(fontSize: 16.0)),
-                        ]),
-                    Text(
-                        "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                        style: const TextStyle(fontSize: 16.0)),
-                  ]),
-            ]
-          ]),
-      flexibleSpace: LayoutBuilder(
+      title: 
+        Text(
+            "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
+            // style: const TextStyle(fontSize: 17.0)
+        ),
+      // Wrap(
+      //     crossAxisAlignment: WrapCrossAlignment.end,
+      //     //runAlignment: WrapAlignment.end,
+      //     //alignment: WrapAlignment.end,
+      //     spacing: 20,
+      //     //runSpacing: 5,
+      //     children: [
+      //       if (userInfo != null) ...[
+      //         Text(
+      //             "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
+      //             style: const TextStyle(
+      //                 fontSize: 17.0)), //, color: Colors.white70
+      //         Wrap(
+      //             spacing: 10,
+      //             crossAxisAlignment: WrapCrossAlignment.end,
+      //             children: [
+      //               Text(formatCurrency.format(portfolioValue),
+      //                   style: const TextStyle(fontSize: 19.0)),
+      //               //style: const TextStyle(fontSize: 20.0),
+      //               //textAlign: TextAlign.right
+      //               Wrap(
+      //                   spacing: 2,
+      //                   //crossAxisAlignment: WrapCrossAlignment.center,
+      //                   //alignment: WrapAlignment.center,
+      //                   children: [
+      //                     Icon(
+      //                         changeInPeriod > 0
+      //                             ? Icons.trending_up
+      //                             : (changeInPeriod < 0
+      //                                 ? Icons.trending_down
+      //                                 : Icons.trending_flat),
+      //                         color: (changeInPeriod > 0
+      //                             ? Colors.green
+      //                             : (changeInPeriod < 0
+      //                                 ? Colors.red
+      //                                 : Colors.grey)),
+      //                         size: 19.0),
+      //                     Text(
+      //                         formatPercentage
+      //                             .format(changePercentInPeriod.abs()),
+      //                         style: const TextStyle(fontSize: 16.0)),
+      //                   ]),
+      //               Text(
+      //                   "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+      //                   style: const TextStyle(fontSize: 16.0)),
+      //             ]),
+      //       ]
+      //     ]),
+      flexibleSpace: 
+      // FlexibleSpaceBar(
+      //       title: _buildExpandedSliverAppBarTitle(
+      //               userInfo,
+      //               portfolioValue,
+      //               stockAndOptionsEquityPercent,
+      //               portfolioStore.items,
+      //               optionEquityPercent,
+      //               portfolioStore,
+      //               optionPositionStore,
+      //               stockPositionStore,
+      //               forexHoldingStore,
+      //               positionEquityPercent,
+      //               cryptoPercent,
+      //               cashPercent,
+      //               portfolioCash)),
+      LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
         //var top = constraints.biggest.height;
         //debugPrint(top.toString());
         //debugPrint(kToolbarHeight.toString());
 
-        /*
-        List<PieChartData> data = [];
-        if (portfolioStore.items.isNotEmpty) {
-          data.add(PieChartData(
-              'Options\n\$${formatCompactNumber.format(optionPositionStore.equity)}',
-              optionPositionStore.equity)); // / portfolioValue
-          data.add(PieChartData(
-              'Stocks\n\$${formatCompactNumber.format(stockPositionStore.equity)}',
-              stockPositionStore.equity)); // / portfolioValue
-          data.add(PieChartData(
-              'Crypto\n\$${formatCompactNumber.format(forexHoldingStore.equity)}',
-              forexHoldingStore.equity)); // / portfolioValue
-          double portfolioCash = account != null ? account.portfolioCash! : 0;
-          data.add(PieChartData(
-              'Cash\n\$${formatCompactNumber.format(portfolioCash)}',
-              portfolioCash)); // / portfolioValue
-        }
-        data.sort((a, b) => b.value.compareTo(a.value));
-        */
+        // List<PieChartData> data = [];
+        // if (portfolioStore.items.isNotEmpty) {
+        //   data.add(PieChartData(
+        //       'Options\n\$${formatCompactNumber.format(optionPositionStore.equity)}',
+        //       optionPositionStore.equity)); // / portfolioValue
+        //   data.add(PieChartData(
+        //       'Stocks\n\$${formatCompactNumber.format(stockPositionStore.equity)}',
+        //       stockPositionStore.equity)); // / portfolioValue
+        //   data.add(PieChartData(
+        //       'Crypto\n\$${formatCompactNumber.format(forexHoldingStore.equity)}',
+        //       forexHoldingStore.equity)); // / portfolioValue
+        //   double portfolioCash = account != null ? account.portfolioCash! : 0;
+        //   data.add(PieChartData(
+        //       'Cash\n\$${formatCompactNumber.format(portfolioCash)}',
+        //       portfolioCash)); // / portfolioValue
+        // }
+        // data.sort((a, b) => b.value.compareTo(a.value));
 
         final settings = context
             .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+
         final deltaExtent = settings!.maxExtent - settings.minExtent;
         final t =
             (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
@@ -2566,67 +2612,62 @@ class _HomePageState extends State<HomePage>
         final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
         const fadeEnd = 1.0;
         final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-        /*
-        var shades = PieChart.makeShades(
-            charts.ColorUtil.fromDartColor(
-                Theme.of(context).colorScheme.primary),
-            4);
-        */
+
+        //bool visible = settings == null || settings.currentExtent <= settings.minExtent;
+        
+        // var shades = PieChart.makeShades(
+        //     charts.ColorUtil.fromDartColor(
+        //         Theme.of(context).colorScheme.primary),
+        //     4);
         return FlexibleSpaceBar(
-            /*
-            titlePadding:
-                const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-                */
+            // titlePadding:
+            //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //centerTitle: true,
             //titlePadding: EdgeInsets.symmetric(horizontal: 5),
             //titlePadding: EdgeInsets.all(5),
             //background: const FlutterLogo(),
-            /*
-            background: const SizedBox(
-              width: double.infinity,
-              child:
-                  FlutterLogo()
-              //Image.network(
-              //  Constants.flexibleSpaceBarBackground,
-              //  fit: BoxFit.cover,
-              //)
-              ,
-            ),
-            */
-            /*
-            background: SizedBox(
-                height: 180,
-                width: 180,
-                child: Padding(
-                  //padding: EdgeInsets.zero,
-                  //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  //padding: const EdgeInsets.all(10.0),
-                  padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
-                  child: PieChart(
-                    [
-                      charts.Series<PieChartData, String>(
-                        id: 'Portfolio Breakdown',
-                        //colorFn: (_, index) => shades[index!],
-                        //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                        // colorFn: (_, index) => charts.MaterialPalette.cyan
-                        //     .makeShades(4)[index!],
-                        // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                        //     Theme.of(context).colorScheme.primary),
-                        domainFn: (PieChartData val, index) => val.label,
-                        measureFn: (PieChartData val, index) => val.value,
-                        data: data,
-                      ),
-                    ],
-                    animate: false,
-                    renderer: charts.ArcRendererConfig(
-                        //arcWidth: 60,
-                        arcRendererDecorators: [
-                          new charts.ArcLabelDecorator()
-                        ]),
-                    onSelected: (_) {},
-                  ),
-                )),
-            */
+            // background: const SizedBox(
+            //   width: double.infinity,
+            //   child:
+            //       FlutterLogo()
+            //   //Image.network(
+            //   //  Constants.flexibleSpaceBarBackground,
+            //   //  fit: BoxFit.cover,
+            //   //)
+            //   ,
+            // ),
+            // background: SizedBox(
+            //     height: 180,
+            //     width: 180,
+            //     child: Padding(
+            //       //padding: EdgeInsets.zero,
+            //       //padding: EdgeInsets.symmetric(horizontal: 12.0),
+            //       //padding: const EdgeInsets.all(10.0),
+            //       padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
+            //       child: PieChart(
+            //         [
+            //           charts.Series<PieChartData, String>(
+            //             id: 'Portfolio Breakdown',
+            //             //colorFn: (_, index) => shades[index!],
+            //             //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+            //             // colorFn: (_, index) => charts.MaterialPalette.cyan
+            //             //     .makeShades(4)[index!],
+            //             // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+            //             //     Theme.of(context).colorScheme.primary),
+            //             domainFn: (PieChartData val, index) => val.label,
+            //             measureFn: (PieChartData val, index) => val.value,
+            //             data: data,
+            //           ),
+            //         ],
+            //         animate: false,
+            //         renderer: charts.ArcRendererConfig(
+            //             //arcWidth: 60,
+            //             arcRendererDecorators: [
+            //               new charts.ArcLabelDecorator()
+            //             ]),
+            //         onSelected: (_) {},
+            //       ),
+            //     )),
             title: Opacity(
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
@@ -2706,7 +2747,7 @@ class _HomePageState extends State<HomePage>
   }
 
   SingleChildScrollView _buildExpandedSliverAppBarTitle(
-      UserInfo? user,
+      UserInfo? userInfo,
       double portfolioValue,
       double stockAndOptionsEquityPercent,
       List<Portfolio> portfolios,
@@ -2970,6 +3011,7 @@ class _HomePageState extends State<HomePage>
                     width: 75,
                     child: Text(
                         formatCurrency.format(stockPositionStore.equity),
+                        // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
                         style: const TextStyle(fontSize: 13.0),
                         textAlign: TextAlign.right)),
                 Container(

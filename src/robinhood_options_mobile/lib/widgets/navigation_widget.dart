@@ -328,7 +328,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             ),
       ),
       */
-      drawer: _buildDrawer(),
+      drawer: robinhoodUsers.isEmpty ? null : _buildDrawer(),
       body: widget ??
           PageView.builder(
             itemBuilder: (context, index) {
