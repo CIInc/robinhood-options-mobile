@@ -598,8 +598,8 @@ with WidgetsBindingObserver
               EquityHistorical? lastHistorical;
               double open = 0;
               double close = 0;
-              // double changeInPeriod = 0;
-              // double changePercentInPeriod = 0;
+              double changeInPeriod = 0;
+              double changePercentInPeriod = 0;
 
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
@@ -607,8 +607,8 @@ with WidgetsBindingObserver
               open = firstHistorical
                   .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
               close = lastHistorical.adjustedCloseEquity!;
-              // changeInPeriod = close - open;
-              // changePercentInPeriod = changeInPeriod / close;
+              changeInPeriod = close - open;
+              changePercentInPeriod = changeInPeriod / close;
 
               // Override the portfolio API with current historical data.
               //portfolioValue = close;
@@ -683,18 +683,20 @@ with WidgetsBindingObserver
                 Consumer<PortfolioHistoricalsSelectionStore>(
                     builder: (context, value, child) {
                   selection = value.selection;
-                  // if (selection != null) {
-                  //   changeInPeriod = selection!.adjustedCloseEquity! -
-                  //       open; // portfolios![0].equityPreviousClose!;
-                  //   changePercentInPeriod = changeInPeriod / selection!.adjustedCloseEquity!;
-                  // } else {
-                  //   changeInPeriod = close - open;
-                  //   changePercentInPeriod = changeInPeriod / close;
-                  // }
+                  if (selection != null) {
+                    changeInPeriod = selection!.adjustedCloseEquity! - open; // portfolios![0].equityPreviousClose!;
+                    changePercentInPeriod = changeInPeriod / selection!.adjustedCloseEquity!;
+                  } else {
+                    changeInPeriod = close - open;
+                    changePercentInPeriod = changeInPeriod / close;
+                  }
+                  String? returnText = widget.user.getDisplayText(changeInPeriod, displayValue: DisplayValue.totalReturn);
+                  String? returnPercentText = widget.user.getDisplayText(changePercentInPeriod, displayValue: DisplayValue.totalReturnPercent);
+                  Icon todayIcon = widget.user.getDisplayIcon(changeInPeriod, size: 27.0);
 
                   //return Text(value.selection!.beginsAt.toString());
                   return SizedBox(
-                      height: 72,
+                      //height: 72,
                       child: Column(
                         children: [
                           ListTile(
@@ -704,17 +706,21 @@ with WidgetsBindingObserver
                               ),
                               subtitle: Text(
                                 // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                                formatLongDate.format(selection != null
-                                    ? selection!.beginsAt!.toLocal()
-                                    : lastHistorical!.beginsAt!.toLocal()),
+                                formatLongDate.format(
+                                    lastHistorical!.beginsAt!.toLocal()),
+                                    // selection != null
+                                    // ? selection!.beginsAt!.toLocal()
+                                    // : lastHistorical!.beginsAt!.toLocal()),
                                 style: const TextStyle(fontSize: 10.0),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               trailing: Wrap(spacing: 8, children: [
                                 Text(
-                                  formatCurrency.format(selection != null
-                                      ? selection!.adjustedCloseEquity
-                                      : close),
+                                  formatCurrency.format(
+                                    close),
+                                    // selection != null
+                                    //  ? selection!.adjustedCloseEquity
+                                    //  : close),
                                   style: const TextStyle(fontSize: 21.0),
                                   textAlign: TextAlign.right,
                                 )
@@ -763,6 +769,93 @@ with WidgetsBindingObserver
                                 ],
                               )*/
                               ),
+                        SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
+                                child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.end,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset), //.symmetric(horizontal: 6),
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: <Widget>[
+                                              Text(formatCurrency.format(selection != null ? selection!.adjustedCloseEquity : close),
+                                              textAlign: TextAlign.right,
+                                                  style: const TextStyle(
+                                                      fontSize:
+                                                          summaryValueFontSize)),
+                                                Text(formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal()), // "Value",
+                                                  style: const TextStyle(
+                                                      fontSize:
+                                                          summaryLabelFontSize)),
+                                            ]),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset), //.symmetric(horizontal: 6),
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: <Widget>[
+                                              Wrap(spacing: 8, children: [
+                                                todayIcon,
+                                                Text(returnText,
+                                                    style: const TextStyle(
+                                                        fontSize:
+                                                            summaryValueFontSize))
+                                              ]),
+                                              const Text("Change",
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          summaryLabelFontSize)),
+                                            ]),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(
+                                            summaryEgdeInset), //.symmetric(horizontal: 6),
+                                        child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: <Widget>[
+                                              Text(returnPercentText,
+                                                  style: const TextStyle(
+                                                      fontSize:
+                                                          summaryValueFontSize)),
+                                              const Text("Change %",
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          summaryLabelFontSize)),
+                                            ]),
+                                      ),
+                                      // Padding(
+                                      //   padding: const EdgeInsets.all(
+                                      //       summaryEgdeInset), //.symmetric(horizontal: 6),
+                                      //   child: Column(
+                                      //       mainAxisSize: MainAxisSize.min,
+                                      //       children: <Widget>[
+                                      //         const Text(
+                                      //           "",
+                                      //           // formatLongDate.format(selection != null
+                                      //           // ? selection!.beginsAt!.toLocal()
+                                      //           //: lastHistorical!.beginsAt!.toLocal()),
+                                      //         textAlign: TextAlign.right,
+                                      //             style: TextStyle(
+                                      //                 fontSize:
+                                      //                     summaryValueFontSize)),
+                                      //         Text(formatLongDate.format(selection != null
+                                      //           ? selection!.beginsAt!.toLocal()
+                                      //           : lastHistorical!.beginsAt!.toLocal()),
+                                      //           //"Date",
+                                      //             style: TextStyle(
+                                      //                 fontSize:
+                                      //                     summaryLabelFontSize)),
+                                      //       ]),
+                                      // ),
+                                    ])))
+
                           /*
                           ListTile(
                             title: 
@@ -1366,9 +1459,9 @@ with WidgetsBindingObserver
                   displayValue: DisplayValue.todayReturnPercent);
 
               Icon todayIcon =
-                  widget.user.getDisplayIcon(todayReturn, size: 21.0);
+                  widget.user.getDisplayIcon(todayReturn, size: 27.0);
               Icon totalIcon =
-                  widget.user.getDisplayIcon(totalReturn, size: 21.0);
+                  widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
               return SliverToBoxAdapter(
                   child: ShrinkWrappingViewport(
@@ -1619,9 +1712,9 @@ with WidgetsBindingObserver
                     displayValue: DisplayValue.todayReturnPercent);
 
                 Icon todayIcon =
-                    widget.user.getDisplayIcon(todayReturn, size: 21.0);
+                    widget.user.getDisplayIcon(todayReturn, size: 27.0);
                 Icon totalIcon =
-                    widget.user.getDisplayIcon(totalReturn, size: 21.0);
+                    widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
                 return SliverToBoxAdapter(
                     child: ShrinkWrappingViewport(
@@ -2468,16 +2561,16 @@ with WidgetsBindingObserver
       cryptoPercent = forexHoldingStore.equity / portfolioValue;
     }
 
-    double changeInPeriod = 0;
-    double changePercentInPeriod = 0;
-    if (portfolioStore.items.isNotEmpty &&
-        portfolioStore.items[0].equity != null &&
-        portfolioStore.items[0].equityPreviousClose != null) {
-      changeInPeriod = portfolioStore.items[0].equity! -
-          portfolioStore.items[0].equityPreviousClose!;
-      changePercentInPeriod =
-          (changeInPeriod) / portfolioStore.items[0].equity!;
-    }
+    // double changeInPeriod = 0;
+    // double changePercentInPeriod = 0;
+    // if (portfolioStore.items.isNotEmpty &&
+    //     portfolioStore.items[0].equity != null &&
+    //     portfolioStore.items[0].equityPreviousClose != null) {
+    //   changeInPeriod = portfolioStore.items[0].equity! -
+    //       portfolioStore.items[0].equityPreviousClose!;
+    //   changePercentInPeriod =
+    //       (changeInPeriod) / portfolioStore.items[0].equity!;
+    // }
     var sliverAppBar = SliverAppBar(
       /* Drawer will automatically add menu to SliverAppBar.
                     leading: IconButton(
@@ -3257,8 +3350,8 @@ with WidgetsBindingObserver
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -3382,8 +3475,8 @@ with WidgetsBindingObserver
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[

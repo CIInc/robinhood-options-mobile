@@ -106,8 +106,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
     String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 27.0);
+    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 27.0);
     */
 
     double? deltaAvg,
@@ -342,7 +342,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                           : 0)
                       .toInt(),
                   summaryValueFontSize,
-                  summaryLabelFontSize),
+                  summaryLabelFontSize,
+                  iconSize: 27.0),
               /*
               SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -720,7 +721,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
       double? chanceOfProfit,
       int openInterest,
       double valueFontSize,
-      double labelFontSize) {
+      double labelFontSize,
+      { double iconSize = 23.0 }) {
     List<Widget> tiles = [];
     /*
     double? marketValue = user.getAggregateDisplayValue(ops,
@@ -749,8 +751,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
     String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 21.0);
-    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 21.0);
+    Icon todayIcon = user.getDisplayIcon(todayReturn, size: iconSize);
+    Icon totalIcon = user.getDisplayIcon(totalReturn, size: iconSize);
 
     tiles = [
       Padding(
@@ -1071,7 +1073,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   ? openInterestAvg.toInt()
                   : 0,
               summaryValueFontSize,
-              summaryLabelFontSize)
+              summaryLabelFontSize,
+              iconSize: 27.0)
         ]
       ]));
       /*

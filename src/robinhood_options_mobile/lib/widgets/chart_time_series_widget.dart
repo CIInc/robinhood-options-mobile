@@ -73,7 +73,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec:
-              const charts.BasicNumericTickProviderSpec(zeroBound: false)),
+              const charts.BasicNumericTickProviderSpec(zeroBound: false, dataIsInWholeNumbers: true, desiredMinTickCount: 4)),
       domainAxis: charts.DateTimeAxisSpec(
           // EndPointsTimeAxisSpec
           //showAxisLine: true,
@@ -106,7 +106,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             showVerticalFollowLine:
                 charts.LinePointHighlighterFollowLineType.all,
             dashPattern: const [], // const [10],
-            defaultRadiusPx: 5),
+            defaultRadiusPx: 6),
         /*
         charts.InitialSelection(selectedDataConfig: [
           charts.SeriesDatumConfig<DateTime>(
