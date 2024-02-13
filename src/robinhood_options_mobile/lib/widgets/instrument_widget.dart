@@ -15,15 +15,15 @@ import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/stock_order_store.dart';
-import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
-import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -35,7 +35,7 @@ import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -47,7 +47,7 @@ final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.####");
+final formatNumber = NumberFormat("0.#####");
 final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
@@ -83,7 +83,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<dynamic>? futureEarnings;
   Future<List<dynamic>>? futureSimilar;
   Future<List<dynamic>>? futureSplits;
-  Future<List<StockOrder>>? futureInstrumentOrders;
+  Future<List<InstrumentOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<List<OptionEvent>>? futureOptionEvents;
 
@@ -150,7 +150,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     var stockPositionOrderStore =
-        Provider.of<StockOrderStore>(context, listen: false);
+        Provider.of<InstrumentOrderStore>(context, listen: false);
     var positionOrders = stockPositionOrderStore.items
         .where((element) => element.instrumentId == widget.instrument.id)
         .toList();
@@ -393,73 +393,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           )*/
                   ));
             }),
-            actions: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.more_vert),
-                // icon: const Icon(Icons.settings),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    //isScrollControlled: true,
-                    //useRootNavigator: true,
-                    //constraints: const BoxConstraints(maxHeight: 200),
-                    builder: (_) => MoreMenuBottomSheet(
-                      widget.user,
-                      onSettingsChanged: _handleSettingsChanged,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                    ),
-                  );
-                },
-              ),
-              /*
-        IconButton(
-          icon: ru != null && ru.userName != null
-              ? const Icon(Icons.logout)
-              : const Icon(Icons.login),
-          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
-          onPressed: () {
-            if (ru != null && ru.userName != null) {
-              var alert = AlertDialog(
-                title: const Text('Logout process'),
-                content: SingleChildScrollView(
-                  child: ListBody(
-                    children: <Widget>[
-                      const Text(
-                          'This action will require you to log in again.'),
-                      const Text('Are you sure you want to log out?'),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Cancel'),
-                    onPressed: () {
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                  TextButton(
-                    child: const Text('OK'),
-                    onPressed: () {
-                      _logout();
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                ],
-              );
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return alert;
-                },
-              );
-            } else {
-              _openLogin();
-            }
-            /* ... */
-          },
-        ),*/
-            ],
+            // actions: <Widget>[
+            //   IconButton(
+            //     icon: const Icon(Icons.more_vert),
+            //     // icon: const Icon(Icons.settings),
+            //     onPressed: () {
+            //       showModalBottomSheet<void>(
+            //         context: context,
+            //         //isScrollControlled: true,
+            //         //useRootNavigator: true,
+            //         //constraints: const BoxConstraints(maxHeight: 200),
+            //         builder: (_) => MoreMenuBottomSheet(
+            //           widget.user,
+            //           onSettingsChanged: _handleSettingsChanged,
+            //           analytics: widget.analytics,
+            //           observer: widget.observer,
+            //         ),
+            //       );
+            //     },
+            //   ),
+            // ],
           ),
           if (done == false) ...[
             const SliverToBoxAdapter(
@@ -838,7 +791,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
             return SliverToBoxAdapter(child: Container());
           }),
-          Consumer<StockPositionStore>(
+          Consumer<InstrumentPositionStore>(
               builder: (context, stockPositionStore, child) {
             var position = stockPositionStore.items
                 .firstWhereOrNull((e) => e.instrument == instrument.url);
@@ -856,7 +809,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ListTile(
                     title: const Text("Quantity"),
                     trailing: Text(
-                        formatCompactNumber.format(position.quantity!),
+                        // formatCompactNumber.format(position.quantity!),
+                        formatNumber.format(position.quantity!),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
@@ -1043,7 +997,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildListsWidget(instrument)
           ],
-          Consumer<StockOrderStore>(builder: (context, stockOrderStore, child) {
+          Consumer<InstrumentOrderStore>(builder: (context, stockOrderStore, child) {
             //var positionOrders = stockOrderStore.items.where(
             //    (element) => element.instrumentId == widget.instrument.id);
 
@@ -1126,6 +1080,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     */
   }
 
+  /*
   void _handleSettingsChanged(dynamic settings) {
     setState(() {
       hasQuantityFilters = settings['hasQuantityFilters'];
@@ -1133,6 +1088,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       positionFilters = settings['positionFilters'];
     });
   }
+  */
 
   Card buildOverview(Instrument instrument) {
     if (instrument.quoteObj == null) {
@@ -1167,48 +1123,63 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //const SizedBox(width: 8),
             TextButton(
               child: const Text('BUY'),
-              onPressed: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text('Alert'),
-                  content: const Text('This feature is not implemented.'),
-                  actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'OK'),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              ),
+              onPressed: () => 
+              // showDialog<String>(
+              //   context: context,
+              //   builder: (BuildContext context) => AlertDialog(
+              //     title: const Text('Alert'),
+              //     content: const Text('This feature is not implemented.'),
+              //     actions: <Widget>[
+              //       TextButton(
+              //         onPressed: () => Navigator.pop(context, 'OK'),
+              //         child: const Text('OK'),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TradeInstrumentWidget(
+                                widget.user,
+                                //widget.account,
+                                // stockPosition: positi,
+                                instrument: instrument,
+                                positionType: "Buy",
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )))
             ),
             const SizedBox(width: 8),
             TextButton(
               child: const Text('SELL'),
-              onPressed: () => showDialog<String>(
-                context: context,
-                builder: (BuildContext context) => AlertDialog(
-                  title: const Text('Alert'),
-                  content: const Text('This feature is not implemented.'),
-                  actions: <Widget>[
-                    /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'OK'),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              ),
+              onPressed: () => 
+              // showDialog<String>(
+              //   context: context,
+              //   builder: (BuildContext context) => AlertDialog(
+              //     title: const Text('Alert'),
+              //     content: const Text('This feature is not implemented.'),
+              //     actions: <Widget>[
+              //       TextButton(
+              //         onPressed: () => Navigator.pop(context, 'OK'),
+              //         child: const Text('OK'),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => TradeInstrumentWidget(
+                                widget.user,
+                                //widget.account,
+                                // stockPosition: positi,
+                                instrument: instrument,
+                                positionType: "Sell",
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )))
+              
             ),
             const SizedBox(width: 8),
           ],
@@ -2112,7 +2083,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ]));
   }
 
-  Widget positionOrdersWidget(List<StockOrder> positionOrders) {
+  Widget positionOrdersWidget(List<InstrumentOrder> positionOrders) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(

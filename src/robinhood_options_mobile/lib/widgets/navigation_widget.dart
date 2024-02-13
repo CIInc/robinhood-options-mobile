@@ -278,7 +278,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     tabPages = [
       HomePage(
         currentUser, userInfo!,
-        title: 'Investing Mobile',
+        title: Constants.appTitle,
         navigatorKey: navigatorKeys[0],
         analytics: widget.analytics,
         observer: widget.observer,
@@ -399,7 +399,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             ? <Widget>[
                 const DrawerHeader(
                   child:
-                      Text('Investing Mobile', style: TextStyle(fontSize: 30)),
+                      Text(Constants.appTitle, style: TextStyle(fontSize: 30)),
                   //decoration: BoxDecoration(color: Colors.green)
                 ),
                 ListTile(

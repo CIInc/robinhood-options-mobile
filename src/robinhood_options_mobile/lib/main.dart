@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'firebase_options.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -23,8 +24,8 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_s
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/stock_order_store.dart';
-import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -160,10 +161,10 @@ class MyApp extends StatelessWidget {
               create: (context) => OptionInstrumentStore(),
             ),
             ChangeNotifierProvider(
-              create: (context) => StockPositionStore(),
+              create: (context) => InstrumentPositionStore(),
             ),
             ChangeNotifierProvider(
-              create: (context) => StockOrderStore(),
+              create: (context) => InstrumentOrderStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => ForexHoldingStore(),
@@ -182,7 +183,7 @@ class MyApp extends StatelessWidget {
             )
           ],
           child: MaterialApp(
-            title: 'Investing Mobile',
+            title: Constants.appTitle,
             debugShowCheckedModeBanner: false,
             theme: lightTheme,
             darkTheme: darkTheme,

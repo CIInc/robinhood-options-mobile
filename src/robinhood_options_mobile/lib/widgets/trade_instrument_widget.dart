@@ -4,39 +4,39 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
-import 'package:robinhood_options_mobile/model/option_instrument.dart';
-import 'package:robinhood_options_mobile/model/option_order.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
-class TradeOptionWidget extends StatefulWidget {
-  const TradeOptionWidget(this.user,
+class TradeInstrumentWidget extends StatefulWidget {
+  const TradeInstrumentWidget(this.user,
       //this.account,
       {super.key,
       required this.analytics,
       required this.observer,
-      this.optionPosition,
-      this.optionInstrument,
+      this.stockPosition,
+      this.instrument,
       this.positionType = "Buy"});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
-  final OptionAggregatePosition? optionPosition;
-  final OptionInstrument? optionInstrument;
+  final InstrumentPosition? stockPosition;
+  final Instrument? instrument;
   final String? positionType;
 
   @override
-  State<TradeOptionWidget> createState() => _TradeOptionWidgetState();
+  State<TradeInstrumentWidget> createState() => _TradeInstrumentWidgetState();
 }
 
-class _TradeOptionWidgetState extends State<TradeOptionWidget> {
+class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   String? positionType;
 
   //String? optionType = "Call";
@@ -50,7 +50,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
-  _TradeOptionWidgetState();
+  _TradeInstrumentWidgetState();
 
   @override
   void initState() {
@@ -71,21 +71,23 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           onPressed: () async {
             var accountStore =
                 Provider.of<AccountStore>(context, listen: false);
-            var orderJson = await RobinhoodService.placeOptionsOrder(
+
+            // TODO
+            var orderJson = await RobinhoodService.placeInstrumentOrder(
               widget.user,
               accountStore.items[0],
-              widget.optionInstrument!,
+              widget.instrument!,
+              widget.instrument!.symbol,
               positionType == "Buy" ? "buy" : "sell", // side
-              "open", //positionEffect
-              "debit", //creditOrDebit
               double.parse(priceCtl.text),
               int.parse(quantityCtl.text),
             );
+            debugPrint(orderJson);
 
-            var newOrder = OptionOrder.fromJson(orderJson);
+            var newOrder = InstrumentOrder.fromJson(orderJson);
 
             // widget.analytics.logPurchase(
-            //     currency: widget.optionInstrument!.chainSymbol,
+            //     currency: widget.instrument!.chainSymbol,
             //     value:
             //         double.parse(priceCtl.text) + int.parse(quantityCtl.text),
             //     transactionId: newOrder.id,
@@ -100,7 +102,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 ..removeCurrentSnackBar()
                 ..showSnackBar(SnackBar(
                     content: Text(
-                        "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.")));
+                        "Order to $positionType ${quantityCtl.text} shares of ${widget.instrument!.symbol} at \$${priceCtl.text} placed.")));
             } else {
               setState(() {
                 ScaffoldMessenger.of(context)
@@ -112,7 +114,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
           },
         ));
     priceCtl.text =
-        widget.optionInstrument!.optionMarketData!.markPrice!.toString();
+        widget.instrument!.quoteObj!.lastTradePrice.toString();
     return Scaffold(
         appBar: AppBar(
           title: Wrap(
@@ -123,11 +125,11 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
               //runSpacing: 5,
               children: [
                 Text(
-                    '${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type}',
+                    '${widget.instrument!.symbol} ${widget.instrument!.type}',
                     style: const TextStyle(fontSize: 20.0)),
-                Text(
-                    formatDate.format(widget.optionInstrument!.expirationDate!),
-                    style: const TextStyle(fontSize: 15.0))
+                // Text(
+                //     formatDate.format(widget.instrument!.expirationDate!),
+                //     style: const TextStyle(fontSize: 15.0))
               ]),
         ),
         body: Builder(builder: (context) {
@@ -190,7 +192,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 title: TextField(
                   controller: quantityCtl,
                 ),
-                subtitle: const Text("Contract"),
+                subtitle: const Text("Shares"),
               ),
               ListTile(
                 title: TextField(

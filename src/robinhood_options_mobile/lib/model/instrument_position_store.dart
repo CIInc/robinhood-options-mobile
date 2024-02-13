@@ -1,14 +1,14 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 
-class StockPositionStore extends ChangeNotifier {
+class InstrumentPositionStore extends ChangeNotifier {
   /// Internal, private state of the store.
-  final List<StockPosition> _items = [];
+  final List<InstrumentPosition> _items = [];
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<StockPosition> get items => UnmodifiableListView(_items);
+  UnmodifiableListView<InstrumentPosition> get items => UnmodifiableListView(_items);
 
   double get equity => _items.isNotEmpty
       ? _items.map((e) => e.marketValue).reduce((a, b) => a + b)
@@ -20,7 +20,7 @@ class StockPositionStore extends ChangeNotifier {
       .toSet()
       .toList();
 
-  void add(StockPosition item) {
+  void add(InstrumentPosition item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
@@ -32,7 +32,7 @@ class StockPositionStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool update(StockPosition item) {
+  bool update(InstrumentPosition item) {
     var index = _items.indexWhere((element) =>
         //element.url == item.url);
         //element.instrument == item.instrument);
@@ -45,7 +45,7 @@ class StockPositionStore extends ChangeNotifier {
     return true;
   }
 
-  void addOrUpdate(StockPosition item) {
+  void addOrUpdate(InstrumentPosition item) {
     if (!update(item)) {
       add(item);
     }

@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
-import 'package:robinhood_options_mobile/model/stock_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -20,7 +20,7 @@ import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
@@ -68,9 +68,9 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage>
     with AutomaticKeepAliveClientMixin<HistoryPage> {
-  Stream<List<StockOrder>>? positionOrderStream;
-  List<StockOrder>? positionOrders;
-  List<StockOrder>? filteredPositionOrders;
+  Stream<List<InstrumentOrder>>? positionOrderStream;
+  List<InstrumentOrder>? positionOrders;
+  List<InstrumentOrder>? filteredPositionOrders;
   Stream<List<OptionOrder>>? optionOrderStream;
   List<OptionOrder>? optionOrders;
   List<OptionOrder>? filteredOptionOrders;
@@ -171,7 +171,7 @@ class _HistoryPageState extends State<HistoryPage>
 
             positionOrderStream ??= RobinhoodService.streamPositionOrders(
                 widget.user,
-                Provider.of<StockOrderStore>(context, listen: false),
+                Provider.of<InstrumentOrderStore>(context, listen: false),
                 Provider.of<InstrumentStore>(context, listen: false));
 
             return StreamBuilder(
@@ -179,7 +179,7 @@ class _HistoryPageState extends State<HistoryPage>
                 builder: (context6, positionOrdersSnapshot) {
                   if (positionOrdersSnapshot.hasData) {
                     positionOrders =
-                        positionOrdersSnapshot.data as List<StockOrder>;
+                        positionOrdersSnapshot.data as List<InstrumentOrder>;
 
                     optionEventStream ??= RobinhoodService.streamOptionEvents(
                         widget.user,
@@ -247,7 +247,7 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildPage(
       {Widget? welcomeWidget,
       List<OptionOrder>? optionOrders,
-      List<StockOrder>? positionOrders,
+      List<InstrumentOrder>? positionOrders,
       List<OptionEvent>? optionEvents,
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,

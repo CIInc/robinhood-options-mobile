@@ -16,8 +16,8 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/stock_order_store.dart';
-import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -38,8 +38,8 @@ import 'package:robinhood_options_mobile/model/option_marketdata.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
-import 'package:robinhood_options_mobile/model/stock_position.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -461,9 +461,9 @@ class RobinhoodService implements IBrokerageService {
   }
   */
 
-  static Future<StockPositionStore> getStockPositionStore(
+  static Future<InstrumentPositionStore> getStockPositionStore(
       RobinhoodUser user,
-      StockPositionStore store,
+      InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
       {bool nonzero = true}) async {
@@ -473,7 +473,7 @@ class RobinhoodService implements IBrokerageService {
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        var op = StockPosition.fromJson(result);
+        var op = InstrumentPosition.fromJson(result);
 
         //if ((withQuantity && op.quantity! > 0) ||
         //    (!withQuantity && op.quantity == 0)) {
@@ -505,9 +505,9 @@ class RobinhoodService implements IBrokerageService {
     return store;
   }
 
-  static Stream<StockPositionStore> streamStockPositionStore(
+  static Stream<InstrumentPositionStore> streamStockPositionStore(
       RobinhoodUser user,
-      StockPositionStore store,
+      InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
       {bool nonzero = true}) async* {
@@ -517,7 +517,7 @@ class RobinhoodService implements IBrokerageService {
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        var op = StockPosition.fromJson(result);
+        var op = InstrumentPosition.fromJson(result);
 
         //if ((withQuantity && op.quantity! > 0) ||
         //    (!withQuantity && op.quantity == 0)) {
@@ -553,8 +553,8 @@ class RobinhoodService implements IBrokerageService {
     yield store;
   }
 
-  static Future<List<StockPosition>> refreshPositionQuote(RobinhoodUser user,
-      StockPositionStore store, QuoteStore quoteStore) async {
+  static Future<List<InstrumentPosition>> refreshPositionQuote(RobinhoodUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
     if (store.items.isEmpty || store.items.first.instrumentObj == null) {
       return store.items;
     }
@@ -562,7 +562,7 @@ class RobinhoodService implements IBrokerageService {
     var ops = store.items;
     var len = ops.length;
     var size = 25; //20; //15; //17;
-    List<List<StockPosition>> chunks = [];
+    List<List<InstrumentPosition>> chunks = [];
     for (var i = 0; i < len; i += size) {
       var end = (i + size < len) ? i + size : len;
       chunks.add(ops.sublist(i, end));
@@ -588,16 +588,16 @@ class RobinhoodService implements IBrokerageService {
     return ops;
   }
 
-  static Stream<List<StockOrder>> streamPositionOrders(RobinhoodUser user,
-      StockOrderStore store, InstrumentStore instrumentStore) async* {
-    List<StockOrder> list = [];
+  static Stream<List<InstrumentOrder>> streamPositionOrders(RobinhoodUser user,
+      InstrumentOrderStore store, InstrumentStore instrumentStore) async* {
+    List<InstrumentOrder> list = [];
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
-        var op = StockOrder.fromJson(result);
+        var op = InstrumentOrder.fromJson(result);
         if (!list.any((element) => element.id == op.id)) {
           list.add(op);
           store.add(op);
@@ -637,6 +637,8 @@ class RobinhoodService implements IBrokerageService {
     //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
     return resultJson;
   }
+
+  // TODO: https://api.robinhood.com/discovery/lists/default/
 
   // https://api.robinhood.com/midlands/movers/sp500/?direction=up
   static Future<List<MidlandMoversItem>> getMovers(RobinhoodUser user,
@@ -973,16 +975,16 @@ class RobinhoodService implements IBrokerageService {
     return instrumentHistorical;
   }
 
-  static Future<List<StockOrder>> getInstrumentOrders(RobinhoodUser user,
-      StockOrderStore store, List<String> instrumentUrls) async {
+  static Future<List<InstrumentOrder>> getInstrumentOrders(RobinhoodUser user,
+      InstrumentOrderStore store, List<String> instrumentUrls) async {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodEndpoint}/orders/?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}");
-    List<StockOrder> list = [];
+    List<InstrumentOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = StockOrder.fromJson(result);
+      var op = InstrumentOrder.fromJson(result);
       list.add(op);
       store.addOrUpdate(op);
     }
@@ -1827,6 +1829,46 @@ class RobinhoodService implements IBrokerageService {
   /*
   TRADING
   */
+  static Future<dynamic> placeInstrumentOrder(
+      RobinhoodUser user,
+      Account account,
+      Instrument instrument,
+      String symbol, // Ticker of the stock to trade.
+      String side, // Either 'buy' or 'sell'
+      double price, // Limit price to trigger a buy of the option.
+      int quantity, // Number of options to buy.
+      {String type = 'limit', // market
+      String trigger = 'immediate', // stop
+      String timeInForce =
+          'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
+      }) async {
+    // var uuid = const Uuid();
+    var payload = {
+      'account': account.url,
+      'instrument': instrument.url,
+      'symbol': symbol,
+      'type': type,
+      'time_in_force': timeInForce,
+      'trigger': trigger,
+      'price': price,
+      //'stop_price': stop_price, // when trigger is stop
+      'quantity': quantity,
+      'side': side,
+      'override_day_trade_checks': false,
+      'override_dtbp_checks': false,
+      // 'ref_id': uuid.v4(),
+    };
+    var url = "${Constants.robinHoodEndpoint}/options/orders/";
+    debugPrint(url);
+    var result = await user.oauth2Client!.post(Uri.parse(url),
+        body: jsonEncode(payload),
+        headers: {
+          "content-type": "application/json",
+          "accept": "application/json"
+        });
+
+    return result;
+  }
 
   static Future<dynamic> placeOptionsOrder(
       RobinhoodUser user,

@@ -1,19 +1,19 @@
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 
-class StockOrderStore extends ChangeNotifier {
+class InstrumentOrderStore extends ChangeNotifier {
   /// Internal, private state of the store.
-  final List<StockOrder> _items = [];
+  final List<InstrumentOrder> _items = [];
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<StockOrder> get items => UnmodifiableListView(_items);
+  UnmodifiableListView<InstrumentOrder> get items => UnmodifiableListView(_items);
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
 
-  void add(StockOrder item) {
+  void add(InstrumentOrder item) {
     _items.add(item);
     // This call tells the widgets that are listening to this model to rebuild.
     notifyListeners();
@@ -25,7 +25,7 @@ class StockOrderStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool update(StockOrder item) {
+  bool update(InstrumentOrder item) {
     var index =
         _items.indexWhere((element) => element.instrument == item.instrument);
     if (index == -1) {
@@ -36,7 +36,7 @@ class StockOrderStore extends ChangeNotifier {
     return true;
   }
 
-  void addOrUpdate(StockOrder item) {
+  void addOrUpdate(InstrumentOrder item) {
     if (!update(item)) {
       add(item);
     }

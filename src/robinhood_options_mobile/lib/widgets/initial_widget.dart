@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 
 class InitialWidget extends StatelessWidget {
@@ -19,7 +20,7 @@ class InitialWidget extends StatelessWidget {
             spacing: 20,
             //runSpacing: 5,
             children: [
-              Text('Investing Mobile', style: TextStyle(fontSize: 20.0)),
+              Text(Constants.appTitle, style: TextStyle(fontSize: 20.0)),
               Text(
                 "",
                 style: TextStyle(fontSize: 16.0, color: Colors.white70),

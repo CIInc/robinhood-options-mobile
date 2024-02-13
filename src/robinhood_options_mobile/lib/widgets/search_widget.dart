@@ -355,7 +355,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 150.0,
                                 mainAxisSpacing: 6.0,
                                 crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.5,
+                                childAspectRatio: 1.4,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -556,8 +556,18 @@ class _SearchWidgetState extends State<SearchWidget>
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                // instrumentObj.logoUrl != null ? Image.network(
+                //   instrumentObj.logoUrl!,
+                //   width: 40,
+                //   height: 40,
+                //   errorBuilder: (BuildContext context, Object exception,
+                //       StackTrace? stackTrace) {
+                //     //RobinhoodService.removeLogo(instrument.symbol);
+                //     return Text(instrumentObj.symbol);
+                //   },
+                // ) : Container(height: 40, width: 40),
                 Text(instrumentObj.symbol,
-                    style: const TextStyle(fontSize: 16.0)),
+                  style: const TextStyle(fontSize: 16.0)),
                 Wrap(
                   children: [
                     if (instrumentObj.quoteObj != null) ...[

@@ -31,7 +31,7 @@
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
-class StockPosition {
+class InstrumentPosition {
   final String url;
   final String instrument;
   final String account;
@@ -55,7 +55,7 @@ class StockPosition {
 
   Instrument? instrumentObj;
 
-  StockPosition(
+  InstrumentPosition(
       this.url,
       this.instrument,
       this.account,
@@ -77,7 +77,7 @@ class StockPosition {
       this.updatedAt,
       this.createdAt);
 
-  StockPosition.fromJson(dynamic json)
+  InstrumentPosition.fromJson(dynamic json)
       : url = json['url'],
         instrument = json['instrument'],
         account = json['account'],

@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -33,7 +33,7 @@ class PositionOrderWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final RobinhoodUser user;
   //final Account account;
-  final StockOrder positionOrder;
+  final InstrumentOrder positionOrder;
 
   @override
   State<PositionOrderWidget> createState() => _PositionOrderWidgetState();
@@ -104,7 +104,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
             : null*/
   }
 
-  Widget _buildPage(StockOrder positionOrder) {
+  Widget _buildPage(InstrumentOrder positionOrder) {
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')

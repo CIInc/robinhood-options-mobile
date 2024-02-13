@@ -330,9 +330,9 @@ class _ListWidgetState extends State<ListWidget>
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 150.0,
-            mainAxisSpacing: 6.0,
+            mainAxisSpacing: 2.0,
             crossAxisSpacing: 2.0,
-            childAspectRatio: 1.3,
+            childAspectRatio: 1.22,
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {

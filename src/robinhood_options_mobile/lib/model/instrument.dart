@@ -7,7 +7,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/stock_order.dart';
+import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 
 /*
@@ -109,7 +109,7 @@ class Instrument {
   List<dynamic>? similarObj;
   List<dynamic>? splitsObj;
   List<OptionAggregatePosition>? optionPositions;
-  List<StockOrder>? positionOrders;
+  List<InstrumentOrder>? positionOrders;
   List<OptionOrder>? optionOrders;
   List<OptionEvent>? optionEvents;
   String? logoUrl;

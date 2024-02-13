@@ -30,9 +30,9 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_s
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/stock_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/stock_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -138,7 +138,7 @@ with WidgetsBindingObserver
   EquityHistorical? selection;
   bool animateChart = true;
 
-  Future<StockPositionStore>? futureStockPositions;
+  Future<InstrumentPositionStore>? futureStockPositions;
   //Stream<StockPositionStore>? positionStoreStream;
   Future<OptionPositionStore>? futureOptionPositions;
   //Stream<OptionPositionStore>? optionPositionStoreStream;
@@ -146,7 +146,7 @@ with WidgetsBindingObserver
   /*
   Stream<List<StockPosition>>? positionStream;
   List<StockPosition> positions = [];
-  Stream<List<StockOrder>>? positionOrderStream;
+  Stream<List<InstrumentOrder>>? positionOrderStream;
 
   Stream<List<OptionAggregatePosition>>? optionPositionStream;
   List<OptionAggregatePosition> optionPositions = [];
@@ -279,7 +279,7 @@ with WidgetsBindingObserver
 
       futureStockPositions ??= RobinhoodService.getStockPositionStore(
           widget.user,
-          Provider.of<StockPositionStore>(context, listen: false),
+          Provider.of<InstrumentPositionStore>(context, listen: false),
           Provider.of<InstrumentStore>(context, listen: false),
           Provider.of<QuoteStore>(context, listen: false),
           nonzero: !hasQuantityFilters[1]);
@@ -419,7 +419,7 @@ with WidgetsBindingObserver
       if (!mounted) return;
       await RobinhoodService.refreshPositionQuote(
           widget.user,
-          Provider.of<StockPositionStore>(context, listen: false),
+          Provider.of<InstrumentPositionStore>(context, listen: false),
           Provider.of<QuoteStore>(context, listen: false));
 
       if (!mounted) return;
@@ -500,7 +500,7 @@ with WidgetsBindingObserver
       child: CustomScrollView(
           // physics: ClampingScrollPhysics(),
           slivers: [
-            Consumer4<PortfolioStore, StockPositionStore, OptionPositionStore,
+            Consumer4<PortfolioStore, InstrumentPositionStore, OptionPositionStore,
                 ForexHoldingStore>(
               builder: (context, portfolioStore, stockPositionStore,
                   optionPositionStore, forexHoldingStore, child) {
@@ -1158,7 +1158,7 @@ with WidgetsBindingObserver
               ]));
             }),
 
-            Consumer4<PortfolioStore, StockPositionStore, OptionPositionStore,
+            Consumer4<PortfolioStore, InstrumentPositionStore, OptionPositionStore,
                     ForexHoldingStore>(
                 builder: (context, portfolioStore, stockPositionStore,
                     optionPositionStore, forexHoldingStore, child) {
@@ -1298,7 +1298,7 @@ with WidgetsBindingObserver
                     ))
                   ]));
             }),
-            Consumer<StockPositionStore>(
+            Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
               //if (positions != null) {
               var filteredPositions = stockPositionStore.items
@@ -2531,7 +2531,7 @@ with WidgetsBindingObserver
       UserInfo? userInfo,
       Account? account,
       PortfolioStore portfolioStore,
-      StockPositionStore stockPositionStore,
+      InstrumentPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
       ForexHoldingStore forexHoldingStore) {
     positionSymbols = stockPositionStore.symbols;
@@ -2580,7 +2580,7 @@ with WidgetsBindingObserver
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 200.0, //240.0, //280.0,
+      expandedHeight: 180.0, //240.0, //280.0,
       //collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
@@ -2847,7 +2847,7 @@ with WidgetsBindingObserver
       double optionEquityPercent,
       PortfolioStore portfolioStore,
       OptionPositionStore optionPositionStore,
-      StockPositionStore stockPositionStore,
+      InstrumentPositionStore stockPositionStore,
       ForexHoldingStore forexHoldingStore,
       double positionEquityPercent,
       double cryptoPercent,
@@ -3222,7 +3222,7 @@ with WidgetsBindingObserver
     Provider.of<PortfolioStore>(context, listen: false).removeAll();
     Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
     Provider.of<OptionPositionStore>(context, listen: false).removeAll();
-    Provider.of<StockPositionStore>(context, listen: false).removeAll();
+    Provider.of<InstrumentPositionStore>(context, listen: false).removeAll();
     setState(() {
       futureAccounts = null;
       futurePortfolios = null;
@@ -3316,7 +3316,7 @@ with WidgetsBindingObserver
     });
   }
 
-  Widget _buildPositionRow(List<StockPosition> positions, int index) {
+  Widget _buildPositionRow(List<InstrumentPosition> positions, int index) {
     var instrument = positions[index].instrumentObj;
 
     double value = widget.user.getPositionDisplayValue(positions[index]);

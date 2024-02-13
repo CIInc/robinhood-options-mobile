@@ -84,7 +84,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     _startRefreshTimer();
     widget.analytics.setCurrentScreen(
       screenName:
-          'OptionInstrument/${widget.optionInstrument.chainSymbol}/${widget.optionPosition!.strategy.split('_').first}/${widget.optionInstrument.type}/${widget.optionInstrument.strikePrice}/${widget.optionInstrument.expirationDate}',
+          'OptionInstrument/${widget.optionInstrument.chainSymbol}/${widget.optionPosition != null ? widget.optionPosition!.strategy.split('_').first : ''}/${widget.optionInstrument.type}/${widget.optionInstrument.strikePrice}/${widget.optionInstrument.expirationDate}',
     );
   }
 
