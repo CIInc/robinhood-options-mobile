@@ -961,7 +961,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildRatingsOverviewWidget(instrument)
           ],
-          if (instrument.earningsObj != null) ...[
+          if (instrument.earningsObj != null && instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
@@ -976,7 +976,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildSplitsWidget(instrument)
           ],
-          if (instrument.newsObj != null) ...[
+          if (instrument.newsObj != null && instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
@@ -2537,6 +2537,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           spacing: 20,
           //runSpacing: 5,
           children: [
+            Row(children: [
+                  Text(
+                      instrument
+                          .symbol, // ${optionPosition.strategy.split('_').first}
+                      //style: const TextStyle(fontSize: 20.0)
+                      style: const TextStyle(fontSize: 17.0)),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(
+                      instrument.simpleName ??
+                          instrument
+                              .name, // ${optionPosition.strategy.split('_').first}
+                      //style: const TextStyle(fontSize: 20.0)
+                      style: const TextStyle(fontSize: 17.0))),
+
+            ]),
+            /*
             Wrap(
                 crossAxisAlignment: WrapCrossAlignment.end,
                 //runAlignment: WrapAlignment.end,
@@ -2556,6 +2572,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       //style: const TextStyle(fontSize: 20.0)
                       style: const TextStyle(fontSize: 17.0)),
                 ]),
+                */
             if (quoteObj != null) ...[
               Wrap(spacing: 10, children: [
                 Text(formatCurrency.format(quoteObj.lastTradePrice),

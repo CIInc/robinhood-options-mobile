@@ -1079,8 +1079,15 @@ class RobinhoodService implements IBrokerageService {
       RobinhoodUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/ratings/943c5009-a0bb-4665-8cf4-a95dab5874e4/
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
-    var resultJson = await getJson(
+    dynamic resultJson;
+    try {
+      resultJson = await getJson(
         user, "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
+    } on Exception catch (e) {
+      // Format
+      debugPrint('No ratings found. Error: $e');
+      return Future.value();
+    }
     return resultJson;
   }
 
