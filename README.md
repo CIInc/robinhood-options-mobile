@@ -43,7 +43,6 @@ If prompted choose the ```Flutter``` configuration.
 Or  
 Navigate to the project directory and run the flutter command.
     ```bash
-    cd src/robinhood_options_mobile
     flutter run
     ```
 
@@ -72,14 +71,13 @@ Navigate to the project directory and run the flutter command.
 Or  
 Navigate to the project directory and run the flutter command.
     ```bash
-    cd src/robinhood_options_mobile
     flutter run --release
     ```
 
 **Debugging Notes**
 - For error `Exception: Error running pod install`, run the following commands:
     ```bash
-    rm ./ios/Pods
+    rm -rf ./ios/Pods
     rm ./ios/Podfile.lock
     flutter clean
     flutter pub get
@@ -101,7 +99,6 @@ Select a mobile emulator from the device selector. *Note that this is not workin
 1. Connect your Android device to your computer with a USB cable.
 2. Navigate to the project directory and run the flutter command.
     ```bash
-    cd src/robinhood_options_mobile
     flutter install
     ```
 
@@ -125,7 +122,6 @@ Select a mobile emulator from the device selector. *Note that this is not workin
 #### Build app bundle
 
 ```bash
-cd src/robinhood_options_mobile
 flutter build appbundle
 ```
 
@@ -134,7 +130,6 @@ flutter build appbundle
 This command generates an .apk file used to publish an installation file.
 
 ```bash
-cd src/robinhood_options_mobile
 flutter build apk --release
 ```
 
@@ -143,9 +138,10 @@ flutter build apk --release
 #### Build IPA
 
 ```bash
-cd src/robinhood_options_mobile
 flutter build ipa
 ```
+
+If you get an error, see Debugging Notes section above to clean the project.
 
 #### Upload to App Store
 
@@ -156,7 +152,6 @@ flutter build ipa
 ## Test
 
 ```bash
-cd src/robinhood_options_mobile
 flutter test
 ```
 

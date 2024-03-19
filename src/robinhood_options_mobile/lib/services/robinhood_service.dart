@@ -646,7 +646,7 @@ class RobinhoodService implements IBrokerageService {
     // "drip_enabled" -> true
     // "nra_withholding" -> "0"    
     List<dynamic> list = [];
-    var pageStream = await streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
+    var pageStream = streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
