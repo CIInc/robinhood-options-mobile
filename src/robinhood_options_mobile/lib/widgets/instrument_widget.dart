@@ -78,6 +78,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<InstrumentHistoricals>? futureRsiHistoricals;
   Future<List<dynamic>>? futureNews;
   Future<List<dynamic>>? futureLists;
+  Future<List<dynamic>>? futureDividends;
   Future<dynamic>? futureRatings;
   Future<dynamic>? futureRatingsOverview;
   Future<dynamic>? futureEarnings;
@@ -184,6 +185,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     futureLists ??= RobinhoodService.getLists(user, instrument.id);
 
+    futureDividends ??= RobinhoodService.getDividends(user, instrument.id);
+
     futureRatings ??= RobinhoodService.getRatings(user, instrument.id);
     futureRatingsOverview ??=
         RobinhoodService.getRatingsOverview(user, instrument.id);
@@ -219,6 +222,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureFundamentals as Future,
         futureNews as Future,
         futureLists as Future,
+        futureDividends as Future,
         futureRatings as Future,
         futureRatingsOverview as Future,
         futureInstrumentOrders as Future,
@@ -236,14 +240,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
           instrument.newsObj = data.length > 2 ? data[2] : null;
           instrument.listsObj = data.length > 3 ? data[3] : null;
-          instrument.ratingsObj = data.length > 4 ? data[4] : null;
-          instrument.ratingsOverviewObj = data.length > 5 ? data[5] : null;
-          instrument.positionOrders = data.length > 6 ? data[6] : null;
-          instrument.optionOrders = data.length > 7 ? data[7] : null;
-          instrument.optionEvents = data.length > 8 ? data[8] : null;
-          instrument.earningsObj = data.length > 9 ? data[9] : null;
-          instrument.similarObj = data.length > 10 ? data[10] : null;
-          instrument.splitsObj = data.length > 11 ? data[11] : null;
+          instrument.dividendsObj = data.length > 4 ? data[4] : null;          
+          instrument.ratingsObj = data.length > 5 ? data[5] : null;
+          instrument.ratingsOverviewObj = data.length > 6 ? data[6] : null;
+          instrument.positionOrders = data.length > 7 ? data[7] : null;
+          instrument.optionOrders = data.length > 8 ? data[8] : null;
+          instrument.optionEvents = data.length > 9 ? data[9] : null;
+          instrument.earningsObj = data.length > 10 ? data[10] : null;
+          instrument.similarObj = data.length > 11 ? data[11] : null;
+          instrument.splitsObj = data.length > 12 ? data[12] : null;
 
           positionOrdersBalance = instrument.positionOrders != null &&
                   instrument.positionOrders!.isNotEmpty
@@ -968,6 +973,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildEarningsWidget(instrument)
           ],
+          if (instrument.dividendsObj != null && instrument.dividendsObj!.isNotEmpty) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            _buildDividendsWidget(instrument)
+          ],
           if (instrument.splitsObj != null &&
               instrument.splitsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
@@ -1360,20 +1372,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         ListTile(
           title: const Text("Industry"),
-          trailing: Text(instrument.fundamentalsObj!.industry,
+          trailing: Text(instrument.fundamentalsObj!.industry, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 17)),
         ),
+        if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty || instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
         ListTile(
           title: const Text("Headquarters"),
           trailing: Text(
               "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
               style: const TextStyle(fontSize: 18)),
         ),
+        ],
+        if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
         ListTile(
           title: const Text("CEO"),
           trailing: Text(instrument.fundamentalsObj!.ceo,
               style: const TextStyle(fontSize: 18)),
         ),
+        ],
+        if (instrument.fundamentalsObj!.numEmployees != null) ...[
         ListTile(
           title: const Text("Number of Employees"),
           trailing: Text(
@@ -1383,11 +1400,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   : "",
               style: const TextStyle(fontSize: 18)),
         ),
+        ],
+        if (instrument.fundamentalsObj!.yearFounded != null) ...[
         ListTile(
           title: const Text("Year Founded"),
           trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
               style: const TextStyle(fontSize: 18)),
         ),
+        ],
         ListTile(
           title: const Text(
             "Name",
@@ -1768,6 +1788,45 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ],
             ])
           ],
+        ],
+      ])))
+    ]));
+  }
+
+  Widget _buildDividendsWidget(Instrument instrument) {
+    return SliverToBoxAdapter(
+        child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      const SliverToBoxAdapter(
+          child: Column(children: [
+        ListTile(
+          title: Text(
+            "Dividends",
+            style: TextStyle(fontSize: 19.0),
+          ),
+        )
+      ])),
+      SliverToBoxAdapter(
+          child: Card(
+              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        for (var dividend in instrument.dividendsObj!) ...[
+          ListTile(
+              title: Text(
+                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                style: const TextStyle(fontSize: 18.0),
+                //overflow: TextOverflow.visible
+              ),// ${formatNumber.format(double.parse(dividend!["position"]))}
+              subtitle: Text("${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                  style: const TextStyle(fontSize: 14)),
+              trailing: 
+                  Wrap(spacing: 10.0, children: [
+                    Column(children: [
+                      // const Text("Actual", style: TextStyle(fontSize: 11)),
+                      Text(
+                          formatCurrency.format(
+                              double.parse(dividend!["amount"])),
+                          style: const TextStyle(fontSize: 18))
+                    ])
+                    ])),
         ],
       ])))
     ]));

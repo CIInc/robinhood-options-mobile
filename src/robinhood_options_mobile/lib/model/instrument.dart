@@ -103,6 +103,7 @@ class Instrument {
   OptionChain? optionChainObj;
   List<dynamic>? newsObj;
   List<dynamic>? listsObj;
+  List<dynamic>? dividendsObj;
   dynamic ratingsObj;
   dynamic ratingsOverviewObj;
   List<dynamic>? earningsObj;

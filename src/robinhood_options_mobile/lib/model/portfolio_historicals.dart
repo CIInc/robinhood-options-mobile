@@ -48,4 +48,25 @@ class PortfolioHistoricals {
         equityHistoricals =
             EquityHistorical.fromJsonArray(json['equity_historicals']),
         useNewHp = json['use_new_hp'];
+
+  void add(EquityHistorical item) {
+    equityHistoricals.add(item);
+    // This call tells the widgets that are listening to this model to rebuild.
+  }
+
+  bool update(EquityHistorical item) {
+    var index = equityHistoricals.indexWhere((element) =>
+        element.beginsAt == item.beginsAt);
+    if (index == -1) {
+      return false;
+    }
+    equityHistoricals[index] = item;
+    return true;
+  }
+
+  void addOrUpdate(EquityHistorical item) {
+    if (!update(item)) {
+      add(item);
+    }
+  }
 }

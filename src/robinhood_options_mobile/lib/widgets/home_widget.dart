@@ -348,7 +348,7 @@ with WidgetsBindingObserver
               builder: (BuildContext context, Widget? subwidget) {
                 */
           return _buildPage(context,
-              userInfo: widget.userInfo, account: account);
+              userInfo: widget.userInfo, account: account, done: dataSnapshot.connectionState == ConnectionState.done);
           //});
         } else if (dataSnapshot.hasError) {
           debugPrint("${dataSnapshot.error}");
@@ -362,7 +362,7 @@ with WidgetsBindingObserver
           */
           return _buildPage(context,
               //ru: snapshotUser,
-              welcomeWidget: Text("${dataSnapshot.error}"));
+              welcomeWidget: Text("${dataSnapshot.error}"), done: dataSnapshot.connectionState == ConnectionState.done);
         } else {
           return _buildPage(context);
         }
@@ -486,7 +486,7 @@ with WidgetsBindingObserver
       //PortfolioHistoricals? portfolioHistoricals,
       //List<OptionAggregatePosition>? optionPositions,
       //List<StockPosition>? positions,
-      bool done = true}) {
+      bool done = false}) {
     //debugPrint('_buildPage');
     final AdWidget adWidget = AdWidget(ad: myBanner);
     final Container adContainer = Container(
@@ -546,7 +546,8 @@ with WidgetsBindingObserver
               ))
             ],
             Consumer<PortfolioHistoricalsStore>(
-                builder: (context, portfolioHistoricalsStore, child) {
+              builder: (context, portfolioHistoricalsStore, child) {
+            // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
               /*
                 if (portfolioHistoricals != null) {
                   debugPrint(
@@ -604,14 +605,24 @@ with WidgetsBindingObserver
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
-              open = firstHistorical
-                  .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+              open = firstHistorical.adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+
+              // Issue with using lastHistorical is that different increments return different values. 
               close = lastHistorical.adjustedCloseEquity!;
+
+              // This solution uses the portfolioStore but causes flickers on each refresh as the value keeps changing.
+              // if (portfolioStore.items.isNotEmpty) {// && forexHoldingStore.items.isNotEmpty
+              //   close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+              // }
+              
               changeInPeriod = close - open;
               changePercentInPeriod = changeInPeriod / close;
 
-              // Override the portfolio API with current historical data.
-              //portfolioValue = close;
+              // Add latest portfolio value to historical to show current value on chart.
+              // if (portfolioStore.items.isNotEmpty) {
+              //   // debugPrint("equity ${portfolioStore.items[0].equity.toString()} forex ${forexHoldingStore.equity} close ${close.toString()}");
+              //   portfolioHistoricals!.addOrUpdate(EquityHistorical(lastHistorical.adjustedCloseEquity, close, lastHistorical.closeEquity, close, lastHistorical.closeMarketValue, close, portfolioStore.items[0].updatedAt, lastHistorical.closeEquity! - close, ''));//  DateTime.now()
+              // }
 
               /*
               var brightness = MediaQuery.of(context).platformBrightness;

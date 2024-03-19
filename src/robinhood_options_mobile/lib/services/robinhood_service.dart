@@ -627,6 +627,57 @@ class RobinhoodService implements IBrokerageService {
     //positionOrders = list;
   }
 
+  static Stream<List<dynamic>> streamDividends(
+      RobinhoodUser user, InstrumentStore instrumentStore) async* {
+    // https://api.robinhood.com/dividends/
+    // "id" -> "65ceec46-27f9-4d27-86bd-e720219be54f"
+    // "url" -> "https://api.robinhood.com/dividends/65ceec46-27f9-4d27-86bd-e720219be54f/"
+    // "account" -> "https://api.robinhood.com/accounts/11111111/"
+    // "instrument" -> "https://api.robinhood.com/instruments/50810c35-d215-4866-9758-0ada4ac79ffa/"
+    // "amount" -> "11.19"
+    // "rate" -> "0.7500000000"
+    // "position" -> "14.9266"
+    // "withholding" -> "0.00"
+    // "record_date" -> "2024-02-15"
+    // "payable_date" -> "2024-03-14"
+    // "paid_at" -> null
+    // "state" -> "pending"
+    // "cash_dividend_id" -> "2fb0f843-580c-4599-bd21-e3b00a5399f5"
+    // "drip_enabled" -> true
+    // "nra_withholding" -> "0"    
+    List<dynamic> list = [];
+    var pageStream = await streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
+    await for (final results in pageStream) {
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        // var op = InstrumentOrder.fromJson(result);
+        if (!list.any((element) => element["id"] == result["id"])) {
+          list.add(result);
+          // store.add(op);
+          yield list;
+        }
+      }
+      list.sort((a, b) => DateTime.parse(b["record_date"]!).compareTo(DateTime.parse(a["record_date"]!)));
+      yield list;
+
+      var instrumentIds = list.map((e) { 
+          var splits = e["instrument"].split("/");
+          return splits[splits.length - 2]; 
+      }).toSet().toList();
+      var instrumentObjs =
+          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+      for (var instrumentObj in instrumentObjs) {
+        var pos =
+            list.where((element) => element["instrument"].toString().contains(instrumentObj.id));
+        for (var po in pos) {
+          po["instrumentObj"] = instrumentObj;
+        }
+        yield list;
+      }
+    }
+  }
+
+
   /*
   SEARCH and MARKETS
   */
@@ -928,9 +979,11 @@ class RobinhoodService implements IBrokerageService {
 
       for (var i = 0; i < resultJson['results'].length; i++) {
         var result = resultJson['results'][i];
-        var op = Quote.fromJson(result);
-        list.add(op);
-        store.addOrUpdate(op);
+        if (result != null) {
+          var op = Quote.fromJson(result);
+          list.add(op);
+          store.addOrUpdate(op);
+        }
       }
     }
 
@@ -1058,6 +1111,7 @@ class RobinhoodService implements IBrokerageService {
       var result = results[i];
       list.add(result);
     }
+    list.sort((a, b) => DateTime.parse(b["record_date"]!).compareTo(DateTime.parse(a["record_date"]!)));
     return list;
   }
 
@@ -1116,6 +1170,7 @@ class RobinhoodService implements IBrokerageService {
       var result = resultJson["results"][i];
       list.add(result);
     }
+    list.sort((a, b) => DateTime.parse(b["report"]["date"]!).compareTo(DateTime.parse(a["report"]["date"]!)));
     return list;
   }
 
