@@ -25,21 +25,21 @@ dependencies:
   flutter:
     sdk: flutter
 
-  firebase_analytics: ^10.8.0
-  firebase_core: ^2.5.0
+  firebase_analytics: ^10.10.1
+  firebase_core: ^2.29.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   #cupertino_icons: ^1.0.5
 
-  oauth2: ^2.0.1
-  shared_preferences: ^2.0.15
+  oauth2: ^2.0.2
+  shared_preferences: ^2.2.3
   #path_provider: ^2.0.8 # TODO: Remove dependency for shared_preferences
-  provider: ^6.0.5
+  provider: ^6.1.2
   intl: ^0.18.1
-  decimal: ^2.3.2
+  decimal: ^2.3.3
   csv: ^6.0.0
-  permission_handler: ^11.1.0
+  permission_handler: ^11.3.1
   # TODO: Check if used
   #open_file: ^3.2.1
   # rxdart: ^0.27.2
@@ -48,16 +48,16 @@ dependencies:
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
-  url_launcher: ^6.1.9  # flutter_echarts: ^2.3.0
+  url_launcher: ^6.2.6  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^7.2.1
-  uuid: ^4.2.2
+  share_plus: ^8.0.3
+  uuid: ^4.4.0
   material_color_utilities: ^0.8.0
-  dynamic_color: ^1.5.4
+  dynamic_color: ^1.7.0
 #  scrollable_positioned_list: ^0.2.3
-  collection: ^1.17.0
-  http: ^1.1.2
-  google_mobile_ads: ^4.0.0
+  collection: ^1.18.0
+  http: ^1.2.1
+  google_mobile_ads: ^5.0.0
   flutter_web_auth_2: ^3.1.1
   uni_links: ^0.5.1
 
@@ -70,7 +70,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.1
+  flutter_lints: ^3.0.2
 
   flutter_launcher_icons: ^0.13.1
 

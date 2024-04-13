@@ -111,8 +111,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-with WidgetsBindingObserver
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 //with AutomaticKeepAliveClientMixin<HomePage>
 {
   // Where is DI?
@@ -166,7 +165,7 @@ with WidgetsBindingObserver
   List<bool> hasQuantityFilters = [true, false];
 
   Timer? refreshTriggerTime;
-  AppLifecycleState? _notification; 
+  AppLifecycleState? _notification;
 
   final BannerAd myBanner = BannerAd(
       adUnitId: kDebugMode
@@ -348,7 +347,9 @@ with WidgetsBindingObserver
               builder: (BuildContext context, Widget? subwidget) {
                 */
           return _buildPage(context,
-              userInfo: widget.userInfo, account: account, done: dataSnapshot.connectionState == ConnectionState.done);
+              userInfo: widget.userInfo,
+              account: account,
+              done: dataSnapshot.connectionState == ConnectionState.done);
           //});
         } else if (dataSnapshot.hasError) {
           debugPrint("${dataSnapshot.error}");
@@ -362,7 +363,8 @@ with WidgetsBindingObserver
           */
           return _buildPage(context,
               //ru: snapshotUser,
-              welcomeWidget: Text("${dataSnapshot.error}"), done: dataSnapshot.connectionState == ConnectionState.done);
+              welcomeWidget: Text("${dataSnapshot.error}"),
+              done: dataSnapshot.connectionState == ConnectionState.done);
         } else {
           return _buildPage(context);
         }
@@ -432,7 +434,6 @@ with WidgetsBindingObserver
         Provider.of<ForexHoldingStore>(context, listen: false),
       );
     }
-
   }
 
   _onChartSelection(dynamic historical) {
@@ -500,8 +501,8 @@ with WidgetsBindingObserver
       child: CustomScrollView(
           // physics: ClampingScrollPhysics(),
           slivers: [
-            Consumer4<PortfolioStore, InstrumentPositionStore, OptionPositionStore,
-                ForexHoldingStore>(
+            Consumer4<PortfolioStore, InstrumentPositionStore,
+                OptionPositionStore, ForexHoldingStore>(
               builder: (context, portfolioStore, stockPositionStore,
                   optionPositionStore, forexHoldingStore, child) {
                 return buildSliverAppBar(
@@ -520,20 +521,6 @@ with WidgetsBindingObserver
               },
             ),
             //userWidget(userInfo)
-            if (done == false) ...[
-              const SliverToBoxAdapter(
-                  child: SizedBox(
-                height: 3, //150.0,
-                child: Align(
-                    alignment: Alignment.center,
-                    child: Center(
-                        child: LinearProgressIndicator(
-                            //value: controller.value,
-                            //semanticsLabel: 'Linear progress indicator',
-                            ) //CircularProgressIndicator(),
-                        )),
-              ))
-            ],
             if (welcomeWidget != null) ...[
               const SliverToBoxAdapter(
                   child: SizedBox(
@@ -546,8 +533,8 @@ with WidgetsBindingObserver
               ))
             ],
             Consumer<PortfolioHistoricalsStore>(
-              builder: (context, portfolioHistoricalsStore, child) {
-            // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
+                builder: (context, portfolioHistoricalsStore, child) {
+              // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
               /*
                 if (portfolioHistoricals != null) {
                   debugPrint(
@@ -605,16 +592,17 @@ with WidgetsBindingObserver
               firstHistorical = portfolioHistoricals!.equityHistoricals[0];
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
-              open = firstHistorical.adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+              open = firstHistorical
+                  .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
 
-              // Issue with using lastHistorical is that different increments return different values. 
+              // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
 
               // This solution uses the portfolioStore but causes flickers on each refresh as the value keeps changing.
               // if (portfolioStore.items.isNotEmpty) {// && forexHoldingStore.items.isNotEmpty
               //   close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
               // }
-              
+
               changeInPeriod = close - open;
               changePercentInPeriod = changeInPeriod / close;
 
@@ -690,25 +678,47 @@ with WidgetsBindingObserver
                   onSelected: _onChartSelection);
 
               return SliverToBoxAdapter(
-                  child: Column(children: [
-                Consumer<PortfolioHistoricalsSelectionStore>(
-                    builder: (context, value, child) {
-                  selection = value.selection;
-                  if (selection != null) {
-                    changeInPeriod = selection!.adjustedCloseEquity! - open; // portfolios![0].equityPreviousClose!;
-                    changePercentInPeriod = changeInPeriod / selection!.adjustedCloseEquity!;
-                  } else {
-                    changeInPeriod = close - open;
-                    changePercentInPeriod = changeInPeriod / close;
-                  }
-                  String? returnText = widget.user.getDisplayText(changeInPeriod, displayValue: DisplayValue.totalReturn);
-                  String? returnPercentText = widget.user.getDisplayText(changePercentInPeriod, displayValue: DisplayValue.totalReturnPercent);
-                  Icon todayIcon = widget.user.getDisplayIcon(changeInPeriod, size: 27.0);
+                  child: Stack(
+                children: [
+                  if (done == false) ...[
+                    const SizedBox(
+                      height: 3, //150.0,
+                      child: Align(
+                          alignment: Alignment.center,
+                          child: Center(
+                              child: LinearProgressIndicator(
+                                  //value: controller.value,
+                                  //semanticsLabel: 'Linear progress indicator',
+                                  ) //CircularProgressIndicator(),
+                              )),
+                    )
+                  ],
+                  Column(children: [
+                    Consumer<PortfolioHistoricalsSelectionStore>(
+                        builder: (context, value, child) {
+                      selection = value.selection;
+                      if (selection != null) {
+                        changeInPeriod = selection!.adjustedCloseEquity! -
+                            open; // portfolios![0].equityPreviousClose!;
+                        changePercentInPeriod =
+                            changeInPeriod / selection!.adjustedCloseEquity!;
+                      } else {
+                        changeInPeriod = close - open;
+                        changePercentInPeriod = changeInPeriod / close;
+                      }
+                      String? returnText = widget.user.getDisplayText(
+                          changeInPeriod,
+                          displayValue: DisplayValue.totalReturn);
+                      String? returnPercentText = widget.user.getDisplayText(
+                          changePercentInPeriod,
+                          displayValue: DisplayValue.totalReturnPercent);
+                      Icon todayIcon = widget.user
+                          .getDisplayIcon(changeInPeriod, size: 27.0);
 
-                  //return Text(value.selection!.beginsAt.toString());
-                  return SizedBox(
-                      //height: 72,
-                      child: Column(
+                      //return Text(value.selection!.beginsAt.toString());
+                      return SizedBox(
+                          //height: 72,
+                          child: Column(
                         children: [
                           ListTile(
                               title: const Text(
@@ -719,19 +729,18 @@ with WidgetsBindingObserver
                                 // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
                                 formatLongDate.format(
                                     lastHistorical!.beginsAt!.toLocal()),
-                                    // selection != null
-                                    // ? selection!.beginsAt!.toLocal()
-                                    // : lastHistorical!.beginsAt!.toLocal()),
+                                // selection != null
+                                // ? selection!.beginsAt!.toLocal()
+                                // : lastHistorical!.beginsAt!.toLocal()),
                                 style: const TextStyle(fontSize: 10.0),
                                 overflow: TextOverflow.ellipsis,
                               ),
                               trailing: Wrap(spacing: 8, children: [
                                 Text(
-                                  formatCurrency.format(
-                                    close),
-                                    // selection != null
-                                    //  ? selection!.adjustedCloseEquity
-                                    //  : close),
+                                  formatCurrency.format(close),
+                                  // selection != null
+                                  //  ? selection!.adjustedCloseEquity
+                                  //  : close),
                                   style: const TextStyle(fontSize: 21.0),
                                   textAlign: TextAlign.right,
                                 )
@@ -780,92 +789,105 @@ with WidgetsBindingObserver
                                 ],
                               )*/
                               ),
-                        SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 5),
-                                child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(formatCurrency.format(selection != null ? selection!.adjustedCloseEquity : close),
-                                              textAlign: TextAlign.right,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                                Text(formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical.beginsAt!.toLocal()), // "Value",
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Wrap(spacing: 8, children: [
-                                                todayIcon,
-                                                Text(returnText,
+                          SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 5),
+                                  child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(
+                                              summaryEgdeInset), //.symmetric(horizontal: 6),
+                                          child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: <Widget>[
+                                                Text(
+                                                    formatCurrency.format(
+                                                        selection != null
+                                                            ? selection!
+                                                                .adjustedCloseEquity
+                                                            : close),
+                                                    textAlign: TextAlign.right,
                                                     style: const TextStyle(
                                                         fontSize:
-                                                            summaryValueFontSize))
+                                                            summaryValueFontSize)),
+                                                Text(
+                                                    formatMediumDate.format(
+                                                        selection != null
+                                                            ? selection!
+                                                                .beginsAt!
+                                                                .toLocal()
+                                                            : lastHistorical
+                                                                .beginsAt!
+                                                                .toLocal()), // "Value",
+                                                    style: const TextStyle(
+                                                        fontSize:
+                                                            summaryLabelFontSize)),
                                               ]),
-                                              const Text("Change",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(returnPercentText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                              const Text("Change %",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      // Padding(
-                                      //   padding: const EdgeInsets.all(
-                                      //       summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      //   child: Column(
-                                      //       mainAxisSize: MainAxisSize.min,
-                                      //       children: <Widget>[
-                                      //         const Text(
-                                      //           "",
-                                      //           // formatLongDate.format(selection != null
-                                      //           // ? selection!.beginsAt!.toLocal()
-                                      //           //: lastHistorical!.beginsAt!.toLocal()),
-                                      //         textAlign: TextAlign.right,
-                                      //             style: TextStyle(
-                                      //                 fontSize:
-                                      //                     summaryValueFontSize)),
-                                      //         Text(formatLongDate.format(selection != null
-                                      //           ? selection!.beginsAt!.toLocal()
-                                      //           : lastHistorical!.beginsAt!.toLocal()),
-                                      //           //"Date",
-                                      //             style: TextStyle(
-                                      //                 fontSize:
-                                      //                     summaryLabelFontSize)),
-                                      //       ]),
-                                      // ),
-                                    ])))
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(
+                                              summaryEgdeInset), //.symmetric(horizontal: 6),
+                                          child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: <Widget>[
+                                                Wrap(spacing: 8, children: [
+                                                  todayIcon,
+                                                  Text(returnText,
+                                                      style: const TextStyle(
+                                                          fontSize:
+                                                              summaryValueFontSize))
+                                                ]),
+                                                const Text("Change",
+                                                    style: TextStyle(
+                                                        fontSize:
+                                                            summaryLabelFontSize)),
+                                              ]),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(
+                                              summaryEgdeInset), //.symmetric(horizontal: 6),
+                                          child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: <Widget>[
+                                                Text(returnPercentText,
+                                                    style: const TextStyle(
+                                                        fontSize:
+                                                            summaryValueFontSize)),
+                                                const Text("Change %",
+                                                    style: TextStyle(
+                                                        fontSize:
+                                                            summaryLabelFontSize)),
+                                              ]),
+                                        ),
+                                        // Padding(
+                                        //   padding: const EdgeInsets.all(
+                                        //       summaryEgdeInset), //.symmetric(horizontal: 6),
+                                        //   child: Column(
+                                        //       mainAxisSize: MainAxisSize.min,
+                                        //       children: <Widget>[
+                                        //         const Text(
+                                        //           "",
+                                        //           // formatLongDate.format(selection != null
+                                        //           // ? selection!.beginsAt!.toLocal()
+                                        //           //: lastHistorical!.beginsAt!.toLocal()),
+                                        //         textAlign: TextAlign.right,
+                                        //             style: TextStyle(
+                                        //                 fontSize:
+                                        //                     summaryValueFontSize)),
+                                        //         Text(formatLongDate.format(selection != null
+                                        //           ? selection!.beginsAt!.toLocal()
+                                        //           : lastHistorical!.beginsAt!.toLocal()),
+                                        //           //"Date",
+                                        //             style: TextStyle(
+                                        //                 fontSize:
+                                        //                     summaryLabelFontSize)),
+                                        //       ]),
+                                        // ),
+                                      ])))
 
                           /*
                           ListTile(
@@ -999,178 +1021,181 @@ with WidgetsBindingObserver
                       */
                         ],
                       ));
-                }),
-                SizedBox(
-                    height: 240,
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                      //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                      //padding: const EdgeInsets.all(10.0),
-                      child: historicalChart,
-                    )),
-                SizedBox(
-                    height: 56,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(5.0),
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        return Row(children: [
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Hour'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.hour,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.hour, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              //selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                              //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
-                              label: const Text('Day'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.day,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.day, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Week'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.week,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.week, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Month'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.month,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.month, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('3 Months'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.month_3,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.month_3, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Year'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.year,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.year, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('All'),
-                              selected:
-                                  chartDateSpanFilter == ChartDateSpan.all,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      ChartDateSpan.all, chartBoundsFilter);
-                                }
-                              },
-                            ),
-                          ),
-                          Container(
-                            width: 10,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('Regular Hours'),
-                              selected: chartBoundsFilter == Bounds.regular,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(
-                                      chartDateSpanFilter, Bounds.regular);
-                                }
-                              },
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(4.0),
-                            child: ChoiceChip(
-                              //avatar: const Icon(Icons.history_outlined),
-                              //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                              label: const Text('24/7 Hours'),
-                              selected: chartBoundsFilter == Bounds.t24_7,
-                              onSelected: (bool value) {
-                                if (value) {
-                                  resetChart(chartDateSpanFilter, Bounds.t24_7);
-                                }
-                              },
-                            ),
-                          ),
-                        ]);
-                      },
-                      itemCount: 1,
-                    )),
-              ]));
+                    }),
+                    SizedBox(
+                        height: 240,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                          //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          //padding: const EdgeInsets.all(10.0),
+                          child: historicalChart,
+                        )),
+                    SizedBox(
+                        height: 56,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(5.0),
+                          scrollDirection: Axis.horizontal,
+                          itemBuilder: (context, index) {
+                            return Row(children: [
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('Hour'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.hour,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.hour,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  //selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                                  //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
+                                  label: const Text('Day'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.day,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(
+                                          ChartDateSpan.day, chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('Week'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.week,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.week,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('Month'),
+                                  selected: chartDateSpanFilter ==
+                                      ChartDateSpan.month,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.month,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('3 Months'),
+                                  selected: chartDateSpanFilter ==
+                                      ChartDateSpan.month_3,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.month_3,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('Year'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.year,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.year,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('All'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.all,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(
+                                          ChartDateSpan.all, chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Container(
+                                width: 10,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('Regular Hours'),
+                                  selected: chartBoundsFilter == Bounds.regular,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(
+                                          chartDateSpanFilter, Bounds.regular);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('24/7 Hours'),
+                                  selected: chartBoundsFilter == Bounds.t24_7,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(
+                                          chartDateSpanFilter, Bounds.t24_7);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ]);
+                          },
+                          itemCount: 1,
+                        )),
+                  ])
+                ],
+              ));
             }),
 
-            Consumer4<PortfolioStore, InstrumentPositionStore, OptionPositionStore,
-                    ForexHoldingStore>(
+            Consumer4<PortfolioStore, InstrumentPositionStore,
+                    OptionPositionStore, ForexHoldingStore>(
                 builder: (context, portfolioStore, stockPositionStore,
                     optionPositionStore, forexHoldingStore, child) {
               List<PieChartData> data = [];
@@ -2613,11 +2638,10 @@ with WidgetsBindingObserver
         tooltip: 'Menu',
         onPressed: () {/* ... */},
       ),*/
-      title: 
-        Text(
-            "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
-            // style: const TextStyle(fontSize: 17.0)
-        ),
+      title: Text(
+        "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : (widget.user.source == Source.tdAmeritrade ? Constants.tdName : '')})",
+        // style: const TextStyle(fontSize: 17.0)
+      ),
       // Wrap(
       //     crossAxisAlignment: WrapCrossAlignment.end,
       //     //runAlignment: WrapAlignment.end,
@@ -2666,24 +2690,24 @@ with WidgetsBindingObserver
       //             ]),
       //       ]
       //     ]),
-      flexibleSpace: 
-      // FlexibleSpaceBar(
-      //       title: _buildExpandedSliverAppBarTitle(
-      //               userInfo,
-      //               portfolioValue,
-      //               stockAndOptionsEquityPercent,
-      //               portfolioStore.items,
-      //               optionEquityPercent,
-      //               portfolioStore,
-      //               optionPositionStore,
-      //               stockPositionStore,
-      //               forexHoldingStore,
-      //               positionEquityPercent,
-      //               cryptoPercent,
-      //               cashPercent,
-      //               portfolioCash)),
-      LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
+      flexibleSpace:
+          // FlexibleSpaceBar(
+          //       title: _buildExpandedSliverAppBarTitle(
+          //               userInfo,
+          //               portfolioValue,
+          //               stockAndOptionsEquityPercent,
+          //               portfolioStore.items,
+          //               optionEquityPercent,
+          //               portfolioStore,
+          //               optionPositionStore,
+          //               stockPositionStore,
+          //               forexHoldingStore,
+          //               positionEquityPercent,
+          //               cryptoPercent,
+          //               cashPercent,
+          //               portfolioCash)),
+          LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
         //var top = constraints.biggest.height;
         //debugPrint(top.toString());
         //debugPrint(kToolbarHeight.toString());
@@ -2718,7 +2742,7 @@ with WidgetsBindingObserver
         final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
 
         //bool visible = settings == null || settings.currentExtent <= settings.minExtent;
-        
+
         // var shades = PieChart.makeShades(
         //     charts.ColorUtil.fromDartColor(
         //         Theme.of(context).colorScheme.primary),
