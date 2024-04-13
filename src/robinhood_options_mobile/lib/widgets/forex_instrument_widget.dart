@@ -71,7 +71,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
 
     _startRefreshTimer();
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
         screenName: 'ForexInstrument/${widget.holding.currencyId}');
   }
 

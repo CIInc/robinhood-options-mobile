@@ -81,7 +81,7 @@ class _ListsWidgetState extends State<ListsWidget>
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'Lists',
     );
     myBanner.load();

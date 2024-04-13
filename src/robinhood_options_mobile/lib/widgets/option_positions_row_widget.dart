@@ -722,7 +722,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
       int openInterest,
       double valueFontSize,
       double labelFontSize,
-      { double iconSize = 23.0 }) {
+      {double iconSize = 23.0}) {
     List<Widget> tiles = [];
     /*
     double? marketValue = user.getAggregateDisplayValue(ops,

@@ -51,7 +51,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'PositionOrder/${widget.positionOrder.instrumentObj!.symbol}',
     );
   }

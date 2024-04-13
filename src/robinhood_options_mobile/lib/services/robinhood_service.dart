@@ -96,7 +96,7 @@ class RobinhoodService implements IBrokerageService {
   }
 
   // TODO: https://api.robinhood.com/inbox/threads/
-  
+
   // TODO: https://api.robinhood.com/midlands/notifications/stack/
   /*
 {
@@ -553,8 +553,10 @@ class RobinhoodService implements IBrokerageService {
     yield store;
   }
 
-  static Future<List<InstrumentPosition>> refreshPositionQuote(RobinhoodUser user,
-      InstrumentPositionStore store, QuoteStore quoteStore) async {
+  static Future<List<InstrumentPosition>> refreshPositionQuote(
+      RobinhoodUser user,
+      InstrumentPositionStore store,
+      QuoteStore quoteStore) async {
     if (store.items.isEmpty || store.items.first.instrumentObj == null) {
       return store.items;
     }
@@ -644,9 +646,10 @@ class RobinhoodService implements IBrokerageService {
     // "state" -> "pending"
     // "cash_dividend_id" -> "2fb0f843-580c-4599-bd21-e3b00a5399f5"
     // "drip_enabled" -> true
-    // "nra_withholding" -> "0"    
+    // "nra_withholding" -> "0"
     List<dynamic> list = [];
-    var pageStream = streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
+    var pageStream =
+        streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -657,18 +660,22 @@ class RobinhoodService implements IBrokerageService {
           yield list;
         }
       }
-      list.sort((a, b) => DateTime.parse(b["record_date"]!).compareTo(DateTime.parse(a["record_date"]!)));
+      list.sort((a, b) => DateTime.parse(b["record_date"]!)
+          .compareTo(DateTime.parse(a["record_date"]!)));
       yield list;
 
-      var instrumentIds = list.map((e) { 
-          var splits = e["instrument"].split("/");
-          return splits[splits.length - 2]; 
-      }).toSet().toList();
+      var instrumentIds = list
+          .map((e) {
+            var splits = e["instrument"].split("/");
+            return splits[splits.length - 2];
+          })
+          .toSet()
+          .toList();
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
       for (var instrumentObj in instrumentObjs) {
-        var pos =
-            list.where((element) => element["instrument"].toString().contains(instrumentObj.id));
+        var pos = list.where((element) =>
+            element["instrument"].toString().contains(instrumentObj.id));
         for (var po in pos) {
           po["instrumentObj"] = instrumentObj;
         }
@@ -676,7 +683,6 @@ class RobinhoodService implements IBrokerageService {
       }
     }
   }
-
 
   /*
   SEARCH and MARKETS
@@ -1111,7 +1117,8 @@ class RobinhoodService implements IBrokerageService {
       var result = results[i];
       list.add(result);
     }
-    list.sort((a, b) => DateTime.parse(b["record_date"]!).compareTo(DateTime.parse(a["record_date"]!)));
+    list.sort((a, b) => DateTime.parse(b["record_date"]!)
+        .compareTo(DateTime.parse(a["record_date"]!)));
     return list;
   }
 
@@ -1135,8 +1142,8 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     dynamic resultJson;
     try {
-      resultJson = await getJson(
-        user, "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
+      resultJson = await getJson(user,
+          "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
     } on Exception catch (e) {
       // Format
       debugPrint('No ratings found. Error: $e');
@@ -1170,7 +1177,8 @@ class RobinhoodService implements IBrokerageService {
       var result = resultJson["results"][i];
       list.add(result);
     }
-    list.sort((a, b) => DateTime.parse(b["report"]["date"]!).compareTo(DateTime.parse(a["report"]["date"]!)));
+    list.sort((a, b) => DateTime.parse(b["report"]["date"]!)
+        .compareTo(DateTime.parse(a["report"]["date"]!)));
     return list;
   }
 

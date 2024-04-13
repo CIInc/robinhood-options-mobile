@@ -47,7 +47,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
   @override
   Widget build(BuildContext context) {
     /* Not a screen but a sub-view used by instrument widget and option instrument widget.
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName:
           'OptionOrders/${widget.optionOrders.isNotEmpty ? widget.optionOrders[0].chainSymbol : ''}',
     );

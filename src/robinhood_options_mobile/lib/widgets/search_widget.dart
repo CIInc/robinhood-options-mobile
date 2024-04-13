@@ -86,7 +86,7 @@ class _SearchWidgetState extends State<SearchWidget>
     super.initState();
 
     searchCtl = TextEditingController();
-    widget.analytics.setCurrentScreen(screenName: 'Search');
+    widget.analytics.logScreenView(screenName: 'Search');
   }
 
   @override
@@ -567,7 +567,7 @@ class _SearchWidgetState extends State<SearchWidget>
                 //   },
                 // ) : Container(height: 40, width: 40),
                 Text(instrumentObj.symbol,
-                  style: const TextStyle(fontSize: 16.0)),
+                    style: const TextStyle(fontSize: 16.0)),
                 Wrap(
                   children: [
                     if (instrumentObj.quoteObj != null) ...[

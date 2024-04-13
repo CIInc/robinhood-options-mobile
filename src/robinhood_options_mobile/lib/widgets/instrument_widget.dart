@@ -115,7 +115,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     _startRefreshTimer();
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
   }
@@ -240,7 +240,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
           instrument.newsObj = data.length > 2 ? data[2] : null;
           instrument.listsObj = data.length > 3 ? data[3] : null;
-          instrument.dividendsObj = data.length > 4 ? data[4] : null;          
+          instrument.dividendsObj = data.length > 4 ? data[4] : null;
           instrument.ratingsObj = data.length > 5 ? data[5] : null;
           instrument.ratingsOverviewObj = data.length > 6 ? data[6] : null;
           instrument.positionOrders = data.length > 7 ? data[7] : null;
@@ -966,14 +966,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildRatingsOverviewWidget(instrument)
           ],
-          if (instrument.earningsObj != null && instrument.earningsObj!.isNotEmpty) ...[
+          if (instrument.earningsObj != null &&
+              instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
             )),
             _buildEarningsWidget(instrument)
           ],
-          if (instrument.dividendsObj != null && instrument.dividendsObj!.isNotEmpty) ...[
+          if (instrument.dividendsObj != null &&
+              instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
@@ -988,7 +990,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildSplitsWidget(instrument)
           ],
-          if (instrument.newsObj != null && instrument.earningsObj!.isNotEmpty) ...[
+          if (instrument.newsObj != null &&
+              instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
@@ -1009,7 +1012,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildListsWidget(instrument)
           ],
-          Consumer<InstrumentOrderStore>(builder: (context, stockOrderStore, child) {
+          Consumer<InstrumentOrderStore>(
+              builder: (context, stockOrderStore, child) {
             //var positionOrders = stockOrderStore.items.where(
             //    (element) => element.instrumentId == widget.instrument.id);
 
@@ -1134,65 +1138,62 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             const Expanded(child: SizedBox()),
             //const SizedBox(width: 8),
             TextButton(
-              child: const Text('BUY'),
-              onPressed: () => 
-              // showDialog<String>(
-              //   context: context,
-              //   builder: (BuildContext context) => AlertDialog(
-              //     title: const Text('Alert'),
-              //     content: const Text('This feature is not implemented.'),
-              //     actions: <Widget>[
-              //       TextButton(
-              //         onPressed: () => Navigator.pop(context, 'OK'),
-              //         child: const Text('OK'),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeInstrumentWidget(
-                                widget.user,
-                                //widget.account,
-                                // stockPosition: positi,
-                                instrument: instrument,
-                                positionType: "Buy",
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )))
-            ),
+                child: const Text('BUY'),
+                onPressed: () =>
+                    // showDialog<String>(
+                    //   context: context,
+                    //   builder: (BuildContext context) => AlertDialog(
+                    //     title: const Text('Alert'),
+                    //     content: const Text('This feature is not implemented.'),
+                    //     actions: <Widget>[
+                    //       TextButton(
+                    //         onPressed: () => Navigator.pop(context, 'OK'),
+                    //         child: const Text('OK'),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeInstrumentWidget(
+                                  widget.user,
+                                  //widget.account,
+                                  // stockPosition: positi,
+                                  instrument: instrument,
+                                  positionType: "Buy",
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                )))),
             const SizedBox(width: 8),
             TextButton(
-              child: const Text('SELL'),
-              onPressed: () => 
-              // showDialog<String>(
-              //   context: context,
-              //   builder: (BuildContext context) => AlertDialog(
-              //     title: const Text('Alert'),
-              //     content: const Text('This feature is not implemented.'),
-              //     actions: <Widget>[
-              //       TextButton(
-              //         onPressed: () => Navigator.pop(context, 'OK'),
-              //         child: const Text('OK'),
-              //       ),
-              //     ],
-              //   ),
-              // ),
-              Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => TradeInstrumentWidget(
-                                widget.user,
-                                //widget.account,
-                                // stockPosition: positi,
-                                instrument: instrument,
-                                positionType: "Sell",
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )))
-              
-            ),
+                child: const Text('SELL'),
+                onPressed: () =>
+                    // showDialog<String>(
+                    //   context: context,
+                    //   builder: (BuildContext context) => AlertDialog(
+                    //     title: const Text('Alert'),
+                    //     content: const Text('This feature is not implemented.'),
+                    //     actions: <Widget>[
+                    //       TextButton(
+                    //         onPressed: () => Navigator.pop(context, 'OK'),
+                    //         child: const Text('OK'),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => TradeInstrumentWidget(
+                                  widget.user,
+                                  //widget.account,
+                                  // stockPosition: positi,
+                                  instrument: instrument,
+                                  positionType: "Sell",
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                )))),
             const SizedBox(width: 8),
           ],
         ),
@@ -1372,41 +1373,43 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         ListTile(
           title: const Text("Industry"),
-          trailing: Text(instrument.fundamentalsObj!.industry, overflow: TextOverflow.ellipsis,
+          trailing: Text(instrument.fundamentalsObj!.industry,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 17)),
         ),
-        if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty || instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
-        ListTile(
-          title: const Text("Headquarters"),
-          trailing: Text(
-              "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-              style: const TextStyle(fontSize: 18)),
-        ),
+        if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
+            instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
+          ListTile(
+            title: const Text("Headquarters"),
+            trailing: Text(
+                "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
+                style: const TextStyle(fontSize: 18)),
+          ),
         ],
         if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
-        ListTile(
-          title: const Text("CEO"),
-          trailing: Text(instrument.fundamentalsObj!.ceo,
-              style: const TextStyle(fontSize: 18)),
-        ),
+          ListTile(
+            title: const Text("CEO"),
+            trailing: Text(instrument.fundamentalsObj!.ceo,
+                style: const TextStyle(fontSize: 18)),
+          ),
         ],
         if (instrument.fundamentalsObj!.numEmployees != null) ...[
-        ListTile(
-          title: const Text("Number of Employees"),
-          trailing: Text(
-              instrument.fundamentalsObj!.numEmployees != null
-                  ? formatCompactNumber
-                      .format(instrument.fundamentalsObj!.numEmployees!)
-                  : "",
-              style: const TextStyle(fontSize: 18)),
-        ),
+          ListTile(
+            title: const Text("Number of Employees"),
+            trailing: Text(
+                instrument.fundamentalsObj!.numEmployees != null
+                    ? formatCompactNumber
+                        .format(instrument.fundamentalsObj!.numEmployees!)
+                    : "",
+                style: const TextStyle(fontSize: 18)),
+          ),
         ],
         if (instrument.fundamentalsObj!.yearFounded != null) ...[
-        ListTile(
-          title: const Text("Year Founded"),
-          trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
-              style: const TextStyle(fontSize: 18)),
-        ),
+          ListTile(
+            title: const Text("Year Founded"),
+            trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
+                style: const TextStyle(fontSize: 18)),
+          ),
         ],
         ListTile(
           title: const Text(
@@ -1814,19 +1817,17 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
                 style: const TextStyle(fontSize: 18.0),
                 //overflow: TextOverflow.visible
-              ),// ${formatNumber.format(double.parse(dividend!["position"]))}
-              subtitle: Text("${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+              ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+              subtitle: Text(
+                  "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
                   style: const TextStyle(fontSize: 14)),
-              trailing: 
-                  Wrap(spacing: 10.0, children: [
-                    Column(children: [
-                      // const Text("Actual", style: TextStyle(fontSize: 11)),
-                      Text(
-                          formatCurrency.format(
-                              double.parse(dividend!["amount"])),
-                          style: const TextStyle(fontSize: 18))
-                    ])
-                    ])),
+              trailing: Wrap(spacing: 10.0, children: [
+                Column(children: [
+                  // const Text("Actual", style: TextStyle(fontSize: 11)),
+                  Text(formatCurrency.format(double.parse(dividend!["amount"])),
+                      style: const TextStyle(fontSize: 18))
+                ])
+              ])),
         ],
       ])))
     ]));
@@ -2005,17 +2006,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           ["logo_url"]
                       .toString()
                       .replaceAll("https:////", "https://");
-                  if (!mounted) return;
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => InstrumentWidget(
-                                widget.user,
-                                //widget.account,
-                                similarInstruments[0],
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )));
+                  if (context.mounted) {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(
+                                  widget.user,
+                                  //widget.account,
+                                  similarInstruments[0],
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                )));
+                  }
                 },
               ),
             ],
@@ -2597,19 +2599,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //runSpacing: 5,
           children: [
             Row(children: [
-                  Text(
-                      instrument
-                          .symbol, // ${optionPosition.strategy.split('_').first}
-                      //style: const TextStyle(fontSize: 20.0)
-                      style: const TextStyle(fontSize: 17.0)),
-                  const SizedBox(width: 10),
-                  Expanded(child: Text(
+              Text(
+                  instrument
+                      .symbol, // ${optionPosition.strategy.split('_').first}
+                  //style: const TextStyle(fontSize: 20.0)
+                  style: const TextStyle(fontSize: 17.0)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Text(
                       instrument.simpleName ??
                           instrument
                               .name, // ${optionPosition.strategy.split('_').first}
                       //style: const TextStyle(fontSize: 20.0)
                       style: const TextStyle(fontSize: 17.0))),
-
             ]),
             /*
             Wrap(

@@ -67,7 +67,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '507549221555',
     projectId: 'investiomanus',
     storageBucket: 'investiomanus.appspot.com',
-    iosClientId: '507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118.apps.googleusercontent.com',
+    iosClientId:
+        '507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118.apps.googleusercontent.com',
     iosBundleId: 'com.cidevelop.robinhoodOptionsMobile',
   );
 
@@ -77,7 +78,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '507549221555',
     projectId: 'investiomanus',
     storageBucket: 'investiomanus.appspot.com',
-    iosClientId: '507549221555-u5ck1erqk1kq1vgkher9qesf4ev6neck.apps.googleusercontent.com',
+    iosClientId:
+        '507549221555-u5ck1erqk1kq1vgkher9qesf4ev6neck.apps.googleusercontent.com',
     iosBundleId: 'com.cidevelop.robinhoodOptionsMobile.RunnerTests',
   );
 }

@@ -86,7 +86,7 @@ class _LoginWidgetState extends State<LoginWidget> {
         }
       }
     });
-    widget.analytics.setCurrentScreen(screenName: 'Login');
+    widget.analytics.logScreenView(screenName: 'Login');
   }
 
   @override

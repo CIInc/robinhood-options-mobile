@@ -8,7 +8,8 @@ class InstrumentPositionStore extends ChangeNotifier {
   final List<InstrumentPosition> _items = [];
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<InstrumentPosition> get items => UnmodifiableListView(_items);
+  UnmodifiableListView<InstrumentPosition> get items =>
+      UnmodifiableListView(_items);
 
   double get equity => _items.isNotEmpty
       ? _items.map((e) => e.marketValue).reduce((a, b) => a + b)

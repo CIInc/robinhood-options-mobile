@@ -217,7 +217,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     _startRefreshTimer();
     WidgetsBinding.instance.addObserver(this);
 
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'Home',
     );
   }

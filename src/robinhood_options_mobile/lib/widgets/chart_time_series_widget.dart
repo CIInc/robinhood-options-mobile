@@ -72,8 +72,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           //renderSpec: charts.NoneRenderSpec(),
-          tickProviderSpec:
-              const charts.BasicNumericTickProviderSpec(zeroBound: false, dataIsInWholeNumbers: true, desiredMinTickCount: 4)),
+          tickProviderSpec: const charts.BasicNumericTickProviderSpec(
+              zeroBound: false,
+              dataIsInWholeNumbers: true,
+              desiredMinTickCount: 4)),
       domainAxis: charts.DateTimeAxisSpec(
           // EndPointsTimeAxisSpec
           //showAxisLine: true,

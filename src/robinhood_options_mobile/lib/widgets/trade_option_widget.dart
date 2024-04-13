@@ -57,7 +57,7 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
     super.initState();
     positionType = widget.positionType;
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
-    widget.analytics.setCurrentScreen(screenName: 'Trade Option');
+    widget.analytics.logScreenView(screenName: 'Trade Option');
   }
 
   @override
@@ -93,14 +93,15 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
 
             if (newOrder.state == "confirmed" ||
                 newOrder.state == "unconfirmed") {
-              if (!mounted) return;
-              Navigator.pop(context);
+              if (context.mounted) {
+                Navigator.pop(context);
 
-              ScaffoldMessenger.of(context)
-                ..removeCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                    content: Text(
-                        "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.")));
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text(
+                          "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.")));
+              }
             } else {
               setState(() {
                 ScaffoldMessenger.of(context)

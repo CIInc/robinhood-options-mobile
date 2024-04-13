@@ -8,7 +8,8 @@ class InstrumentOrderStore extends ChangeNotifier {
   final List<InstrumentOrder> _items = [];
 
   /// An unmodifiable view of the items in the store.
-  UnmodifiableListView<InstrumentOrder> get items => UnmodifiableListView(_items);
+  UnmodifiableListView<InstrumentOrder> get items =>
+      UnmodifiableListView(_items);
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;

@@ -54,7 +54,7 @@ class _ListWidgetState extends State<ListWidget>
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'List/${widget.listKey}',
     );
   }

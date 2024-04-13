@@ -57,7 +57,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     super.initState();
     positionType = widget.positionType;
     // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
-    widget.analytics.setCurrentScreen(screenName: 'Trade Option');
+    widget.analytics.logScreenView(screenName: 'Trade Option');
   }
 
   @override
@@ -95,14 +95,15 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
             if (newOrder.state == "confirmed" ||
                 newOrder.state == "unconfirmed") {
-              if (!mounted) return;
-              Navigator.pop(context);
+              if (context.mounted) {
+                Navigator.pop(context);
 
-              ScaffoldMessenger.of(context)
-                ..removeCurrentSnackBar()
-                ..showSnackBar(SnackBar(
-                    content: Text(
-                        "Order to $positionType ${quantityCtl.text} shares of ${widget.instrument!.symbol} at \$${priceCtl.text} placed.")));
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text(
+                          "Order to $positionType ${quantityCtl.text} shares of ${widget.instrument!.symbol} at \$${priceCtl.text} placed.")));
+              }
             } else {
               setState(() {
                 ScaffoldMessenger.of(context)
@@ -113,8 +114,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             }
           },
         ));
-    priceCtl.text =
-        widget.instrument!.quoteObj!.lastTradePrice.toString();
+    priceCtl.text = widget.instrument!.quoteObj!.lastTradePrice.toString();
     return Scaffold(
         appBar: AppBar(
           title: Wrap(
@@ -124,8 +124,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               spacing: 20,
               //runSpacing: 5,
               children: [
-                Text(
-                    '${widget.instrument!.symbol} ${widget.instrument!.type}',
+                Text('${widget.instrument!.symbol} ${widget.instrument!.type}',
                     style: const TextStyle(fontSize: 20.0)),
                 // Text(
                 //     formatDate.format(widget.instrument!.expirationDate!),

@@ -72,7 +72,7 @@ class _InstrumentOptionChainWidgetState
     super.initState();
 
     //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
     );
   }

@@ -74,7 +74,7 @@ class _UserWidgetState extends State<UserWidget> {
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(screenName: 'User');
+    widget.analytics.logScreenView(screenName: 'User');
     myBanner.load();
   }
 

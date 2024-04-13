@@ -55,8 +55,8 @@ class PortfolioHistoricals {
   }
 
   bool update(EquityHistorical item) {
-    var index = equityHistoricals.indexWhere((element) =>
-        element.beginsAt == item.beginsAt);
+    var index = equityHistoricals
+        .indexWhere((element) => element.beginsAt == item.beginsAt);
     if (index == -1) {
       return false;
     }

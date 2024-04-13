@@ -107,7 +107,7 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareText = true;
   bool shareLink = true;
 
-   final BannerAd myBanner = BannerAd(
+  final BannerAd myBanner = BannerAd(
     adUnitId: kDebugMode
         ? Constants.testAdUnit
         : (Platform.isAndroid
@@ -141,7 +141,7 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(screenName: 'History');
+    widget.analytics.logScreenView(screenName: 'History');
     myBanner.load();
   }
 
@@ -212,39 +212,53 @@ class _HistoryPageState extends State<HistoryPage>
                               }
                             }
 
-                            dividendStream ??= RobinhoodService.streamDividends(widget.user, Provider.of<InstrumentStore>(context, listen: false));
+                            dividendStream ??= RobinhoodService.streamDividends(
+                                widget.user,
+                                Provider.of<InstrumentStore>(context,
+                                    listen: false));
                             return StreamBuilder(
                                 stream: dividendStream,
                                 builder: (context6, dividendSnapshot) {
                                   if (dividendSnapshot.hasData) {
                                     dividends =
                                         dividendSnapshot.data as List<dynamic>;
-                                    
+
                                     return _buildPage(
                                         optionOrders: optionOrders,
                                         positionOrders: positionOrders,
                                         optionEvents: optionEvents,
                                         dividends: dividends,
-                                        done: positionOrdersSnapshot.connectionState == ConnectionState.done &&
-                                            optionOrdersSnapshot.connectionState == ConnectionState.done && 
-                                            dividendSnapshot.connectionState == ConnectionState.done);
-                                  }
-                                  else {
+                                        done: positionOrdersSnapshot
+                                                    .connectionState ==
+                                                ConnectionState.done &&
+                                            optionOrdersSnapshot
+                                                    .connectionState ==
+                                                ConnectionState.done &&
+                                            dividendSnapshot.connectionState ==
+                                                ConnectionState.done);
+                                  } else {
                                     return _buildPage(
                                         optionOrders: optionOrders,
                                         positionOrders: positionOrders,
                                         optionEvents: optionEvents,
-                                        done: positionOrdersSnapshot.connectionState == ConnectionState.done &&
-                                            optionOrdersSnapshot.connectionState == ConnectionState.done && 
-                                            dividendSnapshot.connectionState == ConnectionState.done);
+                                        done: positionOrdersSnapshot
+                                                    .connectionState ==
+                                                ConnectionState.done &&
+                                            optionOrdersSnapshot
+                                                    .connectionState ==
+                                                ConnectionState.done &&
+                                            dividendSnapshot.connectionState ==
+                                                ConnectionState.done);
                                   }
                                 });
                           } else {
                             return _buildPage(
                                 optionOrders: optionOrders,
                                 positionOrders: positionOrders,
-                                done: positionOrdersSnapshot.connectionState == ConnectionState.done &&
-                                    optionOrdersSnapshot.connectionState == ConnectionState.done);
+                                done: positionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done &&
+                                    optionOrdersSnapshot.connectionState ==
+                                        ConnectionState.done);
                           }
                         });
                   } else if (positionOrdersSnapshot.hasError) {
@@ -378,7 +392,8 @@ class _HistoryPageState extends State<HistoryPage>
                           .compareTo(DateTime.now()) >=
                       0) &&
               (stockSymbolFilters.isEmpty ||
-                  stockSymbolFilters.contains(element["instrumentObj"]!.symbol)))
+                  stockSymbolFilters
+                      .contains(element["instrumentObj"]!.symbol)))
           .toList();
 
       dividendBalance = filteredDividends!.isNotEmpty
@@ -907,8 +922,8 @@ class _HistoryPageState extends State<HistoryPage>
                 var amount = 0.0;
                 if (filteredPositionOrders![index].averagePrice != null) {
                   amount = filteredPositionOrders![index].averagePrice! *
-                    filteredPositionOrders![index].quantity! *
-                    (filteredPositionOrders![index].side == "buy" ? -1 : 1);
+                      filteredPositionOrders![index].quantity! *
+                      (filteredPositionOrders![index].side == "buy" ? -1 : 1);
                 }
                 return Card(
                     child: Column(
@@ -1067,13 +1082,13 @@ class _HistoryPageState extends State<HistoryPage>
                   children: <Widget>[
                     showShareView
                         ? CheckboxListTile(
-                            value: selectedPositionOrdersToShare
-                                .contains(filteredDividends![index]["record_date"]),
+                            value: selectedPositionOrdersToShare.contains(
+                                filteredDividends![index]["record_date"]),
                             onChanged: (bool? newValue) {
                               if (newValue!) {
                                 setState(() {
-                                  selectedPositionOrdersToShare
-                                      .add(filteredDividends![index]["record_date"]);
+                                  selectedPositionOrdersToShare.add(
+                                      filteredDividends![index]["record_date"]);
                                 });
                               } else {
                                 setState(() {
@@ -1087,28 +1102,33 @@ class _HistoryPageState extends State<HistoryPage>
                             subtitle: Text(
                                 "${filteredDividends![index].state} ${formatDate.format(filteredDividends![index].updatedAt!)}"),
                           )
-                        : 
-                        ListTile(
+                        : ListTile(
                             leading: CircleAvatar(
                                 //backgroundImage: AssetImage(user.profilePicture),
-                                child: Text(dividend["instrumentObj"] != null ? dividend["instrumentObj"].symbol : "",
+                                child: Text(
+                                    dividend["instrumentObj"] != null
+                                        ? dividend["instrumentObj"].symbol
+                                        : "",
                                     style: const TextStyle(fontSize: 14))),
                             title: Text(
-                              dividend["instrumentObj"] != null ? "${dividend["instrumentObj"].symbol}" : "" "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                              dividend["instrumentObj"] != null
+                                  ? "${dividend["instrumentObj"].symbol}"
+                                  : ""
+                                      "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
                               style: const TextStyle(fontSize: 18.0),
                               //overflow: TextOverflow.visible
-                            ),// ${formatNumber.format(double.parse(dividend!["position"]))}
-                            subtitle: Text("${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                            ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                            subtitle: Text(
+                                "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
                                 style: const TextStyle(fontSize: 14)),
-                            trailing: 
-                                Wrap(spacing: 10.0, children: [
-                                  Column(children: [
-                                    // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                    Text(
-                                        formatCurrency.format(
-                                            double.parse(dividend!["amount"])),
-                                        style: const TextStyle(fontSize: 18))
-                                  ])
+                            trailing: Wrap(spacing: 10.0, children: [
+                              Column(children: [
+                                // const Text("Actual", style: TextStyle(fontSize: 11)),
+                                Text(
+                                    formatCurrency.format(
+                                        double.parse(dividend!["amount"])),
+                                    style: const TextStyle(fontSize: 18))
+                              ])
                             ]),
                             onTap: () {
                               /* For navigation within this tab, uncomment
@@ -1122,10 +1142,12 @@ class _HistoryPageState extends State<HistoryPage>
                                 context: context,
                                 builder: (BuildContext context) => AlertDialog(
                                   title: const Text('Alert'),
-                                  content: const Text('This feature is not implemented.\n'),
+                                  content: const Text(
+                                      'This feature is not implemented.\n'),
                                   actions: <Widget>[
                                     TextButton(
-                                      onPressed: () => Navigator.pop(context, 'OK'),
+                                      onPressed: () =>
+                                          Navigator.pop(context, 'OK'),
                                       child: const Text('OK'),
                                     ),
                                   ],
@@ -1142,7 +1164,7 @@ class _HistoryPageState extends State<HistoryPage>
                               //               observer: widget.observer,
                               //             )));
                             },
-                        
+
                             //isThreeLine: true,
                           ),
                   ],
@@ -1158,7 +1180,8 @@ class _HistoryPageState extends State<HistoryPage>
         )));
       }
     }
-    slivers.add(SliverToBoxAdapter(child: adContainer)); // adContainer // bannerAdWidget()
+    slivers.add(SliverToBoxAdapter(
+        child: adContainer)); // adContainer // bannerAdWidget()
     slivers.add(const SliverToBoxAdapter(
         child: SizedBox(
       height: 25.0,

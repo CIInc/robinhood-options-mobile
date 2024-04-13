@@ -49,7 +49,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(screenName: 'MoreMenu');
+    widget.analytics.logScreenView(screenName: 'MoreMenu');
   }
 
   @override

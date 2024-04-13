@@ -265,8 +265,9 @@ class RobinhoodUser {
         break;
         */
       case DisplayValue.marketValue:
-        value =
-            ops.map((InstrumentPosition e) => e.marketValue).reduce((a, b) => a + b);
+        value = ops
+            .map((InstrumentPosition e) => e.marketValue)
+            .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturn:
         value = ops
@@ -277,8 +278,9 @@ class RobinhoodUser {
         var numerator = ops
             .map((InstrumentPosition e) => e.gainLossPercentToday * e.totalCost)
             .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((InstrumentPosition e) => e.totalCost).reduce((a, b) => a + b);
+        var denominator = ops
+            .map((InstrumentPosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
         value = ops
@@ -288,15 +290,17 @@ class RobinhoodUser {
             */
         break;
       case DisplayValue.totalReturn:
-        value =
-            ops.map((InstrumentPosition e) => e.gainLoss).reduce((a, b) => a + b);
+        value = ops
+            .map((InstrumentPosition e) => e.gainLoss)
+            .reduce((a, b) => a + b);
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
             .map((InstrumentPosition e) => e.gainLossPercent * e.totalCost)
             .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((InstrumentPosition e) => e.totalCost).reduce((a, b) => a + b);
+        var denominator = ops
+            .map((InstrumentPosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
         value = numerator / denominator;
         /*
         value = ops
@@ -370,7 +374,8 @@ class RobinhoodUser {
     return value;
   }
 
-  double getPositionDisplayValue(InstrumentPosition op, {DisplayValue? displayValue}) {
+  double getPositionDisplayValue(InstrumentPosition op,
+      {DisplayValue? displayValue}) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:

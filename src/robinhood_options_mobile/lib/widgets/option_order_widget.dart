@@ -51,7 +51,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   @override
   void initState() {
     super.initState();
-    widget.analytics.setCurrentScreen(
+    widget.analytics.logScreenView(
       screenName: 'OptionOrder/${widget.optionOrder.chainSymbol}',
     );
   }
