@@ -6,6 +6,11 @@ This repository implements the Robinhood API to provide an options focused Andro
 
 See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases and application requirements.
 
+### Latest Release
+
+- [Investing Mobile | Apple App Store](https://testflight.apple.com/join/jed18uz8): TestFlight only, production release coming soon.
+- [Investing Mobile | Google Play Store](https://play.google.com/apps/internaltest/4701722902176245187): Internal testing only, production release coming soon.
+
 <!--
 ## Usage
 
@@ -128,12 +133,12 @@ flutter pub upgrade --tighten
 
 ## Publish
 
-### Android
+### Android Play Store
 
 #### Build app bundle
 
 ```bash
-flutter build appbundle
+flutter build appbundle --release
 ```
 
 #### Generate APKs
@@ -144,12 +149,12 @@ This command generates an .apk file used to publish an installation file.
 flutter build apk --release
 ```
 
-### iOS
+### Apple App Store
 
 #### Build IPA
 
 ```bash
-flutter build ipa
+flutter build ipa --release
 ```
 
 If you get an error, see Debugging Notes section above to clean the project.
@@ -165,5 +170,3 @@ If you get an error, see Debugging Notes section above to clean the project.
 ```bash
 flutter test
 ```
-
- 

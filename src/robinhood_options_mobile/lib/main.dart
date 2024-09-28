@@ -111,6 +111,8 @@ class MyApp extends StatelessWidget {
           ? const ColorScheme.light(
               primary: Colors.purple, secondary: Colors.indigoAccent)
           : lightDynamic ?? const ColorScheme.light();
+      // primary: Color.fromRGBO(156, 39, 176, 0.7),
+      // secondary: Color.fromRGBO(83, 109, 254, 0.7))
       ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.dark(
               primary: Colors.purple, secondary: Colors.indigoAccent)
@@ -120,7 +122,9 @@ class MyApp extends StatelessWidget {
           // , textTheme: Typography.blackCupertino);
           ,
           useMaterial3: true,
-          appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary));
+          appBarTheme: AppBarTheme(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: Colors.white));
       ThemeData darkTheme = ThemeData(
           colorScheme: darkColorScheme
           // , textTheme: Typography.whiteHelsinki,

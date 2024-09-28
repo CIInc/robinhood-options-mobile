@@ -89,7 +89,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                             children: [
                               ListTile(
                                 tileColor:
-                                    Theme.of(context).colorScheme.background,
+                                    Theme.of(context).colorScheme.surface,
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",

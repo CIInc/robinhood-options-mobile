@@ -293,7 +293,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
 
     if (holding.historicalsObj != null) {
       var brightness = MediaQuery.of(context).platformBrightness;
-      var textColor = Theme.of(context).colorScheme.background;
+      var textColor = Theme.of(context).colorScheme.surface;
       if (brightness == Brightness.dark) {
         textColor = Colors.grey.shade200;
       } else {

@@ -1,12 +1,9 @@
-import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -14,6 +11,7 @@ import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
@@ -47,34 +45,6 @@ class _ListsWidgetState extends State<ListsWidget>
   SortType? _sortType = SortType.alphabetical;
   SortDirection? _sortDirection = SortDirection.desc;
 
-  final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode
-        ? Constants.testAdUnit
-        : (Platform.isAndroid
-            ? Constants.homeBannerAndroidAdUnit
-            : Constants.homeBanneriOSAdUnit),
-    size: AdSize.largeBanner,
-    request: const AdRequest(),
-    listener: const BannerAdListener(),
-  );
-
-  final BannerAdListener listener = BannerAdListener(
-    // Called when an ad is successfully received.
-    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-    // Called when an ad request failed.
-    onAdFailedToLoad: (Ad ad, LoadAdError error) {
-      // Dispose the ad here to free resources.
-      ad.dispose();
-      debugPrint('Ad failed to load: $error');
-    },
-    // Called when an ad opens an overlay that covers the screen.
-    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-    // Called when an ad removes an overlay that covers the screen.
-    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-    // Called when an impression occurs on the ad.
-    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
-  );
-
   @override
   bool get wantKeepAlive => true;
 
@@ -84,7 +54,11 @@ class _ListsWidgetState extends State<ListsWidget>
     widget.analytics.logScreenView(
       screenName: 'Lists',
     );
-    myBanner.load();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -93,7 +67,7 @@ class _ListsWidgetState extends State<ListsWidget>
 
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
           // do your logic ends
@@ -150,14 +124,6 @@ class _ListsWidgetState extends State<ListsWidget>
   }
 
   Widget _buildScaffold({bool done = false}) {
-    final AdWidget adWidget = AdWidget(ad: myBanner);
-    final Container adContainer = Container(
-      alignment: Alignment.center,
-      width: myBanner.size.width.toDouble(),
-      height: myBanner.size.height.toDouble(),
-      child: adWidget,
-    );
-
     var totalItems = 0;
     var totalLists = 0;
     if (watchlists != null) {
@@ -471,7 +437,7 @@ class _ListsWidgetState extends State<ListsWidget>
           )),
         ]
       ],
-      SliverToBoxAdapter(child: adContainer),
+      SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
       const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,

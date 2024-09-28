@@ -1,18 +1,15 @@
-import 'dart:io' show Platform;
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
-
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -107,34 +104,6 @@ class _HistoryPageState extends State<HistoryPage>
   bool shareText = true;
   bool shareLink = true;
 
-  final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode
-        ? Constants.testAdUnit
-        : (Platform.isAndroid
-            ? Constants.homeBannerAndroidAdUnit
-            : Constants.homeBanneriOSAdUnit),
-    size: AdSize.mediumRectangle,
-    request: const AdRequest(),
-    listener: const BannerAdListener(),
-  );
-
-  final BannerAdListener listener = BannerAdListener(
-    // Called when an ad is successfully received.
-    onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-    // Called when an ad request failed.
-    onAdFailedToLoad: (Ad ad, LoadAdError error) {
-      // Dispose the ad here to free resources.
-      ad.dispose();
-      debugPrint('Ad failed to load: $error');
-    },
-    // Called when an ad opens an overlay that covers the screen.
-    onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-    // Called when an ad removes an overlay that covers the screen.
-    onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-    // Called when an impression occurs on the ad.
-    onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
-  );
-
   @override
   bool get wantKeepAlive => true;
 
@@ -142,7 +111,11 @@ class _HistoryPageState extends State<HistoryPage>
   void initState() {
     super.initState();
     widget.analytics.logScreenView(screenName: 'History');
-    myBanner.load();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -156,7 +129,7 @@ class _HistoryPageState extends State<HistoryPage>
             */
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
           // do your logic ends
@@ -293,16 +266,6 @@ class _HistoryPageState extends State<HistoryPage>
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
-    final AdWidget adWidget = AdWidget(ad: myBanner);
-    final Container adContainer = Container(
-      alignment: Alignment.center,
-      width: myBanner.size.width.toDouble(),
-      height: myBanner.size.height.toDouble(),
-      child: adWidget,
-    );
-
-    var slivers = <Widget>[];
-
     int days = 0;
     switch (orderDateFilterSelected) {
       case 0:
@@ -419,65 +382,73 @@ class _HistoryPageState extends State<HistoryPage>
               )
           .toList();
     }
-    slivers.add(SliverAppBar(
-      //floating: false,
-      pinned: true,
-      //snap: false,
-      title: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
-          //runAlignment: WrapAlignment.end,
-          //alignment: WrapAlignment.end,
-          spacing: 20,
-          //runSpacing: 5,
-          children: [
-            const Text('History', style: TextStyle(fontSize: 20.0)),
-            Text(
-                "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : "0"} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                style: const TextStyle(fontSize: 16.0, color: Colors.white70)),
-          ]),
-      actions: [
-        IconButton(
-            icon: const Icon(Icons.more_vert_sharp),
-            onPressed: () {
-              showModalBottomSheet<void>(
-                context: context,
-                //constraints: BoxConstraints(maxHeight: 260),
-                builder: (BuildContext context) {
-                  return Scaffold(
-                      appBar: AppBar(
-                          leading: const CloseButton(),
-                          title: const Text('History Settings')),
-                      body: ListView(
-                        //Column(
-                        //mainAxisAlignment: MainAxisAlignment.start,
-                        //crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          ListTile(
-                            title: const Text("Share"),
-                            trailing: IconButton(
-                              onPressed: _closeAndShowShareView,
-                              icon: showShareView
-                                  ? const Icon(Icons.preview)
-                                  : const Icon(Icons.share),
-                            ),
-                          ),
-                          const ListTile(
-                            leading: Icon(Icons.filter_list),
-                            title: Text(
-                              "Filters",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const ListTile(
-                            title: Text("Order State & Date"),
-                          ),
-                          orderFilterWidget,
-                          orderDateFilterWidget,
-                          const ListTile(
-                            title: Text("Symbols"),
-                          ),
-                          stockOrderSymbolFilterWidget,
-                          /*                         
+    // Removed Scaffold at this level as it blocks the drawer menu from appearing.
+    // This requires the removal of the share floatingActionButton, still available in the vertical menu.
+    return /*Scaffold(
+      body: */
+        RefreshIndicator(
+      onRefresh: _pullRefresh,
+      child: CustomScrollView(slivers: [
+        SliverAppBar(
+          //floating: false,
+          pinned: true,
+          //snap: false,
+          title: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.end,
+              //runAlignment: WrapAlignment.end,
+              //alignment: WrapAlignment.end,
+              spacing: 20,
+              //runSpacing: 5,
+              children: [
+                const Text('History', style: TextStyle(fontSize: 20.0)),
+                Text(
+                    "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : "0"} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                    style:
+                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+              ]),
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.more_vert_sharp),
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                    context: context,
+                    //constraints: BoxConstraints(maxHeight: 260),
+                    builder: (BuildContext context) {
+                      return Scaffold(
+                          appBar: AppBar(
+                              leading: const CloseButton(),
+                              title: const Text('History Settings')),
+                          body: ListView(
+                            //Column(
+                            //mainAxisAlignment: MainAxisAlignment.start,
+                            //crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              ListTile(
+                                title: const Text("Share"),
+                                trailing: IconButton(
+                                  onPressed: _closeAndShowShareView,
+                                  icon: showShareView
+                                      ? const Icon(Icons.preview)
+                                      : const Icon(Icons.share),
+                                ),
+                              ),
+                              const ListTile(
+                                leading: Icon(Icons.filter_list),
+                                title: Text(
+                                  "Filters",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const ListTile(
+                                title: Text("Order State & Date"),
+                              ),
+                              orderFilterWidget,
+                              orderDateFilterWidget,
+                              const ListTile(
+                                title: Text("Symbols"),
+                              ),
+                              stockOrderSymbolFilterWidget,
+                              /*                         
                           Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,672 +504,682 @@ class _HistoryPageState extends State<HistoryPage>
                             ],
                           )
                           */
-                          const SizedBox(
-                            height: 25.0,
-                          )
-                        ],
-                      ));
-                },
-              );
-            })
-      ],
-    ));
-    if (widget.user.userName != null) {
-      if (done == false) {
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 3, //150.0,
-          child: Align(
-              alignment: Alignment.center,
-              child: Center(
-                  child: LinearProgressIndicator(
-                      //value: controller.value,
-                      //semanticsLabel: 'Linear progress indicator',
-                      ) //CircularProgressIndicator(),
-                  )),
-        )));
-      }
-      if (welcomeWidget != null) {
-        slivers.add(SliverToBoxAdapter(
-            child: SizedBox(
-          height: 150.0,
-          child: Align(alignment: Alignment.center, child: welcomeWidget),
-        )));
-      }
-
-      if (optionOrders != null) {
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              //elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Option Orders & Events",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders $orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
+                              const SizedBox(
+                                height: 25.0,
+                              )
+                            ],
+                          ));
+                    },
+                  );
+                })
+          ],
+        ),
+        if (widget.user.userName != null) ...[
+          if (done == false) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 3, //150.0,
+              child: Align(
+                  alignment: Alignment.center,
+                  child: Center(
+                      child: LinearProgressIndicator(
+                          //value: controller.value,
+                          //semanticsLabel: 'Linear progress indicator',
+                          ) //CircularProgressIndicator(),
+                      )),
+            ))
+          ],
+          if (welcomeWidget != null) ...[
+            SliverToBoxAdapter(
+                child: SizedBox(
+              height: 150.0,
+              child: Align(alignment: Alignment.center, child: welcomeWidget),
+            ))
+          ],
+          if (optionOrders != null) ...[
+            SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: const Text(
+                          "Option Orders & Events",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders $orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              var future = showModalBottomSheet<void>(
+                                context: context,
+                                // constraints: BoxConstraints(maxHeight: 260),
+                                builder:
+                                    /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
                               optionPositions:
                                   optionPositions)
                                   */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListTile(
-                                    tileColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    leading: const Icon(Icons.filter_list),
-                                    title: const Text(
-                                      "Filter Option Orders",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    /*
+                                    (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Filter Option Orders",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  optionOrderSymbolFilterWidget,
-                                ],
+                                      ),
+                                      const ListTile(
+                                        title: Text("Order State & Date"),
+                                      ),
+                                      orderFilterWidget,
+                                      orderDateFilterWidget,
+                                      const ListTile(
+                                        title: Text("Symbols"),
+                                      ),
+                                      optionOrderSymbolFilterWidget,
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                var optionOrder = filteredOptionOrders![index];
-                var subtitle = Text(
-                    "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
-                if (optionOrder.optionEvents != null) {
-                  var optionEvent = optionOrder.optionEvents!.first;
-                  subtitle = Text(
-                      "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
-                }
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    showShareView
-                        ? CheckboxListTile(
-                            value: selectedOptionOrdersToShare
-                                .contains(filteredOptionOrders![index].id),
-                            onChanged: (bool? newValue) {
-                              if (newValue!) {
-                                setState(() {
-                                  selectedOptionOrdersToShare
-                                      .add(filteredOptionOrders![index].id);
-                                });
-                              } else {
-                                setState(() {
-                                  selectedOptionOrdersToShare
-                                      .remove(filteredOptionOrders![index].id);
-                                });
-                              }
-                            },
-                            title: Text(
-                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                            subtitle: subtitle,
-                          )
-                        : ListTile(
-                            leading: CircleAvatar(
-                                //backgroundImage: AssetImage(user.profilePicture),
-                                /*
+                              future.then((void value) => {});
+                            }),
+                      ))),
+              sliver: SliverList(
+                // delegate: SliverChildListDelegate(widgets),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    var optionOrder = filteredOptionOrders![index];
+                    var subtitle = Text(
+                        "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
+                    if (optionOrder.optionEvents != null) {
+                      var optionEvent = optionOrder.optionEvents!.first;
+                      subtitle = Text(
+                          "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
+                    }
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        showShareView
+                            ? CheckboxListTile(
+                                value: selectedOptionOrdersToShare
+                                    .contains(filteredOptionOrders![index].id),
+                                onChanged: (bool? newValue) {
+                                  if (newValue!) {
+                                    setState(() {
+                                      selectedOptionOrdersToShare
+                                          .add(filteredOptionOrders![index].id);
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedOptionOrdersToShare.remove(
+                                          filteredOptionOrders![index].id);
+                                    });
+                                  }
+                                },
+                                title: Text(
+                                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                subtitle: subtitle,
+                              )
+                            : ListTile(
+                                leading: CircleAvatar(
+                                    //backgroundImage: AssetImage(user.profilePicture),
+                                    /*
                           backgroundColor: optionOrder.optionEvents != null
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.secondary,
                               */
-                                child: optionOrder.optionEvents != null
-                                    ? const Icon(Icons.check)
-                                    : Text('${optionOrder.quantity!.round()}',
-                                        style: const TextStyle(fontSize: 17))),
-                            title: Text(
-                                "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                            subtitle: subtitle,
-                            trailing: Wrap(spacing: 8, children: [
-                              Text(
-                                (optionOrder.direction == "credit"
-                                        ? "+"
-                                        : "-") +
-                                    (optionOrder.processedPremium != null
-                                        ? formatCurrency.format(
-                                            optionOrder.processedPremium)
-                                        : ""),
-                                style: const TextStyle(fontSize: 18.0),
-                                textAlign: TextAlign.right,
-                              )
-                            ]),
+                                    child: optionOrder.optionEvents != null
+                                        ? const Icon(Icons.check)
+                                        : Text(
+                                            '${optionOrder.quantity!.round()}',
+                                            style:
+                                                const TextStyle(fontSize: 17))),
+                                title: Text(
+                                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                subtitle: subtitle,
+                                trailing: Wrap(spacing: 8, children: [
+                                  Text(
+                                    (optionOrder.direction == "credit"
+                                            ? "+"
+                                            : "-") +
+                                        (optionOrder.processedPremium != null
+                                            ? formatCurrency.format(
+                                                optionOrder.processedPremium)
+                                            : ""),
+                                    style: const TextStyle(fontSize: 18.0),
+                                    textAlign: TextAlign.right,
+                                  )
+                                ]),
 
-                            isThreeLine: optionOrder.optionEvents != null,
-                            onTap: () {
-                              /* For navigation within this tab, uncomment
+                                isThreeLine: optionOrder.optionEvents != null,
+                                onTap: () {
+                                  /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
                                           optionOrder)));
                                           */
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => OptionOrderWidget(
-                                            widget.user,
-                                            optionOrder,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                          )));
-                            },
-                          ),
-                  ],
-                ));
-              },
-              childCount: filteredOptionOrders!.length,
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              OptionOrderWidget(
+                                                widget.user,
+                                                optionOrder,
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                              )));
+                                },
+                              ),
+                      ],
+                    ));
+                  },
+                  childCount: filteredOptionOrders!.length,
+                ),
+              ),
             ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
-      if (optionEvents != null && filteredOptionEvents != null) {
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              //elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Option Events",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders $orderDateFilterDisplay"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            ))
+          ],
+          if (optionEvents != null && filteredOptionEvents != null) ...[
+            SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: const Text(
+                          "Option Events",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders $orderDateFilterDisplay"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              var future = showModalBottomSheet<void>(
+                                context: context,
+                                // constraints: BoxConstraints(maxHeight: 260),
+                                builder:
+                                    /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
                               optionPositions:
                                   optionPositions)
                                   */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListTile(
-                                    tileColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    leading: const Icon(Icons.filter_list),
-                                    title: const Text(
-                                      "Filter Option Events",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    /*
+                                    (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Filter Option Events",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  optionOrderSymbolFilterWidget,
-                                ],
+                                      ),
+                                      const ListTile(
+                                        title: Text("Order State & Date"),
+                                      ),
+                                      orderFilterWidget,
+                                      orderDateFilterWidget,
+                                      const ListTile(
+                                        title: Text("Symbols"),
+                                      ),
+                                      optionOrderSymbolFilterWidget,
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    ListTile(
-                      leading: CircleAvatar(
-                          //backgroundImage: AssetImage(user.profilePicture),
-                          child: Text(
-                              '${filteredOptionEvents![index].quantity!.round()}',
-                              style: const TextStyle(fontSize: 17))),
-                      title: Text(
-                          "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
-                      subtitle: Text(
-                          "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          (filteredOptionEvents![index].direction == "credit"
-                                  ? "+"
-                                  : "-") +
-                              (filteredOptionEvents![index].totalCashAmount !=
-                                      null
-                                  ? formatCurrency.format(
-                                      filteredOptionEvents![index]
-                                          .totalCashAmount)
-                                  : ""),
-                          style: const TextStyle(fontSize: 18.0),
-                          textAlign: TextAlign.right,
-                        )
-                      ]),
+                              future.then((void value) => {});
+                            }),
+                      ))),
+              sliver: SliverList(
+                // delegate: SliverChildListDelegate(widgets),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        ListTile(
+                          leading: CircleAvatar(
+                              //backgroundImage: AssetImage(user.profilePicture),
+                              child: Text(
+                                  '${filteredOptionEvents![index].quantity!.round()}',
+                                  style: const TextStyle(fontSize: 17))),
+                          title: Text(
+                              "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
+                          subtitle: Text(
+                              "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
+                          trailing: Wrap(spacing: 8, children: [
+                            Text(
+                              (filteredOptionEvents![index].direction ==
+                                          "credit"
+                                      ? "+"
+                                      : "-") +
+                                  (filteredOptionEvents![index]
+                                              .totalCashAmount !=
+                                          null
+                                      ? formatCurrency.format(
+                                          filteredOptionEvents![index]
+                                              .totalCashAmount)
+                                      : ""),
+                              style: const TextStyle(fontSize: 18.0),
+                              textAlign: TextAlign.right,
+                            )
+                          ]),
 
-                      //isThreeLine: true,
-                      onTap: () {
-                        () => showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) => AlertDialog(
-                                  title: const Text('Alert'),
-                                  content: const Text(
-                                      'This feature is not implemented.'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, 'OK'),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ));
-                      },
-                    ),
-                  ],
-                ));
-              },
-              childCount: filteredOptionEvents!.length,
+                          //isThreeLine: true,
+                          onTap: () {
+                            () => showDialog<String>(
+                                context: context,
+                                builder: (BuildContext context) => AlertDialog(
+                                      title: const Text('Alert'),
+                                      content: const Text(
+                                          'This feature is not implemented.'),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, 'OK'),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
+                                    ));
+                          },
+                        ),
+                      ],
+                    ));
+                  },
+                  childCount: filteredOptionEvents!.length,
+                ),
+              ),
             ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
-
-      if (positionOrders != null) {
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              //elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Stock Orders",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            ))
+          ],
+          if (positionOrders != null) ...[
+            SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: const Text(
+                          "Stock Orders",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              var future = showModalBottomSheet<void>(
+                                context: context,
+                                // constraints: BoxConstraints(maxHeight: 260),
+                                builder:
+                                    /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
                               optionPositions:
                                   optionPositions)
                                   */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListTile(
-                                    tileColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    leading: const Icon(Icons.filter_list),
-                                    title: const Text(
-                                      "Filter Stock Orders",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    /*
+                                    (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Filter Stock Orders",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  stockOrderSymbolFilterWidget,
-                                ],
+                                      ),
+                                      const ListTile(
+                                        title: Text("Order State & Date"),
+                                      ),
+                                      orderFilterWidget,
+                                      orderDateFilterWidget,
+                                      const ListTile(
+                                        title: Text("Symbols"),
+                                      ),
+                                      stockOrderSymbolFilterWidget,
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                var amount = 0.0;
-                if (filteredPositionOrders![index].averagePrice != null) {
-                  amount = filteredPositionOrders![index].averagePrice! *
-                      filteredPositionOrders![index].quantity! *
-                      (filteredPositionOrders![index].side == "buy" ? -1 : 1);
-                }
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    showShareView
-                        ? CheckboxListTile(
-                            value: selectedPositionOrdersToShare
-                                .contains(filteredPositionOrders![index].id),
-                            onChanged: (bool? newValue) {
-                              if (newValue!) {
-                                setState(() {
-                                  selectedPositionOrdersToShare
-                                      .add(filteredPositionOrders![index].id);
-                                });
-                              } else {
-                                setState(() {
-                                  selectedPositionOrdersToShare.remove(
-                                      filteredPositionOrders![index].id);
-                                });
-                              }
-                            },
-                            title: Text(
-                                "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                            subtitle: Text(
-                                "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                          )
-                        : ListTile(
-                            leading: CircleAvatar(
-                                //backgroundImage: AssetImage(user.profilePicture),
-                                child: Text(
-                                    formatCompactNumber.format(
-                                        filteredPositionOrders![index]
-                                            .quantity!),
-                                    style: const TextStyle(fontSize: 17))),
-                            title: Text(
-                                "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                            subtitle: Text(
-                                "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                            trailing: Wrap(spacing: 8, children: [
-                              Text(
-                                filteredPositionOrders![index].averagePrice !=
-                                        null
-                                    ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
-                                    : "",
-                                style: const TextStyle(fontSize: 18.0),
-                                textAlign: TextAlign.right,
+                              future.then((void value) => {});
+                            }),
+                      ))),
+              sliver: SliverList(
+                // delegate: SliverChildListDelegate(widgets),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    var amount = 0.0;
+                    if (filteredPositionOrders![index].averagePrice != null) {
+                      amount = filteredPositionOrders![index].averagePrice! *
+                          filteredPositionOrders![index].quantity! *
+                          (filteredPositionOrders![index].side == "buy"
+                              ? -1
+                              : 1);
+                    }
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        showShareView
+                            ? CheckboxListTile(
+                                value: selectedPositionOrdersToShare.contains(
+                                    filteredPositionOrders![index].id),
+                                onChanged: (bool? newValue) {
+                                  if (newValue!) {
+                                    setState(() {
+                                      selectedPositionOrdersToShare.add(
+                                          filteredPositionOrders![index].id);
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedPositionOrdersToShare.remove(
+                                          filteredPositionOrders![index].id);
+                                    });
+                                  }
+                                },
+                                title: Text(
+                                    "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                subtitle: Text(
+                                    "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
                               )
-                            ]),
+                            : ListTile(
+                                leading: CircleAvatar(
+                                    //backgroundImage: AssetImage(user.profilePicture),
+                                    child: Text(
+                                        formatCompactNumber.format(
+                                            filteredPositionOrders![index]
+                                                .quantity!),
+                                        style: const TextStyle(fontSize: 17))),
+                                title: Text(
+                                    "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                subtitle: Text(
+                                    "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                                trailing: Wrap(spacing: 8, children: [
+                                  Text(
+                                    filteredPositionOrders![index]
+                                                .averagePrice !=
+                                            null
+                                        ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
+                                        : "",
+                                    style: const TextStyle(fontSize: 18.0),
+                                    textAlign: TextAlign.right,
+                                  )
+                                ]),
 
-                            //isThreeLine: true,
-                            onTap: () {
-                              /* For navigation within this tab, uncomment
+                                //isThreeLine: true,
+                                onTap: () {
+                                  /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           filteredPositionOrders![index])));
                                           */
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => PositionOrderWidget(
-                                            widget.user,
-                                            filteredPositionOrders![index],
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                          )));
-                            },
-                          ),
-                  ],
-                ));
-              },
-              childCount: filteredPositionOrders!.length,
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              PositionOrderWidget(
+                                                widget.user,
+                                                filteredPositionOrders![index],
+                                                analytics: widget.analytics,
+                                                observer: widget.observer,
+                                              )));
+                                },
+                              ),
+                      ],
+                    ));
+                  },
+                  childCount: filteredPositionOrders!.length,
+                ),
+              ),
             ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )));
-      }
-      if (dividends != null) {
-        slivers.add(SliverStickyHeader(
-          header: Material(
-              //elevation: 2,
-              child: Container(
-                  //height: 208.0, //60.0,
-                  //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  alignment: Alignment.centerLeft,
-                  child: ListTile(
-                    title: const Text(
-                      "Dividends",
-                      style: TextStyle(fontSize: 19.0),
-                    ),
-                    subtitle: Text(
-                        "${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
-                    trailing: IconButton(
-                        icon: const Icon(Icons.filter_list),
-                        onPressed: () {
-                          var future = showModalBottomSheet<void>(
-                            context: context,
-                            // constraints: BoxConstraints(maxHeight: 260),
-                            builder:
-                                /*
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            ))
+          ],
+          if (dividends != null) ...[
+            SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: const Text(
+                          "Dividends",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              var future = showModalBottomSheet<void>(
+                                context: context,
+                                // constraints: BoxConstraints(maxHeight: 260),
+                                builder:
+                                    /*
                           (_) => OptionOrderFilterBottomSheet(
                               orderSymbols: orderSymbols,
                               optionPositions:
                                   optionPositions)
                                   */
-                                (BuildContext context) {
-                              return Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ListTile(
-                                    tileColor:
-                                        Theme.of(context).colorScheme.primary,
-                                    leading: const Icon(Icons.filter_list),
-                                    title: const Text(
-                                      "Filter Dividends",
-                                      style: TextStyle(fontSize: 19.0),
-                                    ),
-                                    /*
+                                    (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        tileColor: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Filter Dividends",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                        /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                                  ),
-                                  const ListTile(
-                                    title: Text("Order State & Date"),
-                                  ),
-                                  orderFilterWidget,
-                                  orderDateFilterWidget,
-                                  const ListTile(
-                                    title: Text("Symbols"),
-                                  ),
-                                  stockOrderSymbolFilterWidget,
-                                ],
+                                      ),
+                                      const ListTile(
+                                        title: Text("Order State & Date"),
+                                      ),
+                                      orderFilterWidget,
+                                      orderDateFilterWidget,
+                                      const ListTile(
+                                        title: Text("Symbols"),
+                                      ),
+                                      stockOrderSymbolFilterWidget,
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
-                          future.then((void value) => {});
-                        }),
-                  ))),
-          sliver: SliverList(
-            // delegate: SliverChildListDelegate(widgets),
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                // var amount = filteredDividends![index].averagePrice! *
-                //     filteredDividends![index].quantity! *
-                //     (filteredDividends![index].side == "buy" ? -1 : 1);
-                var dividend = filteredDividends![index];
-                return Card(
-                    child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    showShareView
-                        ? CheckboxListTile(
-                            value: selectedPositionOrdersToShare.contains(
-                                filteredDividends![index]["record_date"]),
-                            onChanged: (bool? newValue) {
-                              if (newValue!) {
-                                setState(() {
-                                  selectedPositionOrdersToShare.add(
-                                      filteredDividends![index]["record_date"]);
-                                });
-                              } else {
-                                setState(() {
-                                  selectedPositionOrdersToShare.remove(
-                                      filteredDividends![index]["record_date"]);
-                                });
-                              }
-                            },
-                            title: Text(
-                                "${filteredDividends![index].instrumentObj != null ? filteredDividends![index].instrumentObj!.symbol : ""} ${filteredDividends![index].type} ${filteredDividends![index].side} ${filteredDividends![index].averagePrice != null ? formatCurrency.format(filteredDividends![index].averagePrice) : ""}"),
-                            subtitle: Text(
-                                "${filteredDividends![index].state} ${formatDate.format(filteredDividends![index].updatedAt!)}"),
-                          )
-                        : ListTile(
-                            leading: CircleAvatar(
-                                //backgroundImage: AssetImage(user.profilePicture),
-                                child: Text(
-                                    dividend["instrumentObj"] != null
-                                        ? dividend["instrumentObj"].symbol
-                                        : "",
-                                    style: const TextStyle(fontSize: 14))),
-                            title: Text(
-                              dividend["instrumentObj"] != null
-                                  ? "${dividend["instrumentObj"].symbol}"
-                                  : ""
-                                      "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                              style: const TextStyle(fontSize: 18.0),
-                              //overflow: TextOverflow.visible
-                            ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                            subtitle: Text(
-                                "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                style: const TextStyle(fontSize: 14)),
-                            trailing: Wrap(spacing: 10.0, children: [
-                              Column(children: [
-                                // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                Text(
-                                    formatCurrency.format(
-                                        double.parse(dividend!["amount"])),
-                                    style: const TextStyle(fontSize: 18))
-                              ])
-                            ]),
-                            onTap: () {
-                              /* For navigation within this tab, uncomment
+                              future.then((void value) => {});
+                            }),
+                      ))),
+              sliver: SliverList(
+                // delegate: SliverChildListDelegate(widgets),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    // var amount = filteredDividends![index].averagePrice! *
+                    //     filteredDividends![index].quantity! *
+                    //     (filteredDividends![index].side == "buy" ? -1 : 1);
+                    var dividend = filteredDividends![index];
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        showShareView
+                            ? CheckboxListTile(
+                                value: selectedPositionOrdersToShare.contains(
+                                    filteredDividends![index]["record_date"]),
+                                onChanged: (bool? newValue) {
+                                  if (newValue!) {
+                                    setState(() {
+                                      selectedPositionOrdersToShare.add(
+                                          filteredDividends![index]
+                                              ["record_date"]);
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedPositionOrdersToShare.remove(
+                                          filteredDividends![index]
+                                              ["record_date"]);
+                                    });
+                                  }
+                                },
+                                title: Text(
+                                    "${filteredDividends![index].instrumentObj != null ? filteredDividends![index].instrumentObj!.symbol : ""} ${filteredDividends![index].type} ${filteredDividends![index].side} ${filteredDividends![index].averagePrice != null ? formatCurrency.format(filteredDividends![index].averagePrice) : ""}"),
+                                subtitle: Text(
+                                    "${filteredDividends![index].state} ${formatDate.format(filteredDividends![index].updatedAt!)}"),
+                              )
+                            : ListTile(
+                                leading: CircleAvatar(
+                                    //backgroundImage: AssetImage(user.profilePicture),
+                                    child: Text(
+                                        dividend["instrumentObj"] != null
+                                            ? dividend["instrumentObj"].symbol
+                                            : "",
+                                        style: const TextStyle(fontSize: 14))),
+                                title: Text(
+                                  dividend["instrumentObj"] != null
+                                      ? "${dividend["instrumentObj"].symbol}"
+                                      : ""
+                                          "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                  style: const TextStyle(fontSize: 18.0),
+                                  //overflow: TextOverflow.visible
+                                ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                subtitle: Text(
+                                    "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                    style: const TextStyle(fontSize: 14)),
+                                trailing: Wrap(spacing: 10.0, children: [
+                                  Column(children: [
+                                    // const Text("Actual", style: TextStyle(fontSize: 11)),
+                                    Text(
+                                        formatCurrency.format(
+                                            double.parse(dividend!["amount"])),
+                                        style: const TextStyle(fontSize: 18))
+                                  ])
+                                ]),
+                                onTap: () {
+                                  /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           filteredDividends![index])));
                                           */
-                              showDialog<String>(
-                                context: context,
-                                builder: (BuildContext context) => AlertDialog(
-                                  title: const Text('Alert'),
-                                  content: const Text(
-                                      'This feature is not implemented.\n'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, 'OK'),
-                                      child: const Text('OK'),
+                                  showDialog<String>(
+                                    context: context,
+                                    builder: (BuildContext context) =>
+                                        AlertDialog(
+                                      title: const Text('Alert'),
+                                      content: const Text(
+                                          'This feature is not implemented.\n'),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, 'OK'),
+                                          child: const Text('OK'),
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              );
+                                  );
 
-                              // Navigator.push(
-                              //     context,
-                              //     MaterialPageRoute(
-                              //         builder: (context) => PositionOrderWidget(
-                              //               widget.user,
-                              //               filteredDividends![index],
-                              //               analytics: widget.analytics,
-                              //               observer: widget.observer,
-                              //             )));
-                            },
+                                  // Navigator.push(
+                                  //     context,
+                                  //     MaterialPageRoute(
+                                  //         builder: (context) => PositionOrderWidget(
+                                  //               widget.user,
+                                  //               filteredDividends![index],
+                                  //               analytics: widget.analytics,
+                                  //               observer: widget.observer,
+                                  //             )));
+                                },
 
-                            //isThreeLine: true,
-                          ),
-                  ],
-                ));
-              },
-              childCount: filteredDividends!.length,
+                                //isThreeLine: true,
+                              ),
+                      ],
+                    ));
+                  },
+                  childCount: filteredDividends!.length,
+                ),
+              ),
             ),
-          ),
-        ));
-        slivers.add(const SliverToBoxAdapter(
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            ))
+          ]
+        ],
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
+        const SliverToBoxAdapter(
             child: SizedBox(
           height: 25.0,
-        )));
-      }
-    }
-    slivers.add(SliverToBoxAdapter(
-        child: adContainer)); // adContainer // bannerAdWidget()
-    slivers.add(const SliverToBoxAdapter(
-        child: SizedBox(
-      height: 25.0,
-    )));
-    slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
-    slivers.add(const SliverToBoxAdapter(
-        child: SizedBox(
-      height: 25.0,
-    )));
-
-    // Removed Scaffold at this level as it blocks the drawer menu from appearing.
-    // This requires the removal of the share floatingActionButton, still available in the vertical menu.
-    return /*Scaffold(
-      body: */
-        RefreshIndicator(
-      onRefresh: _pullRefresh,
-      child: CustomScrollView(slivers: slivers), //controller: _controller,
+        )),
+        const SliverToBoxAdapter(child: DisclaimerWidget()),
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        ))
+      ]), //controller: _controller,
     ) /*,
       floatingActionButton: FloatingActionButton(
         onPressed: _showShareView,

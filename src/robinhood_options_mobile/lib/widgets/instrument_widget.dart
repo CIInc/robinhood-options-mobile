@@ -486,7 +486,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               changePercentInPeriod = changeInPeriod / close;
 
               var brightness = MediaQuery.of(context).platformBrightness;
-              var textColor = Theme.of(context).colorScheme.background;
+              var textColor = Theme.of(context).colorScheme.surface;
               if (brightness == Brightness.dark) {
                 textColor = Colors.grey.shade200;
               } else {
@@ -2638,8 +2638,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               Wrap(spacing: 10, children: [
                 Text(formatCurrency.format(quoteObj.lastTradePrice),
                     //style: const TextStyle(fontSize: 15.0)
-                    style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
+                    style: const TextStyle(
+                        fontSize: 16.0)), // , color: Colors.white70
                 Wrap(children: [
                   Icon(
                       quoteObj.changeToday > 0
@@ -2659,13 +2659,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   Text(formatPercentage.format(quoteObj.changePercentToday),
                       //style: const TextStyle(fontSize: 15.0)
                       style: const TextStyle(
-                          fontSize: 16.0, color: Colors.white70)),
+                          fontSize: 16.0)), // , color: Colors.white70
                 ]),
                 Text(
                     "${quoteObj.changeToday > 0 ? "+" : quoteObj.changeToday < 0 ? "-" : ""}${formatCurrency.format(quoteObj.changeToday.abs())}",
                     //style: const TextStyle(fontSize: 12.0),
-                    style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70),
+                    style: const TextStyle(
+                        fontSize: 16.0), // , color: Colors.white70
                     textAlign: TextAlign.right)
               ])
             ],

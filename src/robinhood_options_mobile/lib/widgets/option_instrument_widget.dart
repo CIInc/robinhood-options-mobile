@@ -331,7 +331,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               }
 
               var brightness = MediaQuery.of(context).platformBrightness;
-              var textColor = Theme.of(context).colorScheme.background;
+              var textColor = Theme.of(context).colorScheme.surface;
               if (brightness == Brightness.dark) {
                 textColor = Colors.grey.shade200;
               } else {
@@ -1464,7 +1464,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                           .adjustedMarkPrice), //lastTradePrice
                       //style: const TextStyle(fontSize: 15.0)
                       style: const TextStyle(
-                          fontSize: 16.0, color: Colors.white70)),
+                          fontSize: 16.0)), //, color: Colors.white70
                   Wrap(children: [
                     Icon(
                         optionInstrument.optionMarketData!.changeToday > 0
@@ -1489,13 +1489,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                             .optionMarketData!.changePercentToday),
                         //style: const TextStyle(fontSize: 15.0)
                         style: const TextStyle(
-                            fontSize: 16.0, color: Colors.white70)),
+                            fontSize: 16.0)), // , color: Colors.white70
                   ]),
                   Text(
                       "${optionInstrument.optionMarketData!.changeToday > 0 ? "+" : optionInstrument.optionMarketData!.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionInstrument.optionMarketData!.changeToday.abs())}",
                       //style: const TextStyle(fontSize: 12.0),
                       style: const TextStyle(
-                          fontSize: 16.0, color: Colors.white70),
+                          fontSize: 16.0), // , color: Colors.white70
                       textAlign: TextAlign.right)
                 ])
               ],

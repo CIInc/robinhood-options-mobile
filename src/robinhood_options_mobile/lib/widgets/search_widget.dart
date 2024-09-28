@@ -1,18 +1,16 @@
-import 'dart:io' show Platform;
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
@@ -49,33 +47,6 @@ class _SearchWidgetState extends State<SearchWidget>
 
   InstrumentStore? instrumentStore;
 
-  final BannerAd myBanner = BannerAd(
-    adUnitId: kDebugMode
-        ? Constants.testAdUnit
-        : (Platform.isAndroid
-            ? Constants.searchBannerAndroidAdUnit
-            : Constants.searchBanneriOSAdUnit),
-    // size: AdSize.fluid,
-    size: AdSize.mediumRectangle,
-    request: const AdRequest(),
-    listener: BannerAdListener(
-      // Called when an ad is successfully received.
-      onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-      // Called when an ad request failed.
-      onAdFailedToLoad: (Ad ad, LoadAdError error) {
-        // Dispose the ad here to free resources.
-        ad.dispose();
-        debugPrint('Ad failed to load: $error');
-      },
-      // Called when an ad opens an overlay that covers the screen.
-      onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-      // Called when an ad removes an overlay that covers the screen.
-      onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-      // Called when an impression occurs on the ad.
-      onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
-    ),
-  );
-
   _SearchWidgetState();
 
   @override
@@ -90,12 +61,17 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
 
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
           // do your logic ends
@@ -122,7 +98,6 @@ class _SearchWidgetState extends State<SearchWidget>
           futureLosers as Future,
           futureListMovers as Future,
           futureListMostPopular as Future,
-          myBanner.load()
         ]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.hasData) {
@@ -157,14 +132,6 @@ class _SearchWidgetState extends State<SearchWidget>
       List<Instrument>? listMovers,
       List<Instrument>? listMostPopular,
       bool done = false}) {
-    final AdWidget adWidget = AdWidget(ad: myBanner);
-    final Container adContainer = Container(
-      alignment: Alignment.center,
-      width: myBanner.size.width.toDouble(),
-      height: myBanner.size.height.toDouble(),
-      child: adWidget,
-    );
-
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: GestureDetector(
@@ -408,7 +375,11 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
-                  SliverToBoxAdapter(child: adContainer),
+                  SliverToBoxAdapter(
+                      child: AdBannerWidget(
+                    size: AdSize.mediumRectangle,
+                    searchBanner: true,
+                  )),
                   const SliverToBoxAdapter(
                       child: SizedBox(
                     height: 25.0,

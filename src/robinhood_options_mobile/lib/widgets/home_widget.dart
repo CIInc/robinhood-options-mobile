@@ -1,7 +1,5 @@
-import 'dart:io' show Platform;
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
@@ -38,6 +36,7 @@ import 'package:robinhood_options_mobile/model/user_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -167,32 +166,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Timer? refreshTriggerTime;
   AppLifecycleState? _notification;
 
-  final BannerAd myBanner = BannerAd(
-      adUnitId: kDebugMode
-          ? Constants.testAdUnit
-          : (Platform.isAndroid
-              ? Constants.homeBannerAndroidAdUnit
-              : Constants.homeBanneriOSAdUnit),
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        // Called when an ad is successfully received.
-        onAdLoaded: (Ad ad) => debugPrint('Ad loaded.'),
-        // Called when an ad request failed.
-        onAdFailedToLoad: (Ad ad, LoadAdError error) {
-          // Dispose the ad here to free resources.
-          ad.dispose();
-          debugPrint('Ad failed to load: $error');
-        },
-        // Called when an ad opens an overlay that covers the screen.
-        onAdOpened: (Ad ad) => debugPrint('Ad opened.'),
-        // Called when an ad removes an overlay that covers the screen.
-        onAdClosed: (Ad ad) => debugPrint('Ad closed.'),
-        // Called when an impression occurs on the ad.
-        onAdImpression: (Ad ad) => debugPrint('Ad impression.'),
-      ) // const BannerAdListener(),
-      );
-
   _HomePageState();
 
   /*
@@ -244,7 +217,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             */
     return PopScope(
         canPop: false, //When false, blocks the current route from being popped.
-        onPopInvoked: (didPop) {
+        onPopInvokedWithResult: (didPop, result) {
           //do your logic here
           // setStatusBarColor(statusBarColorPrimary,statusBarIconBrightness: Brightness.light);
           // do your logic ends
@@ -302,7 +275,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         futureAccounts as Future,
         //futurePortfolios as Future,
         //futureNummusHoldings as Future,
-        myBanner.load()
+        // myBanner.load()
       ]),
       builder: (context1, dataSnapshot) {
         if (dataSnapshot.hasData) {
@@ -489,13 +462,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //List<StockPosition>? positions,
       bool done = false}) {
     //debugPrint('_buildPage');
-    final AdWidget adWidget = AdWidget(ad: myBanner);
-    final Container adContainer = Container(
-      alignment: Alignment.center,
-      width: myBanner.size.width.toDouble(),
-      height: myBanner.size.height.toDouble(),
-      child: adWidget,
-    );
     return RefreshIndicator(
       onRefresh: _pullRefresh,
       child: CustomScrollView(
@@ -1967,7 +1933,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ]));
             }),
             */
-            SliverToBoxAdapter(child: adContainer),
+            SliverToBoxAdapter(child: AdBannerWidget()),
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
@@ -3062,17 +3028,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 Container(
                   width: 10,
                 ),
-                const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 64,
-                        child: Text(
-                          "Options",
-                          style: TextStyle(fontSize: 11.0),
-                        ),
-                      )
-                    ]),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      "Options",
+                      style: TextStyle(
+                          fontSize: 11.0,
+                          color: Theme.of(context).appBarTheme.foregroundColor),
+                    ),
+                  )
+                ]),
                 /*
                 Container(
                   width: 3,
@@ -3082,7 +3048,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   SizedBox(
                       width: 50,
                       child: Text(formatPercentage.format(optionEquityPercent),
-                          style: const TextStyle(fontSize: 12.0),
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
                           // , color: Theme.of(context).textTheme.bodyMedium!.color
                           textAlign: TextAlign.right))
                 ]),
@@ -3093,7 +3063,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     width: 75,
                     child: Text(
                         formatCurrency.format(optionPositionStore.equity),
-                        style: const TextStyle(fontSize: 13.0),
+                        style: TextStyle(
+                            fontSize: 13.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
                 Container(
                   width: 10,
@@ -3108,17 +3081,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 Container(
                   width: 10,
                 ),
-                const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 64,
-                        child: Text(
-                          "Stocks",
-                          style: TextStyle(fontSize: 11.0),
-                        ),
-                      )
-                    ]),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      "Stocks",
+                      style: TextStyle(
+                          fontSize: 11.0,
+                          color: Theme.of(context).appBarTheme.foregroundColor),
+                    ),
+                  )
+                ]),
                 /*
                 Container(
                   width: 3,
@@ -3129,7 +3102,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       width: 50,
                       child: Text(
                           formatPercentage.format(positionEquityPercent),
-                          style: const TextStyle(fontSize: 12.0),
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
                           textAlign: TextAlign.right))
                 ]),
                 Container(
@@ -3140,7 +3117,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     child: Text(
                         formatCurrency.format(stockPositionStore.equity),
                         // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
-                        style: const TextStyle(fontSize: 13.0),
+                        style: TextStyle(
+                            fontSize: 13.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
                 Container(
                   width: 10,
@@ -3155,16 +3135,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 Container(
                   width: 10,
                 ),
-                const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                          width: 64,
-                          child: Text(
-                            "Crypto",
-                            style: TextStyle(fontSize: 11.0),
-                          )),
-                    ]),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                      width: 64,
+                      child: Text(
+                        "Crypto",
+                        style: TextStyle(
+                            fontSize: 11.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
+                      )),
+                ]),
                 /*
                 Container(
                   width: 3,
@@ -3174,7 +3155,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   SizedBox(
                       width: 50,
                       child: Text(formatPercentage.format(cryptoPercent),
-                          style: const TextStyle(fontSize: 12.0),
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
                           textAlign: TextAlign.right))
                 ]),
                 Container(
@@ -3183,7 +3168,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 SizedBox(
                     width: 75,
                     child: Text(formatCurrency.format(forexHoldingStore.equity),
-                        style: const TextStyle(fontSize: 13.0),
+                        style: TextStyle(
+                            fontSize: 13.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
                 Container(
                   width: 10,
@@ -3198,16 +3186,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 Container(
                   width: 10,
                 ),
-                const Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                          width: 64,
-                          child: Text(
-                            "Cash",
-                            style: TextStyle(fontSize: 11.0),
-                          )),
-                    ]),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                      width: 64,
+                      child: Text(
+                        "Cash",
+                        style: TextStyle(
+                            fontSize: 11.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
+                      )),
+                ]),
                 /*
                 Container(
                   width: 3,
@@ -3217,7 +3206,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   SizedBox(
                       width: 50,
                       child: Text(formatPercentage.format(cashPercent),
-                          style: const TextStyle(fontSize: 12.0),
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
                           textAlign: TextAlign.right))
                 ]),
                 Container(
@@ -3226,7 +3219,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 SizedBox(
                     width: 75,
                     child: Text(formatCurrency.format(portfolioCash),
-                        style: const TextStyle(fontSize: 13.0),
+                        style: TextStyle(
+                            fontSize: 13.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
                 Container(
                   width: 10,
