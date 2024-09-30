@@ -3,7 +3,6 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -1369,14 +1368,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 }
               }
               barChartSeriesList.add(charts.Series<dynamic, String>(
-                id: widget.user.displayValue.toString(),
-                data: data,
-                colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                    Theme.of(context).colorScheme.primary),
-                domainFn: (var d, _) => d['domain'],
-                measureFn: (var d, _) => d['measure'],
-                labelAccessorFn: (d, _) => d['label'],
-              ));
+                  id: widget.user.displayValue.toString(),
+                  data: data,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.primary),
+                  domainFn: (var d, _) => d['domain'],
+                  measureFn: (var d, _) => d['measure'],
+                  labelAccessorFn: (d, _) => d['label'],
+                  insideLabelStyleAccessorFn: (datum, index) =>
+                      charts.TextStyleSpec(
+                          color: charts.ColorUtil.fromDartColor(
+                        Theme.of(context).brightness == Brightness.light
+                            ? Theme.of(context).colorScheme.surface
+                            : Theme.of(context).colorScheme.inverseSurface,
+                      )),
+                  outsideLabelStyleAccessorFn: (datum, index) =>
+                      charts.TextStyleSpec(
+                          color: charts.ColorUtil.fromDartColor(
+                              Theme.of(context)
+                                  .textTheme
+                                  .labelSmall!
+                                  .color!))));
               var brightness = MediaQuery.of(context).platformBrightness;
               var axisLabelColor = charts.MaterialPalette.gray.shade500;
               if (brightness == Brightness.light) {

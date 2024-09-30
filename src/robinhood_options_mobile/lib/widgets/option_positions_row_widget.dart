@@ -96,6 +96,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
       openInterestAvg = results[7];
     }
 
+    var brightness = MediaQuery.of(context).platformBrightness;
+
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
     double minimum = 0, maximum = 0;
@@ -149,14 +151,23 @@ class OptionPositionsRowWidget extends StatelessWidget {
         });
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: user.displayValue.toString(),
-        data: data,
-        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-            Theme.of(context).colorScheme.primary),
-        domainFn: (var d, _) => d['domain'],
-        measureFn: (var d, _) => d['measure'],
-        labelAccessorFn: (d, _) => d['label'],
-      ));
+          id: user.displayValue.toString(),
+          data: data,
+          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+              Theme.of(context).colorScheme.primary),
+          seriesColor: charts.ColorUtil.fromDartColor(Colors.black),
+          domainFn: (var d, _) => d['domain'],
+          measureFn: (var d, _) => d['measure'],
+          labelAccessorFn: (d, _) => d['label'],
+          insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+                  color: charts.ColorUtil.fromDartColor(
+                brightness == Brightness.light
+                    ? Theme.of(context).colorScheme.surface
+                    : Theme.of(context).colorScheme.inverseSurface,
+              )),
+          outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+              color: charts.ColorUtil.fromDartColor(
+                  Theme.of(context).textTheme.labelSmall!.color!))));
       var positionDisplayValues = groupedOptionAggregatePositions.values
           .map((e) => user.getAggregateDisplayValue(e) ?? 0);
       minimum = positionDisplayValues.reduce(math.min);
@@ -178,7 +189,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
           vertical: false,
         );
         */
-    var brightness = MediaQuery.of(context).platformBrightness;
     var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
       axisLabelColor = charts.MaterialPalette.gray.shade700;
