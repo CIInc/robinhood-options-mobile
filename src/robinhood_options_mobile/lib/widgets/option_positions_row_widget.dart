@@ -64,51 +64,16 @@ class OptionPositionsRowWidget extends StatelessWidget {
           .reduce((a, b) => a + b);
     }
 
-    /*
-    filteredOptionPositions.sort((a, b) {
-      int comp =
-          a.legs.first.expirationDate!.compareTo(b.legs.first.expirationDate!);
-      if (comp != 0) return comp;
-      return a.legs.first.strikePrice!.compareTo(b.legs.first.strikePrice!);
-    });
-    */
-    /*
-    var totalDelta = filteredOptionPositions
-        .map((e) => e.quantity! * e.marketData!.delta!)
-        .reduce((a, b) => a + b);
-    */
+    final sortedGroupedOptionAggregatePositions =
+        groupedOptionAggregatePositions.values
+            .sortedBy<num>((i) => user.getAggregateDisplayValue(i,
+                displayValue: user.displayValue)!)
+            .reversed;
 
     double? marketValue = user.getAggregateDisplayValue(filteredOptionPositions,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = user.getDisplayText(marketValue!,
         displayValue: DisplayValue.marketValue);
-
-    /*
-    double? totalReturn = user.getAggregateDisplayValue(filteredOptionPositions,
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = user.getDisplayText(totalReturn!,
-        displayValue: DisplayValue.totalReturn);
-
-    double? totalReturnPercent = user.getAggregateDisplayValue(
-        filteredOptionPositions,
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = user.getDisplayText(totalReturnPercent!,
-        displayValue: DisplayValue.totalReturnPercent);
-
-    double? todayReturn = user.getAggregateDisplayValue(filteredOptionPositions,
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = user.getDisplayText(todayReturn!,
-        displayValue: DisplayValue.todayReturn);
-
-    double? todayReturnPercent = user.getAggregateDisplayValue(
-        filteredOptionPositions,
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
-        displayValue: DisplayValue.todayReturnPercent);
-
-    Icon todayIcon = user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = user.getDisplayIcon(totalReturn, size: 27.0);
-    */
 
     double? deltaAvg,
         gammaAvg,
@@ -171,7 +136,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         maximum = 0;
       }
     } else if (groupedOptionAggregatePositions.length > 1) {
-      for (var position in groupedOptionAggregatePositions.values) {
+      for (var position in sortedGroupedOptionAggregatePositions) {
         double? value = user.getAggregateDisplayValue(position);
         String? trailingText;
         if (value != null) {
@@ -280,15 +245,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     )));
       }
     });
-    /*
-    double? value = user.getAggregateDisplayValue(filteredOptionPositions);
-    String? trailingText;
-    Icon? icon;
-    if (value != null) {
-      trailingText = user.getDisplayText(value);
-      icon = user.getDisplayIcon(value);
-    }
-    */
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(
@@ -313,19 +269,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     style: const TextStyle(fontSize: totalValueFontSize),
                     textAlign: TextAlign.right,
                   )
-
-                  /*
-                  if (icon != null) ...[
-                    icon,
-                  ],
-                  if (trailingText != null) ...[
-                    Text(
-                      trailingText,
-                      style: const TextStyle(fontSize: totalValueFontSize),
-                      textAlign: TextAlign.right,
-                    )
-                  ]
-                  */
                 ]),
               ),
               _buildDetailScrollRow(
@@ -344,122 +287,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   summaryValueFontSize,
                   summaryLabelFontSize,
                   iconSize: 27.0),
-              /*
-              SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            /*
-                            Padding(
-                              padding: const EdgeInsets.all(
-                                  summaryEgdeInset), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(marketValueText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                    //Container(height: 5),
-                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                    const Text("Market Value",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            */
-                            Padding(
-                              padding: const EdgeInsets.all(
-                                  summaryEgdeInset), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Wrap(spacing: 8, children: [
-                                      todayIcon,
-                                      Text(todayReturnText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize))
-                                    ]),
-                                    /*
-                                    Text(todayReturnText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                    /*
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                    const Text("Return Today",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(
-                                  summaryEgdeInset), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                    const Text("Return Today %",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(
-                                  summaryEgdeInset), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Wrap(spacing: 8, children: [
-                                      totalIcon,
-                                      Text(totalReturnText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize))
-                                    ]),
-                                    /*
-                                    Text(totalReturnText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                    /*
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                    //Container(height: 5),
-                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                    const Text("Total Return",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(
-                                  summaryEgdeInset), //.symmetric(horizontal: 6),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-
-                                    //Container(height: 5),
-                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                    const Text("Total Return %",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                          ]))),
-                          */
-              if (user.displayValue != DisplayValue.lastPrice &&
+              if (
+                  //user.displayValue != DisplayValue.lastPrice &&
                   barChartSeriesList.isNotEmpty) ...[
                 SizedBox(
                     height: barChartSeriesList.first.data.length * 25 +
@@ -470,23 +299,6 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       child: optionChart,
                     )),
               ],
-              /*
-              if (user.showPositionDetails &&
-                  groupedOptionAggregatePositions.length == 1) ...[
-                _buildDetailScrollRow(
-                    groupedOptionAggregatePositions.values.first,
-                    deltaAvg!,
-                    gammaAvg!,
-                    thetaAvg!,
-                    vegaAvg!,
-                    rhoAvg!,
-                    ivAvg!,
-                    chanceAvg!,
-                    openInterestAvg!.toInt(),
-                    greekValueFontSize,
-                    greekLabelFontSize)
-              ]
-              */
             ]
                 //)
                 )),
@@ -511,11 +323,11 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 delegate: SliverChildBuilderDelegate(
                     (BuildContext context, int index) {
                   return _buildOptionPositionSymbolRow(
-                      groupedOptionAggregatePositions.values.elementAt(index),
+                      sortedGroupedOptionAggregatePositions.elementAt(index),
                       context,
                       excludeGroupRow:
-                          groupedOptionAggregatePositions.length == 1);
-                }, childCount: groupedOptionAggregatePositions.length),
+                          sortedGroupedOptionAggregatePositions.length == 1);
+                }, childCount: sortedGroupedOptionAggregatePositions.length),
               )
       ],
     ));
@@ -616,9 +428,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   Widget _buildOptionPositionRow(
       OptionAggregatePosition op, BuildContext context) {
-    double value = user.getDisplayValue(op,
-        displayValue: user
-            .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+    double value = user.getDisplayValue(op);
     String opTrailingText = user.getDisplayText(value);
     Icon? icon = (user.showPositionDetails ||
             user.displayValue == DisplayValue.lastPrice ||
@@ -952,9 +762,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
     List<Widget> cards = [];
 
-    double? value = user.getAggregateDisplayValue(ops,
-        displayValue: user
-            .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+    double? value = user.getAggregateDisplayValue(ops);
     String? trailingText;
     Icon? icon;
     if (value != null) {
@@ -1087,9 +895,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
       */
     }
     for (OptionAggregatePosition op in ops) {
-      double value = user.getDisplayValue(op,
-          displayValue: user
-              .displayValue); // Why was this here? user.showPositionDetails ? DisplayValue.marketValue : user.displayValue
+      double value = user.getDisplayValue(op);
       String trailingText = user.getDisplayText(value);
       Icon? icon = (user.showPositionDetails ||
               user.displayValue == DisplayValue.lastPrice ||

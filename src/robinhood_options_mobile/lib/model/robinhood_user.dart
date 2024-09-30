@@ -175,13 +175,13 @@ class RobinhoodUser {
     }
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
-        return null;
-      /*
         value = ops
-            .map((OptionAggregatePosition e) => e.marketData!.lastTradePrice!)
+            .map((OptionAggregatePosition e) => e.optionInstrument != null &&
+                    e.optionInstrument!.optionMarketData != null
+                ? e.optionInstrument!.optionMarketData!.adjustedMarkPrice!
+                : 0.0)
             .reduce((a, b) => a + b);
         break;
-            */
       case DisplayValue.marketValue:
         value = ops
             .map((OptionAggregatePosition e) => e.marketValue)
@@ -467,7 +467,7 @@ class RobinhoodUser {
       case DisplayValue.lastPrice:
         value = op.optionInstrument != null &&
                 op.optionInstrument!.optionMarketData != null
-            ? op.optionInstrument!.optionMarketData!.markPrice!
+            ? op.optionInstrument!.optionMarketData!.adjustedMarkPrice!
             : 0;
         break;
       case DisplayValue.marketValue:
