@@ -64,11 +64,13 @@ class OptionPositionsRowWidget extends StatelessWidget {
           .reduce((a, b) => a + b);
     }
 
-    final sortedGroupedOptionAggregatePositions =
-        groupedOptionAggregatePositions.values
-            .sortedBy<num>((i) => user.getAggregateDisplayValue(i,
-                displayValue: user.displayValue)!)
-            .reversed;
+    List<dynamic> sortedGroupedOptionAggregatePositions =
+        groupedOptionAggregatePositions.values.sortedBy<num>((i) =>
+            user.getAggregateDisplayValue(i, displayValue: user.sortOptions)!);
+    if (user.sortDirection == SortDirection.desc) {
+      sortedGroupedOptionAggregatePositions =
+          sortedGroupedOptionAggregatePositions.reversed.toList();
+    }
 
     double? marketValue = user.getAggregateDisplayValue(filteredOptionPositions,
         displayValue: DisplayValue.marketValue);

@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum OptionsView { grouped, list }
 
 enum DisplayValue {
+  expirationDate,
   marketValue,
   lastPrice,
   todayReturnPercent,
@@ -20,6 +21,8 @@ enum DisplayValue {
   totalReturnPercent,
   totalReturn
 }
+
+enum SortDirection { asc, desc }
 
 enum Source { robinhood, tdAmeritrade }
 
@@ -37,6 +40,8 @@ class RobinhoodUser {
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
+  DisplayValue? sortOptions = DisplayValue.expirationDate;
+  SortDirection? sortDirection = SortDirection.desc;
   bool showPositionDetails = true;
   // UserInfo? userInfo;
 

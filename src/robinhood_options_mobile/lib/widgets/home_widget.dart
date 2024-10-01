@@ -1272,25 +1272,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               .contains(element.legs.first.positionType)) &&
                       (optionSymbolFilters.isEmpty ||
                           optionSymbolFilters.contains(element.symbol)))
-                  // .sortedBy<num>((i) => widget.user.displayValue ==
-                  //             DisplayValue.lastPrice &&
-                  //         i.optionInstrument != null &&
-                  //         i.optionInstrument!.optionMarketData != null
-                  //     ? i.optionInstrument!.optionMarketData!
-                  //         .adjustedMarkPrice! //.instrumentObj!.quoteObj!.lastTradePrice!
-                  //     : widget.user.displayValue == DisplayValue.todayReturn
-                  //         ? i.changeToday
-                  //         : widget.user.displayValue ==
-                  //                 DisplayValue.todayReturnPercent
-                  //             ? i.changePercentToday
-                  //             : widget.user.displayValue ==
-                  //                     DisplayValue.totalReturn
-                  //                 ? i.gainLoss
-                  //                 : widget.user.displayValue ==
-                  //                         DisplayValue.totalReturnPercent
-                  //                     ? i.gainLossPercent
-                  //                     : i.marketValue)
-                  // .reversed // (a, b) => (a.compareTo(b))
                   .toList();
 
               return SliverToBoxAdapter(
