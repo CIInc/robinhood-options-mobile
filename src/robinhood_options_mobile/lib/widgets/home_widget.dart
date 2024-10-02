@@ -3412,20 +3412,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             ? Hero(
                 tag: 'logo_${instrument.symbol}${instrument.id}',
                 child: instrument.logoUrl != null
-                    ? CircleAvatar(
-                        radius: 25,
-                        // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
-                        //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                        child: Image.network(
-                          instrument.logoUrl!,
-                          width: 40,
-                          height: 40,
-                          errorBuilder: (BuildContext context, Object exception,
-                              StackTrace? stackTrace) {
-                            //RobinhoodService.removeLogo(instrument.symbol);
-                            return Text(instrument.symbol);
-                          },
-                        ))
+                    ? Image.network(
+                        instrument.logoUrl!,
+                        width: 50,
+                        height: 50,
+                        errorBuilder: (BuildContext context, Object exception,
+                            StackTrace? stackTrace) {
+                          //RobinhoodService.removeLogo(instrument.symbol);
+                          return CircleAvatar(
+                              radius: 25,
+                              // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
+                              //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                              child: Text(instrument.symbol));
+                        },
+                      )
                     : CircleAvatar(
                         radius: 25,
                         // foregroundColor: Theme.of(context).colorScheme.primary,

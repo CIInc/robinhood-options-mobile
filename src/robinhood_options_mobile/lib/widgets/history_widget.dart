@@ -845,7 +845,8 @@ class _HistoryPageState extends State<HistoryPage>
                           style: TextStyle(fontSize: 19.0),
                         ),
                         subtitle: Text(
-                            "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}"),
+                          "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                        ),
                         trailing: IconButton(
                             icon: const Icon(Icons.filter_list),
                             onPressed: () {
@@ -937,10 +938,12 @@ class _HistoryPageState extends State<HistoryPage>
                                 leading: CircleAvatar(
                                     //backgroundImage: AssetImage(user.profilePicture),
                                     child: Text(
-                                        formatCompactNumber.format(
-                                            filteredPositionOrders![index]
-                                                .quantity!),
-                                        style: const TextStyle(fontSize: 17))),
+                                  formatCompactNumber.format(
+                                      filteredPositionOrders![index].quantity!),
+                                  style: const TextStyle(fontSize: 17),
+                                  overflow: TextOverflow.fade,
+                                  softWrap: false,
+                                )),
                                 title: Text(
                                     "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
                                 subtitle: Text(
@@ -1094,10 +1097,13 @@ class _HistoryPageState extends State<HistoryPage>
                                 leading: CircleAvatar(
                                     //backgroundImage: AssetImage(user.profilePicture),
                                     child: Text(
-                                        dividend["instrumentObj"] != null
-                                            ? dividend["instrumentObj"].symbol
-                                            : "",
-                                        style: const TextStyle(fontSize: 14))),
+                                  dividend["instrumentObj"] != null
+                                      ? dividend["instrumentObj"].symbol
+                                      : "",
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.fade,
+                                  softWrap: false,
+                                )),
                                 title: Text(
                                   dividend["instrumentObj"] != null
                                       ? "${dividend["instrumentObj"].symbol}"

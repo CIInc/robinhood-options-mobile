@@ -41,7 +41,7 @@ class RobinhoodUser {
   OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
   DisplayValue? sortOptions = DisplayValue.expirationDate;
-  SortDirection? sortDirection = SortDirection.desc;
+  SortDirection? sortDirection = SortDirection.asc;
   bool showPositionDetails = true;
   // UserInfo? userInfo;
 

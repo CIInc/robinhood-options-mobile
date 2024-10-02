@@ -465,7 +465,11 @@ class OptionPositionsRowWidget extends StatelessWidget {
                         height: 40,
                         errorBuilder: (BuildContext context, Object exception,
                             StackTrace? stackTrace) {
-                          return Text(op.symbol);
+                          return Text(
+                            op.symbol,
+                            overflow: TextOverflow.fade,
+                            softWrap: false,
+                          );
                         },
                       ),
                     )
@@ -474,6 +478,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       foregroundColor: Theme.of(context).colorScheme.primary,
                       child: Text(
                         op.symbol,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
                       ))),
           title: Text(
               '${op.symbol} \$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.isNotEmpty ? op.legs.first.positionType : ''} ${op.legs.isNotEmpty ? op.legs.first.optionType : ''} x ${formatCompactNumber.format(op.quantity!)}'),
@@ -812,18 +818,20 @@ class OptionPositionsRowWidget extends StatelessWidget {
           leading: Hero(
               tag: 'logo_${ops.first.symbol}',
               child: ops.first.logoUrl != null
-                  ? CircleAvatar(
-                      radius: 25,
-                      // foregroundColor: Theme.of(context).colorScheme.primary,
-                      child: Image.network(
-                        ops.first.logoUrl!,
-                        width: 40,
-                        height: 40,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          return Text(ops.first.symbol);
-                        },
-                      ))
+                  ? Image.network(
+                      ops.first.logoUrl!,
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.contain,
+                      errorBuilder: (BuildContext context, Object exception,
+                          StackTrace? stackTrace) {
+                        return CircleAvatar(
+                            radius: 25,
+                            // backgroundColor: Colors.transparent,
+                            // foregroundColor: Theme.of(context).colorScheme.primary,
+                            child: Text(ops.first.symbol));
+                      },
+                    )
                   : CircleAvatar(
                       radius: 25,
                       // foregroundColor: Theme.of(context).colorScheme.primary,
