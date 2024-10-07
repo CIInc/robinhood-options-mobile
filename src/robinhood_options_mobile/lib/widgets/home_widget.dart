@@ -1542,7 +1542,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           child: SizedBox(
                               height: barChartSeriesList.first.data.length == 1
                                   ? 75
-                                  : barChartSeriesList.first.data.length * 50,
+                                  : barChartSeriesList.first.data.length *
+                                      30, //  * 25 + 50
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                     10.0, 0, 10, 10), //EdgeInsets.zero

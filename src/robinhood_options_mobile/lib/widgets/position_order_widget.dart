@@ -108,32 +108,37 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     return CustomScrollView(slivers: [
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
-        expandedHeight: 160.0,
+        expandedHeight: 120.0,
         flexibleSpace: FlexibleSpaceBar(
-            title: SingleChildScrollView(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-              const Row(children: [SizedBox(height: 70)]),
-              Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.end,
+          title: SingleChildScrollView(
+              child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   //runAlignment: WrapAlignment.end,
                   //alignment: WrapAlignment.end,
                   spacing: 5,
                   //runSpacing: 5,
                   children: [
-                    Text(
-                        "${positionOrder.instrumentObj!.symbol} ${positionOrder.type} ${positionOrder.side}",
-                        style: const TextStyle(fontSize: 20.0)),
-                    Text(
-                        positionOrder.averagePrice != null
-                            ? formatCurrency.format(positionOrder.averagePrice)
-                            : "",
-                        style: const TextStyle(fontSize: 20.0)),
-                    Text(formatDate.format(positionOrder.updatedAt!),
-                        style: const TextStyle(fontSize: 15.0))
-                  ]),
-            ]))),
+                Text(
+                    "${positionOrder.instrumentObj!.symbol} ${positionOrder.type} ${positionOrder.side}",
+                    style: const TextStyle(fontSize: 19.0)),
+                Text(
+                    positionOrder.averagePrice != null
+                        ? formatCurrency.format(positionOrder.averagePrice)
+                        : "",
+                    style: const TextStyle(fontSize: 19.0)),
+                Text(
+                  formatDate.format(positionOrder.updatedAt!),
+                  style: const TextStyle(fontSize: 15.0),
+                  textAlign: TextAlign.start,
+                )
+              ])),
+
+          /// If [titlePadding] is null, then defaults to start
+          /// padding of 72.0 pixels and bottom padding of 16.0 pixels.
+          // titlePadding: const EdgeInsetsDirectional.only(start: 6, bottom: 4),
+          // centerTitle: false,
+          expandedTitleScale: 1.25,
+        ),
         pinned: true,
       ),
       if (positionOrder.instrumentObj != null) ...[
@@ -179,7 +184,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           ListTile(
             title: const Text("Price"),
             trailing: Text(
-              formatCurrency.format(positionOrder.price),
+              positionOrder.price != null
+                  ? formatCurrency.format(positionOrder.price)
+                  : '',
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -286,22 +293,24 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           trailing: Wrap(
             spacing: 8,
             children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
+              if (instrument.quoteObj != null) ...[
+                Icon(
+                    instrument.quoteObj!.changeToday > 0
+                        ? Icons.trending_up
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Icons.trending_down
+                            : Icons.trending_flat),
+                    color: (instrument.quoteObj!.changeToday > 0
+                        ? Colors.green
+                        : (instrument.quoteObj!.changeToday < 0
+                            ? Colors.red
+                            : Colors.grey))),
+                Text(
+                  formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                  style: const TextStyle(fontSize: 18.0),
+                  textAlign: TextAlign.right,
+                ),
+              ]
             ],
           ),
         ),

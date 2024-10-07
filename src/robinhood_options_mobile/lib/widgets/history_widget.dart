@@ -1,4 +1,6 @@
 import 'package:collection/collection.dart';
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -10,6 +12,7 @@ import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -195,6 +198,10 @@ class _HistoryPageState extends State<HistoryPage>
                                   if (dividendSnapshot.hasData) {
                                     dividends =
                                         dividendSnapshot.data as List<dynamic>;
+                                    dividends!.sort((a, b) => DateTime.parse(
+                                            b["payable_date"])
+                                        .compareTo(
+                                            DateTime.parse(a["payable_date"])));
 
                                     return _buildPage(
                                         optionOrders: optionOrders,
@@ -366,7 +373,8 @@ class _HistoryPageState extends State<HistoryPage>
           : 0;
     }
 
-    balance = optionOrdersPremiumBalance + positionOrdersBalance;
+    balance =
+        optionOrdersPremiumBalance + positionOrdersBalance + dividendBalance;
 
     if (optionEvents != null) {
       filteredOptionEvents = optionEvents
@@ -571,9 +579,9 @@ class _HistoryPageState extends State<HistoryPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        // tileColor: Theme.of(context)
+                                        //     .colorScheme
+                                        //     .primary,
                                         leading: const Icon(Icons.filter_list),
                                         title: const Text(
                                           "Filter Option Orders",
@@ -736,9 +744,9 @@ class _HistoryPageState extends State<HistoryPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        // tileColor: Theme.of(context)
+                                        //     .colorScheme
+                                        //     .primary,
                                         leading: const Icon(Icons.filter_list),
                                         title: const Text(
                                           "Filter Option Events",
@@ -867,9 +875,9 @@ class _HistoryPageState extends State<HistoryPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        // tileColor: Theme.of(context)
+                                        //     .colorScheme
+                                        //     .primary,
                                         leading: const Icon(Icons.filter_list),
                                         title: const Text(
                                           "Filter Stock Orders",
@@ -1028,9 +1036,9 @@ class _HistoryPageState extends State<HistoryPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        // tileColor: Theme.of(context)
+                                        //     .colorScheme
+                                        //     .primary,
                                         leading: const Icon(Icons.filter_list),
                                         title: const Text(
                                           "Filter Dividends",
@@ -1061,10 +1069,19 @@ class _HistoryPageState extends State<HistoryPage>
                 // delegate: SliverChildListDelegate(widgets),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
+                    if (index == 0) {
+                      return SizedBox(
+                          height: 240,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                10.0, 0, 10, 10), //EdgeInsets.zero
+                            child: dividendChart(),
+                          ));
+                    }
                     // var amount = filteredDividends![index].averagePrice! *
                     //     filteredDividends![index].quantity! *
                     //     (filteredDividends![index].side == "buy" ? -1 : 1);
-                    var dividend = filteredDividends![index];
+                    var dividend = filteredDividends![index - 1];
                     return Card(
                         child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1165,14 +1182,10 @@ class _HistoryPageState extends State<HistoryPage>
                       ],
                     ));
                   },
-                  childCount: filteredDividends!.length,
+                  childCount: filteredDividends!.length + 1,
                 ),
               ),
             ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            ))
           ]
         ],
         SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
@@ -1196,6 +1209,189 @@ class _HistoryPageState extends State<HistoryPage>
     )*/
         ;
   }
+
+  Widget dividendChart() {
+    final groupedDividends = dividends!
+        .where((d) =>
+            DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
+        .groupListsBy((element) {
+      var dt = DateTime.parse(element["payable_date"]);
+      return DateTime(dt.year, dt.month);
+    });
+    final groupedDividendsData = groupedDividends
+        .map((k, v) {
+          return MapEntry(k,
+              v.map((m) => double.parse(m["amount"])).reduce((a, b) => a + b));
+        })
+        .entries
+        .toList();
+    // return BarChart(
+    //   [
+    //     charts.Series<dynamic, String>(
+    //       id: 'dividends',
+    //       colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+    //           Theme.of(context).colorScheme.primary),
+    //       //charts.MaterialPalette.blue.shadeDefault,
+    //       domainFn: (dynamic history, _) =>
+    //           DateTime.parse(history["payable_date"]),
+    //       //filteredEquityHistoricals.indexOf(history),
+    //       measureFn: (dynamic history, index) =>
+    //           double.parse(history["amount"]),
+    //       data: dividends!,
+    //     ),
+    //   ],
+    //   onSelected: (p0) {
+    //     // var provider =
+    //     //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+    //     // provider.selectionChanged(historical);
+
+    //   },
+    // )
+
+    return TimeSeriesChart(
+      [
+        charts.Series<dynamic, DateTime>(
+            id: 'dividends',
+            //charts.MaterialPalette.blue.shadeDefault,
+            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+            domainFn: (dynamic domain, _) =>
+                (domain as MapEntry<DateTime, double>).key,
+            // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+            measureFn: (dynamic measure, index) =>
+                (measure as MapEntry<DateTime, double>).value,
+            labelAccessorFn: (datum, index) => formatCompactNumber
+                .format((datum as MapEntry<DateTime, double>).value),
+            data: groupedDividendsData // dividends!,
+            ),
+      ],
+      animate: true,
+      onSelected: (p0) {
+        // var provider =
+        //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+        // provider.selectionChanged(historical);
+      },
+      seriesRendererConfig: charts.BarRendererConfig<DateTime>(
+        groupingType: charts.BarGroupingType.groupedStacked,
+        // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
+        //     insideLabelStyleSpec: charts.TextStyleSpec(
+        //         fontSize: 11,
+        //         color: charts.MaterialPalette.gray.shade200),
+        //     outsideLabelStyleSpec: charts.TextStyleSpec(
+        //         fontSize: 11,
+        //         color: charts.MaterialPalette.gray.shade200))
+      ),
+      behaviors: [
+        charts.SelectNearest(),
+        charts.DomainHighlighter(),
+      ],
+    );
+  }
+
+  // charts.BarChart dividendBarChart() {
+  //   List<charts.Series<dynamic, String>> seriesList = [];
+  //   var data = [];
+  //   for (var dividend in filteredDividends!) {
+  //     if (dividend.instrumentObj != null) {
+  //       double? value = double.parse(dividend!["amount"]);
+  //       String? trailingText = widget.user.getDisplayText(value);
+  //       data.add({
+  //         'domain': position.instrumentObj!.symbol,
+  //         'measure': value,
+  //         'label': trailingText
+  //       });
+  //     }
+  //   }
+  //   seriesList.add(charts.Series<dynamic, String>(
+  //       id: widget.user.displayValue.toString(),
+  //       data: data,
+  //       colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+  //           Theme.of(context).colorScheme.primary),
+  //       domainFn: (var d, _) => d['domain'],
+  //       measureFn: (var d, _) => d['measure'],
+  //       labelAccessorFn: (d, _) => d['label'],
+  //       insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+  //               color: charts.ColorUtil.fromDartColor(
+  //             Theme.of(context).brightness == Brightness.light
+  //                 ? Theme.of(context).colorScheme.surface
+  //                 : Theme.of(context).colorScheme.inverseSurface,
+  //           )),
+  //       outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+  //           color: charts.ColorUtil.fromDartColor(
+  //               Theme.of(context).textTheme.labelSmall!.color!))));
+  //   var brightness = MediaQuery.of(context).platformBrightness;
+  //   var axisLabelColor = charts.MaterialPalette.gray.shade500;
+  //   if (brightness == Brightness.light) {
+  //     axisLabelColor = charts.MaterialPalette.gray.shade700;
+  //   }
+  //   var primaryMeasureAxis = charts.NumericAxisSpec(
+  //     //showAxisLine: true,
+  //     //renderSpec: charts.GridlineRendererSpec(),
+  //     renderSpec: charts.GridlineRendererSpec(
+  //         labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+  //     //renderSpec: charts.NoneRenderSpec(),
+  //     //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
+  //     //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
+  //     //tickProviderSpec:
+  //     //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
+  //     //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+  //   );
+  //   if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
+  //       widget.user.displayValue == DisplayValue.totalReturnPercent) {
+  //     var positionDisplayValues =
+  //         filteredPositions.map((e) => widget.user.getPositionDisplayValue(e));
+  //     var minimum = 0.0;
+  //     var maximum = 0.0;
+  //     if (positionDisplayValues.isNotEmpty) {
+  //       minimum = positionDisplayValues.reduce(math.min);
+  //       if (minimum < 0) {
+  //         minimum -= 0.05;
+  //       } else if (minimum > 0) {
+  //         minimum = 0;
+  //       }
+  //       maximum = positionDisplayValues.reduce(math.max);
+  //       if (maximum > 0) {
+  //         maximum += 0.05;
+  //       } else if (maximum < 0) {
+  //         maximum = 0;
+  //       }
+  //     }
+
+  //     primaryMeasureAxis = charts.PercentAxisSpec(
+  //         viewport: charts.NumericExtents(minimum, maximum),
+  //         renderSpec: charts.GridlineRendererSpec(
+  //             labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
+  //   }
+  //   var positionChart = BarChart(seriesList,
+  //       renderer: charts.BarRendererConfig(
+  //           barRendererDecorator: charts.BarLabelDecorator<String>(),
+  //           cornerStrategy: const charts.ConstCornerStrategy(10)),
+  //       primaryMeasureAxis: primaryMeasureAxis,
+  //       barGroupingType: null,
+  //       domainAxis: charts.OrdinalAxisSpec(
+  //           renderSpec: charts.SmallTickRendererSpec(
+  //               labelStyle: charts.TextStyleSpec(color: axisLabelColor))),
+  //       onSelected: (dynamic historical) {
+  //     debugPrint(historical
+  //         .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
+  //     var position = filteredPositions.firstWhere(
+  //         (element) => element.instrumentObj!.symbol == historical['domain']);
+  //     Navigator.push(
+  //         context,
+  //         MaterialPageRoute(
+  //             builder: (context) => InstrumentWidget(
+  //                   widget.user,
+  //                   //account!,
+  //                   position.instrumentObj!,
+  //                   heroTag:
+  //                       'logo_${position.instrumentObj!.symbol}${position.instrumentObj!.id}',
+  //                   analytics: widget.analytics,
+  //                   observer: widget.observer,
+  //                 )));
+  //   });
+  //   return positionChart;
+  // }
 
 /*
   Widget bannerAdWidget() {
@@ -1399,6 +1595,7 @@ class _HistoryPageState extends State<HistoryPage>
                         //dateFilterSelected = null;
                       }
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1417,6 +1614,7 @@ class _HistoryPageState extends State<HistoryPage>
                         //dateFilterSelected = null;
                       }
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1433,6 +1631,7 @@ class _HistoryPageState extends State<HistoryPage>
                         orderDateFilterSelected = 2;
                       } else {}
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1449,6 +1648,7 @@ class _HistoryPageState extends State<HistoryPage>
                         orderDateFilterSelected = 3;
                       } else {}
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1465,6 +1665,7 @@ class _HistoryPageState extends State<HistoryPage>
                         orderDateFilterSelected = 4;
                       } else {}
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),

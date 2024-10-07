@@ -12,6 +12,8 @@ class TimeSeriesChart extends StatefulWidget {
   final double? open;
   final double? close;
   final List<String>? hiddenSeries;
+  final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
+  final List<charts.ChartBehavior<DateTime>>? behaviors;
   final void Function(dynamic) onSelected;
 
   const TimeSeriesChart(this.seriesList,
@@ -20,7 +22,9 @@ class TimeSeriesChart extends StatefulWidget {
       required this.onSelected,
       this.open,
       this.close,
-      this.hiddenSeries});
+      this.hiddenSeries,
+      this.seriesRendererConfig,
+      this.behaviors});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -29,26 +33,6 @@ class TimeSeriesChart extends StatefulWidget {
 }
 
 class _TimeSeriesChartState extends State<TimeSeriesChart> {
-  /*
-  num? _sliderDomainValue;
-  String? _sliderDragState;
-  Point<int>? _sliderPosition;
-  // Handles callbacks when the user drags the slider.
-  _onSliderChange(Point<int> point, dynamic domain, String roleId,
-      charts.SliderListenerDragState dragState) {
-    // Request a build.
-    void rebuild(_) {
-      setState(() {
-        _sliderDomainValue = (domain * 10).round() / 10;
-        _sliderDragState = dragState.toString();
-        _sliderPosition = point;
-      });
-    }
-
-    SchedulerBinding.instance!.addPostFrameCallback(rebuild);
-  }
-  */
-
   @override
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
@@ -63,8 +47,12 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
 
     return charts.TimeSeriesChart(
       widget.seriesList,
-      defaultRenderer:
+      defaultRenderer: widget.seriesRendererConfig ??
           charts.LineRendererConfig(includeArea: true, stacked: false),
+      defaultInteractions:
+          widget.seriesRendererConfig is charts.LineRendererConfig
+              ? true
+              : false,
       animate: widget.animate,
       primaryMeasureAxis: charts.NumericAxisSpec(
           //showAxisLine: true,
@@ -83,7 +71,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
               labelStyle: charts.TextStyleSpec(color: axisLabelColor))
           //tickProviderSpec:
           //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
-          //tickProviderSpec: charts.DayTickProviderSpec()
+          // tickProviderSpec: charts.DayTickProviderSpec(increments: [364])
           //tickProviderSpec: charts.DateTimeEndPointsTickProviderSpec()
           ),
       selectionModels: [
@@ -91,8 +79,9 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             type: charts.SelectionModelType.info,
             changedListener: _onSelectionChanged)
       ],
-      behaviors: [
-        /*
+      behaviors: widget.behaviors ??
+          [
+            /*
         charts.Slider(
             initialDomainValue:
                 (widget.seriesList[0].data[0] as EquityHistorical).beginsAt,
@@ -100,44 +89,50 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             eventTrigger: charts.SelectionTrigger.tapAndDrag,
             onChangeCallback: _onSliderChange),
             */
-        charts.SelectNearest(
-            eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
-        charts.LinePointHighlighter(
-            showHorizontalFollowLine:
-                charts.LinePointHighlighterFollowLineType.all, // .none
-            showVerticalFollowLine:
-                charts.LinePointHighlighterFollowLineType.all,
-            dashPattern: const [], // const [10],
-            defaultRadiusPx: 6),
-        /*
+            charts.SelectNearest(
+                eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
+            charts.LinePointHighlighter(
+                showHorizontalFollowLine:
+                    charts.LinePointHighlighterFollowLineType.all, // .none
+                showVerticalFollowLine:
+                    charts.LinePointHighlighterFollowLineType.all,
+                dashPattern: const [], // const [10],
+                defaultRadiusPx: 6),
+            /*
         charts.InitialSelection(selectedDataConfig: [
           charts.SeriesDatumConfig<DateTime>(
               'Adjusted Equity', widget.closeDate)
         ]),
         */
-        charts.SeriesLegend(
-          position: charts.BehaviorPosition.top,
-          defaultHiddenSeries: widget.hiddenSeries,
-        ),
-        if (widget.open != null && widget.close != null) ...[
-          charts.RangeAnnotation([
-            charts.RangeAnnotationSegment(
-                widget.open! <= widget.close! ? widget.open! : widget.close!,
-                widget.open! <= widget.close! ? widget.close! : widget.open!,
-                charts.RangeAnnotationAxisType.measure,
-                startLabel: widget.open! <= widget.close!
-                    ? 'Previous ${formatCurrency.format(widget.open!)}'
-                    : 'Current ${formatCurrency.format(widget.close!)}',
-                endLabel: widget.open! <= widget.close!
-                    ? 'Current ${formatCurrency.format(widget.close!)}'
-                    : 'Previous ${formatCurrency.format(widget.open!)}',
-                labelStyleSpec: charts.TextStyleSpec(
-                    color: rangeAnnotationLabelColor), //axisLabelColor
-                color: rangeAnnotationColor // gray.shade200
-                ),
-          ])
-        ]
-      ],
+            if (widget.hiddenSeries != null) ...[
+              charts.SeriesLegend(
+                position: charts.BehaviorPosition.top,
+                defaultHiddenSeries: widget.hiddenSeries,
+              ),
+            ],
+            if (widget.open != null && widget.close != null) ...[
+              charts.RangeAnnotation([
+                charts.RangeAnnotationSegment(
+                    widget.open! <= widget.close!
+                        ? widget.open!
+                        : widget.close!,
+                    widget.open! <= widget.close!
+                        ? widget.close!
+                        : widget.open!,
+                    charts.RangeAnnotationAxisType.measure,
+                    startLabel: widget.open! <= widget.close!
+                        ? 'Previous ${formatCurrency.format(widget.open!)}'
+                        : 'Current ${formatCurrency.format(widget.close!)}',
+                    endLabel: widget.open! <= widget.close!
+                        ? 'Current ${formatCurrency.format(widget.close!)}'
+                        : 'Previous ${formatCurrency.format(widget.open!)}',
+                    labelStyleSpec: charts.TextStyleSpec(
+                        color: rangeAnnotationLabelColor), //axisLabelColor
+                    color: rangeAnnotationColor // gray.shade200
+                    ),
+              ])
+            ]
+          ],
     );
     /*
     return charts.TimeSeriesChart(
