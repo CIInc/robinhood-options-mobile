@@ -1,8 +1,12 @@
 //import 'package:charts_flutter/flutter.dart' as charts;
+import 'dart:math';
+
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:community_charts_flutter/src/text_style.dart' as style;
+import 'package:community_charts_flutter/src/text_element.dart' as element;
 
 final formatCurrency = NumberFormat.simpleCurrency();
 
@@ -13,7 +17,9 @@ class TimeSeriesChart extends StatefulWidget {
   final double? close;
   final List<String>? hiddenSeries;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
+  final bool zeroBound;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
+  final charts.AxisSpec<dynamic>? domainAxis;
   final void Function(dynamic) onSelected;
 
   const TimeSeriesChart(this.seriesList,
@@ -24,7 +30,9 @@ class TimeSeriesChart extends StatefulWidget {
       this.close,
       this.hiddenSeries,
       this.seriesRendererConfig,
-      this.behaviors});
+      this.behaviors,
+      this.domainAxis,
+      this.zeroBound = true});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -60,19 +68,20 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           //renderSpec: charts.NoneRenderSpec(),
-          tickProviderSpec: const charts.BasicNumericTickProviderSpec(
-              zeroBound: false,
+          tickProviderSpec: charts.BasicNumericTickProviderSpec(
+              zeroBound: widget.zeroBound,
               dataIsInWholeNumbers: true,
               desiredMinTickCount: 4)),
-      domainAxis: charts.DateTimeAxisSpec(
-          // EndPointsTimeAxisSpec
-          //showAxisLine: true,
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor))
-          //tickProviderSpec:
-          //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
-          // tickProviderSpec: charts.DayTickProviderSpec(increments: [364])
-          //tickProviderSpec: charts.DateTimeEndPointsTickProviderSpec()
+      domainAxis: widget.domainAxis ??
+          charts.DateTimeAxisSpec(
+            // EndPointsTimeAxisSpec
+            //showAxisLine: true,
+            renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            //tickProviderSpec:
+            //    charts.AutoDateTimeTickProviderSpec(includeTime: true)
+            // tickProviderSpec: charts.DayTickProviderSpec(increments: [364])
+            //tickProviderSpec: charts.DateTimeEndPointsTickProviderSpec()
           ),
       selectionModels: [
         charts.SelectionModelConfig(
@@ -158,4 +167,70 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     //widget.onSelected(selected);
   }
   */
+}
+
+// import 'package:charts_flutter/flutter.dart';
+// import 'package:charts_flutter/src/text_style.dart' as style;
+// import 'package:charts_flutter/src/text_element.dart' as element;
+// import 'package:flutter/material.dart';
+
+typedef GetText = String Function();
+
+class TextSymbolRenderer extends charts.CircleSymbolRenderer {
+  TextSymbolRenderer(this.getText,
+      {this.marginBottom = 8, this.padding = const EdgeInsets.all(8)});
+
+  final GetText getText;
+  final double marginBottom;
+  final EdgeInsets padding;
+
+  @override
+  void paint(charts.ChartCanvas canvas, Rectangle<num> bounds,
+      {List<int>? dashPattern,
+      charts.Color? fillColor,
+      charts.FillPatternType? fillPattern,
+      charts.Color? strokeColor,
+      double? strokeWidthPx}) {
+    super.paint(canvas, bounds,
+        dashPattern: dashPattern,
+        fillColor: fillColor,
+        fillPattern: fillPattern,
+        strokeColor: strokeColor,
+        strokeWidthPx: strokeWidthPx);
+
+    style.TextStyle textStyle = style.TextStyle();
+    textStyle.color = charts.Color.black;
+    textStyle.fontSize = 15;
+
+    element.TextElement textElement =
+        element.TextElement(getText.call(), style: textStyle);
+    double width = textElement.measurement.horizontalSliceWidth;
+    double height = textElement.measurement.verticalSliceWidth;
+
+    double centerX = bounds.left + bounds.width / 2;
+    double centerY = bounds.top +
+        bounds.height / 2 -
+        marginBottom -
+        (padding.top + padding.bottom);
+
+    canvas.drawRRect(
+      Rectangle(
+        centerX - (width / 2) - padding.left,
+        centerY - (height / 2) - padding.top,
+        width + (padding.left + padding.right),
+        height + (padding.top + padding.bottom),
+      ),
+      fill: charts.Color.white,
+      radius: 16,
+      roundTopLeft: true,
+      roundTopRight: true,
+      roundBottomRight: true,
+      roundBottomLeft: true,
+    );
+    canvas.drawText(
+      textElement,
+      (centerX - (width / 2)).round(),
+      (centerY - (height / 2)).round(),
+    );
+  }
 }

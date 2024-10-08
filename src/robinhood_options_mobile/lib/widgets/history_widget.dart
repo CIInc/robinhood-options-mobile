@@ -1141,41 +1141,41 @@ class _HistoryPageState extends State<HistoryPage>
                                         style: const TextStyle(fontSize: 18))
                                   ])
                                 ]),
-                                onTap: () {
-                                  /* For navigation within this tab, uncomment
-                              widget.navigatorKey!.currentState!.push(
-                                  MaterialPageRoute(
-                                      builder: (context) => PositionOrderWidget(
-                                          widget.user,
-                                          filteredDividends![index])));
-                                          */
-                                  showDialog<String>(
-                                    context: context,
-                                    builder: (BuildContext context) =>
-                                        AlertDialog(
-                                      title: const Text('Alert'),
-                                      content: const Text(
-                                          'This feature is not implemented.\n'),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, 'OK'),
-                                          child: const Text('OK'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                                //   onTap: () {
+                                //     /* For navigation within this tab, uncomment
+                                // widget.navigatorKey!.currentState!.push(
+                                //     MaterialPageRoute(
+                                //         builder: (context) => PositionOrderWidget(
+                                //             widget.user,
+                                //             filteredDividends![index])));
+                                //             */
+                                //     showDialog<String>(
+                                //       context: context,
+                                //       builder: (BuildContext context) =>
+                                //           AlertDialog(
+                                //         title: const Text('Alert'),
+                                //         content: const Text(
+                                //             'This feature is not implemented.\n'),
+                                //         actions: <Widget>[
+                                //           TextButton(
+                                //             onPressed: () =>
+                                //                 Navigator.pop(context, 'OK'),
+                                //             child: const Text('OK'),
+                                //           ),
+                                //         ],
+                                //       ),
+                                //     );
 
-                                  // Navigator.push(
-                                  //     context,
-                                  //     MaterialPageRoute(
-                                  //         builder: (context) => PositionOrderWidget(
-                                  //               widget.user,
-                                  //               filteredDividends![index],
-                                  //               analytics: widget.analytics,
-                                  //               observer: widget.observer,
-                                  //             )));
-                                },
+                                //     // Navigator.push(
+                                //     //     context,
+                                //     //     MaterialPageRoute(
+                                //     //         builder: (context) => PositionOrderWidget(
+                                //     //               widget.user,
+                                //     //               filteredDividends![index],
+                                //     //               analytics: widget.analytics,
+                                //     //               observer: widget.observer,
+                                //     //             )));
+                                //   },
 
                                 //isThreeLine: true,
                               ),
@@ -1212,8 +1212,8 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget dividendChart() {
     final groupedDividends = dividends!
-        .where((d) =>
-            DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
+        // .where((d) =>
+        //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
         .groupListsBy((element) {
       var dt = DateTime.parse(element["payable_date"]);
       return DateTime(dt.year, dt.month);
@@ -1247,46 +1247,71 @@ class _HistoryPageState extends State<HistoryPage>
 
     //   },
     // )
+    var brightness = MediaQuery.of(context).platformBrightness;
+    var axisLabelColor = charts.MaterialPalette.gray.shade200;
+    if (brightness == Brightness.light) {
+      axisLabelColor = charts.MaterialPalette.gray.shade800;
+    }
 
-    return TimeSeriesChart(
-      [
-        charts.Series<dynamic, DateTime>(
-            id: 'dividends',
-            //charts.MaterialPalette.blue.shadeDefault,
-            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                Theme.of(context).colorScheme.primary),
-            // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-            domainFn: (dynamic domain, _) =>
-                (domain as MapEntry<DateTime, double>).key,
-            // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-            measureFn: (dynamic measure, index) =>
-                (measure as MapEntry<DateTime, double>).value,
-            labelAccessorFn: (datum, index) => formatCompactNumber
-                .format((datum as MapEntry<DateTime, double>).value),
-            data: groupedDividendsData // dividends!,
-            ),
-      ],
-      animate: true,
-      onSelected: (p0) {
-        // var provider =
-        //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
-        // provider.selectionChanged(historical);
-      },
-      seriesRendererConfig: charts.BarRendererConfig<DateTime>(
-        groupingType: charts.BarGroupingType.groupedStacked,
-        // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
-        //     insideLabelStyleSpec: charts.TextStyleSpec(
-        //         fontSize: 11,
-        //         color: charts.MaterialPalette.gray.shade200),
-        //     outsideLabelStyleSpec: charts.TextStyleSpec(
-        //         fontSize: 11,
-        //         color: charts.MaterialPalette.gray.shade200))
-      ),
-      behaviors: [
-        charts.SelectNearest(),
-        charts.DomainHighlighter(),
-      ],
-    );
+    return TimeSeriesChart([
+      charts.Series<dynamic, DateTime>(
+          id: 'dividends',
+          //charts.MaterialPalette.blue.shadeDefault,
+          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+              Theme.of(context).colorScheme.primary),
+          // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+          domainFn: (dynamic domain, _) =>
+              (domain as MapEntry<DateTime, double>).key,
+          // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+          measureFn: (dynamic measure, index) =>
+              (measure as MapEntry<DateTime, double>).value,
+          labelAccessorFn: (datum, index) => formatCompactNumber
+              .format((datum as MapEntry<DateTime, double>).value),
+          data: groupedDividendsData // dividends!,
+          ),
+    ], animate: true, onSelected: (p0) {
+      // debugPrint(p0.value.toString());
+      // var provider =
+      //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+      // provider.selectionChanged(historical);
+    },
+        seriesRendererConfig: charts.BarRendererConfig<DateTime>(
+          groupingType: charts.BarGroupingType.groupedStacked,
+          // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
+          //     insideLabelStyleSpec:
+          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
+          //     outsideLabelStyleSpec:
+          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
+        ),
+        behaviors: [
+          charts.SelectNearest(),
+          charts.DomainHighlighter(),
+          // charts.ChartTitle('Aggregate →',
+          //     behaviorPosition: charts.BehaviorPosition.start,
+          //     titleOutsideJustification: charts.OutsideJustification
+          //         .middleDrawArea),
+          // charts.SeriesLegend(),
+          // Add the sliding viewport behavior to have the viewport center on the
+          // domain that is currently selected.
+          // charts.SlidingViewport(),
+          // A pan and zoom behavior helps demonstrate the sliding viewport
+          // behavior by allowing the data visible in the viewport to be adjusted
+          // dynamically.
+          charts.PanAndZoomBehavior(),
+        ],
+        domainAxis: charts.DateTimeAxisSpec(
+          // tickFormatterSpec:
+          //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
+          //         DateFormat.yMMM()),
+          tickProviderSpec: const charts.AutoDateTimeTickProviderSpec(),
+          showAxisLine: true,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          viewport: charts.DateTimeExtents(
+              start: DateTime(DateTime.now().year - 1, DateTime.now().month,
+                  1), //DateTime.now().subtract(Duration(days: 365 * 1)),
+              end: DateTime.now().add(Duration(days: 30 - DateTime.now().day))),
+        ));
   }
 
   // charts.BarChart dividendBarChart() {

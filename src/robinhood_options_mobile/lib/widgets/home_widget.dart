@@ -637,6 +637,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         ),
                   ],
                   animate: animateChart,
+                  zeroBound: false,
                   open: open,
                   close: close,
                   hiddenSeries: const ['Equity', 'Market Value'],
