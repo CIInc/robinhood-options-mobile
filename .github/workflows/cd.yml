@@ -61,6 +61,11 @@ jobs:
           distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
           java-version: '17'
 
+      - name: Setup Android Signing
+        run: |
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
       - name: Build Android APK
         run: flutter build apk --release
         continue-on-error: false
