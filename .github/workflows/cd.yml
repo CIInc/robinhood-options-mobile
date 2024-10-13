@@ -86,7 +86,8 @@ jobs:
 
       - name: Build iOS IPA
         id: build-ipa
-        run: flutter build ipa --release
+        run: flutter build ipa
+        # run: flutter build ipa --release
         continue-on-error: false
 
       - name: Upload iOS IPA Build Artifact

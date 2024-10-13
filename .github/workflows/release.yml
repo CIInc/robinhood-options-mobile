@@ -7,25 +7,41 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - uses: actions/setup-java@v1
-        with:
-          java-version: '12.x'
+    # TODO: Reintroduce macos-latest once we resolve the IPA build failure below. 
+    #runs-on: macos-latest
 
-      - uses: subosito/flutter-action@v1
+    defaults:
+      run:
+        working-directory: src/robinhood_options_mobile
+    
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      
+      - name: Install Java
+        uses: actions/setup-java@v4
         with:
-          channel: 'stable'
+          distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+          java-version: '17'
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable # or: beta, master (or main)
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
+      - name: Setup Android Signing
+        run: |
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Build Android APK
         run: flutter build apk --release
 
-      - name: Upload APK Build Artifact
-        uses: actions/upload-artifact@v2.2.4
+      - name: Upload Android APK Build Artifact
+        uses: actions/upload-artifact@v4
         with:
           # Artifact name
           name: release-apk
