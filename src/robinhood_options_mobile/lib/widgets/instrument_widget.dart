@@ -374,7 +374,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       StackTrace? stackTrace) {
                                     debugPrint(
                                         'Error with ${instrument.symbol} ${instrument.logoUrl}');
-                                    //RobinhoodService.removeLogo(instrument.symbol);
+                                    RobinhoodService.removeLogo(instrument);
                                     return Container(); // Text(instrument.symbol);
                                   },
                                 )
@@ -560,11 +560,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   data: instrument.instrumentHistoricalsObj!.historicals,
                 ),
               ];
-              chart = TimeSeriesChart(seriesList,
-                  open: open,
-                  close: close,
-                  hiddenSeries: const ["Close", "Volume", "Low", "High"],
-                  onSelected: _onChartSelection);
+              chart = TimeSeriesChart(
+                seriesList,
+                open: open,
+                close: close,
+                hiddenSeries: const ["Close", "Volume", "Low", "High"],
+                onSelected: _onChartSelection,
+                zeroBound: false,
+              );
 
               /*
               slivers.add(const SliverToBoxAdapter(
@@ -1217,6 +1220,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
         ListTile(
+            minTileHeight: 10,
             title: const Text("Last Trade Price"),
             trailing: Wrap(spacing: 8, children: [
               Icon(
@@ -1237,36 +1241,42 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
             ])),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Adjusted Previous Close"),
           trailing: Text(
               formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Change Today"),
           trailing: Text(
               formatCurrency.format(instrument.quoteObj!.changeToday),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Change Today %"),
           trailing: Text(
               formatPercentage.format(instrument.quoteObj!.changePercentToday),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Bid - Ask Price"),
           trailing: Text(
               "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Bid - Ask Size"),
           trailing: Text(
               "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Last Extended Hours Trade Price"),
           trailing: Text(
               instrument.quoteObj!.lastExtendedHoursTradePrice != null
@@ -1276,7 +1286,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         Container(
-          height: 25,
+          height: 10,
         )
       ])))
     ]));
@@ -1303,12 +1313,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   const Text("Fundamentals", style: TextStyle(fontSize: 20))),
                   */
         ListTile(
+          minTileHeight: 10,
           title: const Text("Volume"),
           trailing: Text(
               formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Average Volume"),
           trailing: Text(
               formatCompactNumber
@@ -1316,6 +1328,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Average Volume (2 weeks)"),
           trailing: Text(
               formatCompactNumber
@@ -1323,18 +1336,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("52 Week High"),
           trailing: Text(
               formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("52 Week Low"),
           trailing: Text(
               formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Dividend Yield"),
           trailing: Text(
               instrument.fundamentalsObj!.dividendYield != null
@@ -1344,6 +1360,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Market Cap"),
           trailing: Text(
               formatCompactNumber
@@ -1351,6 +1368,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Shares Outstanding"),
           trailing: Text(
               formatCompactNumber
@@ -1358,6 +1376,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("P/E Ratio"),
           trailing: Text(
               instrument.fundamentalsObj!.peRatio != null
@@ -1367,11 +1386,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Sector"),
           trailing: Text(instrument.fundamentalsObj!.sector,
-              style: const TextStyle(fontSize: 18)),
+              style: const TextStyle(fontSize: 17)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Industry"),
           trailing: Text(instrument.fundamentalsObj!.industry,
               overflow: TextOverflow.ellipsis,
@@ -1380,38 +1401,43 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
             instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
           ListTile(
+            minTileHeight: 10,
             title: const Text("Headquarters"),
             trailing: Text(
                 "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                style: const TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 17)),
           ),
         ],
         if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
           ListTile(
+            minTileHeight: 10,
             title: const Text("CEO"),
             trailing: Text(instrument.fundamentalsObj!.ceo,
-                style: const TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 17)),
           ),
         ],
         if (instrument.fundamentalsObj!.numEmployees != null) ...[
           ListTile(
+            minTileHeight: 10,
             title: const Text("Number of Employees"),
             trailing: Text(
                 instrument.fundamentalsObj!.numEmployees != null
                     ? formatCompactNumber
                         .format(instrument.fundamentalsObj!.numEmployees!)
                     : "",
-                style: const TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 17)),
           ),
         ],
         if (instrument.fundamentalsObj!.yearFounded != null) ...[
           ListTile(
+            minTileHeight: 10,
             title: const Text("Year Founded"),
             trailing: Text("${instrument.fundamentalsObj!.yearFounded ?? ""}",
-                style: const TextStyle(fontSize: 18)),
+                style: const TextStyle(fontSize: 17)),
           ),
         ],
         ListTile(
+          minTileHeight: 10,
           title: const Text(
             "Name",
             style: TextStyle(fontSize: 18.0),
@@ -1420,6 +1446,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           subtitle: Text(instrument.name, style: const TextStyle(fontSize: 16)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text(
             "Description",
             style: TextStyle(fontSize: 18.0),
@@ -1429,7 +1456,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 16)),
         ),
         Container(
-          height: 25,
+          height: 10,
         )
       ])))
     ]));
@@ -1604,8 +1631,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        const SizedBox(height: 15),
+        // const SizedBox(height: 15),
         ListTile(
+          minTileHeight: 10,
           title: Text(
             instrument.ratingsOverviewObj!["report_title"],
             style: const TextStyle(fontSize: 18.0),
@@ -1619,6 +1647,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
           ListTile(
+            minTileHeight: 10,
             title: const Text("Fair Value"),
             trailing: Text(
                 formatCurrency.format(double.parse(
@@ -1627,6 +1656,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           ),
         ],
         ListTile(
+          minTileHeight: 10,
           title: const Text("Economic Moat"),
           trailing: Text(
               instrument.ratingsOverviewObj!["economic_moat"]
@@ -1636,6 +1666,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ),
         if (instrument.ratingsOverviewObj!["star_rating"] != null) ...[
           ListTile(
+              minTileHeight: 10,
               title: const Text("Star Rating"),
               trailing: Wrap(
                 children: [
@@ -1658,6 +1689,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
         ],
         ListTile(
+          minTileHeight: 10,
           title: const Text("Stewardship"),
           trailing: Text(
               instrument.ratingsOverviewObj!["stewardship"]
@@ -1666,10 +1698,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
+          minTileHeight: 10,
           title: const Text("Uncertainty"),
           trailing: Text(
               instrument.ratingsOverviewObj!["uncertainty"]
                   .toString()
+                  .replaceAll('_', ' ')
                   .capitalize(),
               style: const TextStyle(fontSize: 18)),
         ),
@@ -1960,29 +1994,28 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 leading: Hero(
                     tag: 'logo_${instrument.similarObj![index]["symbol"]}',
                     child: instrument.similarObj![index]["logo_url"] != null
-                        ? CircleAvatar(
-                            radius: 25,
-                            foregroundColor: Theme.of(context)
-                                .colorScheme
-                                .primary, //.onBackground,
-                            //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                            child: Image.network(
-                              instrument.similarObj![index]["logo_url"]
-                                  .toString()
-                                  .replaceAll("https:////", "https://"),
-                              width: 40,
-                              height: 40,
-                              errorBuilder: (BuildContext context,
-                                  Object exception, StackTrace? stackTrace) {
-                                //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
-                                return Text(
-                                    instrument.similarObj![index]["symbol"]);
-                              },
-                            ))
+                        ? Image.network(
+                            instrument.similarObj![index]["logo_url"]
+                                .toString()
+                                .replaceAll("https:////", "https://"),
+                            width: 50,
+                            height: 50,
+                            errorBuilder: (BuildContext context,
+                                Object exception, StackTrace? stackTrace) {
+                              //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
+                              return CircleAvatar(
+                                  radius: 25,
+                                  // foregroundColor:
+                                  //     Theme.of(context).colorScheme.primary,
+                                  child: Text(
+                                    instrument.similarObj![index]["symbol"],
+                                  ));
+                            },
+                          )
                         : CircleAvatar(
                             radius: 25,
-                            foregroundColor:
-                                Theme.of(context).colorScheme.primary,
+                            // foregroundColor:
+                            //     Theme.of(context).colorScheme.primary,
                             child: Text(
                               instrument.similarObj![index]["symbol"],
                             ))),
@@ -2690,7 +2723,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child: Text(
                   '${instrument.name != "" ? instrument.name : instrument.simpleName}',
                   //instrument.simpleName ?? instrument.name,
-                  style: const TextStyle(fontSize: 16.0),
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).appBarTheme.foregroundColor),
+                  // Colors.white), // Theme.of(context).textTheme.bodyLarge!.color!),
                   textAlign: TextAlign.left,
                   //overflow: TextOverflow.ellipsis
                 ))

@@ -403,6 +403,9 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
+    // var instrument = await RobinhoodService.getInstrument(
+    //     widget.user, instrumentStore!, movers[index].instrumentUrl);
+    // movers[index].instrumentObj = instrument;
     return Card(
         child: Padding(
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
@@ -410,6 +413,19 @@ class _SearchWidgetState extends State<SearchWidget>
               child: Column(
                   //mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
+                    // movers[index].instrumentObj != null &&
+                    //         movers[index].instrumentObj!.logoUrl != null
+                    //     ? Image.network(
+                    //         movers[index].instrumentObj!.logoUrl!,
+                    //         width: 40,
+                    //         height: 40,
+                    //         errorBuilder: (BuildContext context,
+                    //             Object exception, StackTrace? stackTrace) {
+                    //           //RobinhoodService.removeLogo(instrument.symbol);
+                    //           return Text(movers[index].instrumentObj!.symbol);
+                    //         },
+                    //       )
+                    //     : SizedBox(height: 40, width: 40),
                     Text(movers[index].symbol,
                         style: const TextStyle(fontSize: 16.0)),
                     Wrap(
@@ -527,16 +543,18 @@ class _SearchWidgetState extends State<SearchWidget>
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                // instrumentObj.logoUrl != null ? Image.network(
-                //   instrumentObj.logoUrl!,
-                //   width: 40,
-                //   height: 40,
-                //   errorBuilder: (BuildContext context, Object exception,
-                //       StackTrace? stackTrace) {
-                //     //RobinhoodService.removeLogo(instrument.symbol);
-                //     return Text(instrumentObj.symbol);
-                //   },
-                // ) : Container(height: 40, width: 40),
+                // instrumentObj.logoUrl != null
+                //     ? Image.network(
+                //         instrumentObj.logoUrl!,
+                //         width: 40,
+                //         height: 40,
+                //         errorBuilder: (BuildContext context, Object exception,
+                //             StackTrace? stackTrace) {
+                //           //RobinhoodService.removeLogo(instrument.symbol);
+                //           return Text(instrumentObj.symbol);
+                //         },
+                //       )
+                //     : SizedBox(height: 40, width: 40),
                 Text(instrumentObj.symbol,
                     style: const TextStyle(fontSize: 16.0)),
                 Wrap(

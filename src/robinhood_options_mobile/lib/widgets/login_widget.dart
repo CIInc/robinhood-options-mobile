@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/robinhood_user.dart';
 import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
@@ -102,6 +103,8 @@ class _LoginWidgetState extends State<LoginWidget> {
   void _login() {
     if (source == Source.tdAmeritrade) {
       TdAmeritradeService.login();
+    } else if (source == Source.schwab) {
+      SchwabService.login();
     } else {
       setState(() {
         authenticationResponse = oauth2_robinhood.login(
@@ -262,7 +265,7 @@ class _LoginWidgetState extends State<LoginWidget> {
               child: ChoiceChip(
                 label: const Text('Robinhood'),
                 selected: source == Source.robinhood,
-                labelPadding: const EdgeInsets.all(10.0),
+                // labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
@@ -277,11 +280,24 @@ class _LoginWidgetState extends State<LoginWidget> {
               child: ChoiceChip(
                 label: const Text('TD Ameritrade'),
                 selected: source == Source.tdAmeritrade,
-                labelPadding: const EdgeInsets.all(10.0),
+                // labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
                     source = Source.tdAmeritrade;
+                  });
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: ChoiceChip(
+                label: const Text('Schwab'),
+                selected: source == Source.schwab,
+                // labelPadding: const EdgeInsets.all(10.0),
+                onSelected: (bool selected) {
+                  setState(() {
+                    source = Source.schwab;
                   });
                 },
               ),
@@ -349,6 +365,22 @@ class _LoginWidgetState extends State<LoginWidget> {
                   child: ElevatedButton.icon(
                     label: const Text(
                       "Link TD Ameritrade",
+                      style: TextStyle(fontSize: 20.0),
+                      // style: TextStyle(fontSize: 22.0, height: 1.5),
+                    ),
+                    icon: const Icon(Icons.login_outlined),
+                    onPressed:
+                        challengeRequestId == null ? _login : _handleChallenge,
+                  )))
+        ] else if (source == Source.schwab) ...[
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
+              child: SizedBox(
+                  width: 340.0,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    label: const Text(
+                      "Link Schwab",
                       style: TextStyle(fontSize: 20.0),
                       // style: TextStyle(fontSize: 22.0, height: 1.5),
                     ),

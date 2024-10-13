@@ -24,7 +24,7 @@ enum DisplayValue {
 
 enum SortDirection { asc, desc }
 
-enum Source { robinhood, tdAmeritrade }
+enum Source { robinhood, tdAmeritrade, schwab }
 
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -60,6 +60,12 @@ class RobinhoodUser {
                 ? OptionsView.list
                 : OptionsView.grouped,
         displayValue = parseDisplayValue(json['displayValue']),
+        sortOptions = parseDisplayValue(json['sortOptions']),
+        sortDirection = json['sortDirection'] != null
+            ? json['sortDirection'] == 'asc'
+                ? SortDirection.asc
+                : SortDirection.desc
+            : null,
         showPositionDetails = json['showPositionDetails'] ?? true;
 
   Map<String, dynamic> toJson() => {
@@ -68,6 +74,8 @@ class RobinhoodUser {
         'credentials': credentials,
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
+        'sortOptions': sortOptions.toString(),
+        'sortDirection': sortDirection.toString(),
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
       };

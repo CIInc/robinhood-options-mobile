@@ -293,6 +293,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     child: buildOverview(
                         widget.user, optionInstrument, instrument,
                         optionPosition: optionPosition))),
+            SliverToBoxAdapter(
+                child: SizedBox(
+              height: 12,
+            ))
           ],
           Consumer<OptionHistoricalsStore>(
               builder: (context, optionHistoricalsStore, child) {
@@ -399,7 +403,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                           optionInstrumentHistoricalsObj.historicals.length - 1]
                       .closePrice!,
                   hiddenSeries: const ["Close", "Low", "High"],
-                  onSelected: (dynamic historical) {
+                  zeroBound: false, onSelected: (dynamic historical) {
                 var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
                     context,
                     listen: false);
@@ -1136,6 +1140,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               const ListTile(
                   title: Text("Market Data", style: TextStyle(fontSize: 20))),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Break Even Price"),
                 trailing: Text(
                     formatCurrency.format(
@@ -1143,18 +1148,21 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
-                title: const Text("Bid - Mark - Ask"),
+                minTileHeight: 10,
+                title: const Text("Bid/Mark/Ask"),
                 trailing: Text(
-                    "${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
+                    "${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)}  ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)}  ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Bid Size - Ask Size"),
                 trailing: Text(
                     "${formatCompactNumber.format(optionInstrument.optionMarketData!.bidSize)} - ${formatCompactNumber.format(optionInstrument.optionMarketData!.askSize)}",
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Adjusted Mark Price"),
                 trailing: Text(
                     formatCurrency.format(
@@ -1162,12 +1170,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Last Trade"),
                 trailing: Text(
                     "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}",
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Low Price - High Price"),
                 trailing: Text(
                     optionInstrument.optionMarketData!.lowPrice != null &&
@@ -1177,6 +1187,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: Text(
                     "Previous Close (${formatDate.format(optionInstrument.optionMarketData!.previousCloseDate!)})"),
                 trailing: Text(
@@ -1185,6 +1196,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Volume"),
                 trailing: Text(
                     formatCompactNumber
@@ -1193,6 +1205,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               ),
               /*
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Open Interest"),
                 trailing: Text(
                     formatCompactNumber.format(
@@ -1200,6 +1213,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Implied Volatility"),
                 trailing: Text(
                     formatPercentage.format(
@@ -1207,6 +1221,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Chance of Profit (Long)"),
                 trailing: Text(
                     formatPercentage.format(
@@ -1214,6 +1229,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Chance of Profit (Short)"),
                 trailing: Text(
                     formatPercentage.format(
@@ -1288,6 +1304,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               ),
               if (optionPosition != null) ...[
                 ListTile(
+                  minTileHeight: 10,
                   title: const Text("Contracts"),
                   trailing: Text(
                       "${optionPosition.quantity!.round()} ${optionPosition.legs.first.positionType} ${optionPosition.legs.first.optionType}",
@@ -1295,12 +1312,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 ),
               ],
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Strike"),
                 trailing: Text(
                     formatCurrency.format(optionInstrument.strikePrice),
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Expiration"),
                 trailing: Text(
                     formatDate.format(optionInstrument.expirationDate!),
@@ -1309,12 +1328,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               if (optionPosition != null) ...[
                 if (optionPosition.legs.first.positionType == "long") ...[
                   ListTile(
+                      minTileHeight: 10,
                       title: const Text("Average Open Price"),
                       trailing: Text(
                           formatCurrency
                               .format(optionPosition.averageOpenPrice),
                           style: const TextStyle(fontSize: 18))),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Total Cost"),
                     trailing: Text(
                         formatCurrency.format(optionPosition.totalCost),
@@ -1322,18 +1343,21 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   )
                 ] else ...[
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Credit"),
                     trailing: Text(
                         formatCurrency.format(optionPosition.averageOpenPrice),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Short Collateral"),
                     trailing: Text(
                         formatCurrency.format(optionPosition.shortCollateral),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Credit to Collateral"),
                     trailing: Text(
                         formatPercentage
@@ -1342,12 +1366,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                   ),
                 ],
                 ListTile(
+                  minTileHeight: 10,
                   title: const Text("Market Value"), //Equity
                   trailing: Text(
                       formatCurrency.format(optionPosition.marketValue),
                       style: const TextStyle(fontSize: 18)),
                 ),
                 ListTile(
+                    minTileHeight: 10,
                     title: const Text("Return"),
                     trailing: Wrap(
                       spacing: 8,
@@ -1377,23 +1403,27 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 */
                     ),
                 ListTile(
+                  minTileHeight: 10,
                   title: const Text("Return %"),
                   trailing: Text(
                       formatPercentage.format(optionPosition.gainLossPercent),
                       style: const TextStyle(fontSize: 18)),
                 ),
                 ListTile(
+                  minTileHeight: 10,
                   title: const Text("Created"),
                   trailing: Text(formatDate.format(optionPosition.createdAt!),
                       style: const TextStyle(fontSize: 18)),
                 ),
                 ListTile(
+                  minTileHeight: 10,
                   title: const Text("Updated"),
                   trailing: Text(formatDate.format(optionPosition.updatedAt!),
                       style: const TextStyle(fontSize: 18)),
                 ),
               ],
               ListTile(
+                minTileHeight: 10,
                 title: const Text("Days to Expiration"),
                 trailing: Text("${dte.isNegative ? 0 : dte} of $originalDte",
                     style: const TextStyle(fontSize: 18)),
@@ -1557,14 +1587,18 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
                                         "Strategy",
-                                        style: TextStyle(fontSize: 10.0),
+                                        style: TextStyle(
+                                            fontSize: 10.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                       ),
                                     )
                                   ]),
@@ -1575,7 +1609,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   width: 115,
                                   child: Text(
                                       "${optionPosition.strategy.split('_').first} ${optionPosition.optionInstrument!.type}",
-                                      style: const TextStyle(fontSize: 12.0),
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
                                       textAlign: TextAlign.right)),
                               Container(
                                 width: 10,
@@ -1590,14 +1628,18 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
                                         "Contracts",
-                                        style: TextStyle(fontSize: 10.0),
+                                        style: TextStyle(
+                                            fontSize: 10.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                       ),
                                     )
                                   ]),
@@ -1608,7 +1650,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   width: 115,
                                   child: Text(
                                       "${optionPosition.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionPosition.quantity)}",
-                                      style: const TextStyle(fontSize: 12.0),
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
                                       textAlign: TextAlign.right)),
                               Container(
                                 width: 10,
@@ -1634,21 +1680,29 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                                 "long"
                                             ? "Cost"
                                             : "Credit",
-                                        style: const TextStyle(fontSize: 10.0),
+                                        style: TextStyle(
+                                            fontSize: 10.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                       ),
                                     )
                                   ]),
                               Container(
                                 width: 5,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
                                             "", //${formatPercentage.format(1)}
-                                            style: TextStyle(fontSize: 10.0),
+                                            style: TextStyle(
+                                                fontSize: 10.0,
+                                                color: Theme.of(context)
+                                                    .appBarTheme
+                                                    .foregroundColor),
                                             textAlign: TextAlign.right))
                                   ]),
                               Container(
@@ -1659,7 +1713,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   child: Text(
                                       formatCurrency
                                           .format(optionPosition.totalCost),
-                                      style: const TextStyle(fontSize: 12.0),
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
                                       textAlign: TextAlign.right)),
                               Container(
                                 width: 10,
@@ -1674,28 +1732,36 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               Container(
                                 width: 10,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.start,
                                   children: [
                                     SizedBox(
                                       width: 70,
                                       child: Text(
                                         "Market Value",
-                                        style: TextStyle(fontSize: 10.0),
+                                        style: TextStyle(
+                                            fontSize: 10.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                       ),
                                     )
                                   ]),
                               Container(
                                 width: 5,
                               ),
-                              const Column(
+                              Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     SizedBox(
                                         width: 40,
                                         child: Text(
                                             "", //${formatPercentage.format(1)}
-                                            style: TextStyle(fontSize: 10.0),
+                                            style: TextStyle(
+                                                fontSize: 10.0,
+                                                color: Theme.of(context)
+                                                    .appBarTheme
+                                                    .foregroundColor),
                                             textAlign: TextAlign.right))
                                   ]),
                               Container(
@@ -1706,7 +1772,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                   child: Text(
                                       formatCurrency
                                           .format(optionPosition.marketValue),
-                                      style: const TextStyle(fontSize: 12.0),
+                                      style: TextStyle(
+                                          fontSize: 12.0,
+                                          color: Theme.of(context)
+                                              .appBarTheme
+                                              .foregroundColor),
                                       textAlign: TextAlign.right)),
                               Container(
                                 width: 10,
@@ -1721,14 +1791,18 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                const Column(
+                                Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       SizedBox(
                                         width: 55,
                                         child: Text(
                                           "Today",
-                                          style: TextStyle(fontSize: 10.0),
+                                          style: TextStyle(
+                                              fontSize: 10.0,
+                                              color: Theme.of(context)
+                                                  .appBarTheme
+                                                  .foregroundColor),
                                         ),
                                       )
                                     ]),
@@ -1753,8 +1827,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                                         optionPosition
                                                             .changePercentToday
                                                             .abs()),
-                                                    style: const TextStyle(
-                                                        fontSize: 12.0),
+                                                    style: TextStyle(
+                                                        fontSize: 12.0,
+                                                        color: Theme.of(context)
+                                                            .appBarTheme
+                                                            .foregroundColor),
                                                     textAlign: TextAlign.right),
                                               ]))
                                     ]),
@@ -1765,7 +1842,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                     width: 60,
                                     child: Text(
                                         "${optionPosition.changeToday > 0 ? "+" : optionPosition.changeToday < 0 ? "-" : ""}${formatCurrency.format(optionPosition.changeToday.abs())}",
-                                        style: const TextStyle(fontSize: 12.0),
+                                        style: TextStyle(
+                                            fontSize: 12.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                         textAlign: TextAlign.right)),
                                 Container(
                                   width: 10,
@@ -1779,14 +1860,18 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                 Container(
                                   width: 10,
                                 ),
-                                const Column(
+                                Column(
                                     mainAxisAlignment: MainAxisAlignment.start,
                                     children: [
                                       SizedBox(
                                         width: 55,
                                         child: Text(
                                           "Return",
-                                          style: TextStyle(fontSize: 10.0),
+                                          style: TextStyle(
+                                              fontSize: 10.0,
+                                              color: Theme.of(context)
+                                                  .appBarTheme
+                                                  .foregroundColor),
                                         ),
                                       )
                                     ]),
@@ -1810,8 +1895,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                                         optionPosition
                                                             .gainLossPercent
                                                             .abs()),
-                                                    style: const TextStyle(
-                                                        fontSize: 12.0),
+                                                    style: TextStyle(
+                                                        fontSize: 12.0,
+                                                        color: Theme.of(context)
+                                                            .appBarTheme
+                                                            .foregroundColor),
                                                     textAlign: TextAlign.right),
                                               ]))
                                     ]),
@@ -1822,7 +1910,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                                     width: 60,
                                     child: Text(
                                         "${optionPosition.gainLoss > 0 ? "+" : optionPosition.gainLoss < 0 ? "-" : ""}${formatCurrency.format(optionPosition.gainLoss.abs())}",
-                                        style: const TextStyle(fontSize: 12.0),
+                                        style: TextStyle(
+                                            fontSize: 12.0,
+                                            color: Theme.of(context)
+                                                .appBarTheme
+                                                .foregroundColor),
                                         textAlign: TextAlign.right)),
                                 Container(
                                   width: 10,

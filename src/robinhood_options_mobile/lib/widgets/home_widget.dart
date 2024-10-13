@@ -386,8 +386,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     if (widget.user.refreshEnabled &&
         widget.user.source == Source.robinhood &&
         (_notification == null || _notification == AppLifecycleState.resumed)) {
-      // animateChart = false;
       if (account != null) {
+        // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
+        // await service.getAccounts(
+        //     widget.user,
+        //     Provider.of<AccountStore>(context, listen: false),
+        //     Provider.of<PortfolioStore>(context, listen: false),
+        //     Provider.of<OptionPositionStore>(context, listen: false));
+        // if (!mounted) return;
         await RobinhoodService.getPortfolioHistoricals(
             widget.user,
             Provider.of<PortfolioHistoricalsStore>(context, listen: false),
@@ -2832,7 +2838,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 180.0, //240.0, //280.0,
+      expandedHeight: 185.0, //240.0, //280.0,
       //collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
@@ -3652,7 +3658,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         height: 50,
                         errorBuilder: (BuildContext context, Object exception,
                             StackTrace? stackTrace) {
-                          //RobinhoodService.removeLogo(instrument.symbol);
+                          RobinhoodService.removeLogo(instrument);
                           return CircleAvatar(
                               radius: 25,
                               // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,

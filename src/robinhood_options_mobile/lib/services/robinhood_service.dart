@@ -666,7 +666,7 @@ class RobinhoodService implements IBrokerageService {
 
       var instrumentIds = list
           .map((e) {
-            var splits = e["instrument"].split("/");
+            var splits = (e["instrument"] as String).split("/");
             return splits[splits.length - 2];
           })
           .toSet()
@@ -811,7 +811,7 @@ class RobinhoodService implements IBrokerageService {
   }
 
   static Future<List<Instrument>> getInstrumentsByIds(
-      RobinhoodUser user, InstrumentStore store, List<dynamic> ids) async {
+      RobinhoodUser user, InstrumentStore store, List<String> ids) async {
     if (ids.isEmpty) {
       return Future.value([]);
     }
@@ -850,6 +850,8 @@ class RobinhoodService implements IBrokerageService {
       chunks.add(nonCached.sublist(i, end));
     }
     for (var chunk in chunks) {
+      List<Fundamentals> fundamentals =
+          await getFundamentalsById(user, ids, store);
       //https://api.robinhood.com/instruments/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
       var url =
           "${Constants.robinHoodEndpoint}/instruments/?ids=${Uri.encodeComponent(chunk.join(","))}";
@@ -859,17 +861,20 @@ class RobinhoodService implements IBrokerageService {
       for (var i = 0; i < resultJson['results'].length; i++) {
         var result = resultJson['results'][i];
         if (result != null) {
-          var op = Instrument.fromJson(result);
+          var instrument = Instrument.fromJson(result);
 
-          if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
-            op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+          if (RobinhoodService.logoUrls.containsKey(instrument.symbol)) {
+            instrument.logoUrl = RobinhoodService.logoUrls[instrument.symbol];
           }
 
-          // TODO: Optimize
-          op.fundamentalsObj = await getFundamentals(user, op);
+          Fundamentals? fundamental = fundamentals.firstWhereOrNull(
+              (f) => f.instrument.endsWith("${instrument.id}/"));
+          if (fundamental != null) {
+            instrument.fundamentalsObj = fundamental;
+          }
 
-          list.add(op);
-          store.add(op);
+          list.add(instrument);
+          store.add(instrument);
         }
       }
     }
@@ -1058,10 +1063,48 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
     var resultJson = await getJson(user, instrumentObj.fundamentals);
+    Fundamentals? obj;
+    try {
+      obj = Fundamentals.fromJson(resultJson);
+    } on Exception catch (e) {
+      // Format
+      debugPrint('getFundamentals. Error: $e');
+      return Future.value(obj);
+    }
 
-    var oi = Fundamentals.fromJson(resultJson);
+    return obj;
+  }
 
-    return oi;
+  static Future<List<Fundamentals>> getFundamentalsById(RobinhoodUser user,
+      List<String> instruments, InstrumentStore store) async {
+    // https://api.robinhood.com/fundamentals/
+    // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
+    var url =
+        "${Constants.robinHoodEndpoint}/fundamentals/?ids=${Uri.encodeComponent(instruments.join(","))}";
+    var resultJson = await getJson(user, url);
+
+    List<Fundamentals> list = [];
+    for (var i = 0; i < resultJson['results'].length; i++) {
+      var result = resultJson['results'][i];
+      if (result != null) {
+        var op = Fundamentals.fromJson(result);
+        list.add(op);
+
+        // store.addOrUpdate(op);
+      }
+    }
+    return list;
+    // var resultJson = await getJson(user, instrumentObj.fundamentals);
+    // Fundamentals? obj;
+    // try {
+    //   obj = Fundamentals.fromJson(resultJson);
+    // } on Exception catch (e) {
+    //   // Format
+    //   debugPrint('getFundamentals. Error: $e');
+    //   return Future.value(obj);
+    // }
+
+    // return obj;
   }
 
   static Future<List<dynamic>> getSplits(
@@ -1232,8 +1275,10 @@ class RobinhoodService implements IBrokerageService {
     debugPrint("Loaded ${logoUrls.keys.length} logos");
   }
 
-  static Future<void> removeLogo(String symbol) async {
-    logoUrls.remove(symbol);
+  static Future<void> removeLogo(Instrument instrument) async {
+    instrument.logoUrl = null;
+
+    logoUrls.remove(instrument.symbol);
     saveLogos();
   }
 

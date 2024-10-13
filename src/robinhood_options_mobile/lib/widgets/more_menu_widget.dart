@@ -136,11 +136,12 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             //   height: 10,
             // ),
             const ListTile(
-              leading: Icon(Icons.calculate),
+              leading: Icon(Icons.line_axis),
               title: Text(
-                "Show Display Value",
+                "Primary Measure",
                 // style: TextStyle(fontWeight: FontWeight.bold),
               ),
+              // subtitle: Text('Used in portfolio charts.'),
             ),
             RadioListTile<bool>(
                 title: const Text("Last Price"),
@@ -539,16 +540,16 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                 "Filters",
               ),
             ),
-            const ListTile(
-              //leading: Icon(Icons.filter_list),
-              title: Text("Position Type"),
-            ),
-            positionTypeFilterWidget,
+            // const ListTile(
+            //   //leading: Icon(Icons.filter_list),
+            //   title: Text("Position Type"),
+            // ),
+            // positionTypeFilterWidget,
             if (widget.positionSymbols != null) ...[
-              const ListTile(
-                //leading: Icon(Icons.filter_list),
-                title: Text("Symbols"),
-              ),
+              // const ListTile(
+              //   //leading: Icon(Icons.filter_list),
+              //   title: Text("Symbols"),
+              // ),
               stockOrderSymbolFilterWidget,
               //stockOrderSymbolFilterWidget(bottomState),
             ],
@@ -566,9 +567,9 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               ),
             ),
             if (widget.cryptoSymbols != null) ...[
-              const ListTile(
-                title: Text("Symbols"),
-              ),
+              // const ListTile(
+              //   title: Text("Symbols"),
+              // ),
               cryptoFilterWidget,
               //cryptoFilterWidget(bottomState),
             ],

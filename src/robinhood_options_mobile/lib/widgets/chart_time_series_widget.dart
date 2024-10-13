@@ -18,6 +18,7 @@ class TimeSeriesChart extends StatefulWidget {
   final List<String>? hiddenSeries;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
   final bool zeroBound;
+  final bool dataIsInWholeNumbers;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.AxisSpec<dynamic>? domainAxis;
   final void Function(dynamic) onSelected;
@@ -32,7 +33,8 @@ class TimeSeriesChart extends StatefulWidget {
       this.seriesRendererConfig,
       this.behaviors,
       this.domainAxis,
-      this.zeroBound = true});
+      this.zeroBound = true,
+      this.dataIsInWholeNumbers = true});
 
   // We need a Stateful widget to build the selection details with the current
   // selection as the state.
@@ -70,7 +72,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
           //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec: charts.BasicNumericTickProviderSpec(
               zeroBound: widget.zeroBound,
-              dataIsInWholeNumbers: true,
+              dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
               desiredMinTickCount: 4)),
       domainAxis: widget.domainAxis ??
           charts.DateTimeAxisSpec(

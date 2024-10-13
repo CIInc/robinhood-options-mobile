@@ -223,6 +223,8 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             open: open,
             close: close,
             hiddenSeries: const ["Close", "Volume", "Low", "High"],
+            zeroBound: false,
+            dataIsInWholeNumbers: open > 2,
             onSelected: _onChartSelection);
       }
     }
@@ -231,7 +233,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     slivers.add(SliverAppBar(
         title: headerTitle(holding),
         //expandedHeight: 160,
-        expandedHeight: 240, // 280.0,
+        expandedHeight: 120.0,
         floating: false,
         pinned: true,
         snap: false,
@@ -301,18 +303,22 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
 
       slivers.add(const SliverToBoxAdapter(
           child: SizedBox(
-        height: 25.0,
+        height: 12.0,
       )));
 
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 36,
+              height: 43,
               child: Center(
                   child: Column(
                 children: [
                   Wrap(
                     children: [
-                      Text(formatCurrency.format(close),
+                      Text(
+                          close < 0.001
+                              ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                                  .format(close)
+                              : formatCurrency.format(close),
                           style: TextStyle(fontSize: 20, color: textColor)),
                       Container(
                         width: 10,
@@ -340,7 +346,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                         width: 10,
                       ),
                       Text(
-                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${close < 0.001 ? NumberFormat.simpleCurrency(decimalDigits: 8).format(changeInPeriod.abs()) : formatCurrency.format(changeInPeriod.abs())}",
                           style: TextStyle(fontSize: 20.0, color: textColor)),
                     ],
                   ),
@@ -517,6 +523,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       const ListTile(title: Text("Position", style: TextStyle(fontSize: 20))),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Quantity"),
         trailing: Text(
             holding.quantity!
@@ -524,21 +531,29 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Average Cost"),
-        trailing: Text(formatCurrency.format(holding.averageCost),
+        trailing: Text(
+            holding.averageCost < 0.001
+                ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                    .format(holding.averageCost)
+                : formatCurrency.format(holding.averageCost),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Total Cost"),
         trailing: Text(formatCurrency.format(holding.totalCost),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Market Value"),
         trailing: Text(formatCurrency.format(holding.marketValue),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+          minTileHeight: 10,
           title: const Text("Return"),
           trailing: Wrap(children: [
             holding.trendingIcon,
@@ -555,16 +570,19 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
               */
           ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Return %"),
         trailing: Text(formatPercentage.format(holding.gainLossPercent),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Created"),
         trailing: Text(formatDate.format(holding.createdAt!),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Updated"),
         trailing: Text(formatDate.format(holding.updatedAt!),
             style: const TextStyle(fontSize: 18)),
@@ -577,12 +595,13 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           child: SizedBox(
         height: 25.0,
       )));
-      slivers.add(const ListTile(
+      slivers.add(const SliverToBoxAdapter(
+          child: ListTile(
         title: Text(
           "Quote",
           style: TextStyle(fontSize: 19.0),
         ),
-      ));
+      )));
       slivers.add(quoteWidget(holding));
     }
 
@@ -725,6 +744,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
+          minTileHeight: 10,
           title: const Text("Last Trade Price"),
           trailing: Wrap(spacing: 8, children: [
             Icon(
@@ -739,35 +759,59 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                         ? Colors.red
                         : Colors.grey))),
             Text(
-              formatCurrency.format(holding.quoteObj!.markPrice),
+              holding.quoteObj!.markPrice! < 0.001
+                  ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                      .format(holding.quoteObj!.markPrice)
+                  : formatCurrency.format(holding.quoteObj!.markPrice),
               style: const TextStyle(fontSize: 18.0),
               textAlign: TextAlign.right,
             ),
           ])),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Open Price"),
-        trailing: Text(formatCurrency.format(holding.quoteObj!.openPrice),
+        trailing: Text(
+            holding.quoteObj!.openPrice! < 0.001
+                ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                    .format(holding.quoteObj!.openPrice)
+                : formatCurrency.format(holding.quoteObj!.openPrice),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Change Today"),
         trailing: Text(formatCurrency.format(holding.quoteObj!.changeToday),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Change Today %"),
         trailing: Text(
             formatPercentage.format(holding.quoteObj!.changePercentToday),
             style: const TextStyle(fontSize: 18)),
       ),
       ListTile(
-        title: const Text("Bid - Ask Price"),
+        minTileHeight: 10,
+        title: const Text("Bid Price"),
         trailing: Text(
-            "${formatCurrency.format(holding.quoteObj!.bidPrice)} - ${formatCurrency.format(holding.quoteObj!.askPrice)}",
+            holding.quoteObj!.bidPrice! < 0.001
+                ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                    .format(holding.quoteObj!.bidPrice)
+                : formatCurrency.format(holding.quoteObj!.bidPrice),
+            style: const TextStyle(fontSize: 18)),
+      ),
+      ListTile(
+        minTileHeight: 10,
+        title: const Text("Ask Price"),
+        trailing: Text(
+            holding.quoteObj!.askPrice! < 0.001
+                ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                    .format(holding.quoteObj!.askPrice)
+                : formatCurrency.format(holding.quoteObj!.askPrice),
             style: const TextStyle(fontSize: 18)),
       ),
       Container(
-        height: 25,
+        height: 10,
       )
     ])));
   }
@@ -844,7 +888,9 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
                     child: Text(
                       holding.currencyName,
                       //instrument.simpleName ?? instrument.name,
-                      style: const TextStyle(fontSize: 16.0),
+                      style: TextStyle(
+                          fontSize: 16.0,
+                          color: Theme.of(context).appBarTheme.foregroundColor),
                       textAlign: TextAlign.left,
                       //overflow: TextOverflow.ellipsis
                     )))

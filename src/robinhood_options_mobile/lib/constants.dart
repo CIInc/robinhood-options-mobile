@@ -26,6 +26,17 @@ class Constants {
   static const String tdRedirectUrl = 'https://investiomanus.web.app';
   //static const String tdRedirectUrl = 'investiomanus%3A%2F%2Fhome';
 
+  // Schwab constants
+  static const scName = 'Schwab';
+  static final scEndpoint = Uri.parse('https://api.schwabapi.com/trader/v1');
+  static final scAuthEndpoint =
+      Uri.parse('https://api.schwabapi.com/v1/oauth/authorize');
+  static final scTokenEndpoint =
+      Uri.parse('https://api.schwabapi.com/v1/oauth/token');
+  static const String scClientId = 'CHbgBINpRA3H72Sb6LV9pH9ZHsTxjwId';
+  // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
+  static const String scRedirectUrl = 'https://investiomanus.web.app';
+
   static const String deepLinkScheme = 'investiomanus://';
   static const String initialLinkLoginCallback =
       '${deepLinkScheme}login-callback\\?(\\?)?code=';

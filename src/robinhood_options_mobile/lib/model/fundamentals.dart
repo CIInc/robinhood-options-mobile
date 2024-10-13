@@ -8,6 +8,7 @@ class Fundamentals {
   final double? volume;
   final DateTime? marketDate;
   final double? averageVolume2Weeks;
+  final double? averageVolume30Days;
   final double? averageVolume;
   final double? high52Weeks;
   final double? dividendYield;
@@ -18,6 +19,7 @@ class Fundamentals {
   final double? peRatio;
   final double? sharesOutstanding;
   final String description;
+  // Data is url based. E.g. https://api.robinhood.com/instruments/8f92e76f-1e0e-4478-8580-16a6ffcfaef5/
   final String instrument;
   final String ceo;
   final String headquartersCity;
@@ -34,6 +36,7 @@ class Fundamentals {
       this.volume,
       this.marketDate,
       this.averageVolume2Weeks,
+      this.averageVolume30Days,
       this.averageVolume,
       this.high52Weeks,
       this.dividendYield,
@@ -54,13 +57,21 @@ class Fundamentals {
       this.yearFounded);
 
   Fundamentals.fromJson(dynamic json)
-      : open = double.tryParse(json['open']),
-        high = double.tryParse(json['high']),
-        low = double.tryParse(json['low']),
-        volume = double.tryParse(json['volume']),
+      : open = json['open'] != null ? double.tryParse(json['open']) : null,
+        high = json['high'] != null ? double.tryParse(json['high']) : null,
+        low = json['low'] != null ? double.tryParse(json['low']) : null,
+        volume =
+            json['volume'] != null ? double.tryParse(json['volume']) : null,
         marketDate = DateTime.tryParse(json['market_date']),
-        averageVolume2Weeks = double.tryParse(json['average_volume_2_weeks']),
-        averageVolume = double.tryParse(json['average_volume']),
+        averageVolume2Weeks = json['average_volume_2_weeks'] != null
+            ? double.tryParse(json['average_volume_2_weeks'])
+            : null,
+        averageVolume30Days = json['average_volume_30_days'] != null
+            ? double.tryParse(json['average_volume_30_days'])
+            : null,
+        averageVolume = json['average_volume'] != null
+            ? double.tryParse(json['average_volume'])
+            : null,
         high52Weeks = double.tryParse(json['high_52_weeks']),
         dividendYield = json['dividend_yield'] != null
             ? double.tryParse(json['dividend_yield'])
