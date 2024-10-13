@@ -59,7 +59,8 @@ dependencies:
   http: ^1.2.2
   google_mobile_ads: ^5.2.0
   flutter_web_auth_2: ^4.0.1
-  uni_links: ^0.5.1
+  # uni_links: ^0.5.1
+  app_links: ^6.3.2  
 
 dev_dependencies:
   flutter_test:

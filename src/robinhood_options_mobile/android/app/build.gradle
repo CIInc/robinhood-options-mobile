@@ -32,7 +32,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.cidevelop.robinhood_options_mobile"
-    compileSdkVersion 34 //flutter.compileSdkVersion
+    compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -85,7 +85,8 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    // // Other project does not use, removing to fix build failure.
+    // implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:32.8.1"))

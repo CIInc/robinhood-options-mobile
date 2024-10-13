@@ -23,7 +23,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -80,7 +80,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //int _selectedDrawerIndex = 0;
   bool _showDrawerContents = false;
 
-  StreamSubscription<String?>? linkStreamSubscription;
+  StreamSubscription<Uri>? linkStreamSubscription;
 
   @override
   void initState() {
@@ -140,12 +140,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     }
     */
 
+    final appLinks = AppLinks(); // AppLinks is singleton
+
     // Attach a listener to the stream
-    linkStreamSubscription = linkStream.listen((String? link) async {
+    linkStreamSubscription = appLinks.uriLinkStream.listen((Uri? link) async {
       // Parse the link and warn the user, if it is not correct
       debugPrint('newLink:$link');
-      String code =
-          link!.replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
+      String code = link
+          .toString()
+          .replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
       debugPrint('code:$code');
       var user = await TdAmeritradeService.getAccessToken(code);
       // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
