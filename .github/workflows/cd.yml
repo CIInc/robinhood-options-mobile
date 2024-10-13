@@ -54,6 +54,12 @@ jobs:
       # - name: Build web
       #   run: flutter build web --web-renderer html
 
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+          java-version: '17'
+
       - name: Build Android APK
         run: flutter build apk --release
         continue-on-error: false
@@ -68,9 +74,13 @@ jobs:
           # The desired behavior if no files are found using the provided path.
         continue-on-error: false
 
+      # - name: Build Android AppBundle
+      #   run: flutter build appbundle --release
+      #   continue-on-error: false
+
       - name: Build iOS IPA
         id: build-ipa
-        run: flutter build ipa
+        run: flutter build ipa --release
         continue-on-error: false
 
       - name: Upload iOS IPA Build Artifact
