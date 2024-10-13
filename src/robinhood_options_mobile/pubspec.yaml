@@ -1,5 +1,5 @@
 name: robinhood_options_mobile
-description: Investing Mobile Flutter application.
+description: Investing Mobile App
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.3.0+10
+version: 0.4.0+11
 
 environment:
 #  sdk: '>=3.0.0-85.0.dev <4.0.0'
@@ -48,17 +48,17 @@ dependencies:
 #    git:
 #      url: git://github.com/google/charts.git
 #      path: charts_flutter
-  url_launcher: ^6.3.0  # flutter_echarts: ^2.3.0
+  url_launcher: ^6.3.1  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^10.0.2
+  share_plus: ^10.0.3
   uuid: ^4.5.1
   material_color_utilities: ^0.11.1
   dynamic_color: ^1.7.0
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.18.0
   http: ^1.2.2
-  google_mobile_ads: ^5.1.0
-  flutter_web_auth_2: ^4.0.0
+  google_mobile_ads: ^5.2.0
+  flutter_web_auth_2: ^4.0.1
   uni_links: ^0.5.1
 
 dev_dependencies:

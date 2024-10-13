@@ -14,6 +14,7 @@ class PieChart extends StatefulWidget {
   final bool animate;
   final charts.ArcRendererConfig<String>? renderer;
   final List<String>? hiddenSeries;
+  final List<charts.ChartBehavior<String>>? behaviors;
   final void Function(dynamic) onSelected;
 
   const PieChart(this.seriesList,
@@ -21,6 +22,7 @@ class PieChart extends StatefulWidget {
       this.animate = true,
       this.renderer,
       required this.onSelected,
+      this.behaviors,
       //this.staticNumericTicks,
       this.hiddenSeries});
 
@@ -68,16 +70,15 @@ class PieChart extends StatefulWidget {
 class PieChartState extends State<PieChart> {
   @override
   Widget build(BuildContext context) {
-    return charts.PieChart<String>(
-      widget.seriesList,
-      defaultRenderer: widget.renderer,
-      animate: widget.animate,
-      selectionModels: [
-        charts.SelectionModelConfig(
-            type: charts.SelectionModelType.info,
-            changedListener: _onSelectionChanged)
-      ],
-    );
+    return charts.PieChart<String>(widget.seriesList,
+        defaultRenderer: widget.renderer,
+        animate: widget.animate,
+        selectionModels: [
+          charts.SelectionModelConfig(
+              type: charts.SelectionModelType.info,
+              changedListener: _onSelectionChanged)
+        ],
+        behaviors: widget.behaviors ?? []);
   }
 
   _onSelectionChanged(charts.SelectionModel model) {

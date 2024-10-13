@@ -865,6 +865,9 @@ class RobinhoodService implements IBrokerageService {
             op.logoUrl = RobinhoodService.logoUrls[op.symbol];
           }
 
+          // TODO: Optimize
+          op.fundamentalsObj = await getFundamentals(user, op);
+
           list.add(op);
           store.add(op);
         }

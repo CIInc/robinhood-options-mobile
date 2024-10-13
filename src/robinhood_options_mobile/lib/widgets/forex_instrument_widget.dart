@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -578,6 +577,12 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           child: SizedBox(
         height: 25.0,
       )));
+      slivers.add(const ListTile(
+        title: Text(
+          "Quote",
+          style: TextStyle(fontSize: 19.0),
+        ),
+      ));
       slivers.add(quoteWidget(holding));
     }
 
@@ -716,69 +721,55 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
   }
 
   Widget quoteWidget(ForexHolding holding) {
-    return SliverStickyHeader(
-        header: Material(
-            //elevation: 2,
-            child: Container(
-                //height: 208.0, //60.0,
-                //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                alignment: Alignment.centerLeft,
-                child: const ListTile(
-                  title: Text(
-                    "Quote",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                ))),
-        sliver: SliverToBoxAdapter(
-            child: Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          ListTile(
-              title: const Text("Last Trade Price"),
-              trailing: Wrap(spacing: 8, children: [
-                Icon(
-                    holding.quoteObj!.changeToday > 0
-                        ? Icons.trending_up
-                        : (holding.quoteObj!.changeToday < 0
-                            ? Icons.trending_down
-                            : Icons.trending_flat),
-                    color: (holding.quoteObj!.changeToday > 0
-                        ? Colors.green
-                        : (holding.quoteObj!.changeToday < 0
-                            ? Colors.red
-                            : Colors.grey))),
-                Text(
-                  formatCurrency.format(holding.quoteObj!.markPrice),
-                  style: const TextStyle(fontSize: 18.0),
-                  textAlign: TextAlign.right,
-                ),
-              ])),
-          ListTile(
-            title: const Text("Open Price"),
-            trailing: Text(formatCurrency.format(holding.quoteObj!.openPrice),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Change Today"),
-            trailing: Text(formatCurrency.format(holding.quoteObj!.changeToday),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Change Today %"),
-            trailing: Text(
-                formatPercentage.format(holding.quoteObj!.changePercentToday),
-                style: const TextStyle(fontSize: 18)),
-          ),
-          ListTile(
-            title: const Text("Bid - Ask Price"),
-            trailing: Text(
-                "${formatCurrency.format(holding.quoteObj!.bidPrice)} - ${formatCurrency.format(holding.quoteObj!.askPrice)}",
-                style: const TextStyle(fontSize: 18)),
-          ),
-          Container(
-            height: 25,
-          )
-        ]))));
+    return SliverToBoxAdapter(
+        child: Card(
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+          title: const Text("Last Trade Price"),
+          trailing: Wrap(spacing: 8, children: [
+            Icon(
+                holding.quoteObj!.changeToday > 0
+                    ? Icons.trending_up
+                    : (holding.quoteObj!.changeToday < 0
+                        ? Icons.trending_down
+                        : Icons.trending_flat),
+                color: (holding.quoteObj!.changeToday > 0
+                    ? Colors.green
+                    : (holding.quoteObj!.changeToday < 0
+                        ? Colors.red
+                        : Colors.grey))),
+            Text(
+              formatCurrency.format(holding.quoteObj!.markPrice),
+              style: const TextStyle(fontSize: 18.0),
+              textAlign: TextAlign.right,
+            ),
+          ])),
+      ListTile(
+        title: const Text("Open Price"),
+        trailing: Text(formatCurrency.format(holding.quoteObj!.openPrice),
+            style: const TextStyle(fontSize: 18)),
+      ),
+      ListTile(
+        title: const Text("Change Today"),
+        trailing: Text(formatCurrency.format(holding.quoteObj!.changeToday),
+            style: const TextStyle(fontSize: 18)),
+      ),
+      ListTile(
+        title: const Text("Change Today %"),
+        trailing: Text(
+            formatPercentage.format(holding.quoteObj!.changePercentToday),
+            style: const TextStyle(fontSize: 18)),
+      ),
+      ListTile(
+        title: const Text("Bid - Ask Price"),
+        trailing: Text(
+            "${formatCurrency.format(holding.quoteObj!.bidPrice)} - ${formatCurrency.format(holding.quoteObj!.askPrice)}",
+            style: const TextStyle(fontSize: 18)),
+      ),
+      Container(
+        height: 25,
+      )
+    ])));
   }
 
   Widget headerTitle(ForexHolding holding) {

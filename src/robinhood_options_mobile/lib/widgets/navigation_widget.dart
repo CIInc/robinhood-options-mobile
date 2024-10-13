@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -97,7 +98,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           });
     }
 
-    loadDeepLinks(userStore);
+    // web not supported
+    if (!kIsWeb) {
+      loadDeepLinks(userStore);
+    }
   }
 
   void initTabs() {

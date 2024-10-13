@@ -165,6 +165,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Timer? refreshTriggerTime;
   AppLifecycleState? _notification;
 
+  late final CarouselController _carouselController;
+  // late final Timer _carouselTimer;
+
   _HomePageState();
 
   /*
@@ -189,6 +192,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     _startRefreshTimer();
     WidgetsBinding.instance.addObserver(this);
 
+    _carouselController = CarouselController();
+    // _carouselTimer = Timer.periodic(
+    //   const Duration(seconds: 4),
+    //   (_) => _animateToNextItem(),
+    // );
+
     widget.analytics.logScreenView(
       screenName: 'Home',
     );
@@ -196,6 +205,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    // _carouselTimer.cancel();
+    _carouselController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _stopRefreshTimer();
     super.dispose();
@@ -407,6 +418,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       );
     }
   }
+
+  // void _animateToNextItem() {
+  //   _carouselController.animateTo(
+  //     _carouselController.offset + 320,
+  //     duration: const Duration(milliseconds: 500),
+  //     curve: Curves.linear,
+  //   );
+  // }
 
   _onChartSelection(dynamic historical) {
     var provider =
@@ -1164,96 +1183,309 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     OptionPositionStore, ForexHoldingStore>(
                 builder: (context, portfolioStore, stockPositionStore,
                     optionPositionStore, forexHoldingStore, child) {
+              final charts.ChartBehavior<String> legendBehavior =
+                  charts.DatumLegend(
+                // Positions for "start" and "end" will be left and right respectively
+                // for widgets with a build context that has directionality ltr.
+                // For rtl, "start" and "end" will be right and left respectively.
+                // Since this example has directionality of ltr, the legend is
+                // positioned on the right side of the chart.
+                position: charts.BehaviorPosition.end,
+                // By default, if the position of the chart is on the left or right of
+                // the chart, [horizontalFirst] is set to false. This means that the
+                // legend entries will grow as new rows first instead of a new column.
+                horizontalFirst: false,
+                // This defines the padding around each legend entry.
+                cellPadding: EdgeInsets.only(right: 4.0, bottom: 4.0),
+                // Set [showMeasures] to true to display measures in series legend.
+                showMeasures: true,
+                // Configure the measure value to be shown by default in the legend.
+                legendDefaultMeasure: charts.LegendDefaultMeasure.firstValue,
+                // Optionally provide a measure formatter to format the measure value.
+                // If none is specified the value is formatted as a decimal.
+                measureFormatter: (num? value) {
+                  return value == null
+                      ? '-'
+                      : formatCompactNumber.format(value);
+                },
+                // entryTextStyle: charts.TextStyleSpec(fontSize: 12)
+              );
+
               List<PieChartData> data = [];
               //if (portfolioStore.items.isNotEmpty) {
               //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
               //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
               data.add(PieChartData(
-                  'Options\n${formatCompactNumber.format(optionPositionStore.equity)}',
+                  'Options', // \n${formatCompactNumber.format(optionPositionStore.equity)}
                   optionPositionStore.equity)); // / portfolioValue
               data.add(PieChartData(
-                  'Stocks\n${formatCompactNumber.format(stockPositionStore.equity)}',
+                  'Stocks', // \n${formatCompactNumber.format(stockPositionStore.equity)}
                   stockPositionStore.equity)); // / portfolioValue
               data.add(PieChartData(
-                  'Crypto\n${formatCompactNumber.format(forexHoldingStore.equity)}',
+                  'Crypto', // \n${formatCompactNumber.format(forexHoldingStore.equity)}
                   forexHoldingStore.equity)); // / portfolioValue
               double portfolioCash =
                   account != null ? account.portfolioCash! : 0;
               data.add(PieChartData(
-                  'Cash\n${formatCompactNumber.format(portfolioCash)}',
+                  'Cash', // \n${formatCompactNumber.format(portfolioCash)}
                   portfolioCash)); // / portfolioValue
               //}
               data.sort((a, b) => b.value.compareTo(a.value));
+
+              List<PieChartData> diversificationSectorData = [];
+              var groupedBySector = stockPositionStore.items.groupListsBy(
+                  (item) => item.instrumentObj != null &&
+                          item.instrumentObj!.fundamentalsObj != null
+                      ? item.instrumentObj!.fundamentalsObj!.sector
+                      : 'Unknown');
+              final groupedSectors = groupedBySector
+                  .map((k, v) {
+                    return MapEntry(
+                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
+                  })
+                  .entries
+                  .toList();
+              groupedSectors.sort((a, b) => b.value.compareTo(a.value));
+              final maxSectors = 8;
+              for (var groupedSector in groupedSectors.take(maxSectors)) {
+                diversificationSectorData
+                    .add(PieChartData(groupedSector.key, groupedSector.value));
+              }
+              diversificationSectorData
+                  .sort((a, b) => b.value.compareTo(a.value));
+              if (groupedSectors.length > maxSectors) {
+                diversificationSectorData.add(PieChartData(
+                    'Others',
+                    groupedSectors
+                        .skip(maxSectors)
+                        .map((e) => e.value)
+                        .reduce((a, b) => a + b)));
+              }
+
+              List<PieChartData> diversificationIndustryData = [];
+              var groupedByIndustry = stockPositionStore.items.groupListsBy(
+                  (item) => item.instrumentObj != null &&
+                          item.instrumentObj!.fundamentalsObj != null
+                      ? item.instrumentObj!.fundamentalsObj!.industry
+                      : 'Unknown');
+              final groupedIndustry = groupedByIndustry
+                  .map((k, v) {
+                    return MapEntry(
+                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
+                  })
+                  .entries
+                  .toList();
+              groupedIndustry.sort((a, b) => b.value.compareTo(a.value));
+
+              final maxIndustries = 8;
+              for (var groupedSector in groupedIndustry.take(maxIndustries)) {
+                diversificationIndustryData
+                    .add(PieChartData(groupedSector.key, groupedSector.value));
+              }
+              diversificationIndustryData
+                  .sort((a, b) => b.value.compareTo(a.value));
+              if (groupedIndustry.length > maxIndustries) {
+                diversificationIndustryData.add(PieChartData(
+                    'Others',
+                    groupedIndustry
+                        .skip(maxIndustries)
+                        .map((e) => e.value)
+                        .reduce((a, b) => a + b)));
+              }
+              // for (var stock in stockPositionStore.items) {
+              //   // var stockPositionStore.items.reduce((a, b)=> a.marketValue + b.marketValue)
+              //   diversificationData.add(PieChartData(
+              //       stock.instrumentObj!.symbol,
+              //       stock.marketValue)); // / portfolioValue
+              // }
+
               var shades = PieChart.makeShades(
-                  charts.ColorUtil.fromDartColor(
-                      Theme.of(context).colorScheme.primary),
+                  charts.ColorUtil.fromDartColor(Theme.of(context)
+                      .colorScheme
+                      .primary), // .withOpacity(0.75)
                   4);
               var total = data.map((e) => e.value).reduce((a, b) => a + b);
+
+              var brightness = MediaQuery.of(context).platformBrightness;
+              var axisLabelColor = charts.MaterialPalette.gray.shade500;
+              if (brightness == Brightness.light) {
+                axisLabelColor = charts.MaterialPalette.gray.shade700;
+              }
               return SliverToBoxAdapter(
-                  child: Center(
-                child: SizedBox(
-                    height: 240,
-                    width: 240,
-                    child: Padding(
-                      padding: EdgeInsets.zero,
-                      //padding: EdgeInsets.symmetric(horizontal: 1.0),
-                      //padding: const EdgeInsets.all(10.0),
-                      child: total > 0
-                          ? PieChart(
-                              [
-                                charts.Series<PieChartData, String>(
-                                  id: 'Portfolio Breakdown',
-                                  colorFn: (_, index) => shades[index!],
-                                  /*
-                            colorFn: (_, index) => charts.MaterialPalette.cyan
-                                .makeShades(4)[index!],
-                            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                Theme.of(context).colorScheme.primary),
-                            */
-                                  domainFn: (PieChartData val, index) =>
-                                      val.label,
-                                  measureFn: (PieChartData val, index) =>
-                                      val.value,
-                                  data: data,
-                                ),
-                              ],
-                              animate: false,
-                              renderer: charts.ArcRendererConfig(
-                                  //arcWidth: 60,
-                                  arcRendererDecorators: [
-                                    charts.ArcLabelDecorator()
-                                  ]),
-                              onSelected: (_) {},
-                            )
-                          : Container(),
-                    )),
-                /*
-                SizedBox(
-                    height: 240,
-                    width: 200,
-                    child: Padding(
-                      //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      padding: const EdgeInsets.all(10.0),
-                      child: PieChart(
-                        [
-                          charts.Series<PieChartData, String>(
-                            id: 'Portfolio Breakdown',
-                            //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                            domainFn: (PieChartData val, index) => val.label,
-                            measureFn: (PieChartData val, index) => val.value,
-                            data: data,
-                          ),
-                        ],
-                        renderer: new charts.ArcRendererConfig(
-                            //arcWidth: 60,
-                            arcRendererDecorators: [
-                              new charts.ArcLabelDecorator()
-                            ]),
-                        onSelected: (_) {},
-                      ),
-                    ))
-                    */
-              ));
+                  child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: 260), // 320
+                      child: CarouselView(
+                          scrollDirection: Axis.horizontal,
+                          itemSnapping: true,
+                          itemExtent: double.infinity, // 360, //
+                          // shrinkExtent: 200,
+                          controller: _carouselController,
+                          children: [
+                            total > 0
+                                ? PieChart(
+                                    [
+                                      charts.Series<PieChartData, String>(
+                                        id: 'Portfolio Breakdown',
+                                        colorFn: (_, index) => shades[index!],
+                                        /*
+                                                      colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                          .makeShades(4)[index!],
+                                                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                          Theme.of(context).colorScheme.primary),
+                                                      */
+                                        domainFn: (PieChartData val, index) =>
+                                            val.label,
+                                        measureFn: (PieChartData val, index) =>
+                                            val.value,
+                                        labelAccessorFn:
+                                            (PieChartData val, _) => '',
+                                        // labelAccessorFn: (PieChartData val,
+                                        //         _) =>
+                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        data: data,
+                                      ),
+                                    ],
+                                    animate: false,
+                                    renderer: charts.ArcRendererConfig(
+                                        //arcWidth: 60,
+                                        arcRendererDecorators: [
+                                          charts.ArcLabelDecorator(
+                                              // insideLabelStyleSpec:
+                                              //     charts.TextStyleSpec(fontSize: 14),
+                                              // labelPadding: 0,
+                                              outsideLabelStyleSpec:
+                                                  charts.TextStyleSpec(
+                                                      fontSize: 12,
+                                                      color: axisLabelColor))
+                                        ]),
+                                    behaviors: [
+                                      legendBehavior,
+                                      charts.ChartTitle('Allocation',
+                                          titleStyleSpec: charts.TextStyleSpec(
+                                              color: axisLabelColor),
+                                          behaviorPosition:
+                                              charts.BehaviorPosition.end)
+                                      // charts.ChartTitle('Portfolio Allocation')
+                                    ],
+                                    onSelected: (_) {},
+                                  )
+                                : Container(
+                                    height: 0,
+                                  ),
+                            total > 0
+                                ? PieChart(
+                                    [
+                                      charts.Series<PieChartData, String>(
+                                        id: 'Diversification Sector',
+                                        colorFn: (_, index) => charts
+                                            .ColorUtil.fromDartColor(Colors
+                                                .accents[
+                                            index! %
+                                                Colors.accents
+                                                    .length]), // shades[index!],
+                                        /*
+                                                    colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                        .makeShades(4)[index!],
+                                                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                        Theme.of(context).colorScheme.primary),
+                                                    */
+                                        domainFn: (PieChartData val, index) =>
+                                            val.label,
+                                        measureFn: (PieChartData val, index) =>
+                                            val.value,
+                                        labelAccessorFn:
+                                            (PieChartData val, _) => '',
+                                        // labelAccessorFn: (PieChartData val,
+                                        //         _) =>
+                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        data: diversificationSectorData,
+                                      ),
+                                    ],
+                                    animate: false,
+                                    renderer: charts.ArcRendererConfig(
+                                        arcWidth: 14,
+                                        arcRendererDecorators: [
+                                          charts.ArcLabelDecorator(
+                                              // insideLabelStyleSpec:
+                                              //     charts.TextStyleSpec(fontSize: 14),
+                                              // labelPadding: 0,
+                                              outsideLabelStyleSpec:
+                                                  charts.TextStyleSpec(
+                                                      fontSize: 12,
+                                                      color: axisLabelColor))
+                                        ]),
+                                    onSelected: (_) {},
+                                    behaviors: [
+                                      legendBehavior,
+                                      charts.ChartTitle('Sector',
+                                          titleStyleSpec: charts.TextStyleSpec(
+                                              color: axisLabelColor),
+                                          behaviorPosition:
+                                              charts.BehaviorPosition.end)
+                                    ],
+                                  )
+                                : Container(
+                                    height: 0,
+                                  ),
+                            total > 0
+                                ? PieChart(
+                                    [
+                                      charts.Series<PieChartData, String>(
+                                        id: 'Diversification Industry',
+                                        colorFn: (_, index) => charts
+                                            .ColorUtil.fromDartColor(Colors
+                                                .accents[
+                                            index! %
+                                                Colors.accents
+                                                    .length]), // shades[index!],
+                                        /*
+                                                    colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                        .makeShades(4)[index!],
+                                                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                        Theme.of(context).colorScheme.primary),
+                                                    */
+                                        domainFn: (PieChartData val, index) =>
+                                            val.label.length > 17
+                                                ? val.label.replaceRange(
+                                                    17, val.label.length, '...')
+                                                : val.label,
+                                        measureFn: (PieChartData val, index) =>
+                                            val.value,
+                                        labelAccessorFn:
+                                            (PieChartData val, _) => '',
+                                        // labelAccessorFn: (PieChartData val,
+                                        //         _) =>
+                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        data: diversificationIndustryData,
+                                      ),
+                                    ],
+                                    animate: false,
+                                    renderer: charts.ArcRendererConfig(
+                                        arcWidth: 14,
+                                        arcRendererDecorators: [
+                                          charts.ArcLabelDecorator(
+                                              // insideLabelStyleSpec:
+                                              //     charts.TextStyleSpec(fontSize: 14),
+                                              // labelPadding: 0,
+                                              outsideLabelStyleSpec:
+                                                  charts.TextStyleSpec(
+                                                      fontSize: 12,
+                                                      color: axisLabelColor))
+                                        ]),
+                                    behaviors: [
+                                      legendBehavior,
+                                      charts.ChartTitle('Industry',
+                                          titleStyleSpec: charts.TextStyleSpec(
+                                              color: axisLabelColor),
+                                          behaviorPosition:
+                                              charts.BehaviorPosition.end)
+                                    ],
+                                    onSelected: (_) {},
+                                  )
+                                : Container(
+                                    height: 0,
+                                  ),
+                          ])));
             }),
 
             Consumer<OptionPositionStore>(

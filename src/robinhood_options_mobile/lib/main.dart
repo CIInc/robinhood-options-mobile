@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, TargetPlatform;
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -40,8 +40,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // AdMob
-  await MobileAds.instance.initialize();
+  // AdMob - web not supported
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
   /*
   // Platform messages may fail, so we use a try/catch PlatformException.
   String? initialLink;
