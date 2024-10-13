@@ -84,21 +84,20 @@ jobs:
       #   run: flutter build appbundle --release
       #   continue-on-error: false
 
-      - name: Build iOS IPA
-        id: build-ipa
-        run: flutter build ipa
-        # run: flutter build ipa --release
-        continue-on-error: false
+      # - name: Build iOS IPA
+      #   id: build-ipa
+      #   run: flutter build ipa --release
+      #   continue-on-error: false
 
-      - name: Upload iOS IPA Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          # Artifact name
-          name: release-ipa
-          # A file, directory or wildcard pattern that describes what to upload
-          path: src/robinhood_options_mobile/build/ios/ipa/robinhood_options_mobile.ipa
-          # The desired behavior if no files are found using the provided path.
-        continue-on-error: false
+      # - name: Upload iOS IPA Build Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     # Artifact name
+      #     name: release-ipa
+      #     # A file, directory or wildcard pattern that describes what to upload
+      #     path: src/robinhood_options_mobile/build/ios/ipa/robinhood_options_mobile.ipa
+      #     # The desired behavior if no files are found using the provided path.
+      #   continue-on-error: false
 
 #      - name: Build AppBundle
 #        id: build
