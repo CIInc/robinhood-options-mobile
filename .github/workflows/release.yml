@@ -2,9 +2,7 @@ name: Release (Android, iOS)
 
 on:
   release:
-    types:
-      - created
-#      - edited
+    types: [created, published]
 
 jobs:
   build:
