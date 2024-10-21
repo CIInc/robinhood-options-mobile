@@ -7,10 +7,10 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -23,7 +23,7 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.user,
+  const ListsWidget(this.user, this.service,
       {super.key,
       required this.analytics,
       required this.observer,
@@ -32,7 +32,8 @@ class ListsWidget extends StatefulWidget {
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
 
   @override
   State<ListsWidget> createState() => _ListsWidgetState();
@@ -80,15 +81,15 @@ class _ListsWidgetState extends State<ListsWidget>
     if (widget.user.userName == null) {
       return Container();
     }
-    watchlistStream ??= RobinhoodService.streamLists(
+    watchlistStream ??= widget.service.streamLists(
         widget.user,
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false));
     return StreamBuilder(
         stream: watchlistStream,
-        builder: (context4, watchlistsSnapshot) {
-          if (watchlistsSnapshot.hasData) {
-            watchlists = watchlistsSnapshot.data!;
+        builder: (context4, snapshot) {
+          if (snapshot.hasData) {
+            watchlists = snapshot.data!;
             for (var watchList in watchlists!) {
               if (_sortType == SortType.alphabetical) {
                 watchList.items.sort((a, b) =>
@@ -113,17 +114,18 @@ class _ListsWidgetState extends State<ListsWidget>
               }
             }
             //return _buildScaffold();
-          } else if (watchlistsSnapshot.hasError) {
-            debugPrint("${watchlistsSnapshot.error}");
+          } else if (snapshot.hasError) {
+            debugPrint("${snapshot.error}");
+            return _buildScaffold(welcomeWidget: Text("${snapshot.error}"));
           } else {
             // No Watchlists found.
           }
           return _buildScaffold(
-              done: watchlistsSnapshot.connectionState == ConnectionState.done);
+              done: snapshot.connectionState == ConnectionState.done);
         });
   }
 
-  Widget _buildScaffold({bool done = false}) {
+  Widget _buildScaffold({Widget? welcomeWidget, bool done = false}) {
     var totalItems = 0;
     var totalLists = 0;
     if (watchlists != null) {
@@ -349,6 +351,16 @@ class _ListsWidgetState extends State<ListsWidget>
                   )),
         ))
       ],
+      if (welcomeWidget != null) ...[
+        SliverToBoxAdapter(
+            child: SizedBox(
+          height: 150.0,
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Align(alignment: Alignment.center, child: welcomeWidget),
+          ),
+        ))
+      ],
       if (watchlists != null) ...[
         for (var watchlist in watchlists!) ...[
           SliverStickyHeader(
@@ -516,7 +528,7 @@ class _ListsWidgetState extends State<ListsWidget>
   }
 
   Widget _buildWatchlistGridItem(
-      List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+      List<WatchlistItem> watchLists, int index, BrokerageUser ru) {
     var instrumentObj = watchLists[index].instrumentObj;
     var forexObj = watchLists[index].forexObj;
     var changePercentToday = 0.0;
@@ -608,6 +620,7 @@ class _ListsWidgetState extends State<ListsWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               ru,
+                              widget.service,
                               watchLists[index].instrumentObj as Instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,

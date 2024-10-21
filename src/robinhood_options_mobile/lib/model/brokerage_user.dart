@@ -1,42 +1,22 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
-import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
-import 'package:robinhood_options_mobile/model/user_store.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-enum OptionsView { grouped, list }
-
-enum DisplayValue {
-  expirationDate,
-  marketValue,
-  lastPrice,
-  todayReturnPercent,
-  todayReturn,
-  totalReturnPercent,
-  totalReturn
-}
-
-enum SortDirection { asc, desc }
-
-enum Source { robinhood, tdAmeritrade, schwab }
 
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
-class RobinhoodUser {
+class BrokerageUser {
   final String id = DateTime.now().microsecondsSinceEpoch.toString();
   final Source source;
   late String? userName;
   final String? credentials;
   oauth2.Client? oauth2Client;
-  bool defaultUser = true;
+  // bool defaultUser = true;
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
@@ -45,13 +25,15 @@ class RobinhoodUser {
   bool showPositionDetails = true;
   // UserInfo? userInfo;
 
-  RobinhoodUser(
+  BrokerageUser(
       this.source, this.userName, this.credentials, this.oauth2Client);
 
-  RobinhoodUser.fromJson(Map<String, dynamic> json)
+  BrokerageUser.fromJson(Map<String, dynamic> json)
       : source = json['source'] == 'Source.robinhood'
             ? Source.robinhood
-            : Source.tdAmeritrade,
+            : json['source'] == 'Source.schwab'
+                ? Source.schwab
+                : Source.demo,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -79,65 +61,6 @@ class RobinhoodUser {
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
       };
-
-  Future save(UserStore store) async {
-    store.addOrUpdate(this);
-    var contents = jsonEncode(store.items); //this
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(Constants.preferencesUserKey, contents);
-    //await Store.writeFile(Constants.cacheFilename, contents);
-  }
-
-  static Future<List<RobinhoodUser>> loadUserIntoStore(UserStore store) async {
-    // await Store.deleteFile(Constants.cacheFilename);
-    debugPrint('Loading cache.');
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? contents = prefs.getString(Constants.preferencesUserKey);
-    //String? contents = await Store.readFile(Constants.cacheFilename);
-    if (contents == null) {
-      debugPrint('No cache file found.');
-      return [];
-    }
-    try {
-      store.removeAll();
-      var users = jsonDecode(contents) as List<dynamic>;
-      for (Map<String, dynamic> userMap in users) {
-        var user = RobinhoodUser.fromJson(userMap);
-        var credentials =
-            oauth2.Credentials.fromJson(user.credentials as String);
-        var client =
-            oauth2.Client(credentials, identifier: Constants.rhClientId);
-        user.oauth2Client = client;
-        debugPrint('Loaded cache.');
-        store.add(user);
-      }
-      return store.items;
-    } on FormatException catch (e) {
-      debugPrint(
-          'Cache provided is not valid JSON.\nError: $e\nContents: $contents');
-      return [];
-    }
-  }
-  /* Deprecated for save()
-  static Future writeUserToStore(RobinhoodUser user) async {
-    var contents = jsonEncode(user);
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(Constants.preferencesUserKey, contents);
-    //await Store.writeFile(Constants.cacheFilename, contents);
-  }
-  */
-
-  Future clearUserFromStore(UserStore store) async {
-    debugPrint("Cleared user from store.");
-
-    //await Store.deleteFile(Constants.cacheFilename);
-    store.remove(this);
-
-    var contents = jsonEncode(store.items); //this
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString(Constants.preferencesUserKey, contents);
-  }
 
   static String displayValueText(DisplayValue displayValue) {
     switch (displayValue) {

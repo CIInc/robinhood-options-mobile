@@ -21,11 +21,11 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -42,6 +42,7 @@ final formatCompactNumber = NumberFormat.compact();
 class OptionInstrumentWidget extends StatefulWidget {
   const OptionInstrumentWidget(
       this.user,
+      this.service,
       //this.account,
       this.optionInstrument,
       {super.key,
@@ -52,7 +53,8 @@ class OptionInstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
@@ -104,7 +106,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     if (optionOrders.isNotEmpty) {
       futureOptionOrders = Future.value(optionOrders);
     } else {
-      futureOptionOrders = RobinhoodService.getOptionOrders(
+      futureOptionOrders = widget.service.getOptionOrders(
           widget.user, optionOrderStore, widget.optionInstrument.chainId);
     }
 
@@ -114,11 +116,11 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
-      futureQuote ??= RobinhoodService.getQuote(
+      futureQuote ??= widget.service.getQuote(
           widget.user, quoteStore, widget.optionInstrument.chainSymbol);
     }
 
-    futureHistoricals ??= RobinhoodService.getOptionHistoricals(
+    futureHistoricals ??= widget.service.getOptionHistoricals(
         widget.user,
         Provider.of<OptionHistoricalsStore>(context, listen: false),
         [widget.optionInstrument.id],
@@ -131,7 +133,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           builder: (context, AsyncSnapshot<Quote> quoteSnapshot) {
             if (quoteSnapshot.hasData) {
               var quote = quoteSnapshot.data!;
-              futureInstrument ??= RobinhoodService.getInstrument(
+              futureInstrument ??= widget.service.getInstrument(
                   widget.user,
                   Provider.of<InstrumentStore>(context, listen: false),
                   quote.instrument);
@@ -304,15 +306,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 .firstWhereOrNull((element) =>
                         element.legs.first.id == optionInstrument.id &&
                         element.span ==
-                            RobinhoodService.convertChartSpanFilter(
-                                chartDateSpanFilter) &&
+                            convertChartSpanFilter(chartDateSpanFilter) &&
                         element.bounds ==
-                            RobinhoodService.convertChartBoundsFilter(
-                                chartBoundsFilter)
+                            convertChartBoundsFilter(chartBoundsFilter)
                     //&& element.interval == element.interval
                     );
             debugPrint(
-                '${optionInstrumentHistoricalsObj != null ? 'Found' : 'Not found'} optionInstrumentHistoricals for span: ${RobinhoodService.convertChartSpanFilter(chartDateSpanFilter)}, bounds: ${RobinhoodService.convertChartBoundsFilter(chartBoundsFilter)}');
+                '${optionInstrumentHistoricalsObj != null ? 'Found' : 'Not found'} optionInstrumentHistoricals for span: ${convertChartSpanFilter(chartDateSpanFilter)}, bounds: ${convertChartBoundsFilter(chartBoundsFilter)}');
             if (optionInstrumentHistoricalsObj != null) {
               InstrumentHistorical? firstHistorical;
               InstrumentHistorical? lastHistorical;
@@ -1446,7 +1446,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
             )),
             OptionOrdersWidget(
               widget.user,
-              //widget.account,
+              widget.service,
               optionInstrumentOrders,
               const ["confirmed", "filled"],
               analytics: widget.analytics,
@@ -1945,7 +1945,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       const Duration(milliseconds: 15000),
       (timer) async {
         if (widget.user.refreshEnabled) {
-          await RobinhoodService.getOptionHistoricals(
+          await widget.service.getOptionHistoricals(
               widget.user,
               Provider.of<OptionHistoricalsStore>(context, listen: false),
               [widget.optionInstrument.id],
@@ -1980,8 +1980,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
   Future<void> _pullRefresh() async {
     var quoteStore = Provider.of<QuoteStore>(context, listen: false);
 
-    var quote = await RobinhoodService.getQuote(
-        widget.user, quoteStore, widget.optionInstrument.chainSymbol);
+    var quote = await widget.service
+        .getQuote(widget.user, quoteStore, widget.optionInstrument.chainSymbol);
 
     setState(() {
       futureQuote = null;
@@ -2028,7 +2028,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
     }
   }
 
-  Card buildOverview(RobinhoodUser user, OptionInstrument optionInstrument,
+  Card buildOverview(BrokerageUser user, OptionInstrument optionInstrument,
       Instrument instrument,
       {OptionAggregatePosition? optionPosition}) {
     return Card(
@@ -2079,6 +2079,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               user,
+                              widget.service,
                               //widget.account,
                               instrument,
                               //optionPosition: optionPosition
@@ -2098,6 +2099,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => TradeOptionWidget(
                                 user,
+                                widget.service,
                                 //widget.account,
                                 optionPosition: optionPosition,
                                 optionInstrument: optionInstrument,
@@ -2114,6 +2116,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => TradeOptionWidget(
                                 user,
+                                widget.service,
                                 //widget.account,
                                 optionPosition: optionPosition,
                                 optionInstrument: optionInstrument,
@@ -2129,6 +2132,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => TradeOptionWidget(
                                 user,
+                                widget.service,
                                 //widget.account,
                                 optionInstrument: optionInstrument,
                                 analytics: widget.analytics,

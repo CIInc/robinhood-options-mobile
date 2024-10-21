@@ -39,16 +39,17 @@ class UserInfo {
         createdAt = DateTime.tryParse(json['created_at']),
         lastLoginTime = null;
 
-  UserInfo.fromTdAmeritradeJson(dynamic json)
+  UserInfo.fromSchwab(dynamic json)
       : url = '',
-        id = json['userId'],
+        id = json['accounts'][0]['accountNumber'],
         idInfo = '',
-        username = json['userId'],
+        username = json['accounts'][0]['nickName'],
         email = '',
         firstName = '',
         lastName = '',
         locality = '',
-        profileName = json['userId'],
-        createdAt = null,
-        lastLoginTime = DateTime.tryParse(json['lastLoginTime']);
+        profileName = json['accounts'][0]['nickName'],
+        createdAt = DateTime.now(),
+        lastLoginTime =
+            DateTime.now(); // DateTime.tryParse(json['lastLoginTime']);
 }

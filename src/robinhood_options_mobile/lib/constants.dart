@@ -16,19 +16,9 @@ class Constants {
   static final rhChallengeEndpoint = Uri.parse('$robinHoodEndpoint/challenge/');
   static const String rhClientId = 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS';
 
-  // TD Ameritrade constants
-  static const tdName = 'TD Ameritrade';
-  static final tdEndpoint = Uri.parse('https://api.tdameritrade.com/v1');
-  static final tdAuthEndpoint = Uri.parse('https://auth.tdameritrade.com/auth');
-  static final tdTokenEndpoint =
-      Uri.parse('https://api.tdameritrade.com/v1/oauth2/token'); //$tdEndpoint
-  static const String tdClientId = 'KXVLJA7RAVHUFLYXSPBIJRY9SNKHOKMC';
-  static const String tdRedirectUrl = 'https://investiomanus.web.app';
-  //static const String tdRedirectUrl = 'investiomanus%3A%2F%2Fhome';
-
   // Schwab constants
   static const scName = 'Schwab';
-  static final scEndpoint = Uri.parse('https://api.schwabapi.com/trader/v1');
+  static final scEndpoint = Uri.parse('https://api.schwabapi.com');
   static final scAuthEndpoint =
       Uri.parse('https://api.schwabapi.com/v1/oauth/authorize');
   static final scTokenEndpoint =

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -29,7 +29,7 @@ class UserWidget extends StatefulWidget {
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
   final UserInfo userInfo;
   final Account? account;
 
@@ -106,36 +106,49 @@ class _UserWidgetState extends State<UserWidget> {
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
       ListTile(
+        minTileHeight: 10,
         title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
         trailing: Text(user.profileName, style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Username", style: TextStyle(fontSize: 14)),
         trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Full Name", style: TextStyle(fontSize: 14)),
         trailing: Text("${user.firstName} ${user.lastName}",
             style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Email", style: TextStyle(fontSize: 14)),
         trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Joined", style: TextStyle(fontSize: 14)),
         trailing: Text(formatDate.format(user.createdAt!),
             style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
+        minTileHeight: 10,
         title: const Text("Locality", style: TextStyle(fontSize: 14)),
         trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
       ),
       ListTile(
-        title: const Text("Id", style: TextStyle(fontSize: 14)),
+        minTileHeight: 10,
+        title: const Text(
+          "Id",
+          style: TextStyle(fontSize: 14),
+          overflow: TextOverflow.visible,
+          softWrap: false,
+        ),
         trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
       ),
       ListTile(
+          minTileHeight: 10,
           title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
           trailing: Icon(
             Icons.palette,
@@ -144,6 +157,7 @@ class _UserWidgetState extends State<UserWidget> {
           // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
           ),
       ListTile(
+          minTileHeight: 10,
           title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
           trailing: Icon(
             Icons.palette,

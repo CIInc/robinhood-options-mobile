@@ -6,10 +6,10 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
@@ -23,6 +23,7 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 class ListWidget extends StatefulWidget {
   const ListWidget(
       this.user,
+      this.service,
       //this.account,
       this.listKey,
       {super.key,
@@ -33,7 +34,8 @@ class ListWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GlobalKey<NavigatorState>? navigatorKey;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final String listKey;
 
@@ -70,7 +72,7 @@ class _ListWidgetState extends State<ListWidget>
       return Container();
     }
 
-    watchlistStream ??= RobinhoodService.streamList(
+    watchlistStream ??= widget.service.streamList(
         widget.user,
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false),
@@ -369,7 +371,7 @@ class _ListWidgetState extends State<ListWidget>
   }
 
   Widget _buildWatchlistGridItem(
-      List<WatchlistItem> watchLists, int index, RobinhoodUser ru) {
+      List<WatchlistItem> watchLists, int index, BrokerageUser ru) {
     var instrumentObj = watchLists[index].instrumentObj;
     var forexObj = watchLists[index].forexObj;
     var changePercentToday = 0.0;
@@ -461,7 +463,7 @@ class _ListWidgetState extends State<ListWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               ru,
-                              //widget.account,
+                              widget.service,
                               watchLists[index].instrumentObj as Instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,

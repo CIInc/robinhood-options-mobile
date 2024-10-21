@@ -75,7 +75,7 @@ class OptionAggregatePosition {
             DateTime.tryParse(json['updated_at']),
         strategyCode = json['strategy_code'];
 
-  OptionAggregatePosition.fromTdAmeritradeJson(dynamic json, Account acct)
+  OptionAggregatePosition.fromSchwabJson(dynamic json, Account acct)
       : id = json['instrument']['cusip'],
         chain = '', // json['chain'],
         account = acct.accountNumber, // json['account'],

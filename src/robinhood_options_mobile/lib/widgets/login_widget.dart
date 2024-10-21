@@ -13,10 +13,11 @@ import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/constants.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
-import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
 
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
     as oauth2_robinhood;
@@ -42,7 +43,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   Future<http.Response>? challengeResponse;
 
   oauth2.Client? client;
-  RobinhoodUser? user;
+  BrokerageUser? user;
 
   Map<String, dynamic>? optionPositionJson;
 
@@ -100,11 +101,18 @@ class _LoginWidgetState extends State<LoginWidget> {
     super.dispose();
   }
 
-  void _login() {
-    if (source == Source.tdAmeritrade) {
-      TdAmeritradeService.login();
-    } else if (source == Source.schwab) {
+  void _login() async {
+    if (source == Source.schwab) {
       SchwabService.login();
+    } else if (source == Source.demo) {
+      DemoService.login();
+      var user = BrokerageUser(source, "Demo Account", null, null);
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.save();
+      if (mounted) {
+        Navigator.pop(context, user);
+      }
     } else {
       setState(() {
         authenticationResponse = oauth2_robinhood.login(
@@ -168,38 +176,38 @@ class _LoginWidgetState extends State<LoginWidget> {
                       authenticationSnapshot.data!,
                       source == Source.robinhood
                           ? Constants.rhAuthEndpoint
-                          : Constants.tdAuthEndpoint,
+                          : Constants.scAuthEndpoint,
                       ['internal'],
                       ' ',
                       source == Source.robinhood
                           ? Constants.rhClientId
-                          : Constants.tdClientId,
+                          : Constants.scClientId,
                       null,
                       null,
                       null);
                   // debugPrint(jsonEncode(client));
-                  var user = RobinhoodUser(source, userCtl.text,
+                  var user = BrokerageUser(source, userCtl.text,
                       client!.credentials.toJson(), client);
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    user
-                        .save(Provider.of<UserStore>(context, listen: false))
-                        .then((value) {
-                      //Navigator.popUntil(context, ModalRoute.withName('/'));
-                      // This is being called twice, figure out root cause and not this workaround.
-                      if (!popped) {
-                        widget.analytics
-                            .logLogin(loginMethod: "Robinhood $challengeType");
-                        if (context.mounted) {
-                          Navigator.pop(context, user);
-                        }
-                        /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
+                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                    var userStore =
+                        Provider.of<BrokerageUserStore>(context, listen: false);
+                    userStore.addOrUpdate(user);
+                    await userStore.save();
+                    //Navigator.popUntil(context, ModalRoute.withName('/'));
+                    // This is being called twice, figure out root cause and not this workaround.
+                    if (!popped) {
+                      widget.analytics
+                          .logLogin(loginMethod: "Robinhood $challengeType");
+                      if (context.mounted) {
+                        Navigator.pop(context, user);
+                      }
+                      /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                       Future.delayed(Duration.zero, () {
                         Navigator.pop(context, user);
                       });
                       */
-                        popped = true;
-                      }
-                    });
+                      popped = true;
+                    }
                   });
                 } else {
                   if (authenticationSnapshot.connectionState ==
@@ -263,7 +271,13 @@ class _LoginWidgetState extends State<LoginWidget> {
             Padding(
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
-                label: const Text('Robinhood'),
+                label: SizedBox(
+                    width: 74,
+                    child: const Text(
+                      'Robinhood',
+                      textAlign: TextAlign.center,
+                    )),
+                // label: const Text('Robinhood'),
                 selected: source == Source.robinhood,
                 // labelPadding: const EdgeInsets.all(10.0),
                 //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
@@ -278,13 +292,18 @@ class _LoginWidgetState extends State<LoginWidget> {
             Padding(
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
-                label: const Text('TD Ameritrade'),
-                selected: source == Source.tdAmeritrade,
+                label: SizedBox(
+                    width: 74,
+                    child: const Text(
+                      'Schwab',
+                      textAlign: TextAlign.center,
+                    )),
+                // label: const Text('Schwab'),
+                selected: source == Source.schwab,
                 // labelPadding: const EdgeInsets.all(10.0),
-                //labelStyle: const TextStyle(fontSize: 14.0, height: 1),
                 onSelected: (bool selected) {
                   setState(() {
-                    source = Source.tdAmeritrade;
+                    source = Source.schwab;
                   });
                 },
               ),
@@ -292,12 +311,17 @@ class _LoginWidgetState extends State<LoginWidget> {
             Padding(
               padding: const EdgeInsets.all(4.0),
               child: ChoiceChip(
-                label: const Text('Schwab'),
-                selected: source == Source.schwab,
+                label: SizedBox(
+                    width: 74,
+                    child: const Text(
+                      'Demo',
+                      textAlign: TextAlign.center,
+                    )),
+                selected: source == Source.demo,
                 // labelPadding: const EdgeInsets.all(10.0),
                 onSelected: (bool selected) {
                   setState(() {
-                    source = Source.schwab;
+                    source = Source.demo;
                   });
                 },
               ),
@@ -356,22 +380,6 @@ class _LoginWidgetState extends State<LoginWidget> {
           ],
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
-        ] else if (source == Source.tdAmeritrade) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
-              child: SizedBox(
-                  width: 340.0,
-                  height: 60,
-                  child: ElevatedButton.icon(
-                    label: const Text(
-                      "Link TD Ameritrade",
-                      style: TextStyle(fontSize: 20.0),
-                      // style: TextStyle(fontSize: 22.0, height: 1.5),
-                    ),
-                    icon: const Icon(Icons.login_outlined),
-                    onPressed:
-                        challengeRequestId == null ? _login : _handleChallenge,
-                  )))
         ] else if (source == Source.schwab) ...[
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
@@ -381,6 +389,22 @@ class _LoginWidgetState extends State<LoginWidget> {
                   child: ElevatedButton.icon(
                     label: const Text(
                       "Link Schwab",
+                      style: TextStyle(fontSize: 20.0),
+                      // style: TextStyle(fontSize: 22.0, height: 1.5),
+                    ),
+                    icon: const Icon(Icons.login_outlined),
+                    onPressed:
+                        challengeRequestId == null ? _login : _handleChallenge,
+                  )))
+        ] else if (source == Source.demo) ...[
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
+              child: SizedBox(
+                  width: 340.0,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    label: const Text(
+                      "Open Demo",
                       style: TextStyle(fontSize: 20.0),
                       // style: TextStyle(fontSize: 22.0, height: 1.5),
                     ),

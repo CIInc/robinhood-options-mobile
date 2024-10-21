@@ -10,10 +10,11 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -27,6 +28,7 @@ final formatCompactNumber = NumberFormat.compact();
 class ForexInstrumentWidget extends StatefulWidget {
   const ForexInstrumentWidget(
     this.user,
+    this.service,
     //this.account,
     this.holding, {
     super.key,
@@ -36,7 +38,8 @@ class ForexInstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final ForexHolding holding;
   //final OptionAggregatePosition? optionPosition;
@@ -69,7 +72,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     super.initState();
 
     _startRefreshTimer();
-    //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
     widget.analytics.logScreenView(
         screenName: 'ForexInstrument/${widget.holding.currencyId}');
   }
@@ -88,7 +90,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       var forexPair = RobinhoodService.forexPairs.singleWhere((element) =>
           element['asset_currency']['id'] == widget.holding.currencyId);
       futureQuote ??=
-          RobinhoodService.getForexQuote(widget.user, forexPair['id']);
+          widget.service.getForexQuote(widget.user, forexPair['id']);
     } else {
       futureQuote ??= Future.value(widget.holding.quoteObj);
     }
@@ -100,7 +102,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         if (snapshot.hasData) {
           widget.holding.quoteObj = snapshot.data! as ForexQuote;
 
-          futureHistoricals ??= RobinhoodService.getForexHistoricals(
+          futureHistoricals ??= widget.service.getForexHistoricals(
               widget.user, widget.holding.quoteObj!.id,
               chartBoundsFilter: chartBoundsFilter,
               chartDateSpanFilter: chartDateSpanFilter);
@@ -635,7 +637,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             });
           }
           /*
-          var refreshForex = await RobinhoodService.refreshNummusHoldings(
+          var refreshForex = await widget.service.refreshNummusHoldings(
               widget.user, nummusHoldings!);
           setState(() {
             nummusHoldings = refreshForex;

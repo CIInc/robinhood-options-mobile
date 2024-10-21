@@ -116,9 +116,9 @@ class Portfolio {
         updatedAt = DateTime.now();
   // 2021-02-09T18:01:28.135813Z
 
-  Portfolio.fromTdAmeritradeJson(dynamic json)
+  Portfolio.fromSchwabJson(dynamic json)
       : url = '',
-        account = json['securitiesAccount']['accountId'],
+        account = json['securitiesAccount']['accountNumber'],
         startDate = null, //DateTime.tryParse(json['start_date']),
         marketValue = double.tryParse(json['securitiesAccount']
                     ['currentBalances']['longOptionMarketValue']

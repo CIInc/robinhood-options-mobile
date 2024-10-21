@@ -6,10 +6,10 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -22,6 +22,7 @@ final formatCompactNumber = NumberFormat.compact();
 class OptionOrderWidget extends StatefulWidget {
   const OptionOrderWidget(
     this.user,
+    this.service,
     //this.account,
     this.optionOrder, {
     super.key,
@@ -31,7 +32,8 @@ class OptionOrderWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final OptionOrder optionOrder;
 
@@ -65,8 +67,8 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
     if (cachedQuotes.isNotEmpty) {
       futureQuote = Future.value(cachedQuotes.first);
     } else {
-      futureQuote = RobinhoodService.getQuote(
-          widget.user, quoteStore, widget.optionOrder.chainSymbol);
+      futureQuote = widget.service
+          .getQuote(widget.user, quoteStore, widget.optionOrder.chainSymbol);
     }
 
     return Scaffold(
@@ -75,7 +77,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
           builder: (context, AsyncSnapshot<Quote?> snapshot) {
             if (snapshot.hasData) {
               var quote = snapshot.data!;
-              futureInstrument = RobinhoodService.getInstrument(
+              futureInstrument = widget.service.getInstrument(
                   widget.user, instrumentStore, snapshot.data!.instrument);
               return FutureBuilder(
                   future: futureInstrument,
@@ -494,7 +496,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
   }
   */
 
-  Card _buildOverview(RobinhoodUser user, Instrument instrument) {
+  Card _buildOverview(BrokerageUser user, Instrument instrument) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -543,7 +545,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               user,
-                              //widget.account,
+                              widget.service,
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,

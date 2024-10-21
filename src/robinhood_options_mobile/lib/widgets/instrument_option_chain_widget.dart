@@ -10,8 +10,8 @@ import 'package:robinhood_options_mobile/model/option_chain.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -25,6 +25,7 @@ final formatCompactNumber = NumberFormat.compact();
 class InstrumentOptionChainWidget extends StatefulWidget {
   const InstrumentOptionChainWidget(
       this.user,
+      this.service,
       //this.account,
       this.instrument,
       {super.key,
@@ -34,7 +35,8 @@ class InstrumentOptionChainWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final Instrument instrument;
   final OptionAggregatePosition? optionPosition;
@@ -71,7 +73,6 @@ class _InstrumentOptionChainWidgetState
   void initState() {
     super.initState();
 
-    //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
     widget.analytics.logScreenView(
       screenName: 'InstrumentOptionChain/${widget.instrument.symbol}',
     );
@@ -82,7 +83,7 @@ class _InstrumentOptionChainWidgetState
     var instrument = widget.instrument;
     var user = widget.user;
 
-    futureOptionChain ??= RobinhoodService.getOptionChains(user, instrument.id);
+    futureOptionChain ??= widget.service.getOptionChains(user, instrument.id);
 
     /*
     var store = Provider.of<OptionPositionStore>(context, listen: false);
@@ -103,7 +104,7 @@ class _InstrumentOptionChainWidgetState
             expirationDateFilter ??= expirationDates!.first;
           }
 
-          optionInstrumentStream ??= RobinhoodService.streamOptionInstruments(
+          optionInstrumentStream ??= widget.service.streamOptionInstruments(
               user,
               Provider.of<OptionInstrumentStore>(context, listen: false),
               instrument,
@@ -379,7 +380,8 @@ class _InstrumentOptionChainWidgetState
 
           // TODO: Optimize to batch calls for market data.
           if (optionInstrument.optionMarketData == null) {
-            RobinhoodService.getOptionMarketData(widget.user, optionInstrument)
+            widget.service
+                .getOptionMarketData(widget.user, optionInstrument)
                 .then((value) => setState(() {
                       optionInstrument.optionMarketData = value;
                     }));
@@ -510,7 +512,7 @@ class _InstrumentOptionChainWidgetState
                               MaterialPageRoute(
                                   builder: (context) => OptionInstrumentWidget(
                                         widget.user,
-                                        //widget.account,
+                                        widget.service,
                                         optionInstrument,
                                         optionPosition:
                                             optionInstrumentQuantity > 0
@@ -930,11 +932,11 @@ class _InstrumentOptionChainWidgetState
           /*
           if (index == 0 && futureCallOptionInstruments == null) {
             futureCallOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
+                widget.service.downloadOptionInstruments(
                     user, instrument, null, 'call');
           } else if (index == 1 && futurePutOptionInstruments == null) {
             futurePutOptionInstruments =
-                RobinhoodService.downloadOptionInstruments(
+                widget.service.downloadOptionInstruments(
                     user, instrument, null, 'put');
           }
           */

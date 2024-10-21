@@ -8,6 +8,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/drawer_provider.dart';
+import 'package:robinhood_options_mobile/model/logo_provider.dart';
 import 'firebase_options.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -26,7 +28,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
-import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 //import 'package:material_color_utilities/material_color_utilities.dart';
@@ -44,43 +46,7 @@ void main() async {
   if (!kIsWeb) {
     await MobileAds.instance.initialize();
   }
-  /*
-  // Platform messages may fail, so we use a try/catch PlatformException.
-  String? initialLink;
-  try {
-    initialLink = await getInitialLink();
-    // Parse the link and warn the user, if it is not correct,
-    // but keep in mind it could be `null`.
-  } on PlatformException {
-    // Handle exception by warning the user their action did not succeed
-    // return?
-  }
 
-  // Attach a listener to the stream
-  final _sub = linkStream.listen((String? link) async {
-    // Parse the link and warn the user, if it is not correct
-    debugPrint('newLink:$link');
-    String code =
-        link!.replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
-    debugPrint('code:$code');
-    var user = await TdAmeritradeService.getAccessToken(code);
-    debugPrint('result:${jsonEncode(user)}');
-    //var store = Provider.of<UserStore>(BuildContext(), listen: false);
-    //await user!.save(store);
-//    var grant = AuthorizationCodeGrant(Constants.tdClientId,
-//        Constants.tdAuthEndpoint, Constants.tdTokenEndpoint);
-//    var authorizationUrl =
-        grant.getAuthorizationUrl(Uri.parse(Constants.tdRedirectUrl));
-//    //var client = await grant.handleAuthorizationCode(code);
-//    var parameters = Uri.parse(link).queryParameters;
-//    debugPrint(jsonEncode(parameters));
-//    var client = await grant.handleAuthorizationResponse(parameters);
-//    debugPrint('credential:${jsonEncode(client.credentials)}');
-  }, onError: (err) {
-    // Handle exception by warning the user their action did not succeed
-    debugPrint('linkStreamError:$err');
-  });
-  */
   /*
   // Add Test Devices:
   // A43B7A3B3E2A53090ACF37DCDA7528C6 = Aymeric Pixel 7
@@ -137,7 +103,7 @@ class MyApp extends StatelessWidget {
       return MultiProvider(
           providers: [
             ChangeNotifierProvider(
-              create: (context) => UserStore(),
+              create: (context) => BrokerageUserStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => AccountStore(),
@@ -186,7 +152,13 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => QuoteStore(),
-            )
+            ),
+            ChangeNotifierProvider(
+              create: (context) => DrawerProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => LogoProvider(),
+            ),
           ],
           child: MaterialApp(
             title: Constants.appTitle,

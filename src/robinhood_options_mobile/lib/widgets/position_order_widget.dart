@@ -6,10 +6,10 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -22,6 +22,7 @@ final formatCompactNumber = NumberFormat.compact();
 class PositionOrderWidget extends StatefulWidget {
   const PositionOrderWidget(
     this.user,
+    this.service,
     //this.account,
     this.positionOrder, {
     super.key,
@@ -31,7 +32,8 @@ class PositionOrderWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final InstrumentOrder positionOrder;
 
@@ -64,7 +66,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     if (instruments.isNotEmpty) {
       futureInstrument = Future.value(instruments.first);
     } else {
-      futureInstrument = RobinhoodService.getInstrument(
+      futureInstrument = widget.service.getInstrument(
           widget.user, instrumentStore, widget.positionOrder.instrument);
     }
 
@@ -75,7 +77,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         builder: (context, AsyncSnapshot<Instrument> snapshot) {
           if (snapshot.hasData) {
             widget.positionOrder.instrumentObj = snapshot.data!;
-            futureQuote = RobinhoodService.getQuote(widget.user, quoteStore,
+            futureQuote = widget.service.getQuote(widget.user, quoteStore,
                 widget.positionOrder.instrumentObj!.symbol);
             return FutureBuilder(
                 future: futureQuote,
@@ -281,7 +283,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
     ]);
   }
 
-  Card _buildOverview(RobinhoodUser user, Instrument instrument) {
+  Card _buildOverview(BrokerageUser user, Instrument instrument) {
     return Card(
         child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -332,7 +334,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               user,
-                              //widget.account,
+                              widget.service,
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,

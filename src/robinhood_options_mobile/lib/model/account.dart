@@ -1,4 +1,4 @@
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 
 class Account {
   final String userId;
@@ -20,7 +20,7 @@ class Account {
       this.optionLevel,
       this.cashHeldForOptionsCollateral);
 
-  Account.fromJson(dynamic json, RobinhoodUser user)
+  Account.fromJson(dynamic json, BrokerageUser user)
       : userId = user.id,
         url = json['url'],
         portfolioCash = double.tryParse(json['portfolio_cash']),
@@ -31,13 +31,13 @@ class Account {
         cashHeldForOptionsCollateral =
             double.tryParse(json['cash_held_for_options_collateral']);
 
-  Account.fromTdAmeritradeJson(dynamic json, RobinhoodUser user)
+  Account.fromSchwabJson(dynamic json, BrokerageUser user)
       : userId = user.id,
         url = '',
         portfolioCash = double.tryParse(json['securitiesAccount']
                 ['currentBalances']['cashBalance']
             .toString()),
-        accountNumber = json['securitiesAccount']['accountId'],
+        accountNumber = json['securitiesAccount']['accountNumber'],
         type = json['securitiesAccount']['type'],
         buyingPower = double.tryParse(json['securitiesAccount']
                 ['currentBalances']['buyingPower']

@@ -8,8 +8,8 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -19,9 +19,10 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
 
-  const SearchWidget(this.user,
+  const SearchWidget(this.user, this.service,
       {super.key,
       required this.analytics,
       required this.observer,
@@ -83,12 +84,12 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildScaffold() {
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
-    futureMovers ??= RobinhoodService.getMovers(widget.user, direction: "up");
-    futureLosers ??= RobinhoodService.getMovers(widget.user, direction: "down");
+    futureMovers ??= widget.service.getMovers(widget.user, direction: "up");
+    futureLosers ??= widget.service.getMovers(widget.user, direction: "down");
     futureListMovers ??=
-        RobinhoodService.getListMovers(widget.user, instrumentStore!);
+        widget.service.getListMovers(widget.user, instrumentStore!);
     futureListMostPopular ??=
-        RobinhoodService.getListMostPopular(widget.user, instrumentStore!);
+        widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
     return FutureBuilder(
@@ -118,6 +119,9 @@ class _SearchWidgetState extends State<SearchWidget>
                 listMovers: listMovers,
                 listMostPopular: listMostPopular,
                 done: snapshot.connectionState == ConnectionState.done);
+          } else if (snapshot.hasError) {
+            debugPrint("${snapshot.error}");
+            return _buildPage(welcomeWidget: Text("${snapshot.error}"));
           } else {
             return _buildPage(
                 done: snapshot.connectionState == ConnectionState.done);
@@ -126,7 +130,8 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildPage(
-      {dynamic search,
+      {Widget? welcomeWidget,
+      dynamic search,
       List<MidlandMoversItem>? movers,
       List<MidlandMoversItem>? losers,
       List<Instrument>? listMovers,
@@ -166,7 +171,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               widget.analytics.logSearch(searchTerm: text);
                               setState(() {
                                 futureSearch =
-                                    RobinhoodService.search(widget.user, text);
+                                    widget.service.search(widget.user, text);
                               });
                             })),
                     //expandedHeight: 80.0,
@@ -184,6 +189,17 @@ class _SearchWidgetState extends State<SearchWidget>
                                   //semanticsLabel: 'Linear progress indicator',
                                   ) //CircularProgressIndicator(),
                               )),
+                    ))
+                  ],
+                  if (welcomeWidget != null) ...[
+                    SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 150.0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Align(
+                            alignment: Alignment.center, child: welcomeWidget),
+                      ),
                     ))
                   ],
                   if (search != null) ...[
@@ -470,7 +486,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     ]),
                   ]),
               onTap: () async {
-                var instrument = await RobinhoodService.getInstrument(
+                var instrument = await widget.service.getInstrument(
                     widget.user, instrumentStore!, movers[index].instrumentUrl);
 
                 /* For navigation within this tab, uncomment
@@ -484,6 +500,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               widget.user,
+                              widget.service,
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
@@ -514,6 +531,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
                                 widget.user,
+                                widget.service,
                                 instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
@@ -536,7 +554,7 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildListGridItem(
-      List<Instrument> instruments, int index, RobinhoodUser user) {
+      List<Instrument> instruments, int index, BrokerageUser user) {
     var instrumentObj = instruments[index];
     return Card(
         child: Padding(
@@ -618,6 +636,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
                               user,
+                              widget.service,
                               instrumentObj,
                               analytics: widget.analytics,
                               observer: widget.observer,

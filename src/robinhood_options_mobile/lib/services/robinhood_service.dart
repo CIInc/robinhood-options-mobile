@@ -41,7 +41,7 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
@@ -60,7 +60,7 @@ class RobinhoodService implements IBrokerageService {
   */
 
   @override
-  Future<UserInfo?> getUser(RobinhoodUser user) async {
+  Future<UserInfo?> getUser(BrokerageUser user) async {
     var url = '${Constants.robinHoodEndpoint}/user/';
     // debugPrint(result);
     /*
@@ -77,7 +77,7 @@ class RobinhoodService implements IBrokerageService {
 
   @override
   Future<List<Account>> getAccounts(
-      RobinhoodUser user,
+      BrokerageUser user,
       AccountStore store,
       PortfolioStore? portfolioStore,
       OptionPositionStore? optionPositionStore) async {
@@ -280,8 +280,9 @@ class RobinhoodService implements IBrokerageService {
   // Unified Amounts
   //https://bonfire.robinhood.com/phoenix/accounts/unified
 
-  static Future<List<Portfolio>> getPortfolios(
-      RobinhoodUser user, PortfolioStore store) async {
+  @override
+  Future<List<Portfolio>> getPortfolios(
+      BrokerageUser user, PortfolioStore store) async {
     var results = await RobinhoodService.pagedGet(
         user, "${Constants.robinHoodEndpoint}/portfolios/");
     //debugPrint(results);
@@ -308,8 +309,9 @@ class RobinhoodService implements IBrokerageService {
   // Year: bounds: 24_7,interval: day, span: year
   // All bounds: 24_7, span: all
   */
-  static Future<PortfolioHistoricals> getPortfolioHistoricals(
-      RobinhoodUser user,
+  @override
+  Future<PortfolioHistoricals> getPortfolioHistoricals(
+      BrokerageUser user,
       PortfolioHistoricalsStore store,
       String account,
       Bounds chartBoundsFilter,
@@ -326,106 +328,6 @@ class RobinhoodService implements IBrokerageService {
     var historicals = PortfolioHistoricals.fromJson(result);
     store.set(historicals);
     return historicals;
-  }
-
-  static String convertChartBoundsFilter(Bounds chartBoundsFilter) {
-    String bounds = "regular";
-    switch (chartBoundsFilter) {
-      case Bounds.regular:
-        bounds = "regular";
-        break;
-      case Bounds.t24_7:
-        bounds = "24_7";
-        break;
-      case Bounds.trading:
-        bounds = "trading";
-        break;
-      default:
-        bounds = "regular";
-        break;
-    }
-    return bounds;
-  }
-
-  static String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
-    String span = "day";
-    switch (chartDateSpanFilter) {
-      case ChartDateSpan.hour:
-        span = "hour";
-        //bounds = "24_7"; // Does not work with regular?!
-        break;
-      case ChartDateSpan.day:
-        span = "day";
-        break;
-      case ChartDateSpan.week:
-        span = "week";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month:
-        span = "month";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month_3:
-        span = "3month";
-        break;
-      case ChartDateSpan.year:
-        span = "year";
-        break;
-      case ChartDateSpan.year_5:
-        span = "5year";
-        break;
-      case ChartDateSpan.all:
-        span = "all";
-        break;
-    }
-    return span;
-  }
-
-  static List<String> convertChartSpanFilterWithInterval(
-      ChartDateSpan chartDateSpanFilter) {
-    String interval = "5minute";
-    String span = "day";
-    switch (chartDateSpanFilter) {
-      case ChartDateSpan.hour:
-        interval = "15second";
-        span = "hour";
-        //bounds = "24_7"; // Does not work with regular?!
-        break;
-      case ChartDateSpan.day:
-        interval = "5minute";
-        span = "day";
-        break;
-      case ChartDateSpan.week:
-        interval = "10minute"; //"hour";
-        span = "week";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month:
-        interval = "hour";
-        span = "month";
-        // bounds = "24_7"; // Does not look good with regular?!
-        break;
-      case ChartDateSpan.month_3:
-        interval = "day";
-        span = "3month";
-        break;
-      case ChartDateSpan.year:
-        interval = "day";
-        span = "year";
-        break;
-      case ChartDateSpan.year_5:
-        interval = "week";
-        span = "5year";
-        break;
-      case ChartDateSpan.all:
-        // interval = "week";
-        span = "all";
-        break;
-      //default:
-      //  interval = "5minute";
-      //  span = "day";
-    }
-    return [span, interval];
   }
 
   /*
@@ -461,8 +363,9 @@ class RobinhoodService implements IBrokerageService {
   }
   */
 
-  static Future<InstrumentPositionStore> getStockPositionStore(
-      RobinhoodUser user,
+  @override
+  Future<InstrumentPositionStore> getStockPositionStore(
+      BrokerageUser user,
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
@@ -494,6 +397,7 @@ class RobinhoodService implements IBrokerageService {
               null) // Figure out why in certain conditions, instrumentObj is null
           .map((e) => e.instrumentObj!.symbol)
           .toList();
+      quoteStore.removeAll();
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
         var position = store.items.firstWhere(
@@ -505,8 +409,8 @@ class RobinhoodService implements IBrokerageService {
     return store;
   }
 
-  static Stream<InstrumentPositionStore> streamStockPositionStore(
-      RobinhoodUser user,
+  Stream<InstrumentPositionStore> streamStockPositionStore(
+      BrokerageUser user,
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
@@ -553,10 +457,9 @@ class RobinhoodService implements IBrokerageService {
     yield store;
   }
 
-  static Future<List<InstrumentPosition>> refreshPositionQuote(
-      RobinhoodUser user,
-      InstrumentPositionStore store,
-      QuoteStore quoteStore) async {
+  @override
+  Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
+      InstrumentPositionStore store, QuoteStore quoteStore) async {
     if (store.items.isEmpty || store.items.first.instrumentObj == null) {
       return store.items;
     }
@@ -590,7 +493,8 @@ class RobinhoodService implements IBrokerageService {
     return ops;
   }
 
-  static Stream<List<InstrumentOrder>> streamPositionOrders(RobinhoodUser user,
+  @override
+  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore) async* {
     List<InstrumentOrder> list = [];
     var pageStream = RobinhoodService.streamedGet(user,
@@ -629,8 +533,9 @@ class RobinhoodService implements IBrokerageService {
     //positionOrders = list;
   }
 
-  static Stream<List<dynamic>> streamDividends(
-      RobinhoodUser user, InstrumentStore instrumentStore) async* {
+  @override
+  Stream<List<dynamic>> streamDividends(
+      BrokerageUser user, InstrumentStore instrumentStore) async* {
     // https://api.robinhood.com/dividends/
     // "id" -> "65ceec46-27f9-4d27-86bd-e720219be54f"
     // "url" -> "https://api.robinhood.com/dividends/65ceec46-27f9-4d27-86bd-e720219be54f/"
@@ -688,7 +593,8 @@ class RobinhoodService implements IBrokerageService {
   SEARCH and MARKETS
   */
 
-  static Future<dynamic> search(RobinhoodUser user, String query) async {
+  @override
+  Future<dynamic> search(BrokerageUser user, String query) async {
     var resultJson = await getJson(
         user, "${Constants.robinHoodSearchEndpoint}/search/?query=$query");
     //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
@@ -698,9 +604,10 @@ class RobinhoodService implements IBrokerageService {
   // TODO: https://api.robinhood.com/discovery/lists/default/
 
   // https://api.robinhood.com/midlands/movers/sp500/?direction=up
-  static Future<List<MidlandMoversItem>> getMovers(RobinhoodUser user,
+  @override
+  Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
       {String direction = "up"}) async {
-    var results = await RobinhoodService.pagedGet(user,
+    var results = await pagedGet(user,
         "${Constants.robinHoodEndpoint}/midlands/movers/sp500/?direction=$direction");
     List<MidlandMoversItem> list = [];
     for (var i = 0; i < results.length; i++) {
@@ -724,40 +631,52 @@ class RobinhoodService implements IBrokerageService {
 
   // https://api.robinhood.com/midlands/tags/tag/top-movers/
   // {"canonical_examples":"","description":"","instruments":["https://api.robinhood.com/instruments/98bf9407-f2f2-4eb7-b2b7-07c811cc384a/","https://api.robinhood.com/instruments/94c5ec10-9f48-42bf-a396-3927ed0463b0/","https://api.robinhood.com/instruments/3d280b06-b393-4d07-94de-89c1f0617ce1/","https://api.robinhood.com/instruments/45650848-0d8d-4704-8656-a99e83eb4a6a/","https://api.robinhood.com/instruments/f604bdef-f96c-4ae8-a7b3-cd1c38c270db/","https://api.robinhood.com/instruments/7df1fd83-653c-4b92-a5ce-9e108aab7f9e/","https://api.robinhood.com/instruments/f917d25c-9191-42d5-ae3f-dc449123336e/","https://api.robinhood.com/instruments/54e96481-1912-4b9a-ac2c-3aee5e7e7709/","https://api.robinhood.com/instruments/214ad08e-eac2-41d4-96f8-42f101654fcf/","https://api.robinhood.com/instruments/847998ca-67ec-4054-934e-e54067f1e404/","https://api.robinhood.com/instruments/552aedf0-af4b-4693-8825-cbee56a685bc/","https://api.robinhood.com/instruments/964fef8b-7677-4b3f-84aa-6c1ab1ac90ec/","https://api.robinhood.com/instruments/39474cfd-82f3-432b-87db-e65b9603c946/","https://api.robinhood.com/instruments/035b0a57-3ec1-4c92-bc85-35bd1d39f891/","https://api.robinhood.com/instruments/feaa53b3-8033-4d72-93ec-4fed9e35a62d/","https://api.robinhood.com/instruments/75cb568b-9c30-48d6-9b67-aef53dae1249/","https://api.robinhood.com/instruments/18d7b0a9-5a13-4dad-8f77-54b85f01bd7f/","https://api.robinhood.com/instruments/3fb03605-fcb7-44ab-aebb-429ca7f1c474/","https://api.robinhood.com/instruments/89eec724-e25d-4852-860f-146b25995d65/","https://api.robinhood.com/instruments/3669946d-1833-4fe9-b6b4-0b74c90020e1/"],"name":"Top Movers","slug":"top-movers","membership_count":20}
-  static Future<List<Instrument>> getListMovers(
-      RobinhoodUser user, InstrumentStore instrumentStore) async {
+  @override
+  Future<List<Instrument>> getListMovers(
+      BrokerageUser user, InstrumentStore instrumentStore) async {
     var resultJson = await getJson(
         user, "${Constants.robinHoodEndpoint}/midlands/tags/tag/top-movers/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
+    // var instrumentIds = resultJson["instruments"]
+    //     .map((e) {
+    //       var splits = e.split("/");
+    //       return splits[splits.length - 2];
+    //     })
+    //     .toSet()
+    //     .toList();
     var instrumentIds = resultJson["instruments"]
-        .map((e) {
-          var splits = e.split("/");
-          return splits[splits.length - 2];
-        })
         .toSet()
+        .toList()
+        .map<String>((e) => (e.split("/")[4]) as String)
         .toList();
     var list = getInstrumentsByIds(user, instrumentStore, instrumentIds);
     return list;
   }
 
   // https://api.robinhood.com/midlands/tags/tag/100-most-popular/
-  static Future<List<Instrument>> getListMostPopular(
-      RobinhoodUser user, InstrumentStore instrumentStore) async {
+  @override
+  Future<List<Instrument>> getListMostPopular(
+      BrokerageUser user, InstrumentStore instrumentStore) async {
     var resultJson = await getJson(user,
         "${Constants.robinHoodEndpoint}/midlands/tags/tag/100-most-popular/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
+    // List<String> instrumentIds = resultJson["instruments"]
+    //     .map((e) {
+    //       var splits = e.split("/");
+    //       return splits[splits.length - 2].toString();
+    //     })
+    //     .toSet()
+    //     .toList();
     var instrumentIds = resultJson["instruments"]
-        .map((e) {
-          var splits = e.split("/");
-          return splits[splits.length - 2].toString();
-        })
         .toSet()
+        .toList()
+        .map<String>((e) => (e.split("/")[4]) as String)
         .toList();
-    var list = getInstrumentsByIds(user, instrumentStore, instrumentIds);
+    var list = await getInstrumentsByIds(user, instrumentStore, instrumentIds);
     return list;
   }
 
-  static Future<List<dynamic>> getFeed(RobinhoodUser user) async {
+  static Future<List<dynamic>> getFeed(BrokerageUser user) async {
     //https://dora.robinhood.com/feed/
     var resultJson =
         await getJson(user, "${Constants.robinHoodExploreEndpoint}/feed/");
@@ -775,23 +694,23 @@ class RobinhoodService implements IBrokerageService {
   // Using cache and getInstruments to retrieve in batches.
   // instead of using direct restful url:
   // https://api.robinhood.com/instruments/1362827e-7c1a-475c-a46e-3cbb2263b081/
-  static Future<Instrument> getInstrument(
-      RobinhoodUser user, InstrumentStore store, String instrumentUrl) async {
+  @override
+  Future<Instrument> getInstrument(
+      BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
     var cached = store.items.where((element) => element.url == instrumentUrl);
     if (cached.isNotEmpty) {
       debugPrint('Returned instrument from cache $instrumentUrl');
       return Future.value(cached.first);
     }
-
     var resultJson = await getJson(user, instrumentUrl);
     var i = Instrument.fromJson(resultJson);
     store.add(i);
-
     return i;
   }
 
-  static Future<Instrument?> getInstrumentBySymbol(
-      RobinhoodUser user, InstrumentStore store, String symbol) async {
+  @override
+  Future<Instrument?> getInstrumentBySymbol(
+      BrokerageUser user, InstrumentStore store, String symbol) async {
     var cached = store.items.where((element) => element.symbol == symbol);
     if (cached.isNotEmpty) {
       debugPrint('Returned instrument from cache $symbol');
@@ -810,8 +729,9 @@ class RobinhoodService implements IBrokerageService {
     }
   }
 
-  static Future<List<Instrument>> getInstrumentsByIds(
-      RobinhoodUser user, InstrumentStore store, List<String> ids) async {
+  @override
+  Future<List<Instrument>> getInstrumentsByIds(
+      BrokerageUser user, InstrumentStore store, List<String> ids) async {
     if (ids.isEmpty) {
       return Future.value([]);
     }
@@ -863,8 +783,8 @@ class RobinhoodService implements IBrokerageService {
         if (result != null) {
           var instrument = Instrument.fromJson(result);
 
-          if (RobinhoodService.logoUrls.containsKey(instrument.symbol)) {
-            instrument.logoUrl = RobinhoodService.logoUrls[instrument.symbol];
+          if (logoUrls.containsKey(instrument.symbol)) {
+            instrument.logoUrl = logoUrls[instrument.symbol];
           }
 
           Fundamentals? fundamental = fundamentals.firstWhereOrNull(
@@ -887,8 +807,9 @@ class RobinhoodService implements IBrokerageService {
   // Popularity
   // https://api.robinhood.com/instruments/{0}/popularity/'.format(id_for_stock(symbol))
 
-  static Future<Quote> getQuote(
-      RobinhoodUser user, QuoteStore store, String symbol) async {
+  @override
+  Future<Quote> getQuote(
+      BrokerageUser user, QuoteStore store, String symbol) async {
     var cachedQuotes = store.items.where((element) => element.symbol == symbol);
     if (cachedQuotes.isNotEmpty) {
       debugPrint('Returned quote from cache $symbol');
@@ -902,8 +823,9 @@ class RobinhoodService implements IBrokerageService {
     return quote;
   }
 
-  static Future<Quote> refreshQuote(
-      RobinhoodUser user, QuoteStore store, String symbol) async {
+  @override
+  Future<Quote> refreshQuote(
+      BrokerageUser user, QuoteStore store, String symbol) async {
     var url = "${Constants.robinHoodEndpoint}/quotes/$symbol/";
     var resultJson = await getJson(user, url);
     var quote = Quote.fromJson(resultJson);
@@ -961,8 +883,9 @@ class RobinhoodService implements IBrokerageService {
   }
   */
 
-  static Future<List<Quote>> getQuoteByIds(
-      RobinhoodUser user, QuoteStore store, List<String> symbols,
+  @override
+  Future<List<Quote>> getQuoteByIds(
+      BrokerageUser user, QuoteStore store, List<String> symbols,
       {bool fromCache = true}) async {
     Iterable<Quote> cached = [];
     if (fromCache) {
@@ -971,6 +894,7 @@ class RobinhoodService implements IBrokerageService {
     var nonCached = symbols
         .where((element) =>
             !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .toSet()
         .toList();
     if (nonCached.isEmpty) {
       return cached.toList();
@@ -1016,10 +940,9 @@ class RobinhoodService implements IBrokerageService {
   // Year: bounds: regular, interval: day, span: year
   // Year: bounds: regular, interval: day, span: 5year
   */
-  static Future<InstrumentHistoricals> getInstrumentHistoricals(
-      RobinhoodUser user,
-      InstrumentHistoricalsStore store,
-      String symbolOrInstrumentId,
+  @override
+  Future<InstrumentHistoricals> getInstrumentHistoricals(BrokerageUser user,
+      InstrumentHistoricalsStore store, String symbolOrInstrumentId,
       {bool includeInactive = true,
       Bounds chartBoundsFilter = Bounds.trading,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
@@ -1042,7 +965,8 @@ class RobinhoodService implements IBrokerageService {
     return instrumentHistorical;
   }
 
-  static Future<List<InstrumentOrder>> getInstrumentOrders(RobinhoodUser user,
+  @override
+  Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
       InstrumentOrderStore store, List<String> instrumentUrls) async {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
@@ -1058,8 +982,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<Fundamentals> getFundamentals(
-      RobinhoodUser user, Instrument instrumentObj) async {
+  @override
+  Future<Fundamentals> getFundamentals(
+      BrokerageUser user, Instrument instrumentObj) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
     var resultJson = await getJson(user, instrumentObj.fundamentals);
@@ -1075,7 +1000,8 @@ class RobinhoodService implements IBrokerageService {
     return obj;
   }
 
-  static Future<List<Fundamentals>> getFundamentalsById(RobinhoodUser user,
+  @override
+  Future<List<Fundamentals>> getFundamentalsById(BrokerageUser user,
       List<String> instruments, InstrumentStore store) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
@@ -1107,8 +1033,9 @@ class RobinhoodService implements IBrokerageService {
     // return obj;
   }
 
-  static Future<List<dynamic>> getSplits(
-      RobinhoodUser user, Instrument instrumentObj) async {
+  @override
+  Future<List<dynamic>> getSplits(
+      BrokerageUser user, Instrument instrumentObj) async {
     //debugPrint(instrumentObj.splits);
     // Splits
     // https://api.robinhood.com/instruments/{0}/splits/'.format(id_for_stock(symbol))
@@ -1123,8 +1050,8 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getNews(
-      RobinhoodUser user, String symbol) async {
+  @override
+  Future<List<dynamic>> getNews(BrokerageUser user, String symbol) async {
     //https://api.robinhood.com/midlands/news/MSFT/
     //https://dora.robinhood.com/feed/instrument/50810c35-d215-4866-9758-0ada4ac79ffa/?
     var results = await RobinhoodService.pagedGet(
@@ -1138,8 +1065,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getLists(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<List<dynamic>> getLists(
+      BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
     var results = await pagedGet(user,
@@ -1152,8 +1080,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getDividends(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<List<dynamic>> getDividends(
+      BrokerageUser user, String instrumentId) async {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var results = await pagedGet(user,
@@ -1169,7 +1098,7 @@ class RobinhoodService implements IBrokerageService {
   }
 
   static Future<List<dynamic>> getRecurringTradeLogs(
-      RobinhoodUser user, String instrumentId) async {
+      BrokerageUser user, String instrumentId) async {
     //https://bonfire.robinhood.com/recurring_trade_logs/?instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
     //https://bonfire.robinhood.com/recurring_schedules/?asset_types=equity&instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
     var results = await pagedGet(user,
@@ -1182,8 +1111,8 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<dynamic> getRatings(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<dynamic> getRatings(BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/ratings/943c5009-a0bb-4665-8cf4-a95dab5874e4/
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     dynamic resultJson;
@@ -1198,8 +1127,9 @@ class RobinhoodService implements IBrokerageService {
     return resultJson;
   }
 
-  static Future<dynamic> getRatingsOverview(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<dynamic> getRatingsOverview(
+      BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/midlands/ratings/50810c35-d215-4866-9758-0ada4ac79ffa/overview/
     dynamic resultJson;
     try {
@@ -1213,8 +1143,9 @@ class RobinhoodService implements IBrokerageService {
     return resultJson;
   }
 
-  static Future<List<dynamic>> getEarnings(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<List<dynamic>> getEarnings(
+      BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     var resultJson = await getJson(user,
         "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/$instrumentId/")}");
@@ -1228,8 +1159,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getSimilar(
-      RobinhoodUser user, String instrumentId) async {
+  @override
+  Future<List<dynamic>> getSimilar(
+      BrokerageUser user, String instrumentId) async {
     //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
     var resultJson = await getJson(user,
         "${Constants.robinHoodExploreEndpoint}/instruments/similar/$instrumentId/");
@@ -1286,8 +1218,8 @@ class RobinhoodService implements IBrokerageService {
   OPTIONS
   */
 
-  static Stream<OptionPositionStore> streamOptionPositionStore(
-      RobinhoodUser user,
+  Stream<OptionPositionStore> streamOptionPositionStore(
+      BrokerageUser user,
       OptionPositionStore store,
       OptionInstrumentStore optionInstrumentStore,
       InstrumentStore instrumentStore,
@@ -1375,14 +1307,15 @@ class RobinhoodService implements IBrokerageService {
 
     // Load logos from cache.
     for (var op in ops) {
-      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
-        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      if (logoUrls.containsKey(op.symbol)) {
+        op.logoUrl = logoUrls[op.symbol];
       }
     }
     yield store;
   }
 
-  static Future<OptionPositionStore> getOptionPositionStore(RobinhoodUser user,
+  @override
+  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
       {bool nonzero = true}) async {
     List<OptionAggregatePosition> ops =
@@ -1456,15 +1389,16 @@ class RobinhoodService implements IBrokerageService {
 
     // Load logos from cache.
     for (var op in ops) {
-      if (RobinhoodService.logoUrls.containsKey(op.symbol)) {
-        op.logoUrl = RobinhoodService.logoUrls[op.symbol];
+      if (logoUrls.containsKey(op.symbol)) {
+        op.logoUrl = logoUrls[op.symbol];
       }
     }
     return store;
   }
 
-  static Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
-      RobinhoodUser user,
+  @override
+  Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
+      BrokerageUser user,
       {bool nonzero = true}) async {
     List<OptionAggregatePosition> optionPositions = [];
     //https://api.robinhood.com/options/aggregate_positions/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&nonzero=True
@@ -1482,14 +1416,15 @@ class RobinhoodService implements IBrokerageService {
   }
 
   static Future<OptionInstrument> getOptionInstrument(
-      RobinhoodUser user, String option) async {
+      BrokerageUser user, String option) async {
     var resultJson = await getJson(user, option);
     var oi = OptionInstrument.fromJson(resultJson);
     return oi;
   }
 
-  static Future<List<OptionInstrument>> getOptionInstrumentByIds(
-      RobinhoodUser user, List<String> ids) async {
+  @override
+  Future<List<OptionInstrument>> getOptionInstrumentByIds(
+      BrokerageUser user, List<String> ids) async {
     var url =
         "${Constants.robinHoodEndpoint}/options/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
@@ -1503,8 +1438,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<OptionChain>> getOptionChainsByIds(
-      RobinhoodUser user, List<String> ids) async {
+  @override
+  Future<List<OptionChain>> getOptionChainsByIds(
+      BrokerageUser user, List<String> ids) async {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/
     // https://api.robinhood.com/options/chains/?equity_instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var url =
@@ -1520,8 +1456,8 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<OptionChain> getOptionChains(
-      RobinhoodUser user, String id) async {
+  @override
+  Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
     // https://api.robinhood.com/options/chains/?equity_instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
     // {"id":"9330028e-455f-4acf-9954-77f60b19151d","symbol":"GOOG","can_open_position":true,"cash_component":null,"expiration_dates":["2021-10-29","2021-11-05","2021-11-12","2021-11-19","2021-11-26","2021-12-03","2021-12-17","2022-01-21","2022-02-18","2022-03-18","2022-06-17","2023-01-20","2023-03-17","2023-06-16","2024-01-19"],"trade_value_multiplier":"100.0000","underlying_instruments":[{"id":"204f1955-a737-47c9-a559-9fff1279428d","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","quantity":100}],"min_ticks":{"above_tick":"0.10","below_tick":"0.05","cutoff_price":"3.00"}}
     var url =
@@ -1537,8 +1473,9 @@ class RobinhoodService implements IBrokerageService {
     return canOpenOptionChain ?? list[0];
   }
 
-  static Stream<List<OptionInstrument>> streamOptionInstruments(
-      RobinhoodUser user,
+  @override
+  Stream<List<OptionInstrument>> streamOptionInstruments(
+      BrokerageUser user,
       OptionInstrumentStore store,
       Instrument instrument,
       String? expirationDates, // 2021-03-05
@@ -1600,8 +1537,9 @@ class RobinhoodService implements IBrokerageService {
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
 
-  static Future<OptionMarketData?> getOptionMarketData(
-      RobinhoodUser user, OptionInstrument optionInstrument) async {
+  @override
+  Future<OptionMarketData?> getOptionMarketData(
+      BrokerageUser user, OptionInstrument optionInstrument) async {
     var url =
         "${Constants.robinHoodEndpoint}/marketdata/options/?instruments=${Uri.encodeQueryComponent(optionInstrument.url)}";
     debugPrint(url);
@@ -1615,8 +1553,9 @@ class RobinhoodService implements IBrokerageService {
     }
   }
 
-  static Future<OptionHistoricals> getOptionHistoricals(
-      RobinhoodUser user, OptionHistoricalsStore store, List<String> ids,
+  @override
+  Future<OptionHistoricals> getOptionHistoricals(
+      BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
       {Bounds chartBoundsFilter = Bounds.regular,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     String? bounds = convertChartBoundsFilter(chartBoundsFilter);
@@ -1632,8 +1571,9 @@ class RobinhoodService implements IBrokerageService {
     return optionHistoricals;
   }
 
-  static Future<List<OptionMarketData>> getOptionMarketDataByIds(
-      RobinhoodUser user, List<String> ids) async {
+  @override
+  Future<List<OptionMarketData>> getOptionMarketDataByIds(
+      BrokerageUser user, List<String> ids) async {
     var url =
         "${Constants.robinHoodEndpoint}/marketdata/options/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
@@ -1647,8 +1587,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<OptionAggregatePosition>> refreshOptionMarketData(
-      RobinhoodUser user,
+  @override
+  Future<List<OptionAggregatePosition>> refreshOptionMarketData(
+      BrokerageUser user,
       OptionPositionStore optionPositionStore,
       OptionInstrumentStore optionInstrumentStore) async {
     if (optionPositionStore.items.isEmpty ||
@@ -1691,13 +1632,14 @@ class RobinhoodService implements IBrokerageService {
     return optionPositionStore.items;
   }
 
-  static Stream<List<OptionOrder>> streamOptionOrders(
-      RobinhoodUser user, OptionOrderStore store) async* {
-    List<OptionOrder> list = [];
+  @override
+  Stream<List<OptionOrder>> streamOptionOrders(
+      BrokerageUser user, OptionOrderStore store) async* {
     //https://api.robinhood.com/options/orders/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d
     var pageStream = RobinhoodService.streamedGet(user,
         "${Constants.robinHoodEndpoint}/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
+    List<OptionOrder> list = [];
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -1714,8 +1656,9 @@ class RobinhoodService implements IBrokerageService {
     //optionOrders = list;
   }
 
-  static Future<List<OptionOrder>> getOptionOrders(
-      RobinhoodUser user, OptionOrderStore store, String chainId) async {
+  @override
+  Future<List<OptionOrder>> getOptionOrders(
+      BrokerageUser user, OptionOrderStore store, String chainId) async {
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodEndpoint}/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}");
     List<OptionOrder> list = [];
@@ -1725,7 +1668,6 @@ class RobinhoodService implements IBrokerageService {
       list.add(op);
       store.addOrUpdate(op);
     }
-
     return list;
   }
 
@@ -1746,8 +1688,9 @@ class RobinhoodService implements IBrokerageService {
   }
   */
 
-  static Stream<List<OptionEvent>> streamOptionEvents(
-      RobinhoodUser user, OptionEventStore store,
+  @override
+  Stream<List<OptionEvent>> streamOptionEvents(
+      BrokerageUser user, OptionEventStore store,
       {int pageSize = 20}) async* {
     List<OptionEvent> list = [];
     //https://api.robinhood.com/options/orders/?page_size=10
@@ -1768,7 +1711,7 @@ class RobinhoodService implements IBrokerageService {
     //optionEvents = list;
   }
 
-  static Future<dynamic> getOptionEvents(RobinhoodUser user,
+  static Future<dynamic> getOptionEvents(BrokerageUser user,
       {int pageSize = 10}) async {
     //https://api.robinhood.com/options/events/?equity_instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&states=preparing
 
@@ -1777,8 +1720,9 @@ class RobinhoodService implements IBrokerageService {
     return await getJson(user, url);
   }
 
-  static Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
-      RobinhoodUser user, String instrumentUrl) async {
+  @override
+  Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
+      BrokerageUser user, String instrumentUrl) async {
     //https://api.robinhood.com/options/events/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     //var url =
@@ -1805,7 +1749,7 @@ class RobinhoodService implements IBrokerageService {
   CRYPTO
   */
 
-  static Future<dynamic> getNummusAccounts(RobinhoodUser user) async {
+  static Future<dynamic> getNummusAccounts(BrokerageUser user) async {
     var resultJson =
         await getJson(user, '${Constants.robinHoodNummusEndpoint}/accounts/');
 
@@ -1821,8 +1765,9 @@ class RobinhoodService implements IBrokerageService {
     */
   }
 
-  static Future<List<ForexHolding>> getNummusHoldings(
-      RobinhoodUser user, ForexHoldingStore store,
+  @override
+  Future<List<ForexHolding>> getNummusHoldings(
+      BrokerageUser user, ForexHoldingStore store,
       {bool nonzero = true}) async {
     var results = await RobinhoodService.pagedGet(user,
         "${Constants.robinHoodNummusEndpoint}/holdings/?nonzero=$nonzero");
@@ -1849,8 +1794,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<ForexHolding>> refreshNummusHoldings(
-      RobinhoodUser user, ForexHoldingStore store) async {
+  @override
+  Future<List<ForexHolding>> refreshNummusHoldings(
+      BrokerageUser user, ForexHoldingStore store) async {
     var forexHolding = store.items;
     var len = forexHolding.length;
     var size = 25; //20; //15; //17;
@@ -1872,7 +1818,8 @@ class RobinhoodService implements IBrokerageService {
     return forexHolding;
   }
 
-  static Future<ForexQuote> getForexQuote(RobinhoodUser user, String id) async {
+  @override
+  Future<ForexQuote> getForexQuote(BrokerageUser user, String id) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
@@ -1882,8 +1829,9 @@ class RobinhoodService implements IBrokerageService {
     return quoteObj;
   }
 
-  static Future<List<ForexQuote>> getForexQuoteByIds(
-      RobinhoodUser user, List<String> ids) async {
+  @override
+  Future<List<ForexQuote>> getForexQuoteByIds(
+      BrokerageUser user, List<String> ids) async {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
@@ -1912,8 +1860,8 @@ class RobinhoodService implements IBrokerageService {
   // Year: bounds: regular, interval: day, span: year
   // Year: bounds: regular, interval: day, span: 5year
   */
-  static Future<ForexHistoricals> getForexHistoricals(
-      RobinhoodUser user, String id,
+  @override
+  Future<ForexHistoricals> getForexHistoricals(BrokerageUser user, String id,
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
@@ -1931,7 +1879,7 @@ class RobinhoodService implements IBrokerageService {
     return item;
   }
 
-  static Future<List<dynamic>> getForexPairs(RobinhoodUser user) async {
+  static Future<List<dynamic>> getForexPairs(BrokerageUser user) async {
     String url = '${Constants.robinHoodNummusEndpoint}/currency_pairs/';
     var resultJson = await getJson(user, url);
     List<dynamic> list = [];
@@ -1947,8 +1895,9 @@ class RobinhoodService implements IBrokerageService {
   /*
   TRADING
   */
-  static Future<dynamic> placeInstrumentOrder(
-      RobinhoodUser user,
+  @override
+  Future<dynamic> placeInstrumentOrder(
+      BrokerageUser user,
       Account account,
       Instrument instrument,
       String symbol, // Ticker of the stock to trade.
@@ -1988,8 +1937,9 @@ class RobinhoodService implements IBrokerageService {
     return result;
   }
 
-  static Future<dynamic> placeOptionsOrder(
-      RobinhoodUser user,
+  @override
+  Future<dynamic> placeOptionsOrder(
+      BrokerageUser user,
       Account account,
       //Instrument instrument,
       OptionInstrument optionInstrument,
@@ -2045,15 +1995,16 @@ class RobinhoodService implements IBrokerageService {
 /*
 WATCHLIST
 */
-  static Stream<List<Watchlist>> streamLists(RobinhoodUser user,
+  @override
+  Stream<List<Watchlist>> streamLists(BrokerageUser user,
       InstrumentStore instrumentStore, QuoteStore quoteStore) async* {
-    List<Watchlist> list = [];
     // https://api.robinhood.com/midlands/lists/default/
     // https://api.robinhood.com/midlands/lists/items/ (not working)
     // TODO: https://api.robinhood.com/discovery/lists/user_items/
     var watchlistsUrl =
         "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
     var userItemsJson = await getJson(user, watchlistsUrl);
+    List<Watchlist> list = [];
     for (var entry in userItemsJson.entries) {
       Watchlist wl = await getList(entry.key, user);
 
@@ -2062,7 +2013,7 @@ WATCHLIST
 
       var instrumentIds = entry.value
           .where((e) => e['object_type'] == "instrument")
-          .map((e) => e['object_id'].toString())
+          .map<String>((e) => e['object_id'].toString())
           .toList();
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -2078,7 +2029,7 @@ WATCHLIST
           .where((e) =>
               e.instrumentObj !=
               null) // Figure out why in certain conditions, instrumentObj is null
-          .map((e) => e.instrumentObj!.symbol)
+          .map<String>((e) => e.instrumentObj!.symbol)
           .toList();
       var quoteObjs = await getQuoteByIds(user, quoteStore, instrumentSymbols);
       for (var quoteObj in quoteObjs) {
@@ -2121,7 +2072,8 @@ WATCHLIST
     }
   }
 
-  static Stream<Watchlist> streamList(RobinhoodUser user,
+  @override
+  Stream<Watchlist> streamList(BrokerageUser user,
       InstrumentStore instrumentStore, QuoteStore quoteStore, String key,
       {String ownerType = "custom"}) async* {
     Watchlist wl = await getList(key, user, ownerType: ownerType);
@@ -2176,7 +2128,8 @@ WATCHLIST
   */
   }
 
-  static Future<Watchlist> getList(String key, RobinhoodUser user,
+  @override
+  Future<Watchlist> getList(String key, BrokerageUser user,
       {String ownerType = "custom"}) async {
     var watchlistUrl =
         "${Constants.robinHoodEndpoint}/midlands/lists/$key/?owner_type=$ownerType";
@@ -2187,7 +2140,7 @@ WATCHLIST
   }
 
   static Future<List<WatchlistItem>> getListItems(
-      String key, RobinhoodUser user) async {
+      String key, BrokerageUser user) async {
     //https://api.robinhood.com/midlands/lists/items/?list_id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&local_midnight=2021-12-30T06%3A00%3A00.000Z
     var watchlistUrl =
         "${Constants.robinHoodEndpoint}/midlands/lists/items/?list_id=$key";
@@ -2202,7 +2155,7 @@ WATCHLIST
 
   /* COMMON */
   // SocketException (SocketException: Failed host lookup: 'loadbalancer-brokeback.nginx.service.robinhood' (OS Error: No address associated with hostname, errno = 7))
-  static Future<dynamic> getJson(RobinhoodUser user, String url) async {
+  static Future<dynamic> getJson(BrokerageUser user, String url) async {
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
@@ -2213,7 +2166,7 @@ WATCHLIST
     return responseJson;
   }
 
-  static Stream<List<dynamic>> streamedGet(RobinhoodUser user, String url,
+  static Stream<List<dynamic>> streamedGet(BrokerageUser user, String url,
       {int pages = 0}) async* {
     List<dynamic> results = [];
     dynamic responseJson = await getJson(user, url);
@@ -2233,7 +2186,7 @@ WATCHLIST
     }
   }
 
-  static pagedGet(RobinhoodUser user, String url) async {
+  static pagedGet(BrokerageUser user, String url) async {
     dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
     var nextUrl = responseJson['next'];

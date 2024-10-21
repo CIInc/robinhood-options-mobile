@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -21,8 +22,7 @@ import 'package:robinhood_options_mobile/model/option_event.dart';
 
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 
@@ -52,7 +52,7 @@ class HistoryPage extends StatefulWidget {
   ];
   */
 
-  const HistoryPage(this.user,
+  const HistoryPage(this.user, this.service,
       {super.key,
       required this.analytics,
       required this.observer,
@@ -61,7 +61,8 @@ class HistoryPage extends StatefulWidget {
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -142,7 +143,7 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildScaffold() {
-    optionOrderStream ??= RobinhoodService.streamOptionOrders(
+    optionOrderStream ??= widget.service.streamOptionOrders(
         widget.user, Provider.of<OptionOrderStore>(context, listen: false));
 
     return StreamBuilder(
@@ -151,7 +152,7 @@ class _HistoryPageState extends State<HistoryPage>
           if (optionOrdersSnapshot.hasData) {
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
-            positionOrderStream ??= RobinhoodService.streamPositionOrders(
+            positionOrderStream ??= widget.service.streamPositionOrders(
                 widget.user,
                 Provider.of<InstrumentOrderStore>(context, listen: false),
                 Provider.of<InstrumentStore>(context, listen: false));
@@ -163,7 +164,7 @@ class _HistoryPageState extends State<HistoryPage>
                     positionOrders =
                         positionOrdersSnapshot.data as List<InstrumentOrder>;
 
-                    optionEventStream ??= RobinhoodService.streamOptionEvents(
+                    optionEventStream ??= widget.service.streamOptionEvents(
                         widget.user,
                         Provider.of<OptionEventStore>(context, listen: false));
                     return StreamBuilder(
@@ -188,7 +189,7 @@ class _HistoryPageState extends State<HistoryPage>
                               }
                             }
 
-                            dividendStream ??= RobinhoodService.streamDividends(
+                            dividendStream ??= widget.service.streamDividends(
                                 widget.user,
                                 Provider.of<InstrumentStore>(context,
                                     listen: false));
@@ -691,6 +692,7 @@ class _HistoryPageState extends State<HistoryPage>
                                           builder: (context) =>
                                               OptionOrderWidget(
                                                 widget.user,
+                                                widget.service,
                                                 optionOrder,
                                                 analytics: widget.analytics,
                                                 observer: widget.observer,
@@ -983,6 +985,7 @@ class _HistoryPageState extends State<HistoryPage>
                                           builder: (context) =>
                                               PositionOrderWidget(
                                                 widget.user,
+                                                widget.service,
                                                 filteredPositionOrders![index],
                                                 analytics: widget.analytics,
                                                 observer: widget.observer,

@@ -5,17 +5,17 @@ import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class TradeInstrumentWidget extends StatefulWidget {
-  const TradeInstrumentWidget(this.user,
+  const TradeInstrumentWidget(this.user, this.service,
       //this.account,
       {super.key,
       required this.analytics,
@@ -26,7 +26,8 @@ class TradeInstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final InstrumentPosition? stockPosition;
   final Instrument? instrument;
@@ -56,7 +57,6 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   void initState() {
     super.initState();
     positionType = widget.positionType;
-    // futureOptionInstrument = RobinhoodService.downloadOptionInstrument(this.user, optionPosition);
     widget.analytics.logScreenView(screenName: 'Trade Option');
   }
 
@@ -72,8 +72,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             var accountStore =
                 Provider.of<AccountStore>(context, listen: false);
 
-            // TODO
-            var orderJson = await RobinhoodService.placeInstrumentOrder(
+            var orderJson = await widget.service.placeInstrumentOrder(
               widget.user,
               accountStore.items[0],
               widget.instrument!,

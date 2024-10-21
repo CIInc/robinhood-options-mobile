@@ -8,13 +8,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
-import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/services/tdameritrade_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
@@ -55,11 +58,10 @@ class NavigationStatefulWidget extends StatefulWidget {
 
 /// This is the private State class that goes with NavigationStatefulWidget.
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
-  IBrokerageService robinhoodService = RobinhoodService();
-  IBrokerageService tdAmeritradeService = TdAmeritradeService();
+  late IBrokerageService service;
 
-  List<RobinhoodUser> robinhoodUsers = [];
-  int currentUserIndex = 0;
+  // List<BrokerageUser> brokerageUsers = [];
+  // int currentUserIndex = 0;
   Future<UserInfo?>? futureUser;
   UserInfo? userInfo;
   Future<List<Account>>? futureAccounts;
@@ -77,9 +79,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   PageController? _pageController;
   List<Widget> tabPages = [];
 
-  //int _selectedDrawerIndex = 0;
-  bool _showDrawerContents = false;
-
   StreamSubscription<Uri>? linkStreamSubscription;
 
   @override
@@ -90,18 +89,30 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
     RobinhoodService.loadLogos();
 
-    var userStore = Provider.of<UserStore>(context, listen: false);
+    var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
     if (userStore.items.isEmpty) {
-      RobinhoodUser.loadUserIntoStore(userStore).then((value) => {
-            currentUserIndex =
-                value.indexWhere((element) => element.defaultUser)
-          });
+      userStore.load();
+      // .then((value) => {
+      //       currentUserIndex =
+      //           value.indexWhere((element) => element.defaultUser)
+      //     });
     }
 
     // web not supported
     if (!kIsWeb) {
       loadDeepLinks(userStore);
     }
+  }
+
+  @override
+  void dispose() {
+    if (_pageController != null) {
+      _pageController!.dispose();
+    }
+    if (linkStreamSubscription != null) {
+      linkStreamSubscription!.cancel();
+    }
+    super.dispose();
   }
 
   void initTabs() {
@@ -126,7 +137,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     ];
   }
 
-  Future<void> loadDeepLinks(UserStore userStore) async {
+  Future<void> loadDeepLinks(BrokerageUserStore userStore) async {
     // Platform messages may fail, so we use a try/catch PlatformException.
     /* Don't expect cold start login callbacks, do nothing for initialLinks for now until the use case arises.
     String? initialLink;
@@ -146,16 +157,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     linkStreamSubscription = appLinks.uriLinkStream.listen((Uri? link) async {
       // Parse the link and warn the user, if it is not correct
       debugPrint('newLink:$link');
-      String code = link
-          .toString()
-          .replaceFirst(RegExp(Constants.initialLinkLoginCallback), '');
+
+      String code = link!.queryParameters['code'].toString();
       debugPrint('code:$code');
-      var user = await TdAmeritradeService.getAccessToken(code);
+      var user = await SchwabService.getAccessToken(code);
       // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
-      var userInfo = await tdAmeritradeService.getUser(user!);
+      var userInfo = await service.getUser(user!);
       user.userName = userInfo!.username;
       debugPrint('result:${jsonEncode(user)}');
-      await user.save(userStore);
+      userStore.addOrUpdate(user);
+      userStore.save();
+      // TODO: Check if this is necessary considering userStore is already being listened to.
       setState(() {
         futureUser = null;
       });
@@ -174,17 +186,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       // Handle exception by warning the user their action did not succeed
       debugPrint('linkStreamError:$err');
     });
-  }
-
-  @override
-  void dispose() {
-    if (_pageController != null) {
-      _pageController!.dispose();
-    }
-    if (linkStreamSubscription != null) {
-      linkStreamSubscription!.cancel();
-    }
-    super.dispose();
   }
 
   /*
@@ -206,42 +207,25 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         */
   }
 
-  /*
-  void _handleUserChanged(RobinhoodUser? user) {
-    setState(() {
-      //robinhoodUser = user;
-      futureRobinhoodUser = RobinhoodUser.loadUserFromStore(userStore!);
-    });
-  }
-  */
-
-  /* Replaced by UseStore provider
-  void _handleAccountChanged(List<Account> accts) {
-    setState(() {
-      accounts = accts;
-      if (accounts != null) {
-        _buildTabs();
-      }
-    });
-  }
-  */
-  RobinhoodUser get currentUser =>
-      currentUserIndex >= 0 && currentUserIndex < robinhoodUsers.length
-          ? robinhoodUsers[currentUserIndex]
-          : robinhoodUsers[0];
+  // BrokerageUser get currentUser =>
+  //     currentUserIndex >= 0 && currentUserIndex < brokerageUsers.length
+  //         ? brokerageUsers[currentUserIndex]
+  //         : brokerageUsers[0];
 
   @override
   Widget build(BuildContext context) {
-    var userStore = Provider.of<UserStore>(context, listen: true);
+    var userStore = Provider.of<BrokerageUserStore>(context, listen: true);
+
     //var accountStore = Provider.of<AccountStore>(context, listen: true);
     if (userStore.items.isNotEmpty) {
-      robinhoodUsers = userStore.items;
-      if (currentUser.source == Source.robinhood) {
-        futureUser ??= robinhoodService.getUser(currentUser);
-      } else if (currentUser.source == Source.tdAmeritrade) {
-        futureUser ??= tdAmeritradeService.getUser(currentUser);
-      }
-      //futureAccounts ??= RobinhoodService.getAccounts(robinhoodUser!);
+      service = userStore.currentUser.source == Source.robinhood
+          ? RobinhoodService()
+          : userStore.currentUser.source == Source.schwab
+              ? SchwabService()
+              : DemoService();
+
+      futureUser = service.getUser(userStore.currentUser);
+      //futureAccounts ??= widget.service.getAccounts(robinhoodUser!);
       return FutureBuilder(
           future:
               futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
@@ -255,36 +239,37 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     accounts =
                         data.length > 1 ? data[1] as List<Account> : null;
                         */
-              _buildTabs();
+              _buildTabs(userStore);
             } else if (dataSnapshot.hasError) {
               debugPrint("${dataSnapshot.error}");
-              return buildScaffold(
+              return buildScaffold(userStore,
                   widget: InitialWidget(
                       child: Column(children: [
-                Text("${dataSnapshot.error}"),
-                const SizedBox(
-                  height: 10,
-                ),
-                ElevatedButton.icon(
-                  label: const Text(
-                    "Login",
-                    style: TextStyle(fontSize: 20.0),
-                  ),
-                  icon: const Icon(Icons.login),
-                  onPressed: () => _openLogin(),
-                )
-              ])));
+                    Text("${dataSnapshot.error}"),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    ElevatedButton.icon(
+                      label: const Text(
+                        "Login",
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                      icon: const Icon(Icons.login),
+                      onPressed: () => _openLogin(),
+                    )
+                  ])));
             }
-            return buildScaffold();
+            return buildScaffold(userStore);
           });
     }
-    return buildScaffold();
+    return buildScaffold(userStore);
   }
 
-  _buildTabs() {
+  _buildTabs(BrokerageUserStore userStore) {
     tabPages = [
       HomePage(
-        currentUser, userInfo!,
+        userStore.currentUser, userInfo!,
+        service,
         title: Constants.appTitle,
         navigatorKey: navigatorKeys[0],
         analytics: widget.analytics,
@@ -293,19 +278,19 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         //onAccountsChanged: _handleAccountChanged
       ),
       //const HomePage(title: 'Orders'),
-      SearchWidget(currentUser,
+      SearchWidget(userStore.currentUser, service,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[1]),
-      ListsWidget(currentUser,
+      ListsWidget(userStore.currentUser, service,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[2]),
-      HistoryPage(currentUser,
+      HistoryPage(userStore.currentUser, service,
           analytics: widget.analytics,
           observer: widget.observer,
           navigatorKey: navigatorKeys[3]),
-      UserWidget(currentUser, userInfo!,
+      UserWidget(userStore.currentUser, userInfo!,
           accounts?.first, //accounts != null ? accounts!.first : null,
           analytics: widget.analytics,
           observer: widget.observer,
@@ -315,7 +300,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     ];
   }
 
-  buildScaffold({Widget? widget}) {
+  buildScaffold(BrokerageUserStore userStore, {Widget? widget}) {
     return Scaffold(
       /*
       appBar: AppBar(
@@ -335,7 +320,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             ),
       ),
       */
-      drawer: robinhoodUsers.isEmpty ? null : _buildDrawer(),
+      drawer: userStore.items.isEmpty ? null : _buildDrawer(userStore),
       body: widget ??
           PageView.builder(
             itemBuilder: (context, index) {
@@ -351,7 +336,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             physics: const NeverScrollableScrollPhysics(),
           ),
       bottomNavigationBar: SizedBox(
-          height: loggedIn() ? null : 0,
+          height: loggedIn(userStore) ? null : 0,
           child: BottomNavigationBar(
             items: const <BottomNavigationBarItem>[
               BottomNavigationBarItem(
@@ -395,49 +380,95 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     );
   }
 
-  _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: robinhoodUsers
-                .isEmpty /* ||
-                currentUser.userName == null ||
-                userInfo == null*/
-            ? <Widget>[
-                const DrawerHeader(
-                  child:
-                      Text(Constants.appTitle, style: TextStyle(fontSize: 30)),
-                  //decoration: BoxDecoration(color: Colors.green)
-                ),
-                ListTile(
-                    leading: const Icon(
-                        Icons.login), //const Icon(Icons.verified_user),
-                    title: const Text('Login'),
-                    onTap: () {
-                      //_onSelectItem(0);
-                      _openLogin();
-                    }),
-              ]
-            : <Widget>[
-                UserAccountsDrawerHeader(
-                  accountName: Text(
-                      '${userInfo != null ? userInfo!.profileName : ''} (${currentUser.source == Source.robinhood ? Constants.robinhoodName : (currentUser.source == Source.tdAmeritrade ? Constants.tdName : '')})'),
-                  accountEmail: Text(currentUser.userName != null
-                      ? currentUser.userName!
-                      : ''), //userInfo!.email,
-                  currentAccountPicture: CircleAvatar(
-                      //backgroundColor: Colors.amber,
-                      child: Text(
-                    userInfo != null &&
-                            userInfo!.firstName.isNotEmpty &&
-                            userInfo!.lastName.isNotEmpty
-                        ? userInfo!.firstName.substring(0, 1) +
-                            userInfo!.lastName.substring(0, 1)
-                        : '',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 32),
-                  )),
-                  /*
+  _buildDrawer(BrokerageUserStore userStore) {
+    return Consumer<DrawerProvider>(builder: (context, drawerProvider, child) {
+      final userWidgets = <Widget>[];
+      for (int userIndex = 0; userIndex < userStore.items.length; userIndex++) {
+        final user = userStore.items[userIndex];
+        userWidgets.add(ListTile(
+          leading: CircleAvatar(
+              //backgroundColor: Colors.amber,
+              child: Text(
+            user.userName != null && user.userName!.isNotEmpty
+                ? user.userName!.substring(0, 1).toUpperCase()
+                : '',
+          )),
+          title: Text(
+              '${user.userName != null ? user.userName! : ''} (${user.source == Source.robinhood ? Constants.robinhoodName : user.source == Source.schwab ? Constants.scName : user.source == Source.demo ? 'Demo' : ''})'),
+          //selected: userInfo!.profileName == userInfo!.profileName,
+          onTap: () {
+            drawerProvider.toggleDrawer();
+            // // Reset defaultUser on app open.
+            // for (var u in userStore.items) {
+            //   u.defaultUser = false;
+            // }
+            // userStore.items[userIndex].defaultUser = true;
+
+            futureUser = null;
+            userStore.setCurrentUserIndex(userIndex);
+
+            // Provider.of<AccountStore>(context, listen: false).clear
+            // setState(() {
+            //   currentUserIndex = userIndex;
+            // });
+            Navigator.pop(context); // close the drawer
+            // _onPageChanged(4);
+          },
+        ));
+      }
+      userWidgets.addAll([
+        ListTile(
+            leading: const Icon(Icons.person_add),
+            title: const Text("Link Brokerage Account"),
+            //selected: userInfo!.profileName == 1,
+            onTap: () {
+              //_onSelectItem(0);
+              _openLogin();
+            }),
+        const Divider(
+          height: 10,
+        )
+      ]);
+
+      return Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: userStore.items.isEmpty
+              ? <Widget>[
+                  const DrawerHeader(
+                    child: Text(Constants.appTitle,
+                        style: TextStyle(fontSize: 30)),
+                    //decoration: BoxDecoration(color: Colors.green)
+                  ),
+                  ListTile(
+                      leading: const Icon(
+                          Icons.login), //const Icon(Icons.verified_user),
+                      title: const Text('Login'),
+                      onTap: () {
+                        //_onSelectItem(0);
+                        _openLogin();
+                      }),
+                ]
+              : <Widget>[
+                  UserAccountsDrawerHeader(
+                    accountName: Text(
+                        '${userInfo != null ? userInfo!.profileName : ''} (${userStore.currentUser.source == Source.robinhood ? Constants.robinhoodName : userStore.currentUser.source == Source.schwab ? Constants.scName : 'Demo'})'),
+                    accountEmail: Text(userStore.currentUser.userName != null
+                        ? userStore.currentUser.userName!
+                        : ''), //userInfo!.email,
+                    currentAccountPicture: CircleAvatar(
+                        //backgroundColor: Colors.amber,
+                        child: Text(
+                      userInfo != null &&
+                              userInfo!.firstName.isNotEmpty &&
+                              userInfo!.lastName.isNotEmpty
+                          ? userInfo!.firstName.substring(0, 1) +
+                              userInfo!.lastName.substring(0, 1)
+                          : '',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 32),
+                    )),
+                    /*
                   otherAccountsPictures: [
                     GestureDetector(
                       onTap: () => _onTapOtherAccounts(context),
@@ -451,158 +482,108 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     )
                   ],
                   */
-                  onDetailsPressed: () {
-                    setState(() {
-                      _showDrawerContents = !_showDrawerContents;
-                    });
-                  },
-                ),
-                Column(children: [
-                  if (_showDrawerContents) ...[
-                    for (int userIndex = 0;
-                        userIndex < robinhoodUsers.length;
-                        userIndex++) ...[
-                      ListTile(
-                        leading: CircleAvatar(
-                            //backgroundColor: Colors.amber,
-                            child: Text(
-                          robinhoodUsers[userIndex].userName != null &&
-                                  robinhoodUsers[userIndex].userName!.isNotEmpty
-                              ? robinhoodUsers[userIndex]
-                                  .userName!
-                                  .substring(0, 1)
-                                  .toUpperCase()
-                              : '',
-                        )),
-                        title: Text(
-                            '${robinhoodUsers[userIndex].userName != null ? robinhoodUsers[userIndex].userName! : ''} (${robinhoodUsers[userIndex].source == Source.robinhood ? Constants.robinhoodName : (robinhoodUsers[userIndex].source == Source.tdAmeritrade ? Constants.tdName : '')})'),
-                        //selected: userInfo!.profileName == userInfo!.profileName,
-                        onTap: () {
-                          _showDrawerContents = false;
-                          //Navigator.pop(context); // close the drawer
-                          // Reset defaultUser on app open.
-                          for (var u in robinhoodUsers) {
-                            u.defaultUser = false;
-                          }
-                          robinhoodUsers[userIndex].defaultUser = true;
-                          setState(() {
-                            currentUserIndex = userIndex;
-                            futureUser = null;
-                            //userInfo = null;
-                          });
-                          // _onPageChanged(4);
-                        },
-                      ),
-                    ],
-                    /*
+                    onDetailsPressed: () {
+                      drawerProvider.toggleDrawer();
+                    },
+                  ),
+                  Column(children: [
+                    AnimatedSwitcher(
+                        duration: Durations.short4,
+                        // transitionBuilder:
+                        //     (Widget child, Animation<double> animation) {
+                        //   return SlideTransition(
+                        //       position: (Tween<Offset>(
+                        //               begin: Offset(0, -0.5), end: Offset.zero))
+                        //           .animate(animation),
+                        //       child: child);
+                        // },
+                        child: drawerProvider.showDrawerContents
+                            ? Column(
+                                children: userWidgets,
+                              )
+                            : Container()),
                     ListTile(
-                      leading: CircleAvatar(
-                          //backgroundColor: Colors.amber,
-                          child: Text(
-                        '${userInfo!.firstName.substring(0, 1)}${userInfo!.lastName.substring(0, 1)}',
-                      )),
-                      title: Text(userInfo!.profileName),
-                      //selected: userInfo!.profileName == userInfo!.profileName,
+                      leading: const Icon(Icons.account_balance),
+                      title: const Text("Portfolio"),
+                      selected: _pageIndex == 0,
                       onTap: () {
-                        _showDrawerContents = false;
-                        //Navigator.pop(context); // close the drawer
-                        _onPageChanged(4);
+                        Navigator.pop(context); // close the drawer
+                        _onPageChanged(0);
                       },
                     ),
-                    */
                     ListTile(
-                        leading: const Icon(Icons.person_add),
-                        title: const Text("Link Brokerage Account"),
-                        //selected: userInfo!.profileName == 1,
-                        onTap: () {
-                          //_onSelectItem(0);
-                          _openLogin();
-                        }),
+                      leading: const Icon(Icons.search),
+                      title: const Text("Search"),
+                      selected: _pageIndex == 1,
+                      onTap: () {
+                        Navigator.pop(context); // close the drawer
+                        _onPageChanged(1);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.collections_bookmark),
+                      title: const Text("Lists"),
+                      selected: _pageIndex == 2,
+                      onTap: () {
+                        Navigator.pop(context); // close the drawer
+                        _onPageChanged(2);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.history),
+                      title: const Text("History"),
+                      selected: _pageIndex == 3,
+                      onTap: () {
+                        Navigator.pop(context); // close the drawer
+                        _onPageChanged(3);
+                      },
+                    ),
                     const Divider(
                       height: 10,
                     ),
-                  ],
-                  ListTile(
-                    leading: const Icon(Icons.account_balance),
-                    title: const Text("Portfolio"),
-                    selected: _pageIndex == 0,
-                    onTap: () {
-                      Navigator.pop(context); // close the drawer
-                      _onPageChanged(0);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.search),
-                    title: const Text("Search"),
-                    selected: _pageIndex == 1,
-                    onTap: () {
-                      Navigator.pop(context); // close the drawer
-                      _onPageChanged(1);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.collections_bookmark),
-                    title: const Text("Lists"),
-                    selected: _pageIndex == 2,
-                    onTap: () {
-                      Navigator.pop(context); // close the drawer
-                      _onPageChanged(2);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: const Text("History"),
-                    selected: _pageIndex == 3,
-                    onTap: () {
-                      Navigator.pop(context); // close the drawer
-                      _onPageChanged(3);
-                    },
-                  ),
-                  const Divider(
-                    height: 10,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.settings),
-                    title: const Text("Settings"),
-                    //selected: false,
-                    onTap: () {
-                      Navigator.pop(context); // close the drawer
-                      showModalBottomSheet<void>(
-                          context: context,
-                          //isScrollControlled: true,
-                          //useRootNavigator: true,
-                          //constraints: const BoxConstraints(maxHeight: 200),
-                          builder: (_) => MoreMenuBottomSheet(
-                                currentUser,
-                                /*
-                    chainSymbols: chainSymbols,
-                    positionSymbols: positionSymbols,
-                    cryptoSymbols: cryptoSymbols,
-                    optionSymbolFilters: optionSymbolFilters,
-                    stockSymbolFilters: stockSymbolFilters,
-                    cryptoFilters: cryptoFilters,*/
-                                onSettingsChanged: (_) => {},
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              ));
-                    },
-                  ),
-                  const Divider(
-                    height: 10,
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text("Logout"),
-                    //selected: false,
-                    onTap: () {
-                      _onSelectItem(1);
-                      _logout();
-                    },
-                  ),
-                ]),
-              ],
-      ),
-    );
+                    ListTile(
+                      leading: const Icon(Icons.settings),
+                      title: const Text("Settings"),
+                      //selected: false,
+                      onTap: () {
+                        Navigator.pop(context); // close the drawer
+                        showModalBottomSheet<void>(
+                            context: context,
+                            //isScrollControlled: true,
+                            //useRootNavigator: true,
+                            //constraints: const BoxConstraints(maxHeight: 200),
+                            builder: (_) => MoreMenuBottomSheet(
+                                  userStore.currentUser,
+                                  /*
+                      chainSymbols: chainSymbols,
+                      positionSymbols: positionSymbols,
+                      cryptoSymbols: cryptoSymbols,
+                      optionSymbolFilters: optionSymbolFilters,
+                      stockSymbolFilters: stockSymbolFilters,
+                      cryptoFilters: cryptoFilters,*/
+                                  onSettingsChanged: (_) => {},
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                ));
+                      },
+                    ),
+                    const Divider(
+                      height: 10,
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.logout),
+                      title: const Text("Logout"),
+                      //selected: false,
+                      onTap: () {
+                        _onSelectItem(1);
+                        _logout(userStore);
+                      },
+                    ),
+                  ])
+                ],
+        ),
+      );
+    });
   }
 
   _onSelectItem(int index) {
@@ -612,7 +593,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   /*
   _onTapOtherAccounts(BuildContext context) async {
-    await RobinhoodUser.clearUserFromStore();
+  
+    // await RobinhoodUser.clearUserFromStore();
+    userStore.remove(userStore.currentUser);
+    userStore.save();
 
     Navigator.pop(context);
     showDialog(
@@ -633,14 +617,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
   */
 
-  loggedIn() {
-    return robinhoodUsers.isNotEmpty &&
-        currentUser.userName != null &&
+  loggedIn(BrokerageUserStore userStore) {
+    return userStore.items.isNotEmpty &&
+        userStore.currentUser.userName != null &&
         userInfo != null;
   }
 
   _openLogin() async {
-    final RobinhoodUser? result = await Navigator.push(
+    final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (BuildContext context) => LoginWidget(
@@ -655,7 +639,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         futureUser = null;
       });
 
-      //Navigator.pop(context); //, 'login'
+      Navigator.pop(context); //, 'login'
 
       // After the Selection Screen returns a result, hide any previous snackbars
       // and show the new result.
@@ -665,7 +649,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     }
   }
 
-  _logout() async {
+  _logout(BrokerageUserStore userStore) async {
     var alert = AlertDialog(
       title: const Text('Logout process'),
       content: const SingleChildScrollView(
@@ -687,9 +671,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           child: const Text('OK'),
           onPressed: () async {
             Navigator.pop(context, 'dialog');
-
-            await currentUser.clearUserFromStore(
-                Provider.of<UserStore>(context, listen: false));
+            userStore.remove(userStore.currentUser);
+            userStore.save();
+            // await currentUser.clearUserFromStore(
+            //     Provider.of<BrokerageUserStore>(context, listen: false));
 
             // Future.delayed(const Duration(milliseconds: 1), () async {
 
@@ -700,9 +685,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             //setState(() {
             //futureRobinhoodUser = null;
             //if (!mounted) return;
+            userStore.setCurrentUserIndex(0);
             setState(() {
               initTabs();
-              currentUserIndex = 0;
+              // currentUserIndex = 0;
               futureUser = null;
             });
 

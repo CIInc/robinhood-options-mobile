@@ -4,7 +4,8 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -15,6 +16,7 @@ final formatCompactNumber = NumberFormat.compact();
 class OptionOrdersWidget extends StatefulWidget {
   const OptionOrdersWidget(
     this.user,
+    this.service,
     //this.account,
     this.optionOrders,
     this.orderFilters, {
@@ -25,7 +27,8 @@ class OptionOrdersWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
@@ -197,7 +200,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                       MaterialPageRoute(
                           builder: (context) => OptionOrderWidget(
                                 widget.user,
-                                //widget.account,
+                                widget.service,
                                 optionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,

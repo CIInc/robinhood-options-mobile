@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
@@ -37,7 +38,7 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -53,6 +54,7 @@ final formatCompactNumber = NumberFormat.compact();
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
       this.user,
+      this.service,
       //this.account,
       this.instrument,
       {super.key,
@@ -62,7 +64,8 @@ class InstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final Instrument instrument;
   final String? heroTag;
@@ -114,7 +117,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
     _startRefreshTimer();
 
-    //var fut = RobinhoodService.getOptionOrders(user); // , instrument);
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
@@ -144,7 +146,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (optionOrders.isNotEmpty) {
       futureOptionOrders = Future.value(optionOrders);
     } else if (widget.instrument.tradeableChainId != null) {
-      futureOptionOrders ??= RobinhoodService.getOptionOrders(
+      futureOptionOrders ??= widget.service.getOptionOrders(
           widget.user, optionOrderStore, widget.instrument.tradeableChainId!);
     } else {
       futureOptionOrders = Future.value([]);
@@ -158,7 +160,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     if (positionOrders.isNotEmpty) {
       futureInstrumentOrders = Future.value(positionOrders);
     } else {
-      futureInstrumentOrders ??= RobinhoodService.getInstrumentOrders(
+      futureInstrumentOrders ??= widget.service.getInstrumentOrders(
           widget.user, stockPositionOrderStore, [widget.instrument.url]);
     }
 
@@ -169,45 +171,45 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     if (instrument.quoteObj == null) {
-      futureQuote ??= RobinhoodService.getQuote(user,
+      futureQuote ??= widget.service.getQuote(user,
           Provider.of<QuoteStore>(context, listen: false), instrument.symbol);
     } else {
       futureQuote = Future.value(instrument.quoteObj);
     }
 
     if (instrument.fundamentalsObj == null) {
-      futureFundamentals ??= RobinhoodService.getFundamentals(user, instrument);
+      futureFundamentals ??= widget.service.getFundamentals(user, instrument);
     } else {
       futureFundamentals ??= Future.value(instrument.fundamentalsObj);
     }
 
-    futureNews ??= RobinhoodService.getNews(user, instrument.symbol);
+    futureNews ??= widget.service.getNews(user, instrument.symbol);
 
-    futureLists ??= RobinhoodService.getLists(user, instrument.id);
+    futureLists ??= widget.service.getLists(user, instrument.id);
 
-    futureDividends ??= RobinhoodService.getDividends(user, instrument.id);
+    futureDividends ??= widget.service.getDividends(user, instrument.id);
 
-    futureRatings ??= RobinhoodService.getRatings(user, instrument.id);
+    futureRatings ??= widget.service.getRatings(user, instrument.id);
     futureRatingsOverview ??=
-        RobinhoodService.getRatingsOverview(user, instrument.id);
+        widget.service.getRatingsOverview(user, instrument.id);
 
-    futureOptionEvents ??= RobinhoodService.getOptionEventsByInstrumentUrl(
-        widget.user, instrument.url);
+    futureOptionEvents ??= widget.service
+        .getOptionEventsByInstrumentUrl(widget.user, instrument.url);
 
-    futureEarnings ??= RobinhoodService.getEarnings(user, instrument.id);
+    futureEarnings ??= widget.service.getEarnings(user, instrument.id);
 
-    futureSimilar ??= RobinhoodService.getSimilar(user, instrument.id);
+    futureSimilar ??= widget.service.getSimilar(user, instrument.id);
 
-    futureSplits ??= RobinhoodService.getSplits(user, instrument);
+    futureSplits ??= widget.service.getSplits(user, instrument);
 
-    futureHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+    futureHistoricals ??= widget.service.getInstrumentHistoricals(
         user,
         Provider.of<InstrumentHistoricalsStore>(context, listen: false),
         instrument.symbol,
         chartBoundsFilter: chartBoundsFilter,
         chartDateSpanFilter: chartDateSpanFilter);
 
-    futureRsiHistoricals ??= RobinhoodService.getInstrumentHistoricals(
+    futureRsiHistoricals ??= widget.service.getInstrumentHistoricals(
         user,
         Provider.of<InstrumentHistoricalsStore>(context, listen: false),
         instrument.symbol,
@@ -285,7 +287,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       const Duration(milliseconds: 15000),
       (timer) async {
         if (widget.user.refreshEnabled) {
-          await RobinhoodService.getInstrumentHistoricals(
+          await widget.service.getInstrumentHistoricals(
               widget.user,
               Provider.of<InstrumentHistoricalsStore>(context, listen: false),
               widget.instrument.symbol,
@@ -293,7 +295,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               chartDateSpanFilter: chartDateSpanFilter);
 
           if (!mounted) return;
-          await RobinhoodService.refreshQuote(
+          await widget.service.refreshQuote(
               widget.user,
               Provider.of<QuoteStore>(context, listen: false),
               widget.instrument.symbol);
@@ -444,11 +446,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 instrumentHistoricalsStore.items.firstWhereOrNull((element) =>
                         element.symbol == instrument.symbol &&
                         element.span ==
-                            RobinhoodService.convertChartSpanFilter(
-                                chartDateSpanFilter) &&
+                            convertChartSpanFilter(chartDateSpanFilter) &&
                         element.bounds ==
-                            RobinhoodService.convertChartBoundsFilter(
-                                chartBoundsFilter)
+                            convertChartBoundsFilter(chartBoundsFilter)
                     //&& element.interval == element.interval
                     );
 
@@ -456,11 +456,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 (element) =>
                     element.symbol == instrument.symbol &&
                     element.span ==
-                        RobinhoodService.convertChartSpanFilter(
-                            ChartDateSpan.month) &&
+                        convertChartSpanFilter(ChartDateSpan.month) &&
                     element.bounds ==
-                        RobinhoodService.convertChartBoundsFilter(
-                            chartBoundsFilter) &&
+                        convertChartBoundsFilter(chartBoundsFilter) &&
                     element.interval == 'day');
             if (rsi != null) {
               debugPrint(rsi.historicals.first.closePrice!.toString());
@@ -815,6 +813,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       title: Text("Stock Position",
                           style: TextStyle(fontSize: 20))),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Quantity"),
                     trailing: Text(
                         // formatCompactNumber.format(position.quantity!),
@@ -822,22 +821,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Average Cost"),
                     trailing: Text(
                         formatCurrency.format(position.averageBuyPrice),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Total Cost"),
                     trailing: Text(formatCurrency.format(position.totalCost),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Market Value"),
                     trailing: Text(formatCurrency.format(position.marketValue),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                      minTileHeight: 10,
                       title: const Text("Return"),
                       trailing: Wrap(children: [
                         position.trendingIcon,
@@ -854,12 +857,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               */
                       ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Return %"),
                     trailing: Text(
                         formatPercentage.format(position.gainLossPercent),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                      minTileHeight: 10,
                       title: const Text("Return Today"),
                       trailing: Wrap(children: [
                         position.trendingIconToday,
@@ -878,17 +883,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               */
                       ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Return Today %"),
                     trailing: Text(
                         formatPercentage.format(position.gainLossPercentToday),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Created"),
                     trailing: Text(formatDate.format(position.createdAt!),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
+                    minTileHeight: 10,
                     title: const Text("Updated"),
                     trailing: Text(formatDate.format(position.updatedAt!),
                         style: const TextStyle(fontSize: 18)),
@@ -932,7 +940,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       height: 25.0,
                     )),
                     OptionPositionsRowWidget(
-                      widget.user, //widget.account,
+                      widget.user,
+                      widget.service,
                       filteredOptionPositions,
                       analytics: widget.analytics,
                       observer: widget.observer,
@@ -1049,7 +1058,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     )),
                     OptionOrdersWidget(
                       widget.user,
-                      //widget.account,
+                      widget.service,
                       instrument.optionOrders!,
                       const ["confirmed", "filled"],
                       analytics: widget.analytics,
@@ -1130,7 +1139,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => InstrumentOptionChainWidget(
                                 widget.user,
-                                //widget.account,
+                                widget.service,
                                 instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
@@ -1160,7 +1169,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => TradeInstrumentWidget(
-                                  widget.user,
+                                  widget.user, widget.service,
                                   //widget.account,
                                   // stockPosition: positi,
                                   instrument: instrument,
@@ -1189,7 +1198,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => TradeInstrumentWidget(
-                                  widget.user,
+                                  widget.user, widget.service,
                                   //widget.account,
                                   // stockPosition: positi,
                                   instrument: instrument,
@@ -2030,8 +2039,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       */
                 //isThreeLine: true,
                 onTap: () async {
-                  var similarInstruments =
-                      await RobinhoodService.getInstrumentsByIds(
+                  var similarInstruments = await widget.service
+                      .getInstrumentsByIds(
                           widget.user,
                           Provider.of<InstrumentStore>(context, listen: false),
                           [instrument.similarObj![index]["instrument_id"]]);
@@ -2045,7 +2054,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         MaterialPageRoute(
                             builder: (context) => InstrumentWidget(
                                   widget.user,
-                                  //widget.account,
+                                  widget.service,
                                   similarInstruments[0],
                                   analytics: widget.analytics,
                                   observer: widget.observer,
@@ -2083,6 +2092,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               ListTile(
+                // minTileHeight: 10,
                 leading: instrument.listsObj![index]["image_urls"] != null
                     ? Image.network(instrument.listsObj![index]["image_urls"]
                         ["circle_64:3"]) //,width: 96, height: 56
@@ -2103,7 +2113,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       MaterialPageRoute(
                           builder: (context) => ListWidget(
                                 widget.user,
-                                //widget.account,
+                                widget.service,
                                 instrument.listsObj![index]["id"].toString(),
                                 analytics: widget.analytics,
                                 observer: widget.observer,

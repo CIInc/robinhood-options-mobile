@@ -7,9 +7,11 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extension_methods.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
@@ -39,6 +41,7 @@ final ItemPositionsListener itemPositionListener =
 class OptionPositionsRowWidget extends StatelessWidget {
   const OptionPositionsRowWidget(
     this.user,
+    this.service,
     //this.account,
     this.filteredOptionPositions, {
     super.key,
@@ -48,7 +51,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
+  final IBrokerageService service;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
 
@@ -236,7 +240,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             MaterialPageRoute(
                 builder: (context) => OptionInstrumentWidget(
                       user,
-                      //account,
+                      service,
                       op.optionInstrument!,
                       optionPosition: op,
                       analytics: analytics,
@@ -250,7 +254,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             MaterialPageRoute(
                 builder: (context) => InstrumentWidget(
                       user,
-                      //account,
+                      service,
                       op.instrumentObj!,
                       analytics: analytics,
                       observer: observer,
@@ -509,7 +513,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (context) => OptionInstrumentWidget(
                           user,
-                          //account,
+                          service,
                           op.optionInstrument!,
                           optionPosition: op,
                           heroTag: 'logo_${op.symbol}${op.id}',
@@ -865,7 +869,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 );
                 */
             /*
-            var instrument = await RobinhoodService.getInstrumentBySymbol(
+            var instrument = await widget.service.getInstrumentBySymbol(
                 user, ops.first.symbol);
             Navigator.push(
                 context,
@@ -878,7 +882,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 MaterialPageRoute(
                     builder: (context) => InstrumentWidget(
                           user,
-                          //account,
+                          service,
                           ops.first.instrumentObj!,
                           analytics: analytics,
                           observer: observer,
@@ -988,7 +992,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                   MaterialPageRoute(
                       builder: (context) => OptionInstrumentWidget(
                             user,
-                            //account,
+                            service,
                             op.optionInstrument!,
                             optionPosition: op,
                             analytics: analytics,

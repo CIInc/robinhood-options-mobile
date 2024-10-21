@@ -1,9 +1,10 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
-import 'package:robinhood_options_mobile/model/robinhood_user.dart';
-import 'package:robinhood_options_mobile/model/user_store.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 class MoreMenuBottomSheet extends StatefulWidget {
@@ -23,7 +24,7 @@ class MoreMenuBottomSheet extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final RobinhoodUser user;
+  final BrokerageUser user;
   final ValueChanged<dynamic> onSettingsChanged;
   final List<String>? chainSymbols;
   final List<String>? positionSymbols;
@@ -44,7 +45,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   List<String> optionFilters = <String>[];
   List<String> positionFilters = <String>[];
 
-  UserStore? userStore;
+  BrokerageUserStore? userStore;
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    userStore = Provider.of<UserStore>(context, listen: true);
+    userStore = Provider.of<BrokerageUserStore>(context, listen: true);
     return Scaffold(
         appBar:
             AppBar(leading: const CloseButton(), title: const Text('Settings')),
@@ -649,7 +650,8 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   Future<void> _onSettingsChanged({bool persistUser = true}) async {
     if (persistUser) {
-      await widget.user.save(userStore!);
+      userStore!.addOrUpdate(widget.user);
+      userStore!.save();
     }
     widget.onSettingsChanged({
       'hasQuantityFilters': hasQuantityFilters,
@@ -940,7 +942,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   }
 
   _openLogin() async {
-    final RobinhoodUser? result = await Navigator.push(
+    final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
             builder: (BuildContext context) => LoginWidget(
@@ -959,21 +961,6 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
     }
   }
-  /*
-  _logout() async {
-    await widget.user.clearUserFromStore(userStore!);
-    Navigator.pop(context, 'dialog');
-
-    // Future.delayed(const Duration(milliseconds: 1), () async {
-
-    //widget.onUserChanged(null);
-
-    //setState(() {
-    //  futureRobinhoodUser = null;
-    //  // _selectedDrawerIndex = 0;
-    //});
-  }
-    */
 }
 /*
 class OptionOrderFilterWidget extends StatefulWidget {
