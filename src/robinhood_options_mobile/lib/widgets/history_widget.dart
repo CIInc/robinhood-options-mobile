@@ -84,6 +84,11 @@ class _HistoryPageState extends State<HistoryPage>
   List<dynamic>? dividends;
   List<dynamic>? filteredDividends;
 
+  Stream<List<dynamic>>? interestStream;
+  List<dynamic>? interests;
+  List<dynamic>? filteredInterests;
+  double interestBalance = 0;
+
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
   double dividendBalance = 0;
@@ -204,19 +209,55 @@ class _HistoryPageState extends State<HistoryPage>
                                         .compareTo(
                                             DateTime.parse(a["payable_date"])));
 
-                                    return _buildPage(
-                                        optionOrders: optionOrders,
-                                        positionOrders: positionOrders,
-                                        optionEvents: optionEvents,
-                                        dividends: dividends,
-                                        done: positionOrdersSnapshot
-                                                    .connectionState ==
-                                                ConnectionState.done &&
-                                            optionOrdersSnapshot
-                                                    .connectionState ==
-                                                ConnectionState.done &&
-                                            dividendSnapshot.connectionState ==
-                                                ConnectionState.done);
+                                    interestStream ??= widget.service
+                                        .streamInterests(
+                                            widget.user,
+                                            Provider.of<InstrumentStore>(
+                                                context,
+                                                listen: false));
+
+                                    return StreamBuilder<Object>(
+                                        stream: interestStream,
+                                        builder: (context7, interestSnapshot) {
+                                          if (interestSnapshot.hasData) {
+                                            interests = interestSnapshot.data
+                                                as List<dynamic>;
+                                            interests!.sort((a, b) =>
+                                                DateTime.parse(b["pay_date"])
+                                                    .compareTo(DateTime.parse(
+                                                        a["pay_date"])));
+                                            return _buildPage(
+                                                optionOrders: optionOrders,
+                                                positionOrders: positionOrders,
+                                                optionEvents: optionEvents,
+                                                dividends: dividends,
+                                                interests: interests,
+                                                done: positionOrdersSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    optionOrdersSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    dividendSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done);
+                                          } else {
+                                            return _buildPage(
+                                                optionOrders: optionOrders,
+                                                positionOrders: positionOrders,
+                                                optionEvents: optionEvents,
+                                                dividends: dividends,
+                                                done: positionOrdersSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    optionOrdersSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done &&
+                                                    dividendSnapshot
+                                                            .connectionState ==
+                                                        ConnectionState.done);
+                                          }
+                                        });
                                   } else {
                                     return _buildPage(
                                         optionOrders: optionOrders,
@@ -271,6 +312,7 @@ class _HistoryPageState extends State<HistoryPage>
       List<InstrumentOrder>? positionOrders,
       List<OptionEvent>? optionEvents,
       List<dynamic>? dividends,
+      List<dynamic>? interests,
       //List<Watchlist>? watchlists,
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
@@ -374,8 +416,28 @@ class _HistoryPageState extends State<HistoryPage>
           : 0;
     }
 
-    balance =
-        optionOrdersPremiumBalance + positionOrdersBalance + dividendBalance;
+    if (interests != null) {
+      filteredInterests = interests
+          .where((element) =>
+              //(orderFilters.isEmpty || orderFilters.contains(element["state"])) &&
+              (days == 0 ||
+                  DateTime.parse(element["pay_date"]!)
+                          .add(Duration(days: days))
+                          .compareTo(DateTime.now()) >=
+                      0))
+          .toList();
+
+      interestBalance = filteredInterests!.isNotEmpty
+          ? filteredInterests!
+              .map((e) => double.parse(e["amount"]["amount"]))
+              .reduce((a, b) => a + b)
+          : 0;
+    }
+
+    balance = optionOrdersPremiumBalance +
+        positionOrdersBalance +
+        dividendBalance +
+        interestBalance;
 
     if (optionEvents != null) {
       filteredOptionEvents = optionEvents
@@ -1018,7 +1080,7 @@ class _HistoryPageState extends State<HistoryPage>
                           style: TextStyle(fontSize: 19.0),
                         ),
                         subtitle: Text(
-                            "${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
+                            "${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends $orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
                         trailing: IconButton(
                             icon: const Icon(Icons.filter_list),
                             onPressed: () {
@@ -1189,6 +1251,133 @@ class _HistoryPageState extends State<HistoryPage>
                 ),
               ),
             ),
+          ],
+          if (interests != null) ...[
+            SliverStickyHeader(
+              header: Material(
+                  //elevation: 2,
+                  child: Container(
+                      //height: 208.0, //60.0,
+                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      alignment: Alignment.centerLeft,
+                      child: ListTile(
+                        title: const Text(
+                          "Interest Payments",
+                          style: TextStyle(fontSize: 19.0),
+                        ),
+                        subtitle: Text(
+                            "${formatCompactNumber.format(filteredInterests!.length)} of ${formatCompactNumber.format(interests.length)} interest $orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}"),
+                        trailing: IconButton(
+                            icon: const Icon(Icons.filter_list),
+                            onPressed: () {
+                              var future = showModalBottomSheet<void>(
+                                context: context,
+                                // constraints: BoxConstraints(maxHeight: 260),
+                                builder: (BuildContext context) {
+                                  return Column(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(Icons.filter_list),
+                                        title: const Text(
+                                          "Filter Interest Payments",
+                                          style: TextStyle(fontSize: 19.0),
+                                        ),
+                                      ),
+                                      const ListTile(
+                                        title: Text("Order State & Date"),
+                                      ),
+                                      orderFilterWidget,
+                                      orderDateFilterWidget,
+                                    ],
+                                  );
+                                },
+                              );
+                              future.then((void value) => {});
+                            }),
+                      ))),
+              sliver: SliverList(
+                // delegate: SliverChildListDelegate(widgets),
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) {
+                    if (index == 0) {
+                      return SizedBox(
+                          height: 240,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                10.0, 0, 10, 10), //EdgeInsets.zero
+                            child: interestChart(),
+                          ));
+                    }
+                    var interest = filteredInterests![index - 1];
+                    return Card(
+                        child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        showShareView
+                            ? CheckboxListTile(
+                                value: selectedPositionOrdersToShare
+                                    .contains(interest["pay_date"]),
+                                onChanged: (bool? newValue) {
+                                  if (newValue!) {
+                                    setState(() {
+                                      selectedPositionOrdersToShare
+                                          .add(interest["pay_date"]);
+                                    });
+                                  } else {
+                                    setState(() {
+                                      selectedPositionOrdersToShare
+                                          .remove(interest["pay_date"]);
+                                    });
+                                  }
+                                },
+                                title: Text(interest["payout_type"]
+                                    .toString()
+                                    .replaceAll("_", " ")
+                                    .capitalize()),
+                                subtitle: Text(
+                                    "on ${formatDate.format(interest["pay_date"]!)}"),
+                              )
+                            : ListTile(
+                                // leading: CircleAvatar(
+                                //     //backgroundImage: AssetImage(user.profilePicture),
+                                //     child: Text(
+                                //   "INT",
+                                //   style: const TextStyle(fontSize: 14),
+                                //   overflow: TextOverflow.fade,
+                                //   softWrap: false,
+                                // )),
+                                title: Text(
+                                  interest["payout_type"]
+                                      .toString()
+                                      .replaceAll("_", " ")
+                                      .capitalize(),
+                                  // style: const TextStyle(fontSize: 18.0),
+                                  //overflow: TextOverflow.visible
+                                ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                subtitle: Text(
+                                    "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                    style: const TextStyle(fontSize: 14)),
+                                trailing: Wrap(spacing: 10.0, children: [
+                                  Column(children: [
+                                    // const Text("Actual", style: TextStyle(fontSize: 11)),
+                                    Text(
+                                        formatCurrency.format(double.parse(
+                                            interest!["amount"]["amount"])),
+                                        style: const TextStyle(fontSize: 18))
+                                  ])
+                                ]),
+                                //isThreeLine: true,
+                              ),
+                      ],
+                    ));
+                  },
+                  childCount: filteredInterests!.length + 1,
+                ),
+              ),
+            ),
           ]
         ],
         SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
@@ -1272,6 +1461,90 @@ class _HistoryPageState extends State<HistoryPage>
               .format((datum as MapEntry<DateTime, double>).value),
           data: groupedDividendsData // dividends!,
           ),
+    ], animate: true, onSelected: (p0) {
+      // debugPrint(p0.value.toString());
+      // var provider =
+      //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+      // provider.selectionChanged(historical);
+    },
+        seriesRendererConfig: charts.BarRendererConfig<DateTime>(
+          groupingType: charts.BarGroupingType.groupedStacked,
+          // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
+          //     insideLabelStyleSpec:
+          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
+          //     outsideLabelStyleSpec:
+          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
+        ),
+        behaviors: [
+          charts.SelectNearest(),
+          charts.DomainHighlighter(),
+          // charts.ChartTitle('Aggregate →',
+          //     behaviorPosition: charts.BehaviorPosition.start,
+          //     titleOutsideJustification: charts.OutsideJustification
+          //         .middleDrawArea),
+          // charts.SeriesLegend(),
+          // Add the sliding viewport behavior to have the viewport center on the
+          // domain that is currently selected.
+          // charts.SlidingViewport(),
+          // A pan and zoom behavior helps demonstrate the sliding viewport
+          // behavior by allowing the data visible in the viewport to be adjusted
+          // dynamically.
+          charts.PanAndZoomBehavior(),
+        ],
+        domainAxis: charts.DateTimeAxisSpec(
+          // tickFormatterSpec:
+          //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
+          //         DateFormat.yMMM()),
+          tickProviderSpec: const charts.AutoDateTimeTickProviderSpec(),
+          showAxisLine: true,
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          viewport: charts.DateTimeExtents(
+              start: DateTime(DateTime.now().year - 1, DateTime.now().month,
+                  1), //DateTime.now().subtract(Duration(days: 365 * 1)),
+              end: DateTime.now().add(Duration(days: 30 - DateTime.now().day))),
+        ));
+  }
+
+  Widget interestChart() {
+    final groupedInterests = interests!
+        // .where((d) =>
+        //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
+        .groupListsBy((element) {
+      var dt = DateTime.parse(element["pay_date"]);
+      return DateTime(dt.year, dt.month);
+    });
+    final groupedInterestsData = groupedInterests
+        .map((k, v) {
+          return MapEntry(
+              k,
+              v
+                  .map((m) => double.parse(m["amount"]["amount"]))
+                  .reduce((a, b) => a + b));
+        })
+        .entries
+        .toList();
+    var brightness = MediaQuery.of(context).platformBrightness;
+    var axisLabelColor = charts.MaterialPalette.gray.shade200;
+    if (brightness == Brightness.light) {
+      axisLabelColor = charts.MaterialPalette.gray.shade800;
+    }
+
+    return TimeSeriesChart([
+      charts.Series<dynamic, DateTime>(
+          id: 'interests',
+          //charts.MaterialPalette.blue.shadeDefault,
+          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+              Theme.of(context).colorScheme.primary),
+          // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+          domainFn: (dynamic domain, _) =>
+              (domain as MapEntry<DateTime, double>).key,
+          // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+          measureFn: (dynamic measure, index) =>
+              (measure as MapEntry<DateTime, double>).value,
+          labelAccessorFn: (datum, index) => formatCompactNumber
+              .format((datum as MapEntry<DateTime, double>).value),
+          data: groupedInterestsData),
     ], animate: true, onSelected: (p0) {
       // debugPrint(p0.value.toString());
       // var provider =

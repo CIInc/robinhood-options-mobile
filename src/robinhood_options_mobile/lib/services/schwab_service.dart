@@ -1305,4 +1305,11 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     // TODO: implement streamOptionInstruments
     throw UnimplementedError();
   }
+
+  @override
+  Stream<List> streamInterests(
+      BrokerageUser user, InstrumentStore instrumentStore) {
+    // TODO: implement streamInterests
+    throw UnimplementedError();
+  }
 }

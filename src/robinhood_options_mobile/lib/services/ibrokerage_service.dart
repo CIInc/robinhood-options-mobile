@@ -141,10 +141,12 @@ abstract class IBrokerageService {
       {Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
 
-  // Dividends
+  // Dividends & Interests
   Stream<List<dynamic>> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore);
   Future<List<dynamic>> getDividends(BrokerageUser user, String instrumentId);
+  Stream<List<dynamic>> streamInterests(
+      BrokerageUser user, InstrumentStore instrumentStore);
 
   // News, etc
   Future<List<dynamic>> getNews(BrokerageUser user, String symbol);

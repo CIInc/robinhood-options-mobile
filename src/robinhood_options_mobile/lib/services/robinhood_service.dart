@@ -537,6 +537,8 @@ class RobinhoodService implements IBrokerageService {
   Stream<List<dynamic>> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore) async* {
     // https://api.robinhood.com/dividends/
+    // https://api.robinhood.com/dividends/?account_numbers=5QR24141&page_size=10
+
     // "id" -> "65ceec46-27f9-4d27-86bd-e720219be54f"
     // "url" -> "https://api.robinhood.com/dividends/65ceec46-27f9-4d27-86bd-e720219be54f/"
     // "account" -> "https://api.robinhood.com/accounts/11111111/"
@@ -586,6 +588,28 @@ class RobinhoodService implements IBrokerageService {
         }
         yield list;
       }
+    }
+  }
+
+  @override
+  Stream<List<dynamic>> streamInterests(
+      BrokerageUser user, InstrumentStore instrumentStore) async* {
+    // https://api.robinhood.com/accounts/sweeps/?default_to_all_accounts=true&page_size=10
+    List<dynamic> list = [];
+    var pageStream = streamedGet(user,
+        "${Constants.robinHoodEndpoint}/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
+    await for (final results in pageStream) {
+      for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        if (!list.any((element) => element["id"] == result["id"])) {
+          list.add(result);
+          // store.add(op);
+          yield list;
+        }
+      }
+      // list.sort((a, b) => DateTime.parse(b["record_date"]!)
+      //     .compareTo(DateTime.parse(a["record_date"]!)));
+      yield list;
     }
   }
 
@@ -1085,6 +1109,7 @@ class RobinhoodService implements IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
+
     var results = await pagedGet(user,
         "${Constants.robinHoodEndpoint}/dividends/?instrument_id=$instrumentId");
     List<dynamic> list = [];
