@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -93,7 +94,36 @@ class OptionAggregatePosition {
             null, // double.tryParse(json['trade_value_multiplier']),
         createdAt = null, // DateTime.tryParse(json['created_at']),
         updatedAt = null, // DateTime.tryParse(json['updated_at']),
-        strategyCode = ''; //json['strategy_code'];
+        strategyCode = '', //json['strategy_code'];
+        optionInstrument = OptionInstrument(
+            json['instrument']['cusip'],
+            json['instrument']['underlyingSymbol'],
+            null,
+            DateFormat("MM/dd/yyyy").tryParse(json['instrument']['description']
+                .toString()
+                .split(' ')
+                .reversed
+                .skip(2)
+                .first),
+            json['instrument']['cusip'],
+            null,
+            MinTicks(0, 0, 0),
+            '',
+            '',
+            double.tryParse(json['instrument']['description']
+                .toString()
+                .split(' ')
+                .reversed
+                .skip(1)
+                .first
+                .replaceFirst('\$', '')), // strikePrice
+            '',
+            json['instrument']['putCall'], // type,
+            null,
+            '',
+            null,
+            '', // longStrategyCode,
+            ''); //shortStrategyCode);
 
   // Helpers
   double get marketValue {

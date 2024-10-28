@@ -1,24 +1,19 @@
 import 'dart:convert';
 import 'dart:math';
-
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'dart:async';
-
 import 'package:http/http.dart' as http;
-
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:provider/provider.dart';
 
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
-
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
     as oauth2_robinhood;
 
@@ -103,21 +98,38 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   void _login() async {
     if (source == Source.schwab) {
-      SchwabService.login();
+      var code = await SchwabService().login();
+      debugPrint('SchwabService().login(): $code');
+      // Handled by deep links & oauth redirect flow.
+      // if (code != null) {
+      //   var user = await SchwabService.getAccessToken(code);
+      //   var userInfo = await SchwabService().getUser(user!);
+      //   user.userName = userInfo!.username;
+      //   debugPrint('result:${jsonEncode(user)}');
+      //   if (mounted) {
+      //     var userStore =
+      //         Provider.of<BrokerageUserStore>(context, listen: false);
+      //     userStore.addOrUpdate(user);
+      //     userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      //     await userStore.save();
+      //   }
+      // }
     } else if (source == Source.demo) {
-      DemoService.login();
+      DemoService().login();
       var user = BrokerageUser(source, "Demo Account", null, null);
       var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
       userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
       userStore.save();
       if (mounted) {
         Navigator.pop(context, user);
       }
     } else {
+      var service = RobinhoodService();
       setState(() {
         authenticationResponse = oauth2_robinhood.login(
-            Constants.rhAuthEndpoint, userCtl.text, passCtl.text,
-            identifier: Constants.rhClientId,
+            service.authEndpoint, userCtl.text, passCtl.text,
+            identifier: service.clientId,
             basicAuth: false,
             deviceToken: deviceToken,
             mfaCode: smsCtl.text.isNotEmpty
@@ -172,16 +184,19 @@ class _LoginWidgetState extends State<LoginWidget> {
                   */
                 } else if (authenticationResponse['access_token'] != null) {
                   _stopMonitoringClipboard();
+                  var service = source == Source.robinhood
+                      ? RobinhoodService()
+                      : source == Source.schwab
+                          ? SchwabService()
+                          : DemoService();
                   client = oauth2_robinhood.generateClient(
                       authenticationSnapshot.data!,
                       source == Source.robinhood
-                          ? Constants.rhAuthEndpoint
-                          : Constants.scAuthEndpoint,
+                          ? service.authEndpoint
+                          : service.tokenEndpoint,
                       ['internal'],
                       ' ',
-                      source == Source.robinhood
-                          ? Constants.rhClientId
-                          : Constants.scClientId,
+                      service.clientId,
                       null,
                       null,
                       null);
@@ -192,6 +207,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                     var userStore =
                         Provider.of<BrokerageUserStore>(context, listen: false);
                     userStore.addOrUpdate(user);
+                    userStore
+                        .setCurrentUserIndex(userStore.items.indexOf(user));
                     await userStore.save();
                     //Navigator.popUntil(context, ModalRoute.withName('/'));
                     // This is being called twice, figure out root cause and not this workaround.

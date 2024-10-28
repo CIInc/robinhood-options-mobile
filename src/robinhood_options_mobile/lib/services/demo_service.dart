@@ -45,15 +45,28 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 
 class DemoService implements IBrokerageService {
+  @override
+  String name = 'Demo';
+  @override
+  Uri endpoint = Uri();
+  @override
+  Uri authEndpoint = Uri();
+  @override
+  Uri tokenEndpoint = Uri();
+  @override
+  String clientId = '';
+  @override
+  String redirectUrl = '';
+
   // Map<String, dynamic> logoUrls = {};
   List<dynamic> forexPairs = [];
 
-  static Future<String?> login() async {
+  Future<String?> login() async {
     // Present the dialog to the user
     return "123456789";
   }
 
-  static Future<BrokerageUser?> getAccessToken(String code) async {
+  Future<BrokerageUser?> getAccessToken(String code) async {
     var user = BrokerageUser(Source.demo, '', null, null);
     return user;
   }
@@ -79,11 +92,9 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<List<Account>> getAccounts(
-      BrokerageUser user,
-      AccountStore store,
-      PortfolioStore? portfolioStore,
-      OptionPositionStore? optionPositionStore) async {
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore}) async {
     final results = await Future.delayed(
         Duration.zero,
         () => [

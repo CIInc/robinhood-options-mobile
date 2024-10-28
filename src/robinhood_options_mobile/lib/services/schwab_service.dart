@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:intl/intl.dart';
 import 'package:oauth2/src/utils.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -47,10 +47,25 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 
 class SchwabService implements IBrokerageService {
-  static Future<String?> login() async {
+  @override
+  String name = 'Schwab';
+  @override
+  Uri endpoint = Uri.parse('https://api.schwabapi.com');
+  @override
+  Uri authEndpoint = Uri.parse('https://api.schwabapi.com/v1/oauth/authorize');
+  @override
+  Uri tokenEndpoint = Uri.parse('https://api.schwabapi.com/v1/oauth/token');
+  @override
+  String clientId = 'CHbgBINpRA3H72Sb6LV9pH9ZHsTxjwId';
+  @override
+  String redirectUrl = 'https://investiomanus.web.app';
+
+  // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
+
+  Future<String?> login() async {
     // Present the dialog to the user
     final url =
-        '${Constants.scAuthEndpoint}?response_type=code&client_id=${Constants.scClientId}&redirect_uri=${Constants.scRedirectUrl}'; // %40AMER.OAUTHAP // &scope=readonly // Uri.encodeQueryComponent(
+        '$authEndpoint?response_type=code&client_id=$clientId&redirect_uri=$redirectUrl'; // %40AMER.OAUTHAP // &scope=readonly // Uri.encodeQueryComponent(
     debugPrint(url);
     String result;
     try {
@@ -77,12 +92,11 @@ class SchwabService implements IBrokerageService {
     String? code = Uri.parse(result).queryParameters['code'];
 
     // Extract token from resulting url
-    debugPrint('code');
-    debugPrint(code);
+    // debugPrint('code: ${code}');
     return code!;
   }
 
-  static Future<BrokerageUser?> getAccessToken(String code) async {
+  Future<BrokerageUser?> getAccessToken(String code) async {
     // Use this code to get an access token
     /* Not working as expected: If [body] is a Map, it's encoded as form fields using [encoding]. The content-type of the request will be set to "application/x-www-form-urlencoded"; this cannot be overridden.
     final body = {
@@ -102,14 +116,13 @@ class SchwabService implements IBrokerageService {
     */
 
     final bodyStr =
-        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=${Constants.scClientId}&redirect_uri=https%3A%2F%2Finvestiomanus.web.app&code=$code';
+        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=$clientId&redirect_uri=https%3A%2F%2Finvestiomanus.web.app&code=$code';
     final response = await http.post(
-      Constants.scTokenEndpoint,
+      tokenEndpoint,
       body: bodyStr,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization":
-            basicAuthHeader(Constants.scClientId, 'YOGs9tmQPy8tLj8p')
+        "Authorization": basicAuthHeader(clientId, sc)
       },
       encoding: Encoding.getByName('utf-8'),
     );
@@ -134,8 +147,15 @@ class SchwabService implements IBrokerageService {
     return accessToken;
     */
 
-    final client = generateClient(response, Constants.scAuthEndpoint,
-        ['internal'], ' ', Constants.scClientId, null, null, null);
+    final client = generateClient(
+        response,
+        tokenEndpoint, // .scAuthEndpoint
+        ['internal'],
+        ' ',
+        clientId,
+        sc,
+        null,
+        null);
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user =
@@ -146,24 +166,26 @@ class SchwabService implements IBrokerageService {
 
   @override
   Future<UserInfo?> getUser(BrokerageUser user) async {
-    var url = '${Constants.scEndpoint}/trader/v1/userPreference';
+    var url = '$endpoint/trader/v1/userPreference';
     // debugPrint(result);
     dynamic resultJson;
-    try {
-      resultJson = await getJson(user, url);
-    } on Exception catch (e) {
-      // Format
-      debugPrint('getUser Error: $e');
-      // this.login();
-      return Future.value(null);
-    }
-    if (resultJson == null) {
-      return Future.value(null);
-    }
+    // try {
+    resultJson = await getJson(user, url);
+    // } on Exception catch (e) {
+    //   // Format
+    //   debugPrint('getUser Error: $e');
+    //   // this.login();
+    //   return Future.value(null);
+    // }
+    // if (resultJson == null) {
+    //   return Future.value(null);
+    // }
     var usr = UserInfo.fromSchwab(resultJson);
     //user.userName = usr.username;
     return usr;
   }
+
+  static final String sc = "YOGs9tmQPy8tLj8p";
 
   /*
 [
@@ -286,13 +308,10 @@ class SchwabService implements IBrokerageService {
   }
   */
   @override
-  Future<List<Account>> getAccounts(
-      BrokerageUser user,
-      AccountStore store,
-      PortfolioStore? portfolioStore,
-      OptionPositionStore? optionPositionStore) async {
-    var url =
-        '${Constants.scEndpoint}/trader/v1/accounts?fields=positions'; // orders
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore}) async {
+    var url = '$endpoint/trader/v1/accounts?fields=positions'; // orders
     var results = await getJson(user, url);
     //debugPrint(results);
     List<Account> accounts = [];
@@ -303,11 +322,23 @@ class SchwabService implements IBrokerageService {
         var portfolio = Portfolio.fromSchwabJson(result);
         portfolioStore.addOrUpdate(portfolio);
         for (var positionJson in result['securitiesAccount']['positions']) {
-          var optionPosition =
-              OptionAggregatePosition.fromSchwabJson(positionJson, account);
-          // TODO
-          // await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
-          optionPositionStore!.addOrUpdate(optionPosition);
+          if (positionJson['instrument']['assetType'] ==
+              "COLLECTIVE_INVESTMENT") {
+            var stockPosition = InstrumentPosition.fromSchwabJson(positionJson);
+            instrumentPositionStore!.addOrUpdate(stockPosition);
+          } else if (positionJson['instrument']['assetType'] == "OPTION") {
+            var optionPosition =
+                OptionAggregatePosition.fromSchwabJson(positionJson, account);
+
+            // TODO
+            // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
+            // optionPosition.instrumentObj = optionInstrument;
+            var optionMarketData = await getOptionMarketData(
+                user, optionPosition.optionInstrument!);
+            optionPosition.optionInstrument!.optionMarketData =
+                optionMarketData;
+            optionPositionStore!.addOrUpdate(optionPosition);
+          }
         }
       }
       accounts.add(account);
@@ -428,14 +459,14 @@ https://api.schwabapi.com/marketdata/v1/chains?symbol=AAPL&contractType=CALL&inc
   "putExpDateMap": {}
 }  
   */
-  static Future<OptionInstrument> getOptionInstrument(
+  Future<OptionInstrument> getOptionInstrument(
       BrokerageUser user,
       String symbol,
       String contractType,
       double strike,
       String fromDate) async {
     var url =
-        "${Constants.scEndpoint}/marketdata/v1/chains?symbol=$symbol&contractType=$contractType&includeUnderlyingQuote=true&strategy=SINGLE&strike=${strike.toString()}&fromDate=$fromDate&toDate=2024-10-18";
+        "$endpoint/marketdata/v1/chains?symbol=$symbol&contractType=$contractType&includeUnderlyingQuote=true&strategy=SINGLE&strike=${strike.toString()}&fromDate=$fromDate&toDate=2024-10-18";
     var resultJson = await getJson(user, url);
 
     var oi = OptionInstrument.fromJson(resultJson);
@@ -443,145 +474,12 @@ https://api.schwabapi.com/marketdata/v1/chains?symbol=AAPL&contractType=CALL&inc
   }
 
 /*
-https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A59.000Z&toEnteredTime=2024-10-28T23%3A59%3A59.000Z
-[
-  {
-    "session": "NORMAL",
-    "duration": "DAY",
-    "orderType": "LIMIT",
-    "complexOrderStrategyType": "NONE",
-    "quantity": 1,
-    "filledQuantity": 1,
-    "remainingQuantity": 0,
-    "requestedDestination": "AUTO",
-    "destinationLinkName": "CDRG",
-    "price": 5.25,
-    "orderLegCollection": [
-      {
-        "orderLegType": "OPTION",
-        "legId": 1,
-        "instrument": {
-          "assetType": "OPTION",
-          "cusip": "0AMAT.KF40210000",
-          "symbol": "AMAT  241115C00210000",
-          "description": "APPLIED MATLS INC 11/15/2024 $210 Call",
-          "instrumentId": 212962723,
-          "type": "VANILLA",
-          "putCall": "CALL",
-          "underlyingSymbol": "AMAT",
-          "optionDeliverables": [
-            {
-              "symbol": "AMAT",
-              "deliverableUnits": 100
-            }
-          ]
-        },
-        "instruction": "BUY_TO_OPEN",
-        "positionEffect": "OPENING",
-        "quantity": 1
-      }
-    ],
-    "orderStrategyType": "SINGLE",
-    "orderId": 1001889848665,
-    "cancelable": false,
-    "editable": false,
-    "status": "FILLED",
-    "enteredTime": "2024-10-15T17:29:28+0000",
-    "closeTime": "2024-10-15T17:34:52+0000",
-    "accountNumber": 21453928,
-    "orderActivityCollection": [
-      {
-        "activityType": "EXECUTION",
-        "activityId": 87232752207,
-        "executionType": "FILL",
-        "quantity": 1,
-        "orderRemainingQuantity": 0,
-        "executionLegs": [
-          {
-            "legId": 1,
-            "quantity": 1,
-            "mismarkedQuantity": 0,
-            "price": 5.25,
-            "time": "2024-10-15T17:34:52+0000",
-            "instrumentId": 212962723
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "session": "NORMAL",
-    "duration": "DAY",
-    "orderType": "LIMIT",
-    "complexOrderStrategyType": "NONE",
-    "quantity": 1,
-    "filledQuantity": 1,
-    "remainingQuantity": 0,
-    "requestedDestination": "AUTO",
-    "destinationLinkName": "CDRG",
-    "price": 20.1,
-    "orderLegCollection": [
-      {
-        "orderLegType": "OPTION",
-        "legId": 1,
-        "instrument": {
-          "assetType": "OPTION",
-          "cusip": "0TSM..KF40170000",
-          "symbol": "TSM   241115C00170000",
-          "description": "TAIWAN SEMICONDUCTOR MFG CO LTD 11/15/2024 $170 Call",
-          "instrumentId": 215826019,
-          "type": "VANILLA",
-          "putCall": "CALL",
-          "underlyingSymbol": "TSM",
-          "optionDeliverables": [
-            {
-              "symbol": "TSM",
-              "deliverableUnits": 100
-            }
-          ]
-        },
-        "instruction": "SELL_TO_CLOSE",
-        "positionEffect": "CLOSING",
-        "quantity": 1
-      }
-    ],
-    "orderStrategyType": "SINGLE",
-    "orderId": 1001812640148,
-    "cancelable": false,
-    "editable": false,
-    "status": "FILLED",
-    "enteredTime": "2024-10-07T19:55:51+0000",
-    "closeTime": "2024-10-07T19:55:51+0000",
-    "accountNumber": 21453928,
-    "orderActivityCollection": [
-      {
-        "activityType": "EXECUTION",
-        "activityId": 86897332527,
-        "executionType": "FILL",
-        "quantity": 1,
-        "orderRemainingQuantity": 0,
-        "executionLegs": [
-          {
-            "legId": 1,
-            "quantity": 1,
-            "mismarkedQuantity": 0,
-            "price": 20.1,
-            "time": "2024-10-07T19:55:51+0000",
-            "instrumentId": 215826019
-          }
-        ]
-      }
-    ]
-  }
-]*/
-
-/*
 https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3E6E8FDC1AD9F7806D91040DA56801/transactions?startDate=2024-03-28T21%3A10%3A42.000Z&endDate=2024-05-10T21%3A10%3A42.000Z&types=TRADE
 [
   {
     "activityId": 80990733204,
     "time": "2024-05-07T13:30:01+0000",
-    "accountNumber": "21453928",
+    "accountNumber": "12345678",
     "type": "TRADE",
     "status": "VALID",
     "subAccount": "MARGIN",
@@ -896,7 +794,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
     if (user.oauth2Client!.credentials.isExpired) {
-      user.oauth2Client = await user.oauth2Client!.refreshCredentials();
+      throw Exception('Authorization expired. Please log back in.');
+      // user.oauth2Client = await user.oauth2Client!.refreshCredentials();
       // SchwabService.login();
       // return null;
     }
@@ -947,6 +846,12 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
       {bool nonzero = true}) {
+    // var symbols = store.items
+    //     .where((e) =>
+    //         e.instrumentObj !=
+    //         null) // Figure out why in certain conditions, instrumentObj is null
+    //     .map((e) => e.instrumentObj!.symbol)
+    //     .toList();
     // TODO: implement getOptionPositionStore
     throw UnimplementedError();
   }
@@ -957,9 +862,36 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
-      {bool nonzero = true}) {
-    // TODO: implement getStockPositionStore
-    throw UnimplementedError();
+      {bool nonzero = true}) async {
+    // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+    // var instrumentObjs =
+    //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+    // for (var instrumentObj in instrumentObjs) {
+    //   var position = store.items
+    //       .firstWhere((element) => element.instrumentId == instrumentObj.id);
+    //   position.instrumentObj = instrumentObj;
+    //   store.update(position);
+    // }
+    var symbols = store.items
+        .where((e) =>
+            e.instrumentObj !=
+            null) // Figure out why in certain conditions, instrumentObj is null
+        .map((e) => e.instrumentObj!.symbol)
+        .toList();
+    // Remove old quotes (that would be returned from cache) to get current ones
+    // Added Future to ensure that the state doesn't get refreshed during the build producing the error below:
+    // FlutterError (setState() or markNeedsBuild() called during build. This _InheritedProviderScope<QuoteStore?> widget cannot be marked as needing to build because the framework is already in the process of building widgets.
+    await Future.delayed(Duration.zero, () async {
+      quoteStore.removeAll();
+    });
+    var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+    for (var quoteObj in quoteObjs) {
+      var position = store.items.firstWhere(
+          (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+      position.instrumentObj!.quoteObj = quoteObj;
+      store.update(position);
+    }
+    return store;
   }
 
   @override
@@ -990,14 +922,16 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Future<List<Instrument>> getListMostPopular(
       BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement getListMostPopular
-    throw UnimplementedError();
+    // throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<List<Instrument>> getListMovers(
       BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement getListMovers
-    throw UnimplementedError();
+    // throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
@@ -1014,6 +948,138 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     throw UnimplementedError();
   }
 
+/*
+https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A59.000Z&toEnteredTime=2024-10-28T23%3A59%3A59.000Z
+[
+  {
+    "session": "NORMAL",
+    "duration": "DAY",
+    "orderType": "LIMIT",
+    "complexOrderStrategyType": "NONE",
+    "quantity": 1,
+    "filledQuantity": 1,
+    "remainingQuantity": 0,
+    "requestedDestination": "AUTO",
+    "destinationLinkName": "CDRG",
+    "price": 5.25,
+    "orderLegCollection": [
+      {
+        "orderLegType": "OPTION",
+        "legId": 1,
+        "instrument": {
+          "assetType": "OPTION",
+          "cusip": "0AMAT.KF40210000",
+          "symbol": "AMAT  241115C00210000",
+          "description": "APPLIED MATLS INC 11/15/2024 $210 Call",
+          "instrumentId": 212962723,
+          "type": "VANILLA",
+          "putCall": "CALL",
+          "underlyingSymbol": "AMAT",
+          "optionDeliverables": [
+            {
+              "symbol": "AMAT",
+              "deliverableUnits": 100
+            }
+          ]
+        },
+        "instruction": "BUY_TO_OPEN",
+        "positionEffect": "OPENING",
+        "quantity": 1
+      }
+    ],
+    "orderStrategyType": "SINGLE",
+    "orderId": 1001889848665,
+    "cancelable": false,
+    "editable": false,
+    "status": "FILLED",
+    "enteredTime": "2024-10-15T17:29:28+0000",
+    "closeTime": "2024-10-15T17:34:52+0000",
+    "accountNumber": 21453928,
+    "orderActivityCollection": [
+      {
+        "activityType": "EXECUTION",
+        "activityId": 87232752207,
+        "executionType": "FILL",
+        "quantity": 1,
+        "orderRemainingQuantity": 0,
+        "executionLegs": [
+          {
+            "legId": 1,
+            "quantity": 1,
+            "mismarkedQuantity": 0,
+            "price": 5.25,
+            "time": "2024-10-15T17:34:52+0000",
+            "instrumentId": 212962723
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "session": "NORMAL",
+    "duration": "DAY",
+    "orderType": "LIMIT",
+    "complexOrderStrategyType": "NONE",
+    "quantity": 1,
+    "filledQuantity": 1,
+    "remainingQuantity": 0,
+    "requestedDestination": "AUTO",
+    "destinationLinkName": "CDRG",
+    "price": 20.1,
+    "orderLegCollection": [
+      {
+        "orderLegType": "OPTION",
+        "legId": 1,
+        "instrument": {
+          "assetType": "OPTION",
+          "cusip": "0TSM..KF40170000",
+          "symbol": "TSM   241115C00170000",
+          "description": "TAIWAN SEMICONDUCTOR MFG CO LTD 11/15/2024 $170 Call",
+          "instrumentId": 215826019,
+          "type": "VANILLA",
+          "putCall": "CALL",
+          "underlyingSymbol": "TSM",
+          "optionDeliverables": [
+            {
+              "symbol": "TSM",
+              "deliverableUnits": 100
+            }
+          ]
+        },
+        "instruction": "SELL_TO_CLOSE",
+        "positionEffect": "CLOSING",
+        "quantity": 1
+      }
+    ],
+    "orderStrategyType": "SINGLE",
+    "orderId": 1001812640148,
+    "cancelable": false,
+    "editable": false,
+    "status": "FILLED",
+    "enteredTime": "2024-10-07T19:55:51+0000",
+    "closeTime": "2024-10-07T19:55:51+0000",
+    "accountNumber": 21453928,
+    "orderActivityCollection": [
+      {
+        "activityType": "EXECUTION",
+        "activityId": 86897332527,
+        "executionType": "FILL",
+        "quantity": 1,
+        "orderRemainingQuantity": 0,
+        "executionLegs": [
+          {
+            "legId": 1,
+            "quantity": 1,
+            "mismarkedQuantity": 0,
+            "price": 20.1,
+            "time": "2024-10-07T19:55:51+0000",
+            "instrumentId": 215826019
+          }
+        ]
+      }
+    ]
+  }
+]*/
   @override
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore) {
@@ -1029,12 +1095,106 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     throw UnimplementedError();
   }
 
+  /*
+  {
+  "AAPL": {
+    "assetMainType": "EQUITY",
+    "symbol": "AAPL",
+    "quoteType": "NBBO",
+    "realtime": true,
+    "ssid": 1973757747,
+    "reference": {
+      "cusip": "037833100",
+      "description": "Apple Inc",
+      "exchange": "Q",
+      "exchangeName": "NASDAQ"
+    },
+    "quote": {
+      "52WeekHigh": 169,
+      "52WeekLow": 1.1,
+      "askMICId": "MEMX",
+      "askPrice": 168.41,
+      "askSize": 400,
+      "askTime": 1644854683672,
+      "bidMICId": "IEGX",
+      "bidPrice": 168.4,
+      "bidSize": 400,
+      "bidTime": 1644854683633,
+      "closePrice": 177.57,
+      "highPrice": 169,
+      "lastMICId": "XADF",
+      "lastPrice": 168.405,
+      "lastSize": 200,
+      "lowPrice": 167.09,
+      "mark": 168.405,
+      "markChange": -9.164999999999992,
+      "markPercentChange": -5.161344821760428,
+      "netChange": -9.165,
+      "netPercentChange": -5.161344821760428,
+      "openPrice": 167.37,
+      "quoteTime": 1644854683672,
+      "securityStatus": "Normal",
+      "totalVolume": 22361159,
+      "tradeTime": 1644854683408,
+      "volatility": 0.0347
+    },
+    "regular": {
+      "regularMarketLastPrice": 168.405,
+      "regularMarketLastSize": 2,
+      "regularMarketNetChange": -9.165,
+      "regularMarketPercentChange": -5.161344821760428,
+      "regularMarketTradeTime": 1644854683408
+    },
+    "fundamental": {
+      "avg10DaysVolume": 1,
+      "avg1YearVolume": 0,
+      "divAmount": 1.1,
+      "divFreq": 0,
+      "divPayAmount": 0,
+      "divYield": 1.1,
+      "eps": 0,
+      "fundLeverageFactor": 1.1,
+      "peRatio": 1.1
+    }
+  }
+  */
   @override
   Future<List<Quote>> getQuoteByIds(
       BrokerageUser user, QuoteStore store, List<String> symbols,
-      {bool fromCache = true}) {
-    // TODO: implement getQuoteByIds
-    throw UnimplementedError();
+      {bool fromCache = true}) async {
+    Iterable<Quote> cached = [];
+    if (fromCache) {
+      cached = store.items.where((element) => symbols.contains(element.symbol));
+    }
+    var nonCached = symbols
+        .where((element) =>
+            !cached.any((cachedQuote) => cachedQuote.symbol == element))
+        .toSet()
+        .toList();
+    if (nonCached.isEmpty) {
+      return cached.toList();
+    }
+
+    List<Quote> list = cached.toList();
+
+    var len = nonCached.length;
+    var size = 50;
+    List<List<dynamic>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(nonCached.sublist(i, end));
+    }
+    for (var chunk in chunks) {
+      var url =
+          '$endpoint/marketdata/v1/quotes?symbols=${Uri.encodeComponent(chunk.join(","))}&fields=quote%2Creference&indicative=false';
+      var resultJson = await getJson(user, url);
+      for (var symbol in chunk) {
+        var op = Quote.fromSchwabJson(resultJson[symbol]);
+        list.add(op);
+        store.addOrUpdate(op);
+      }
+    }
+    return list;
   }
 
   @override
@@ -1066,7 +1226,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
       {String direction = "up"}) {
     // TODO: implement getMovers
-    throw UnimplementedError();
+    // throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
@@ -1281,9 +1442,22 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Future<OptionMarketData?> getOptionMarketData(
-      BrokerageUser user, OptionInstrument optionInstrument) {
-    // TODO: implement getOptionMarketData
-    throw UnimplementedError();
+      BrokerageUser user, OptionInstrument optionInstrument) async {
+    var url =
+        "$endpoint/marketdata/v1/chains?symbol=${optionInstrument.chainSymbol}&contractType=${optionInstrument.type}&includeUnderlyingQuote=true&strategy=SINGLE&strike=${optionInstrument.strikePrice.toString()}&fromDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}&toDate=${DateFormat('yyyy-MM-dd').format(optionInstrument.expirationDate!)}";
+    var resultJson = await getJson(user, url);
+
+    var result = OptionMarketData.fromSchwabJson(
+        (((((resultJson['${optionInstrument.type.toLowerCase()}ExpDateMap']
+                                as Map)
+                            .entries
+                            .first)
+                        .value as Map)
+                    .entries
+                    .first)
+                .value as List)
+            .first);
+    return result;
   }
 
   @override

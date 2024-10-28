@@ -23,8 +23,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collection/collection.dart';
-
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
@@ -47,6 +45,25 @@ import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
 class RobinhoodService implements IBrokerageService {
+  @override
+  String name = 'Robinhood';
+  @override
+  Uri endpoint = Uri.parse('https://api.robinhood.com');
+  @override
+  Uri authEndpoint = Uri.parse('https://api.robinhood.com/oauth2/token/');
+  @override
+  Uri tokenEndpoint = Uri.parse('https://api.robinhood.com/oauth2/token/');
+  @override
+  String clientId = 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS';
+  @override
+  String redirectUrl = '';
+
+  final robinHoodNummusEndpoint = Uri.parse('https://nummus.robinhood.com');
+  final robinHoodSearchEndpoint = Uri.parse('https://bonfire.robinhood.com');
+  final robinHoodExploreEndpoint = Uri.parse('https://dora.robinhood.com');
+
+  // static final rhChallengeEndpoint = Uri.parse('$robinHoodEndpoint/challenge/');
+
 /*
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   */
@@ -61,12 +78,12 @@ class RobinhoodService implements IBrokerageService {
 
   @override
   Future<UserInfo?> getUser(BrokerageUser user) async {
-    var url = '${Constants.robinHoodEndpoint}/user/';
+    var url = '$endpoint/user/';
     // debugPrint(result);
     /*
-    debugPrint('${Constants.robinHoodEndpoint}/user/basic_info/');
-    debugPrint('${Constants.robinHoodEndpoint}/user/investment_profile/');
-    debugPrint('${Constants.robinHoodEndpoint}/user/additional_info/');
+    debugPrint('$endpoint/user/basic_info/');
+    debugPrint('$endpoint/user/investment_profile/');
+    debugPrint('$endpoint/user/additional_info/');
         */
 
     var resultJson = await getJson(user, url);
@@ -76,13 +93,10 @@ class RobinhoodService implements IBrokerageService {
   }
 
   @override
-  Future<List<Account>> getAccounts(
-      BrokerageUser user,
-      AccountStore store,
-      PortfolioStore? portfolioStore,
-      OptionPositionStore? optionPositionStore) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/accounts/");
+  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore}) async {
+    var results = await RobinhoodService.pagedGet(user, "$endpoint/accounts/");
     //debugPrint(results);
     // https://phoenix.robinhood.com/accounts/unified
     List<Account> accounts = [];
@@ -283,8 +297,8 @@ class RobinhoodService implements IBrokerageService {
   @override
   Future<List<Portfolio>> getPortfolios(
       BrokerageUser user, PortfolioStore store) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/portfolios/");
+    var results =
+        await RobinhoodService.pagedGet(user, "$endpoint/portfolios/");
     //debugPrint(results);
     List<Portfolio> portfolios = [];
     for (var i = 0; i < results.length; i++) {
@@ -324,7 +338,7 @@ class RobinhoodService implements IBrokerageService {
     // TODO: https://bonfire.robinhood.com/portfolio/performance/5QR24141?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
     // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
     var result = await RobinhoodService.getJson(user,
-        "${Constants.robinHoodEndpoint}/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
+        "$endpoint/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
     var historicals = PortfolioHistoricals.fromJson(result);
     store.set(historicals);
     return historicals;
@@ -338,7 +352,7 @@ class RobinhoodService implements IBrokerageService {
   static Future<List<Position>> getPositions(RobinhoodUser user,
       {bool withQuantity = true}) async {
     var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/positions/");
+        user, "$endpoint/positions/");
     List<Position> positions = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -370,8 +384,7 @@ class RobinhoodService implements IBrokerageService {
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
       {bool nonzero = true}) async {
-    var pageStream = RobinhoodService.streamedGet(
-        user, "${Constants.robinHoodEndpoint}/positions/?nonzero=$nonzero");
+    var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -397,6 +410,7 @@ class RobinhoodService implements IBrokerageService {
               null) // Figure out why in certain conditions, instrumentObj is null
           .map((e) => e.instrumentObj!.symbol)
           .toList();
+      // Remove old quotes (that would be returned from cache) to get current ones
       quoteStore.removeAll();
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
@@ -415,8 +429,7 @@ class RobinhoodService implements IBrokerageService {
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
       {bool nonzero = true}) async* {
-    var pageStream = RobinhoodService.streamedGet(
-        user, "${Constants.robinHoodEndpoint}/positions/?nonzero=$nonzero");
+    var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -497,8 +510,8 @@ class RobinhoodService implements IBrokerageService {
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
       InstrumentOrderStore store, InstrumentStore instrumentStore) async* {
     List<InstrumentOrder> list = [];
-    var pageStream = RobinhoodService.streamedGet(user,
-        "${Constants.robinHoodEndpoint}/orders/"); // ?chain_id=${instrument.tradeableChainId}
+    var pageStream = streamedGet(
+        user, "$endpoint/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -555,8 +568,7 @@ class RobinhoodService implements IBrokerageService {
     // "drip_enabled" -> true
     // "nra_withholding" -> "0"
     List<dynamic> list = [];
-    var pageStream =
-        streamedGet(user, "${Constants.robinHoodEndpoint}/dividends/");
+    var pageStream = streamedGet(user, "$endpoint/dividends/");
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -597,7 +609,7 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/accounts/sweeps/?default_to_all_accounts=true&page_size=10
     List<dynamic> list = [];
     var pageStream = streamedGet(user,
-        "${Constants.robinHoodEndpoint}/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
+        "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -619,8 +631,8 @@ class RobinhoodService implements IBrokerageService {
 
   @override
   Future<dynamic> search(BrokerageUser user, String query) async {
-    var resultJson = await getJson(
-        user, "${Constants.robinHoodSearchEndpoint}/search/?query=$query");
+    var resultJson =
+        await getJson(user, "$robinHoodSearchEndpoint/search/?query=$query");
     //https://bonfire.robinhood.com/deprecated_search/?query=Micro&user_origin=US
     return resultJson;
   }
@@ -631,8 +643,8 @@ class RobinhoodService implements IBrokerageService {
   @override
   Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
       {String direction = "up"}) async {
-    var results = await pagedGet(user,
-        "${Constants.robinHoodEndpoint}/midlands/movers/sp500/?direction=$direction");
+    var results = await pagedGet(
+        user, "$endpoint/midlands/movers/sp500/?direction=$direction");
     List<MidlandMoversItem> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -658,8 +670,8 @@ class RobinhoodService implements IBrokerageService {
   @override
   Future<List<Instrument>> getListMovers(
       BrokerageUser user, InstrumentStore instrumentStore) async {
-    var resultJson = await getJson(
-        user, "${Constants.robinHoodEndpoint}/midlands/tags/tag/top-movers/");
+    var resultJson =
+        await getJson(user, "$endpoint/midlands/tags/tag/top-movers/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
     // var instrumentIds = resultJson["instruments"]
     //     .map((e) {
@@ -681,8 +693,8 @@ class RobinhoodService implements IBrokerageService {
   @override
   Future<List<Instrument>> getListMostPopular(
       BrokerageUser user, InstrumentStore instrumentStore) async {
-    var resultJson = await getJson(user,
-        "${Constants.robinHoodEndpoint}/midlands/tags/tag/100-most-popular/");
+    var resultJson =
+        await getJson(user, "$endpoint/midlands/tags/tag/100-most-popular/");
     // https://api.robinhood.com/midlands/tags/tag/top-movers/
     // List<String> instrumentIds = resultJson["instruments"]
     //     .map((e) {
@@ -700,10 +712,9 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getFeed(BrokerageUser user) async {
+  Future<List<dynamic>> getFeed(BrokerageUser user) async {
     //https://dora.robinhood.com/feed/
-    var resultJson =
-        await getJson(user, "${Constants.robinHoodExploreEndpoint}/feed/");
+    var resultJson = await getJson(user, "$robinHoodExploreEndpoint/feed/");
     List<dynamic> list = [];
     for (var i = 0; i < resultJson["results"].length; i++) {
       var result = resultJson["results"][i];
@@ -743,7 +754,7 @@ class RobinhoodService implements IBrokerageService {
 
     // https://api.robinhood.com/instruments/?active_instruments_only=false&symbol=GOOG
     var resultJson = await getJson(user,
-        "${Constants.robinHoodEndpoint}/instruments/?active_instruments_only=false&symbol=$symbol");
+        "$endpoint/instruments/?active_instruments_only=false&symbol=$symbol");
     if (resultJson["results"].length > 0) {
       var i = Instrument.fromJson(resultJson["results"][0]);
       store.add(i);
@@ -775,7 +786,7 @@ class RobinhoodService implements IBrokerageService {
     List<Instrument> list = cached.toList();
     /*
     var url =
-        "${Constants.robinHoodEndpoint}/instruments/?ids=${Uri.encodeComponent(nonCached.join(","))}";
+        "$endpoint/instruments/?ids=${Uri.encodeComponent(nonCached.join(","))}";
     debugPrint(url);
     var resultJson = await getJson(user, url);
 
@@ -798,7 +809,7 @@ class RobinhoodService implements IBrokerageService {
           await getFundamentalsById(user, ids, store);
       //https://api.robinhood.com/instruments/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
       var url =
-          "${Constants.robinHoodEndpoint}/instruments/?ids=${Uri.encodeComponent(chunk.join(","))}";
+          "$endpoint/instruments/?ids=${Uri.encodeComponent(chunk.join(","))}";
       // debugPrint(url);
       var resultJson = await getJson(user, url);
 
@@ -839,7 +850,7 @@ class RobinhoodService implements IBrokerageService {
       debugPrint('Returned quote from cache $symbol');
       return Future.value(cachedQuotes.first);
     }
-    var url = "${Constants.robinHoodEndpoint}/quotes/$symbol/";
+    var url = "$endpoint/quotes/$symbol/";
     var resultJson = await getJson(user, url);
     var quote = Quote.fromJson(resultJson);
     store.add(quote);
@@ -850,7 +861,7 @@ class RobinhoodService implements IBrokerageService {
   @override
   Future<Quote> refreshQuote(
       BrokerageUser user, QuoteStore store, String symbol) async {
-    var url = "${Constants.robinHoodEndpoint}/quotes/$symbol/";
+    var url = "$endpoint/quotes/$symbol/";
     var resultJson = await getJson(user, url);
     var quote = Quote.fromJson(resultJson);
     store.update(quote);
@@ -891,7 +902,7 @@ class RobinhoodService implements IBrokerageService {
     }
     for (var chunk in chunks) {
       var url =
-          "${Constants.robinHoodEndpoint}/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=${Uri.encodeComponent(chunk.join(","))}";
+          "$endpoint/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=${Uri.encodeComponent(chunk.join(","))}";
       // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
       var resultJson = await getJson(user, url);
 
@@ -935,7 +946,7 @@ class RobinhoodService implements IBrokerageService {
     }
     for (var chunk in chunks) {
       var url =
-          "${Constants.robinHoodEndpoint}/quotes/?symbols=${Uri.encodeComponent(chunk.join(","))}";
+          "$endpoint/quotes/?symbols=${Uri.encodeComponent(chunk.join(","))}";
       // https://api.robinhood.com/marketdata/quotes/?bounds=trading&include_inactive=true&instruments=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F6c62bf75-bc42-457a-8c58-24097799966b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Febab2398-028d-4939-9f1d-13bf38f81c50%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fcd822b83-39cd-49b5-a33b-9a08eb3f5103%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F17302400-f9c0-423b-b370-beaf6cee021b%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F24fb7b13-6679-40a5-9eba-360d648f9ea3%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Ff1adc843-1a28-4cc5-b6d2-082271fdd126%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F3a47ca97-d5a2-4a55-9045-053a588894de%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2Fb2e06903-5c44-46a4-bd42-2a696f9d68e1%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F8a9fe49d-5d0a-4040-a19b-f3f4df44408f%2F%2Chttps%3A%2F%2Fapi.robinhood.com%2Finstruments%2F2ed64ef4-2c1a-44d6-832d-1be84741dc41%2F
       var resultJson = await getJson(user, url);
 
@@ -983,7 +994,7 @@ class RobinhoodService implements IBrokerageService {
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
-        "${Constants.robinHoodEndpoint}/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
+        "$endpoint/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
     var instrumentHistorical = InstrumentHistoricals.fromJson(result);
     store.set(instrumentHistorical);
     return instrumentHistorical;
@@ -995,7 +1006,7 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/orders/?instrument=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     var results = await RobinhoodService.pagedGet(user,
-        "${Constants.robinHoodEndpoint}/orders/?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}");
+        "$endpoint/orders/?instrument=${Uri.encodeComponent(instrumentUrls.join(","))}");
     List<InstrumentOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1030,7 +1041,7 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
     var url =
-        "${Constants.robinHoodEndpoint}/fundamentals/?ids=${Uri.encodeComponent(instruments.join(","))}";
+        "$endpoint/fundamentals/?ids=${Uri.encodeComponent(instruments.join(","))}";
     var resultJson = await getJson(user, url);
 
     List<Fundamentals> list = [];
@@ -1079,7 +1090,7 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/midlands/news/MSFT/
     //https://dora.robinhood.com/feed/instrument/50810c35-d215-4866-9758-0ada4ac79ffa/?
     var results = await RobinhoodService.pagedGet(
-        user, "${Constants.robinHoodEndpoint}/midlands/news/$symbol/");
+        user, "$endpoint/midlands/news/$symbol/");
 
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
@@ -1095,7 +1106,7 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=robinhood
     //https://api.robinhood.com/midlands/lists/?object_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&object_type=instrument&owner_type=custom
     var results = await pagedGet(user,
-        "${Constants.robinHoodEndpoint}/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
+        "$endpoint/midlands/lists/?object_id=$instrumentId&object_type=instrument&owner_type=robinhood");
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1110,8 +1121,8 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
 
-    var results = await pagedGet(user,
-        "${Constants.robinHoodEndpoint}/dividends/?instrument_id=$instrumentId");
+    var results = await pagedGet(
+        user, "$endpoint/dividends/?instrument_id=$instrumentId");
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1122,12 +1133,12 @@ class RobinhoodService implements IBrokerageService {
     return list;
   }
 
-  static Future<List<dynamic>> getRecurringTradeLogs(
+  Future<List<dynamic>> getRecurringTradeLogs(
       BrokerageUser user, String instrumentId) async {
     //https://bonfire.robinhood.com/recurring_trade_logs/?instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
     //https://bonfire.robinhood.com/recurring_schedules/?asset_types=equity&instrument_id=50810c35-d215-4866-9758-0ada4ac79ffa
-    var results = await pagedGet(user,
-        "${Constants.robinHoodEndpoint}/recurring_trade_logs/?instrument_id=$instrumentId");
+    var results = await pagedGet(
+        user, "$endpoint/recurring_trade_logs/?instrument_id=$instrumentId");
     List<dynamic> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1142,8 +1153,8 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/midlands/ratings/?ids=c0bb3aec-bd1e-471e-a4f0-ca011cbec711%2C50810c35-d215-4866-9758-0ada4ac79ffa%2Cebab2398-028d-4939-9f1d-13bf38f81c50%2C81733743-965a-4d93-b87a-6973cb9efd34
     dynamic resultJson;
     try {
-      resultJson = await getJson(user,
-          "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/");
+      resultJson =
+          await getJson(user, "$endpoint/midlands/ratings/$instrumentId/");
     } on Exception catch (e) {
       // Format
       debugPrint('No ratings found. Error: $e');
@@ -1158,8 +1169,8 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/midlands/ratings/50810c35-d215-4866-9758-0ada4ac79ffa/overview/
     dynamic resultJson;
     try {
-      resultJson = await getJson(user,
-          "${Constants.robinHoodEndpoint}/midlands/ratings/$instrumentId/overview/");
+      resultJson = await getJson(
+          user, "$endpoint/midlands/ratings/$instrumentId/overview/");
     } on Exception catch (e) {
       // Format
       debugPrint('No rating overview found. Error: $e');
@@ -1173,7 +1184,7 @@ class RobinhoodService implements IBrokerageService {
       BrokerageUser user, String instrumentId) async {
     //https://api.robinhood.com/marketdata/earnings/?instrument=%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
     var resultJson = await getJson(user,
-        "${Constants.robinHoodEndpoint}/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/$instrumentId/")}");
+        "$endpoint/marketdata/earnings/?instrument=${Uri.encodeQueryComponent("/instruments/$instrumentId/")}");
     List<dynamic> list = [];
     for (var i = 0; i < resultJson["results"].length; i++) {
       var result = resultJson["results"][i];
@@ -1188,8 +1199,8 @@ class RobinhoodService implements IBrokerageService {
   Future<List<dynamic>> getSimilar(
       BrokerageUser user, String instrumentId) async {
     //https://dora.robinhood.com/instruments/similar/50810c35-d215-4866-9758-0ada4ac79ffa/
-    var resultJson = await getJson(user,
-        "${Constants.robinHoodExploreEndpoint}/instruments/similar/$instrumentId/");
+    var resultJson = await getJson(
+        user, "$robinHoodExploreEndpoint/instruments/similar/$instrumentId/");
     //return resultJson;
     List<dynamic> list = [];
     bool savePrefs = false;
@@ -1428,7 +1439,7 @@ class RobinhoodService implements IBrokerageService {
     List<OptionAggregatePosition> optionPositions = [];
     //https://api.robinhood.com/options/aggregate_positions/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&nonzero=True
     var results = await RobinhoodService.pagedGet(user,
-        "${Constants.robinHoodEndpoint}/options/aggregate_positions/?nonzero=$nonzero"); // ?nonzero=true
+        "$endpoint/options/aggregate_positions/?nonzero=$nonzero"); // ?nonzero=true
 
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1451,7 +1462,7 @@ class RobinhoodService implements IBrokerageService {
   Future<List<OptionInstrument>> getOptionInstrumentByIds(
       BrokerageUser user, List<String> ids) async {
     var url =
-        "${Constants.robinHoodEndpoint}/options/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
+        "$endpoint/options/instruments/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
 
     List<OptionInstrument> list = [];
@@ -1469,7 +1480,7 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/
     // https://api.robinhood.com/options/chains/?equity_instrument_ids=943c5009-a0bb-4665-8cf4-a95dab5874e4
     var url =
-        "${Constants.robinHoodEndpoint}/options/chains/?equity_instrument_ids=${Uri.encodeComponent(ids.join(","))}";
+        "$endpoint/options/chains/?equity_instrument_ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
 
     List<OptionChain> list = [];
@@ -1485,8 +1496,7 @@ class RobinhoodService implements IBrokerageService {
   Future<OptionChain> getOptionChains(BrokerageUser user, String id) async {
     // https://api.robinhood.com/options/chains/?equity_instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
     // {"id":"9330028e-455f-4acf-9954-77f60b19151d","symbol":"GOOG","can_open_position":true,"cash_component":null,"expiration_dates":["2021-10-29","2021-11-05","2021-11-12","2021-11-19","2021-11-26","2021-12-03","2021-12-17","2022-01-21","2022-02-18","2022-03-18","2022-06-17","2023-01-20","2023-03-17","2023-06-16","2024-01-19"],"trade_value_multiplier":"100.0000","underlying_instruments":[{"id":"204f1955-a737-47c9-a559-9fff1279428d","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","quantity":100}],"min_ticks":{"above_tick":"0.10","below_tick":"0.05","cutoff_price":"3.00"}}
-    var url =
-        "${Constants.robinHoodEndpoint}/options/chains/?equity_instrument_id=$id";
+    var url = "$endpoint/options/chains/?equity_instrument_id=$id";
     var resultJson = await getJson(user, url);
     List<OptionChain> list = [];
     for (var result in resultJson['results']) {
@@ -1509,7 +1519,7 @@ class RobinhoodService implements IBrokerageService {
     // https://api.robinhood.com/options/chains/9330028e-455f-4acf-9954-77f60b19151d/collateral/?account_number=1AB23456
     // {"collateral":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]},"collateral_held_for_orders":{"cash":{"amount":"0.0000","direction":"debit","infinite":false},"equities":[{"quantity":"0E-8","direction":"debit","instrument":"https:\/\/api.robinhood.com\/instruments\/943c5009-a0bb-4665-8cf4-a95dab5874e4\/","symbol":"GOOG"}]}}
     var url =
-        "${Constants.robinHoodEndpoint}/options/instruments/?chain_id=${instrument.tradeableChainId}";
+        "$endpoint/options/instruments/?chain_id=${instrument.tradeableChainId}";
     if (expirationDates != null) {
       url += "&expiration_dates=$expirationDates";
     }
@@ -1523,7 +1533,7 @@ class RobinhoodService implements IBrokerageService {
 
     List<OptionInstrument> optionInstruments = [];
 
-    var pageStream = RobinhoodService.streamedGet(user, url);
+    var pageStream = streamedGet(user, url);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
         var result = results[i];
@@ -1566,7 +1576,7 @@ class RobinhoodService implements IBrokerageService {
   Future<OptionMarketData?> getOptionMarketData(
       BrokerageUser user, OptionInstrument optionInstrument) async {
     var url =
-        "${Constants.robinHoodEndpoint}/marketdata/options/?instruments=${Uri.encodeQueryComponent(optionInstrument.url)}";
+        "$endpoint/marketdata/options/?instruments=${Uri.encodeQueryComponent(optionInstrument.url)}";
     debugPrint(url);
     var resultJson = await getJson(user, url);
     var firstResult = resultJson['results'][0];
@@ -1589,7 +1599,7 @@ class RobinhoodService implements IBrokerageService {
     String? interval = rtn[1];
     // https://api.robinhood.com/marketdata/options/strategy/historicals/?bounds=regular&ids=04c8d8fb-7805-4593-84a7-eb3641e75c7b&interval=5minute&ratios=1&span=day&types=long
     String url =
-        "${Constants.robinHoodEndpoint}/marketdata/options/strategy/historicals/?bounds=$bounds&ids=${Uri.encodeComponent(ids.join(","))}&interval=$interval&span=$span&types=long&ratios=1";
+        "$endpoint/marketdata/options/strategy/historicals/?bounds=$bounds&ids=${Uri.encodeComponent(ids.join(","))}&interval=$interval&span=$span&types=long&ratios=1";
     var result = await RobinhoodService.getJson(user, url); //${account}/
     var optionHistoricals = OptionHistoricals.fromJson(result);
     store.addOrUpdate(optionHistoricals);
@@ -1600,7 +1610,7 @@ class RobinhoodService implements IBrokerageService {
   Future<List<OptionMarketData>> getOptionMarketDataByIds(
       BrokerageUser user, List<String> ids) async {
     var url =
-        "${Constants.robinHoodEndpoint}/marketdata/options/?ids=${Uri.encodeComponent(ids.join(","))}";
+        "$endpoint/marketdata/options/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
 
     List<OptionMarketData> list = [];
@@ -1661,8 +1671,8 @@ class RobinhoodService implements IBrokerageService {
   Stream<List<OptionOrder>> streamOptionOrders(
       BrokerageUser user, OptionOrderStore store) async* {
     //https://api.robinhood.com/options/orders/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d
-    var pageStream = RobinhoodService.streamedGet(user,
-        "${Constants.robinHoodEndpoint}/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
+    var pageStream = streamedGet(user,
+        "$endpoint/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     List<OptionOrder> list = [];
     await for (final results in pageStream) {
@@ -1685,7 +1695,7 @@ class RobinhoodService implements IBrokerageService {
   Future<List<OptionOrder>> getOptionOrders(
       BrokerageUser user, OptionOrderStore store, String chainId) async {
     var results = await RobinhoodService.pagedGet(user,
-        "${Constants.robinHoodEndpoint}/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}");
+        "$endpoint/options/orders/?chain_ids=${Uri.encodeComponent(chainId)}");
     List<OptionOrder> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1700,7 +1710,7 @@ class RobinhoodService implements IBrokerageService {
   static Future<List<OptionOrder>> getOptionOrders(RobinhoodUser user) async {
     // , Instrument instrument
     var results = await RobinhoodService.pagedGet(user,
-        "${Constants.robinHoodEndpoint}/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
+        "$endpoint/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     List<OptionOrder> optionOrders = [];
     for (var i = 0; i < results.length; i++) {
@@ -1719,8 +1729,8 @@ class RobinhoodService implements IBrokerageService {
       {int pageSize = 20}) async* {
     List<OptionEvent> list = [];
     //https://api.robinhood.com/options/orders/?page_size=10
-    var pageStream = RobinhoodService.streamedGet(user,
-        "${Constants.robinHoodEndpoint}/options/events/?page_size=$pageSize"); // ?chain_id=${instrument.tradeableChainId}
+    var pageStream = streamedGet(user,
+        "$endpoint/options/events/?page_size=$pageSize"); // ?chain_id=${instrument.tradeableChainId}
     //debugPrint(results);
     await for (final results in pageStream) {
       for (var i = 0; i < results.length; i++) {
@@ -1736,12 +1746,11 @@ class RobinhoodService implements IBrokerageService {
     //optionEvents = list;
   }
 
-  static Future<dynamic> getOptionEvents(BrokerageUser user,
+  Future<dynamic> getOptionEvents(BrokerageUser user,
       {int pageSize = 10}) async {
     //https://api.robinhood.com/options/events/?equity_instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4&states=preparing
 
-    var url =
-        "${Constants.robinHoodEndpoint}/options/events/?page_size=$pageSize}";
+    var url = "$endpoint/options/events/?page_size=$pageSize}";
     return await getJson(user, url);
   }
 
@@ -1751,13 +1760,13 @@ class RobinhoodService implements IBrokerageService {
     //https://api.robinhood.com/options/events/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d&equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F943c5009-a0bb-4665-8cf4-a95dab5874e4%2F
 
     //var url =
-    //    "${Constants.robinHoodEndpoint}/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}&equity_instrument_id=$instrumentId";
+    //    "$endpoint/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}&equity_instrument_id=$instrumentId";
     //var url =
-    //    "${Constants.robinHoodEndpoint}/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}";
+    //    "$endpoint/options/events/?chain_ids=${Uri.encodeComponent(chainIds.join(","))}";
 
     //https://api.robinhood.com/options/events/?equity_instrument_id=https%3A%2F%2Fapi.robinhood.com%2Finstruments%2F50810c35-d215-4866-9758-0ada4ac79ffa%2F
     var url =
-        "${Constants.robinHoodEndpoint}/options/events/?equity_instrument_id=${Uri.encodeComponent(instrumentUrl)}";
+        "$endpoint/options/events/?equity_instrument_id=${Uri.encodeComponent(instrumentUrl)}";
 
     var resultJson = await getJson(user, url);
 
@@ -1774,9 +1783,8 @@ class RobinhoodService implements IBrokerageService {
   CRYPTO
   */
 
-  static Future<dynamic> getNummusAccounts(BrokerageUser user) async {
-    var resultJson =
-        await getJson(user, '${Constants.robinHoodNummusEndpoint}/accounts/');
+  Future<dynamic> getNummusAccounts(BrokerageUser user) async {
+    var resultJson = await getJson(user, '$robinHoodNummusEndpoint/accounts/');
 
     return resultJson;
     /*
@@ -1794,9 +1802,9 @@ class RobinhoodService implements IBrokerageService {
   Future<List<ForexHolding>> getNummusHoldings(
       BrokerageUser user, ForexHoldingStore store,
       {bool nonzero = true}) async {
-    var results = await RobinhoodService.pagedGet(user,
-        "${Constants.robinHoodNummusEndpoint}/holdings/?nonzero=$nonzero");
-    var quotes = await RobinhoodService.getForexPairs(user);
+    var results = await RobinhoodService.pagedGet(
+        user, "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero");
+    var quotes = await getForexPairs(user);
     List<ForexHolding> list = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
@@ -1848,7 +1856,7 @@ class RobinhoodService implements IBrokerageService {
     //id = "3d961844-d360-45fc-989b-f6fca761d511"; // BTC-USD pair
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
-    String url = "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/$id/";
+    String url = "$endpoint/marketdata/forex/quotes/$id/";
     var resultJson = await getJson(user, url);
     var quoteObj = ForexQuote.fromJson(resultJson);
     return quoteObj;
@@ -1861,7 +1869,7 @@ class RobinhoodService implements IBrokerageService {
     //id = "d674efea-e623-4396-9026-39574b92b093"; // BTC currency
     //id = "1072fc76-1862-41ab-82c2-485837590762"; // USD currency
     String url =
-        "${Constants.robinHoodEndpoint}/marketdata/forex/quotes/?ids=${Uri.encodeComponent(ids.join(","))}";
+        "$endpoint/marketdata/forex/quotes/?ids=${Uri.encodeComponent(ids.join(","))}";
     var resultJson = await getJson(user, url);
 
     List<ForexQuote> list = [];
@@ -1891,21 +1899,21 @@ class RobinhoodService implements IBrokerageService {
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     //https://api.robinhood.com/marketdata/forex/historicals/?bounds=24_7&ids=3d961844-d360-45fc-989b-f6fca761d511%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C76637d50-c702-4ed1-bcb5-5b0732a81f48%2C1ef78e1b-049b-4f12-90e5-555dcf2fe204%2C383280b1-ff53-43fc-9c84-f01afd0989cd%2Ccc2eb8d1-c42d-4f12-8801-1c4bbe43a274%2C3d961844-d360-45fc-989b-f6fca761d511&interval=5minute&span=day
     //https://api.robinhood.com/marketdata/forex/historicals/3d961844-d360-45fc-989b-f6fca761d511/?bounds=24_7&interval=hour&span=week
-    // var url = "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}";
+    // var url = "$endpoint/marketdata/forex/historicals/?${bounds != null ? "&bounds=$bounds" : ""}&ids=${Uri.encodeComponent(ids.join(","))}${interval != null ? "&interval=$interval" : ""}${span != null ? "&span=$span" : ""}";
     String bounds = convertChartBoundsFilter(chartBoundsFilter);
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String span = rtn[0];
     String interval = rtn[1];
 
     var url =
-        "${Constants.robinHoodEndpoint}/marketdata/forex/historicals/$id/?bounds=$bounds&interval=$interval&span=$span";
+        "$endpoint/marketdata/forex/historicals/$id/?bounds=$bounds&interval=$interval&span=$span";
     var resultJson = await RobinhoodService.getJson(user, url);
     var item = ForexHistoricals.fromJson(resultJson);
     return item;
   }
 
-  static Future<List<dynamic>> getForexPairs(BrokerageUser user) async {
-    String url = '${Constants.robinHoodNummusEndpoint}/currency_pairs/';
+  Future<List<dynamic>> getForexPairs(BrokerageUser user) async {
+    String url = '$robinHoodNummusEndpoint/currency_pairs/';
     var resultJson = await getJson(user, url);
     List<dynamic> list = [];
     for (var i = 0; i < resultJson['results'].length; i++) {
@@ -1950,7 +1958,7 @@ class RobinhoodService implements IBrokerageService {
       'override_dtbp_checks': false,
       // 'ref_id': uuid.v4(),
     };
-    var url = "${Constants.robinHoodEndpoint}/options/orders/";
+    var url = "$endpoint/options/orders/";
     debugPrint(url);
     var result = await user.oauth2Client!.post(Uri.parse(url),
         body: jsonEncode(payload),
@@ -2005,7 +2013,7 @@ class RobinhoodService implements IBrokerageService {
       'override_dtbp_checks': false,
       'ref_id': uuid.v4(),
     };
-    var url = "${Constants.robinHoodEndpoint}/options/orders/";
+    var url = "$endpoint/options/orders/";
     debugPrint(url);
     var result = await user.oauth2Client!.post(Uri.parse(url),
         body: jsonEncode(payload),
@@ -2026,8 +2034,7 @@ WATCHLIST
     // https://api.robinhood.com/midlands/lists/default/
     // https://api.robinhood.com/midlands/lists/items/ (not working)
     // TODO: https://api.robinhood.com/discovery/lists/user_items/
-    var watchlistsUrl =
-        "${Constants.robinHoodEndpoint}/midlands/lists/user_items/";
+    var watchlistsUrl = "$endpoint/midlands/lists/user_items/";
     var userItemsJson = await getJson(user, watchlistsUrl);
     List<Watchlist> list = [];
     for (var entry in userItemsJson.entries) {
@@ -2156,19 +2163,17 @@ WATCHLIST
   @override
   Future<Watchlist> getList(String key, BrokerageUser user,
       {String ownerType = "custom"}) async {
-    var watchlistUrl =
-        "${Constants.robinHoodEndpoint}/midlands/lists/$key/?owner_type=$ownerType";
+    var watchlistUrl = "$endpoint/midlands/lists/$key/?owner_type=$ownerType";
     var entryJson = await getJson(user, watchlistUrl);
 
     var wl = Watchlist.fromJson(entryJson);
     return wl;
   }
 
-  static Future<List<WatchlistItem>> getListItems(
+  Future<List<WatchlistItem>> getListItems(
       String key, BrokerageUser user) async {
     //https://api.robinhood.com/midlands/lists/items/?list_id=8ce9f620-5bb0-4b6a-8c61-5a06763f7a8b&local_midnight=2021-12-30T06%3A00%3A00.000Z
-    var watchlistUrl =
-        "${Constants.robinHoodEndpoint}/midlands/lists/items/?list_id=$key";
+    var watchlistUrl = "$endpoint/midlands/lists/items/?list_id=$key";
     var entryJson = await getJson(user, watchlistUrl);
     List<WatchlistItem> list = [];
     for (var i = 0; i < entryJson['results'].length; i++) {
@@ -2191,7 +2196,7 @@ WATCHLIST
     return responseJson;
   }
 
-  static Stream<List<dynamic>> streamedGet(BrokerageUser user, String url,
+  Stream<List<dynamic>> streamedGet(BrokerageUser user, String url,
       {int pages = 0}) async* {
     List<dynamic> results = [];
     dynamic responseJson = await getJson(user, url);
@@ -2202,7 +2207,7 @@ WATCHLIST
     while (nextUrl != null &&
         nextUrl != url &&
         (pages == 0 || page < pages) &&
-        url.startsWith(Constants.robinHoodEndpoint.toString())) {
+        url.startsWith(endpoint.toString())) {
       responseJson = await getJson(user, nextUrl);
       results.addAll(responseJson['results']);
       yield results;

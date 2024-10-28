@@ -4,7 +4,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BrokerageUserStore extends ChangeNotifier {
@@ -57,10 +61,10 @@ class BrokerageUserStore extends ChangeNotifier {
     }
   }
 
-  BrokerageUser get currentUser =>
-      currentUserIndex >= 0 && currentUserIndex < _items.length
+  BrokerageUser? get currentUser =>
+      _items.isNotEmpty && currentUserIndex < _items.length
           ? _items[currentUserIndex]
-          : _items[0];
+          : null;
 
   void setCurrentUserIndex(int userIndex) {
     currentUserIndex = userIndex;
@@ -91,7 +95,13 @@ class BrokerageUserStore extends ChangeNotifier {
         var user = BrokerageUser.fromJson(userMap);
         if (user.credentials != null) {
           var credentials = Credentials.fromJson(user.credentials as String);
-          var client = Client(credentials, identifier: Constants.rhClientId);
+          var service = user.source == Source.robinhood
+              ? RobinhoodService()
+              : user.source == Source.schwab
+                  ? SchwabService()
+                  : DemoService();
+
+          var client = Client(credentials, identifier: service.clientId);
           user.oauth2Client = client;
         }
         debugPrint('Loaded cache.');

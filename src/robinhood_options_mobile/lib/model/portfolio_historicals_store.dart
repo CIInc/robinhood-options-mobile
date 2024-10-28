@@ -75,4 +75,8 @@ class PortfolioHistoricalsStore extends ChangeNotifier {
       add(item);
     }
   }
+
+  void notify() {
+    notifyListeners();
+  }
 }

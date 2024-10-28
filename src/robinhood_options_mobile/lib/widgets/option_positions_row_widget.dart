@@ -342,7 +342,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       sortedGroupedOptionAggregatePositions.elementAt(index),
                       context,
                       excludeGroupRow:
-                          sortedGroupedOptionAggregatePositions.length == 1);
+                          false); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
                 }, childCount: sortedGroupedOptionAggregatePositions.length),
               )
       ],
@@ -415,7 +415,10 @@ class OptionPositionsRowWidget extends StatelessWidget {
                         e.marketValue
                     : 0)
                 : (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null
+                        e.optionInstrument!.optionMarketData != null &&
+                        e.optionInstrument!.optionMarketData!
+                                .chanceOfProfitShort !=
+                            null
                     ? e.optionInstrument!.optionMarketData!
                             .chanceOfProfitShort! *
                         e.marketValue

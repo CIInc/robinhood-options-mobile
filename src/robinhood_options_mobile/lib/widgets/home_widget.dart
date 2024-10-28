@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'dart:math' as math;
 
@@ -31,7 +30,6 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
-import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -231,13 +229,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Widget _buildScaffold() {
-    Provider.of<BrokerageUserStore>(context, listen: true);
+    // Commented out, the BrokerageUserStore change detection occurs one level up at NavigationStatefulWidget which will pass in the new user in the ctor.
+    // Provider.of<BrokerageUserStore>(context, listen: true);
 
     futureAccounts = widget.service.getAccounts(
         widget.user,
         Provider.of<AccountStore>(context, listen: false),
         Provider.of<PortfolioStore>(context, listen: false),
-        Provider.of<OptionPositionStore>(context, listen: false));
+        Provider.of<OptionPositionStore>(context, listen: false),
+        instrumentPositionStore:
+            Provider.of<InstrumentPositionStore>(context, listen: false));
 
     if (widget.user.source == Source.robinhood ||
         widget.user.source == Source.demo) {
@@ -298,6 +299,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   */
               account = acct;
             }
+          }
+
+          if (widget.user.source == Source.schwab) {
+            // futurePortfolios = widget.service.getPortfolios(
+            //     widget.user, Provider.of<PortfolioStore>(context, listen: false));
+            // futureNummusHoldings = widget.service.getNummusHoldings(
+            //     widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
+            //     nonzero: !hasQuantityFilters[1]);
+
+            // futureOptionPositions = widget.service.getOptionPositionStore(
+            //     widget.user,
+            //     Provider.of<OptionPositionStore>(context, listen: false),
+            //     Provider.of<InstrumentStore>(context, listen: false),
+            //     nonzero: !hasQuantityFilters[1]);
+
+            futureStockPositions = widget.service.getStockPositionStore(
+                widget.user,
+                Provider.of<InstrumentPositionStore>(context, listen: false),
+                Provider.of<InstrumentStore>(context, listen: false),
+                Provider.of<QuoteStore>(context, listen: false),
+                nonzero: !hasQuantityFilters[1]);
           }
 
           if (widget.user.source == Source.robinhood ||
@@ -441,23 +463,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   void resetChart(ChartDateSpan span, Bounds bounds) async {
-    setState(() {
-      prevChartDateSpanFilter = chartDateSpanFilter;
-      chartDateSpanFilter = span;
-      prevChartBoundsFilter = chartBoundsFilter;
-      chartBoundsFilter = bounds;
-      futurePortfolioHistoricals = null;
-    });
-    /*
+    // setState(() {
+    prevChartDateSpanFilter = chartDateSpanFilter;
     chartDateSpanFilter = span;
+    prevChartBoundsFilter = chartBoundsFilter;
     chartBoundsFilter = bounds;
+    // futurePortfolioHistoricals = null;
+    var portfolioHistoricalStore =
+        Provider.of<PortfolioHistoricalsStore>(context, listen: false);
+    // futurePortfolioHistoricals =
     await widget.service.getPortfolioHistoricals(
         widget.user,
-        Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+        portfolioHistoricalStore,
         account!.accountNumber,
         chartBoundsFilter,
         chartDateSpanFilter);
-    */
+    portfolioHistoricalStore.notify();
   }
 
   Widget _buildPage(BuildContext context,
@@ -508,6 +529,94 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
+            Consumer4<PortfolioStore, InstrumentPositionStore,
+                    OptionPositionStore, ForexHoldingStore>(
+                builder: (context, portfolioStore, stockPositionStore,
+                    optionPositionStore, forexHoldingStore, child) {
+              double close = 0;
+              DateTime? updatedAt;
+              if (portfolioStore.items.isNotEmpty && account != null) {
+                // close = (portfolioStore.items[0].equity ?? 0) +
+                //     forexHoldingStore.equity;
+                close = account.portfolioCash! +
+                    stockPositionStore.equity +
+                    optionPositionStore.equity +
+                    forexHoldingStore.equity;
+                updatedAt = portfolioStore.items[0].updatedAt!;
+              }
+
+              return SliverToBoxAdapter(
+                  child: ListTile(
+                      title: const Text(
+                        "Portfolio",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                        // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+                        updatedAt != null
+                            ? formatLongDate.format(updatedAt.toLocal())
+                            : '',
+                        // selection != null
+                        // ? selection!.beginsAt!.toLocal()
+                        // : lastHistorical!.beginsAt!.toLocal()),
+                        style: const TextStyle(fontSize: 10.0),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Wrap(spacing: 8, children: [
+                        Text(
+                          formatCurrency.format(close),
+                          // selection != null
+                          //  ? selection!.adjustedCloseEquity
+                          //  : close),
+                          style: const TextStyle(fontSize: 21.0),
+                          textAlign: TextAlign.right,
+                        )
+                      ])
+                      /*
+                              Wrap(
+                                children: [
+                                  Text(
+                                      formatCurrency.format(selection != null
+                                          ? selection!.adjustedCloseEquity
+                                          : close),
+                                      style: TextStyle(
+                                          fontSize: 19, color: textColor)),
+                                  Container(
+                                    width: 10,
+                                  ),
+                                  Icon(
+                                    changeInPeriod > 0
+                                        ? Icons.trending_up
+                                        : (changeInPeriod < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (changeInPeriod > 0
+                                        ? Colors.green
+                                        : (changeInPeriod < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    //size: 16.0
+                                  ),
+                                  Container(
+                                    width: 2,
+                                  ),
+                                  Text(
+                                      formatPercentage
+                                          //.format(selection!.netReturn!.abs()),
+                                          .format(changePercentInPeriod.abs()),
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                  Container(
+                                    width: 10,
+                                  ),
+                                  Text(
+                                      "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                ],
+                              )*/
+                      ));
+            }),
             Consumer<PortfolioHistoricalsStore>(
                 builder: (context, portfolioHistoricalsStore, child) {
               // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
@@ -693,75 +802,75 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           //height: 72,
                           child: Column(
                         children: [
-                          ListTile(
-                              title: const Text(
-                                "Portfolio",
-                                style: TextStyle(fontSize: 19.0),
-                              ),
-                              subtitle: Text(
-                                // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                                formatLongDate.format(
-                                    lastHistorical!.beginsAt!.toLocal()),
-                                // selection != null
-                                // ? selection!.beginsAt!.toLocal()
-                                // : lastHistorical!.beginsAt!.toLocal()),
-                                style: const TextStyle(fontSize: 10.0),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              trailing: Wrap(spacing: 8, children: [
-                                Text(
-                                  formatCurrency.format(close),
-                                  // selection != null
-                                  //  ? selection!.adjustedCloseEquity
-                                  //  : close),
-                                  style: const TextStyle(fontSize: 21.0),
-                                  textAlign: TextAlign.right,
-                                )
-                              ])
-                              /*
-                              Wrap(
-                                children: [
-                                  Text(
-                                      formatCurrency.format(selection != null
-                                          ? selection!.adjustedCloseEquity
-                                          : close),
-                                      style: TextStyle(
-                                          fontSize: 19, color: textColor)),
-                                  Container(
-                                    width: 10,
-                                  ),
-                                  Icon(
-                                    changeInPeriod > 0
-                                        ? Icons.trending_up
-                                        : (changeInPeriod < 0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: (changeInPeriod > 0
-                                        ? Colors.green
-                                        : (changeInPeriod < 0
-                                            ? Colors.red
-                                            : Colors.grey)),
-                                    //size: 16.0
-                                  ),
-                                  Container(
-                                    width: 2,
-                                  ),
-                                  Text(
-                                      formatPercentage
-                                          //.format(selection!.netReturn!.abs()),
-                                          .format(changePercentInPeriod.abs()),
-                                      style: TextStyle(
-                                          fontSize: 19.0, color: textColor)),
-                                  Container(
-                                    width: 10,
-                                  ),
-                                  Text(
-                                      "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                      style: TextStyle(
-                                          fontSize: 19.0, color: textColor)),
-                                ],
-                              )*/
-                              ),
+                          // ListTile(
+                          //     title: const Text(
+                          //       "Portfolio",
+                          //       style: TextStyle(fontSize: 19.0),
+                          //     ),
+                          //     subtitle: Text(
+                          //       // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+                          //       formatLongDate.format(
+                          //           lastHistorical!.beginsAt!.toLocal()),
+                          //       // selection != null
+                          //       // ? selection!.beginsAt!.toLocal()
+                          //       // : lastHistorical!.beginsAt!.toLocal()),
+                          //       style: const TextStyle(fontSize: 10.0),
+                          //       overflow: TextOverflow.ellipsis,
+                          //     ),
+                          //     trailing: Wrap(spacing: 8, children: [
+                          //       Text(
+                          //         formatCurrency.format(close),
+                          //         // selection != null
+                          //         //  ? selection!.adjustedCloseEquity
+                          //         //  : close),
+                          //         style: const TextStyle(fontSize: 21.0),
+                          //         textAlign: TextAlign.right,
+                          //       )
+                          //     ])
+                          //     /*
+                          //     Wrap(
+                          //       children: [
+                          //         Text(
+                          //             formatCurrency.format(selection != null
+                          //                 ? selection!.adjustedCloseEquity
+                          //                 : close),
+                          //             style: TextStyle(
+                          //                 fontSize: 19, color: textColor)),
+                          //         Container(
+                          //           width: 10,
+                          //         ),
+                          //         Icon(
+                          //           changeInPeriod > 0
+                          //               ? Icons.trending_up
+                          //               : (changeInPeriod < 0
+                          //                   ? Icons.trending_down
+                          //                   : Icons.trending_flat),
+                          //           color: (changeInPeriod > 0
+                          //               ? Colors.green
+                          //               : (changeInPeriod < 0
+                          //                   ? Colors.red
+                          //                   : Colors.grey)),
+                          //           //size: 16.0
+                          //         ),
+                          //         Container(
+                          //           width: 2,
+                          //         ),
+                          //         Text(
+                          //             formatPercentage
+                          //                 //.format(selection!.netReturn!.abs()),
+                          //                 .format(changePercentInPeriod.abs()),
+                          //             style: TextStyle(
+                          //                 fontSize: 19.0, color: textColor)),
+                          //         Container(
+                          //           width: 10,
+                          //         ),
+                          //         Text(
+                          //             "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                          //             style: TextStyle(
+                          //                 fontSize: 19.0, color: textColor)),
+                          //       ],
+                          //     )*/
+                          //     ),
                           SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Padding(
@@ -793,7 +902,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                             ? selection!
                                                                 .beginsAt!
                                                                 .toLocal()
-                                                            : lastHistorical
+                                                            : lastHistorical!
                                                                 .beginsAt!
                                                                 .toLocal()), // "Value",
                                                     style: const TextStyle(
@@ -2844,7 +2953,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         onPressed: () {/* ... */},
       ),*/
       title: Text(
-        "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : widget.user.source == Source.schwab ? Constants.scName : widget.user.source == Source.demo ? 'Demo' : ''})",
+        "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? widget.service.name : widget.user.source == Source.schwab ? widget.service.name : widget.user.source == Source.demo ? 'Demo' : ''})",
         // style: const TextStyle(fontSize: 17.0)
       ),
       // Wrap(
@@ -3473,21 +3582,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   Future<void> _pullRefresh() async {
-    /*
-    setState(() {
-      futurePortfolios = null;
-
-      positionStoreStream = null;
-      optionPositionStoreStream = null;
-    });
-    */
-    /*
-    var accounts = await widget.service.getAccounts(
-        widget.user, Provider.of<AccountStore>(context, listen: false));
-    var portfolios = await widget.service.getPortfolios(
-        widget.user, Provider.of<PortfolioStore>(context, listen: false));
-    */
-
     Provider.of<AccountStore>(context, listen: false).removeAll();
     Provider.of<PortfolioStore>(context, listen: false).removeAll();
     Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
@@ -3499,60 +3593,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       futureNummusHoldings = null;
       futureOptionPositions = null;
       futureStockPositions = null;
-      /*
-      futureAccounts = Future.value(accounts);
-      futurePortfolios = Future.value(portfolios);
-      */
     });
-    /*
-    futureAccounts = widget.service.getAccounts(
-        widget.user, Provider.of<AccountStore>(context, listen: false));
-
-    futurePortfolios = widget.service.getPortfolios(
-        widget.user, Provider.of<PortfolioStore>(context, listen: false));
-    //futureNummusAccounts = widget.service.downloadNummusAccounts(widget.user);
-    futureNummusHoldings = widget.service.getNummusHoldings(
-        widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-
-    futureOptionPositions = widget.service.getOptionPositionStore(
-        widget.user,
-        Provider.of<OptionPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-
-    futureStockPositions = widget.service.getStockPositionStore(
-        widget.user,
-        Provider.of<StockPositionStore>(context, listen: false),
-        Provider.of<InstrumentStore>(context, listen: false),
-        Provider.of<QuoteStore>(context, listen: false),
-        nonzero: !hasQuantityFilters[1]);
-    */
-
-    /*
-    await widget.service.getPortfolioHistoricals(
-        widget.user,
-        Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-        account!.accountNumber,
-        chartBoundsFilter,
-        chartDateSpanFilter);
-
-    await widget.service.refreshOptionMarketData(
-        widget.user, Provider.of<OptionPositionStore>(context, listen: false));
-
-    await widget.service.refreshPositionQuote(
-        widget.user,
-        Provider.of<StockPositionStore>(context, listen: false),
-        Provider.of<QuoteStore>(context, listen: false));
-
-    await widget.service.getPortfolios(
-        widget.user, Provider.of<PortfolioStore>(context, listen: false));
-
-    await widget.service.refreshNummusHoldings(
-      widget.user,
-      Provider.of<ForexHoldingStore>(context, listen: false),
-    );
-    */
   }
 
   showSettings() {

@@ -154,8 +154,59 @@ class OptionMarketData {
             ? double.tryParse(json['low_fill_rate_sell_price'])
             : null;
 
+/*
+{"putCall":"CALL","symbol":"AMAT  241115C00210000","description":"AMAT 11/15/2024 210.00 C",
+"exchangeName":"OPR","bid":1.72,"ask":1.9,"last":1.88,"mark":1.81,"bidSize":22,
+"askSize":61,"bidAskSize":"22X61","lastSize":0,"highPrice":2.25,"lowPrice":1.8,
+"openPrice":0.0,"closePrice":1.57,"totalVolume":310,"tradeTimeInLong":1729884786730,
+"quoteTimeInLong":1729886399500,"netChange":0.31,"volatility":47.215,"delta":0.169,
+"gamma":0.012,"theta":-0.13,"vega":0.113,"rho":0.017,"openInterest":1704,"timeValue":1.88,
+"theoreticalOptionValue":1.81,"theoreticalVolatility":29.0,
+"optionDeliverablesList":[{"symbol":"AMAT","assetType":"STOCK","deliverableUnits":100.0}],
+"strikePrice":210.0,"expirationDate":"2024-11-15T21:00:00.000+00:00","daysToExpiration":21,
+"expirationType":"S","lastTradingDay":1731718800000,"multiplier":100.0,
+"settlementType":"P","deliverableNote":"100 AMAT","percentChange":19.79,
+"markChange":0.24,"markPercentChange":15.57,"intrinsicValue":-23.48,
+"extrinsicValue":25.36,"optionRoot":"AMAT","exerciseType":"A","high52Week":50.85,
+"low52Week":1.45,"nonStandard":false,"pennyPilot":true,"inTheMoney":false,"mini":false}
+*/
+  OptionMarketData.fromSchwabJson(dynamic json)
+      : adjustedMarkPrice = json['mark'] as double,
+        askPrice = json['ask'] as double,
+        askSize = json['askSize'] as int,
+        bidPrice = json['bid'] as double,
+        bidSize = json['bidSize'] as int,
+        breakEvenPrice = null,
+        highPrice = json['highPrice'] as double,
+        instrument = '', // TODO
+        instrumentId = '', // TODO
+        lastTradePrice = json['last'] as double,
+        lastTradeSize = json['lastSize'] as int,
+        lowPrice = json['lowPrice'] as double,
+        markPrice = json['mark'] as double,
+        openInterest = json['openInterest'] as int,
+        previousCloseDate = null, // TODO
+        previousClosePrice = null, // TODO
+        volume = json['totalVolume'] as int,
+        symbol = json['optionRoot'],
+        occSymbol = json['optionRoot'], // TODO
+        chanceOfProfitLong = null, // TODO
+        chanceOfProfitShort = null, // TODO
+        delta = json['delta'] as double,
+        gamma = json['gamma'] as double,
+        impliedVolatility = json['volatility'] as double,
+        rho = json['rho'] as double,
+        theta = json['theta'] as double,
+        vega = json['vega'] as double,
+        highFillRateBuyPrice = null, // TODO
+        highFillRateSellPrice = null, // TODO
+        lowFillRateBuyPrice = null, // TODO
+        lowFillRateSellPrice = null; // TODO
+
   double get changeToday {
-    return adjustedMarkPrice! - previousClosePrice!;
+    return previousClosePrice != null
+        ? adjustedMarkPrice! - previousClosePrice!
+        : 0;
   }
 
   double get changePercentToday {

@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -40,10 +45,28 @@ class UserWidget extends StatefulWidget {
 class _UserWidgetState extends State<UserWidget> {
   _UserWidgetState();
 
+  Timer? timer;
+
   @override
   void initState() {
     super.initState();
+
+    timer = Timer.periodic(
+      const Duration(milliseconds: 1000),
+      (timer) async {
+        setState(() {});
+      },
+    );
+
     widget.analytics.logScreenView(screenName: 'User');
+  }
+
+  @override
+  void dispose() {
+    if (timer != null) {
+      timer!.cancel();
+    }
+    super.dispose();
   }
 
   @override
@@ -99,12 +122,23 @@ class _UserWidgetState extends State<UserWidget> {
   }
 
   Widget userWidget(UserInfo user) {
-    ThemeData themeData = Theme.of(context);
-    Color primaryColor = themeData.colorScheme.primary;
-    Color secondaryColor = themeData.colorScheme.secondary;
+    // ThemeData themeData = Theme.of(context);
+    // Color primaryColor = themeData.colorScheme.primary;
+    // Color secondaryColor = themeData.colorScheme.secondary;
+    Duration tokenExpiration = Duration();
+    if (widget.user.oauth2Client != null) {
+      tokenExpiration = widget.user.oauth2Client!.credentials.expiration!
+          .difference(DateTime.now());
+    }
     return SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        minTileHeight: 10,
+        title: const Text("Brokerage", style: TextStyle(fontSize: 14)),
+        trailing: Text(widget.user.source.getValue().capitalize(),
+            style: const TextStyle(fontSize: 16)),
+      ),
       ListTile(
         minTileHeight: 10,
         title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
@@ -126,45 +160,92 @@ class _UserWidgetState extends State<UserWidget> {
         title: const Text("Email", style: TextStyle(fontSize: 14)),
         trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
       ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Joined", style: TextStyle(fontSize: 14)),
-        trailing: Text(formatDate.format(user.createdAt!),
-            style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Locality", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.locality, style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text(
-          "Id",
-          style: TextStyle(fontSize: 14),
-          overflow: TextOverflow.visible,
-          softWrap: false,
+      if (user.createdAt != null) ...[
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Joined", style: TextStyle(fontSize: 14)),
+          trailing: Text(formatDate.format(user.createdAt!),
+              style: const TextStyle(fontSize: 16)),
         ),
-        trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
-      ),
-      ListTile(
+      ],
+      if (user.locality != null) ...[
+        ListTile(
           minTileHeight: 10,
-          title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
-          trailing: Icon(
-            Icons.palette,
-            color: primaryColor,
-          )
-          // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
-          ),
-      ListTile(
+          title: const Text("Locality", style: TextStyle(fontSize: 14)),
+          trailing: Text(user.locality!, style: const TextStyle(fontSize: 16)),
+        ),
+      ],
+      // ListTile(
+      //   minTileHeight: 10,
+      //   title: const Text(
+      //     "Id",
+      //     style: TextStyle(fontSize: 14),
+      //     overflow: TextOverflow.visible,
+      //     softWrap: false,
+      //   ),
+      //   trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
+      // ),
+      if (widget.user.oauth2Client != null) ...[
+        ListTile(
           minTileHeight: 10,
-          title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
-          trailing: Icon(
-            Icons.palette,
-            color: secondaryColor,
-          )
-          // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
+          title:
+              const Text("Authorization token", style: TextStyle(fontSize: 14)),
+          trailing: Text(
+              !tokenExpiration.isNegative
+                  ? "${tokenExpiration.inHours.toString().padLeft(2, "0")}:${tokenExpiration.inMinutes.remainder(60).toString().padLeft(2, "0")}:${(tokenExpiration.inSeconds.remainder(60).toString().padLeft(2, "0"))}"
+                  : "Expired",
+              // formatLongDate.format(widget.user.oauth2Client!.credentials.expiration!),
+              style: const TextStyle(fontSize: 16)),
+          onLongPress: () async {
+            await refreshToken();
+          },
+        ),
+      ],
+      ListTile(
+          trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton.icon(
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await refreshToken();
+            },
+            label: const Text('Refresh'),
           ),
+          SizedBox(
+            width: 8,
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              var userStore =
+                  Provider.of<BrokerageUserStore>(context, listen: false);
+              userStore.remove(userStore.currentUser!);
+              userStore.save();
+              userStore.setCurrentUserIndex(0);
+            },
+            label: const Text('Logout'),
+          ),
+        ],
+      ))
+      // ListTile(
+      //     minTileHeight: 10,
+      //     title: const Text("Primary Color", style: TextStyle(fontSize: 14)),
+      //     trailing: Icon(
+      //       Icons.palette,
+      //       color: primaryColor,
+      //     )
+      //     // trailing: Text(primaryColor.toString(), style: TextStyle(fontSize: 14, color: primaryColor), overflow: TextOverflow.ellipsis,),
+      //     ),
+      // ListTile(
+      //     minTileHeight: 10,
+      //     title: const Text("Secondary Color", style: TextStyle(fontSize: 14)),
+      //     trailing: Icon(
+      //       Icons.palette,
+      //       color: secondaryColor,
+      //     )
+      //     // trailing: Text(secondaryColor.toString(), style: TextStyle(fontSize: 14, color: secondaryColor), overflow: TextOverflow.ellipsis),
+      //     ),
       /*
       ListTile(
         title: const Text("Text Theme", style: TextStyle(fontSize: 14)),
@@ -184,6 +265,24 @@ class _UserWidgetState extends State<UserWidget> {
         ),
         */
     ])));
+  }
+
+  Future<void> refreshToken() async {
+    try {
+      final newClient = await widget.user.oauth2Client!.refreshCredentials();
+      widget.user.oauth2Client = newClient;
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text("Token refreshed.")));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
   }
 
   Iterable<Widget> accountWidgets(List<Account> accounts) sync* {

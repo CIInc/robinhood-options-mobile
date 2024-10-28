@@ -10,4 +10,8 @@ class PortfolioHistoricalsSelectionStore extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  void notify() {
+    notifyListeners();
+  }
 }

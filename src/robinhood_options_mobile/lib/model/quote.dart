@@ -80,6 +80,33 @@ class Quote {
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
 
+  Quote.fromSchwabJson(dynamic json)
+      : askPrice = json['quote']['askPrice'] as double,
+        askSize = json['quote']['askSize'] as int,
+        bidPrice = json['quote']['bidPrice'] as double,
+        bidSize = json['quote']['bidSize'] as int,
+        lastTradePrice = json['quote']['lastPrice'] as double,
+        // TODO
+        lastExtendedHoursTradePrice = null,
+        // TODO: open price is not the same as previous close.
+        previousClose = json['quote']['openPrice'] as double,
+        // TODO: open price is not the same as adjusted previous close.
+        adjustedPreviousClose = json['quote']['openPrice'] as double,
+        // TODO
+        previousCloseDate = null,
+        symbol = json['symbol'],
+        // TODO
+        tradingHalted = false,
+        // TODO
+        hasTraded = true,
+        lastTradePriceSource = json['quote']['lastMICId'],
+        updatedAt = DateTime.fromMillisecondsSinceEpoch(
+            json['quote']['quoteTime'] as int),
+        // TODO
+        instrument = '', // json['instrument'],
+        // TODO
+        instrumentId = json['reference']['cusip'];
+
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,
         'ask_size': askSize,

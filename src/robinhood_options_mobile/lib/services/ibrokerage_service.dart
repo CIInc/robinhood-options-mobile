@@ -38,9 +38,17 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 
 abstract class IBrokerageService {
+  late String name;
+  late Uri endpoint;
+  late Uri authEndpoint;
+  late Uri tokenEndpoint;
+  late String clientId;
+  late String redirectUrl;
+
   Future<UserInfo?> getUser(BrokerageUser user);
   Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
-      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore);
+      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore});
   Future<List<Portfolio>> getPortfolios(
       BrokerageUser user, PortfolioStore store);
 

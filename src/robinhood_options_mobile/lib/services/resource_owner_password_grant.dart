@@ -218,7 +218,7 @@ Future<http.Response> respondChallenge(String id, String mfaCode) {
 
 Client generateClient(
   http.Response response,
-  Uri authorizationEndpoint,
+  Uri tokenEndpoint,
   Iterable<String>? scopes,
   String delimiter,
   //Map<String, dynamic> Function(MediaType? contentType, String body)? getParameters,
@@ -228,8 +228,8 @@ Client generateClient(
   CredentialsRefreshedCallback? onCredentialsRefreshed,
 ) {
   var startTime = DateTime.now();
-  var credentials = handleAccessTokenResponse(response, authorizationEndpoint,
-      startTime, scopes as List<String>, delimiter
+  var credentials = handleAccessTokenResponse(
+      response, tokenEndpoint, startTime, scopes as List<String>, delimiter
       //getParameters: getParameters);
       );
   return Client(credentials,

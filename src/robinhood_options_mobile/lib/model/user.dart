@@ -7,7 +7,7 @@ class UserInfo {
   final String email;
   final String firstName;
   final String lastName;
-  final String locality;
+  final String? locality;
   final String profileName;
   final DateTime? createdAt;
   // TD Ameritrade
@@ -47,9 +47,8 @@ class UserInfo {
         email = '',
         firstName = '',
         lastName = '',
-        locality = '',
+        locality = null,
         profileName = json['accounts'][0]['nickName'],
-        createdAt = DateTime.now(),
-        lastLoginTime =
-            DateTime.now(); // DateTime.tryParse(json['lastLoginTime']);
+        createdAt = null,
+        lastLoginTime = null; // DateTime.tryParse(json['lastLoginTime']);
 }
