@@ -186,7 +186,8 @@ class OptionMarketData {
         markPrice = json['mark'] as double,
         openInterest = json['openInterest'] as int,
         previousCloseDate = null, // TODO
-        previousClosePrice = null, // TODO
+        previousClosePrice =
+            (json['mark'] as double) - (json['markChange'] as double),
         volume = json['totalVolume'] as int,
         symbol = json['optionRoot'],
         occSymbol = json['optionRoot'], // TODO

@@ -76,15 +76,47 @@ class OptionAggregatePosition {
             DateTime.tryParse(json['updated_at']),
         strategyCode = json['strategy_code'];
 
+  /*
+  {shortQuantity: 0.0, averagePrice: 3.8266, currentDayProfitLoss: -83.0, currentDayProfitLossPercentage: -22.93, longQuantity: 2.0, settledLongQuantity: 2.0, settledShortQuantity: 0.0, instrument: {assetType: OPTION, cusip: 0AMAT.KF40210000, symbol: AMAT  241115C00210000, description: APPLIED MATLS INC 11/15/2024 $210 Call, netChange: -0.41, type: VANILLA, putCall: CALL, underlyingSymbol: AMAT}, marketValue: 279.0, maintenanceRequirement: 0.0, averageLongPrice: 3.82, taxLotAverageLongPrice: 3.8266, longOpenProfitLoss: -486.32, previousSessionLongQuantity: 2.0, currentDayCost: 0.0}
+  */
   OptionAggregatePosition.fromSchwabJson(dynamic json, Account acct)
       : id = json['instrument']['cusip'],
         chain = '', // json['chain'],
         account = acct.accountNumber, // json['account'],
         symbol = json['instrument']['underlyingSymbol'], // json['symbol'],
         strategy = json['instrument']['putCall'], // json['strategy'],
-        averageOpenPrice = json['averagePrice'],
-        legs = [], // OptionLeg.fromJsonArray(json['legs']),
-        quantity = json['longQuantity'],
+        averageOpenPrice = json['averagePrice'] *
+            100, // Multiplied Schwab's average price which is per share, not per contract like Robinhood.
+        legs = [
+          OptionLeg(
+              '', // id
+              null, // position,
+              json["longQuantity"] > 0 ? 'long' : 'short', // positionType,
+              '', // option,
+              null, // positionEffect,
+              0, // ratioQuantity,
+              null, // side,
+              DateFormat("MM/dd/yyyy").tryParse(json['instrument']
+                      ['description']
+                  .toString()
+                  .split(' ')
+                  .reversed
+                  .skip(2)
+                  .first), // expirationDate,
+              double.tryParse(json['instrument']['description']
+                  .toString()
+                  .split(' ')
+                  .reversed
+                  .skip(1)
+                  .first
+                  .replaceFirst('\$', '')), // strikePrice
+              json['instrument']['putCall'],
+              [] // executions
+              )
+        ], // OptionLeg.fromJsonArray(json['legs']),
+        quantity = json['longQuantity'] > 0
+            ? json['longQuantity']
+            : json['shortQuantity'],
         intradayAverageOpenPrice =
             null, // double.tryParse(json['intraday_average_open_price']),
         intradayQuantity = null, // double.tryParse(json['intraday_quantity']),
@@ -104,7 +136,7 @@ class OptionAggregatePosition {
                 .split(' ')
                 .reversed
                 .skip(2)
-                .first),
+                .first), // expirationDate
             json['instrument']['cusip'],
             null,
             MinTicks(0, 0, 0),

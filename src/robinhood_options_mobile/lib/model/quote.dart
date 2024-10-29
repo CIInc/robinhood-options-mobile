@@ -99,7 +99,7 @@ class Quote {
         tradingHalted = false,
         // TODO
         hasTraded = true,
-        lastTradePriceSource = json['quote']['lastMICId'],
+        lastTradePriceSource = json['quote']['lastMICId'] ?? '',
         updatedAt = DateTime.fromMillisecondsSinceEpoch(
             json['quote']['quoteTime'] as int),
         // TODO

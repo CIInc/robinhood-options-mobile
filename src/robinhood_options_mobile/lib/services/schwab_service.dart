@@ -314,10 +314,15 @@ class SchwabService implements IBrokerageService {
     var url = '$endpoint/trader/v1/accounts?fields=positions'; // orders
     var results = await getJson(user, url);
     //debugPrint(results);
+    // Remove old acccounts to get current ones
+    store.removeAll();
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       var account = Account.fromSchwabJson(result, user);
+      accounts.add(account);
+      store.addOrUpdate(account);
+
       if (portfolioStore != null) {
         var portfolio = Portfolio.fromSchwabJson(result);
         portfolioStore.addOrUpdate(portfolio);
@@ -341,8 +346,6 @@ class SchwabService implements IBrokerageService {
           }
         }
       }
-      accounts.add(account);
-      store.addOrUpdate(account);
       // TODO: Add PositionStore and OrdersStore
     }
     return accounts;
@@ -1189,9 +1192,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
           '$endpoint/marketdata/v1/quotes?symbols=${Uri.encodeComponent(chunk.join(","))}&fields=quote%2Creference&indicative=false';
       var resultJson = await getJson(user, url);
       for (var symbol in chunk) {
-        var op = Quote.fromSchwabJson(resultJson[symbol]);
-        list.add(op);
-        store.addOrUpdate(op);
+        if (resultJson[symbol] != null) {
+          var op = Quote.fromSchwabJson(resultJson[symbol]);
+          list.add(op);
+          store.addOrUpdate(op);
+        }
       }
     }
     return list;

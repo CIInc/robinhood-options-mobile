@@ -111,7 +111,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 //with AutomaticKeepAliveClientMixin<HomePage>
 {
   Future<List<Account>>? futureAccounts;
-  final List<Account>? accounts = [];
+  // final List<Account>? accounts = [];
   Account? account;
 
   Future<List<ForexHolding>>? futureNummusHoldings;
@@ -287,19 +287,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             dataSnapshot.connectionState == ConnectionState.done) {
           List<dynamic> data = dataSnapshot.data as List<dynamic>;
           List<Account> accts = data[0] as List<Account>;
-          for (var acct in accts) {
-            var existingAccount = accounts!.firstWhereOrNull((element) =>
-                element.userId == widget.user.id &&
-                element.accountNumber == acct.accountNumber);
-            if (existingAccount == null) {
-              accounts!.add(acct);
-              /*
-              WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => widget.onAccountsChanged(accounts!));
-                  */
-              account = acct;
-            }
+          if (accts.isNotEmpty) {
+            account = accts[0];
           }
+
+          // for (var acct in accts) {
+          //   var existingAccount = accounts!.firstWhereOrNull((element) =>
+          //       element.userId == widget.user.id &&
+          //       element.accountNumber == acct.accountNumber);
+          //   if (existingAccount == null) {
+          //     accounts!.add(acct);
+          //     /*
+          //     WidgetsBinding.instance.addPostFrameCallback(
+          //         (_) => widget.onAccountsChanged(accounts!));
+          //         */
+          //     account = acct;
+          //   }
+          // }
 
           if (widget.user.source == Source.schwab) {
             // futurePortfolios = widget.service.getPortfolios(

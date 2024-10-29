@@ -849,7 +849,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
           title: Text(ops.first.instrumentObj != null
               ? ops.first.instrumentObj!.simpleName ??
                   ops.first.instrumentObj!.name
-              : ""),
+              : ops.first.symbol),
           subtitle: Text("${ops.length} positions, $contracts contracts"),
           trailing: Wrap(spacing: 8, children: [
             if (icon != null) ...[

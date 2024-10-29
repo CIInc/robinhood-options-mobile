@@ -99,6 +99,8 @@ class RobinhoodService implements IBrokerageService {
     var results = await RobinhoodService.pagedGet(user, "$endpoint/accounts/");
     //debugPrint(results);
     // https://phoenix.robinhood.com/accounts/unified
+    // Remove old acccounts to get current ones
+    store.removeAll();
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];

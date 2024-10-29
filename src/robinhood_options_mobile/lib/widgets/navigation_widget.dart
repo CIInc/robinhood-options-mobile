@@ -181,6 +181,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       userStore.addOrUpdate(user);
       userStore.setCurrentUserIndex(userStore.items.indexOf(user));
       await userStore.save();
+      _onPageChanged(0);
       // TODO: Check if this is necessary considering userStore is already being listened to.
       // setState(() {
       //   futureUser = null;
@@ -424,15 +425,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           //selected: userInfo!.profileName == userInfo!.profileName,
           onTap: () {
             drawerProvider.toggleDrawer();
-            // // Reset defaultUser on app open.
-            // for (var u in userStore.items) {
-            //   u.defaultUser = false;
-            // }
-            // userStore.items[userIndex].defaultUser = true;
-
-            // futureUser = null;
-            _pageIndex = 0;
-            userStore.setCurrentUserIndex(userIndex);
 
             Provider.of<AccountStore>(context, listen: false).removeAll();
             Provider.of<PortfolioStore>(context, listen: false).removeAll();
@@ -443,6 +435,16 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 .removeAll();
             Provider.of<InstrumentPositionStore>(context, listen: false)
                 .removeAll();
+
+            // // Reset defaultUser on app open.
+            // for (var u in userStore.items) {
+            //   u.defaultUser = false;
+            // }
+            // userStore.items[userIndex].defaultUser = true;
+
+            // futureUser = null;
+            _pageIndex = 0;
+            userStore.setCurrentUserIndex(userIndex);
 
             Navigator.pop(context); // close the drawer
             // _onPageChanged(4);
