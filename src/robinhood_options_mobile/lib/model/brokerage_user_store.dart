@@ -2,26 +2,23 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/constants.dart';
-import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/services/demo_service.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BrokerageUserStore extends ChangeNotifier {
   int currentUserIndex = 0;
 
   /// Internal, private state of the store.
-  final List<BrokerageUser> _items = [];
+  final List<BrokerageUser> _items;
 
   /// An unmodifiable view of the items in the store.
   UnmodifiableListView<BrokerageUser> get items => UnmodifiableListView(_items);
 
   /// The current total price of all items (assuming all items cost $42).
   //int get totalPrice => _items.length * 42;
+
+  BrokerageUserStore(this._items, this.currentUserIndex);
 
   void add(BrokerageUser item) {
     _items.add(item);
@@ -71,8 +68,19 @@ class BrokerageUserStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  BrokerageUserStore.fromJson(Map<String, dynamic> json)
+      : currentUserIndex = json['currentUserIndex'],
+        _items = BrokerageUser.fromJsonArray(json['users']);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'currentUserIndex': currentUserIndex,
+      'users': items,
+    };
+  }
+
   Future save() async {
-    var contents = jsonEncode(items);
+    var contents = jsonEncode(toJson());
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
   }
@@ -90,23 +98,39 @@ class BrokerageUserStore extends ChangeNotifier {
     }
     try {
       removeAll();
-      var users = jsonDecode(contents) as List<dynamic>;
-      for (Map<String, dynamic> userMap in users) {
-        var user = BrokerageUser.fromJson(userMap);
-        if (user.credentials != null) {
-          var credentials = Credentials.fromJson(user.credentials as String);
-          var service = user.source == Source.robinhood
-              ? RobinhoodService()
-              : user.source == Source.schwab
-                  ? SchwabService()
-                  : DemoService();
-
-          var client = Client(credentials, identifier: service.clientId);
-          user.oauth2Client = client;
+      var storeData = jsonDecode(contents);
+      if (storeData is Map<String, dynamic>) {
+        var userStore = BrokerageUserStore.fromJson(storeData);
+        setCurrentUserIndex(userStore.currentUserIndex);
+        for (var element in userStore.items) {
+          add(element);
         }
-        debugPrint('Loaded cache.');
-        add(user);
       }
+      // if (storeData is Map) {
+      //   if (storeData['currentUserIndex'] != null) {
+      //     setCurrentUserIndex(storeData['currentUserIndex']);
+      //   }
+      //   if (storeData['items'] != null) {
+      //     var users = storeData['items'] as List<dynamic>;
+      //     for (Map<String, dynamic> userMap in users) {
+      //       var user = BrokerageUser.fromJson(userMap);
+      //       if (user.credentials != null) {
+      //         var credentials =
+      //             Credentials.fromJson(user.credentials as String);
+      //         var service = user.source == Source.robinhood
+      //             ? RobinhoodService()
+      //             : user.source == Source.schwab
+      //                 ? SchwabService()
+      //                 : DemoService();
+
+      //         var client = Client(credentials, identifier: service.clientId);
+      //         user.oauth2Client = client;
+      //       }
+      //       debugPrint('Loaded cache.');
+      //       add(user);
+      //     }
+      //   }
+      // }
       return items;
     } on FormatException catch (e) {
       debugPrint(

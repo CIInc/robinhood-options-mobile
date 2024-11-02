@@ -86,6 +86,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   List<Widget> tabPages = [];
 
   StreamSubscription<Uri>? linkStreamSubscription;
+  Timer? refreshCredentialsTimer;
 
   @override
   void initState() {
@@ -117,6 +118,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     }
     if (linkStreamSubscription != null) {
       linkStreamSubscription!.cancel();
+    }
+    if (refreshCredentialsTimer != null) {
+      refreshCredentialsTimer!.cancel();
     }
     super.dispose();
   }
@@ -177,11 +181,48 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
       var userInfo = await service.getUser(user);
       user.userName = userInfo!.username;
-      debugPrint('result:${jsonEncode(user)}');
+      // debugPrint('result:${jsonEncode(user)}');
       userStore.addOrUpdate(user);
       userStore.setCurrentUserIndex(userStore.items.indexOf(user));
       await userStore.save();
-      _onPageChanged(0);
+      // Throws exception on jumpToPage with 'Failed assertion: line 157 pos 12: '_positions.isNotEmpty''
+      // _onPageChanged(0);
+      _pageIndex = 0;
+
+      if (user.oauth2Client != null &&
+          user.oauth2Client!.credentials.canRefresh) {
+        refreshCredentialsTimer = Timer.periodic(
+          user.oauth2Client!.credentials.expiration!
+              .subtract(Duration(minutes: 1))
+              .difference(DateTime.now()),
+          // Duration(milliseconds: user.oauth2Client.credentials.expiration),
+          (timer) async {
+            debugPrint('${service.name} schwab token refresh triggered.');
+            try {
+              final newClient = await user.oauth2Client!.refreshCredentials();
+              user.credentials = newClient.credentials.toJson();
+              user.oauth2Client = newClient;
+              userStore.addOrUpdate(user);
+              userStore.save();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                      content: Text("${service.name} token refreshed.")));
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(SnackBar(content: Text(e.toString())));
+              }
+            }
+          },
+        );
+      }
+
+      // _onPageChanged(0);
       // TODO: Check if this is necessary considering userStore is already being listened to.
       // setState(() {
       //   futureUser = null;
@@ -445,6 +486,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             // futureUser = null;
             _pageIndex = 0;
             userStore.setCurrentUserIndex(userIndex);
+            userStore.save();
 
             Navigator.pop(context); // close the drawer
             // _onPageChanged(4);
@@ -709,20 +751,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           onPressed: () async {
             Navigator.pop(context, 'dialog');
             userStore.remove(userStore.currentUser!);
-            userStore.save();
-            // await currentUser.clearUserFromStore(
-            //     Provider.of<BrokerageUserStore>(context, listen: false));
-
-            // Future.delayed(const Duration(milliseconds: 1), () async {
-
-            /* 
-            widget.onUserChanged(null);
-            */
-            // TODO: see if setState is actually needed, Provider pattern is already listening.
-            //setState(() {
-            //futureRobinhoodUser = null;
-            //if (!mounted) return;
             userStore.setCurrentUserIndex(0);
+            userStore.save();
             setState(() {
               initTabs();
               // currentUserIndex = 0;

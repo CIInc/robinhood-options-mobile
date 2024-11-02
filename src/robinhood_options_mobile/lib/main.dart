@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
       return MultiProvider(
           providers: [
             ChangeNotifierProvider(
-              create: (context) => BrokerageUserStore(),
+              create: (context) => BrokerageUserStore([], 0),
             ),
             ChangeNotifierProvider(
               create: (context) => AccountStore(),

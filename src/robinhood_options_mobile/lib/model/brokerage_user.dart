@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
+import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -14,7 +18,7 @@ class BrokerageUser {
   final String id = DateTime.now().microsecondsSinceEpoch.toString();
   final Source source;
   late String? userName;
-  final String? credentials;
+  String? credentials;
   oauth2.Client? oauth2Client;
   // bool defaultUser = true;
   bool refreshEnabled = false;
@@ -61,6 +65,26 @@ class BrokerageUser {
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
       };
+
+  static List<BrokerageUser> fromJsonArray(dynamic json) {
+    List<BrokerageUser> list = [];
+    for (int i = 0; i < json.length; i++) {
+      var user = BrokerageUser.fromJson(json[i]);
+      if (user.credentials != null) {
+        var credentials = Credentials.fromJson(user.credentials as String);
+        var service = user.source == Source.robinhood
+            ? RobinhoodService()
+            : user.source == Source.schwab
+                ? SchwabService()
+                : DemoService();
+
+        var client = Client(credentials, identifier: service.clientId);
+        user.oauth2Client = client;
+      }
+      list.add(user);
+    }
+    return list;
+  }
 
   static String displayValueText(DisplayValue displayValue) {
     switch (displayValue) {
