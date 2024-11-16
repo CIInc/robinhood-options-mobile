@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -391,11 +392,14 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
-                  SliverToBoxAdapter(
-                      child: AdBannerWidget(
-                    size: AdSize.mediumRectangle,
-                    searchBanner: true,
-                  )),
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(
+                      size: AdSize.mediumRectangle,
+                      searchBanner: true,
+                    )),
+                  ],
                   const SliverToBoxAdapter(
                       child: SizedBox(
                     height: 25.0,

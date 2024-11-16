@@ -36,7 +36,34 @@
 </head>
 
 <body>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    // import { initializeApp } from "firebase/app";
+    // import { getAnalytics } from "firebase/analytics";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyA6mGDKGC25nyACBQT-hshY2AQbxirsq6k",
+      authDomain: "realizealpha.firebaseapp.com",
+      projectId: "realizealpha",
+      storageBucket: "realizealpha.firebasestorage.app",
+      messagingSenderId: "409452439863",
+      appId: "1:409452439863:web:36236233cb7df2184152b2",
+      measurementId: "G-Y5TTR48RBZ"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+  </script>
   <script src="flutter_bootstrap.js" async></script>
+
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 
   <script>
     if (/[?&]code=/.test(location.search)) {

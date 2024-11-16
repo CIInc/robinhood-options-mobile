@@ -149,7 +149,7 @@ _You can do this automatically in VS Code by installing the eslint plugin._
 
 ### Firebase Hosting
 
-~~`firebase.json` was changed to modify the `hosting` property `"source": "."` to `"public": "build/web"` in order to deploy the custom build.~~
+`firebase.json` was changed to modify the `hosting` property `"source": "."` to `"public": "build/web"` in order to deploy custom builds.
 
 ```bash
 #flutter build web --web-renderer html

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -111,7 +112,10 @@ class _UserWidgetState extends State<UserWidget> {
                         mainAxisSize: MainAxisSize.min,
                         children: accountWidgets([widget.account!]).toList())))
           ],
-          SliverToBoxAdapter(child: AdBannerWidget()),
+          // TODO: Introduce web banner
+          if (!kIsWeb) ...[
+            SliverToBoxAdapter(child: AdBannerWidget()),
+          ],
           const SliverToBoxAdapter(
               child: SizedBox(
             height: 25.0,

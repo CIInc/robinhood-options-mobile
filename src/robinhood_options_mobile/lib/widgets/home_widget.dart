@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
@@ -2287,7 +2288,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ]));
             }),
             */
-            SliverToBoxAdapter(child: AdBannerWidget()),
+            // TODO: Introduce web banner
+            if (!kIsWeb) ...[
+              SliverToBoxAdapter(child: AdBannerWidget()),
+            ],
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,

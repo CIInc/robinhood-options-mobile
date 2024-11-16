@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -449,7 +450,10 @@ class _ListsWidgetState extends State<ListsWidget>
           )),
         ]
       ],
-      SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
+      // TODO: Introduce web banner
+      if (!kIsWeb) ...[
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.largeBanner)),
+      ],
       const SliverToBoxAdapter(
           child: SizedBox(
         height: 25.0,

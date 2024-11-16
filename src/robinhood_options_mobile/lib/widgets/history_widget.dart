@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
@@ -1380,7 +1381,11 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ]
         ],
-        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
+        // TODO: Introduce web banner
+        if (!kIsWeb) ...[
+          SliverToBoxAdapter(
+              child: AdBannerWidget(size: AdSize.mediumRectangle)),
+        ],
         const SliverToBoxAdapter(
             child: SizedBox(
           height: 25.0,
