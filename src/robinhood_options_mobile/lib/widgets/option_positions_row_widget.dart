@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/enums.dart';
-import 'package:robinhood_options_mobile/extension_methods.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';

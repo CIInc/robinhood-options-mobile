@@ -6,7 +6,7 @@
 	<string>development</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:investiomanus.web.app</string>
+		<string>applinks:realizealpha.web.app</string>
 	</array>
 </dict>
 </plist>

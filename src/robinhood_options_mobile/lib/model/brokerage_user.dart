@@ -3,10 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
@@ -33,11 +35,13 @@ class BrokerageUser {
       this.source, this.userName, this.credentials, this.oauth2Client);
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'] == 'Source.robinhood'
+      : source = json['source'] == Source.robinhood.toString()
             ? Source.robinhood
-            : json['source'] == 'Source.schwab'
+            : json['source'] == Source.schwab.toString()
                 ? Source.schwab
-                : Source.demo,
+                : json['source'] == Source.plaid.toString()
+                    ? Source.plaid
+                    : Source.demo,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -76,7 +80,9 @@ class BrokerageUser {
             ? RobinhoodService()
             : user.source == Source.schwab
                 ? SchwabService()
-                : DemoService();
+                : user.source == Source.plaid
+                    ? PlaidService()
+                    : DemoService();
 
         var client = Client(credentials, identifier: service.clientId);
         user.oauth2Client = client;

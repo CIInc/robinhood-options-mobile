@@ -1,14 +1,11 @@
-//import 'dart:html';
-
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -22,6 +19,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
@@ -176,7 +174,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           ? RobinhoodService()
           : user.source == Source.schwab
               ? SchwabService()
-              : DemoService();
+              : user.source == Source.plaid
+                  ? PlaidService()
+                  : DemoService();
 
       // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
       var userInfo = await service.getUser(user);
@@ -281,7 +281,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           ? RobinhoodService()
           : userStore.currentUser!.source == Source.schwab
               ? SchwabService()
-              : DemoService();
+              : userStore.currentUser!.source == Source.plaid
+                  ? PlaidService()
+                  : DemoService();
 
       futureUser = service.getUser(userStore.currentUser!);
       //futureAccounts ??= widget.service.getAccounts(robinhoodUser!);
@@ -462,7 +464,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 : '',
           )),
           title: Text(
-              '${user.userName != null ? user.userName! : ''} (${user.source == Source.robinhood ? RobinhoodService().name : user.source == Source.schwab ? SchwabService().name : user.source == Source.demo ? DemoService().name : ''})'),
+              '${user.userName != null ? user.userName! : ''} (${user.source.getValue().capitalize()})'),
           //selected: userInfo!.profileName == userInfo!.profileName,
           onTap: () {
             drawerProvider.toggleDrawer();

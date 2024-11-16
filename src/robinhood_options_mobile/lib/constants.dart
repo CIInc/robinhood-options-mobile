@@ -1,33 +1,8 @@
 class Constants {
   // App constants
-  static const String appTitle = 'Investing Mobile';
+  static const String appTitle = 'RealizeAlpha';
 
-  // Robinhood constants
-  // static const robinhoodName = 'Robinhood';
-  // static final robinHoodEndpoint = Uri.parse('https://api.robinhood.com');
-  // static final robinHoodNummusEndpoint =
-  //     Uri.parse('https://nummus.robinhood.com');
-  // static final robinHoodSearchEndpoint =
-  //     Uri.parse('https://bonfire.robinhood.com');
-  // static final robinHoodExploreEndpoint =
-  //     Uri.parse('https://dora.robinhood.com');
-
-  // static final rhAuthEndpoint = Uri.parse('$robinHoodEndpoint/oauth2/token/');
-  // // static final rhChallengeEndpoint = Uri.parse('$robinHoodEndpoint/challenge/');
-  // static const String rhClientId = 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS';
-
-  // Schwab constants
-  // static const scName = 'Schwab';
-  // static final scEndpoint = Uri.parse('https://api.schwabapi.com');
-  // static final scAuthEndpoint =
-  //     Uri.parse('https://api.schwabapi.com/v1/oauth/authorize');
-  // static final scTokenEndpoint =
-  //     Uri.parse('https://api.schwabapi.com/v1/oauth/token');
-  // static const String scClientId = 'CHbgBINpRA3H72Sb6LV9pH9ZHsTxjwId';
-  // // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
-  // static const String scRedirectUrl = 'https://investiomanus.web.app';
-
-  static const String deepLinkScheme = 'investiomanus://';
+  static const String deepLinkScheme = 'realizealpha://';
   static const String initialLinkLoginCallback =
       '${deepLinkScheme}login-callback\\?(\\?)?code=';
   // Other constants

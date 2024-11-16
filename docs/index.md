@@ -1,4 +1,4 @@
-# Investing Mobile
+# RealizeAlpha
 
 ## Use Cases
 - A better options UI view for Robinhood users.

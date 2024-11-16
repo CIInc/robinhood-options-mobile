@@ -18,7 +18,7 @@ enum DisplayValue {
   totalReturn
 }
 
-enum Source { robinhood, schwab, demo }
+enum Source { robinhood, schwab, demo, plaid }
 
 String convertChartBoundsFilter(Bounds chartBoundsFilter) {
   String bounds = "regular";

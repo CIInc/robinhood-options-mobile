@@ -1,17 +1,21 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:oauth2/oauth2.dart' as oauth2;
+import 'package:plaid_flutter/plaid_flutter.dart';
 import 'package:provider/provider.dart';
 
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/plaid_service.dart';
+import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
@@ -32,7 +36,7 @@ class LoginWidget extends StatefulWidget {
 }
 
 class _LoginWidgetState extends State<LoginWidget> {
-  Source source = Source.robinhood;
+  Source source = Source.demo;
 
   Future<http.Response>? authenticationResponse;
   Future<http.Response>? challengeResponse;
@@ -63,6 +67,13 @@ class _LoginWidgetState extends State<LoginWidget> {
   // the initState method, and clean it up in the dispose method.
   late FocusNode myFocusNode;
 
+  // Plaid integration
+  LinkTokenConfiguration? _configuration;
+  StreamSubscription<LinkEvent>? _streamEvent;
+  StreamSubscription<LinkExit>? _streamExit;
+  StreamSubscription<LinkSuccess>? _streamSuccess;
+  LinkObject? _successObject;
+
   @override
   void initState() {
     super.initState();
@@ -83,6 +94,13 @@ class _LoginWidgetState extends State<LoginWidget> {
         }
       }
     });
+
+    // Plaid
+    _streamEvent = PlaidLink.onEvent.listen(_onEvent);
+    _streamExit = PlaidLink.onExit.listen(_onExit);
+    _streamSuccess = PlaidLink.onSuccess.listen(_onSuccess);
+    _createLinkTokenConfiguration();
+
     widget.analytics.logScreenView(screenName: 'Login');
   }
 
@@ -92,6 +110,10 @@ class _LoginWidgetState extends State<LoginWidget> {
     myFocusNode.dispose();
 
     _stopMonitoringClipboard();
+
+    _streamEvent?.cancel();
+    _streamExit?.cancel();
+    _streamSuccess?.cancel();
 
     super.dispose();
   }
@@ -124,7 +146,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       if (mounted) {
         Navigator.pop(context, user);
       }
-    } else {
+    } else if (source == Source.robinhood) {
       var service = RobinhoodService();
       setState(() {
         authenticationResponse = oauth2_robinhood.login(
@@ -139,7 +161,73 @@ class _LoginWidgetState extends State<LoginWidget> {
             challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null,
             scopes: ['internal']);
       });
+    } else if (source == Source.plaid) {
+      // var service = PlaidService();
+      // service.login();
+      PlaidLink.open();
     }
+  }
+
+  void _createLinkTokenConfiguration() async {
+    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('createPlaidLinkToken');
+    final resp = await callable.call();
+    // <String, dynamic>{
+    //   'uid': userDocumentReference!.id,
+    //   'role': selectedRole.getValue()
+    // });
+    debugPrint("result: ${resp.data}");
+
+    // setState(() {
+    _configuration = LinkTokenConfiguration(
+      token: resp.data[
+          'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
+    );
+
+    PlaidLink.create(configuration: _configuration!);
+    // });
+  }
+
+  void _onEvent(LinkEvent event) {
+    final name = event.name;
+    final metadata = event.metadata.description();
+    debugPrint("onEvent: $name, metadata: $metadata");
+  }
+
+  void _onSuccess(LinkSuccess event) async {
+    final token = event.publicToken;
+    final metadata = event.metadata.description();
+    debugPrint("onSuccess: $token, metadata: $metadata");
+
+    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+    HttpsCallable callable = FirebaseFunctions.instance
+        .httpsCallable('exchangePublicTokenForAccessToken');
+    final resp = await callable.call(<String, dynamic>{
+      'publicToken': token,
+    });
+    debugPrint("exchangePublicTokenForAccessToken: ${resp.data}");
+    // client = generateClient(response, tokenEndpoint, scopes, delimiter, identifier, secret, httpClient, onCredentialsRefreshed)
+    var user = BrokerageUser(
+        source,
+        '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
+        null, // jsonEncode(resp.data), // client!.credentials.toJson(),
+        null);
+    var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    userStore.addOrUpdate(user);
+    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+    await userStore.save();
+    if (mounted) {
+      Navigator.pop(context, user);
+    }
+
+    // setState(() => _successObject = event);
+  }
+
+  void _onExit(LinkExit event) {
+    final metadata = event.metadata.description();
+    final error = event.error?.description();
+    debugPrint("onExit metadata: $metadata, error: $error");
   }
 
   @override
@@ -282,69 +370,105 @@ class _LoginWidgetState extends State<LoginWidget> {
         child: Column(
       children: [
         const SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: ChoiceChip(
-                label: SizedBox(
-                    width: 74,
-                    child: const Text(
-                      'Robinhood',
-                      textAlign: TextAlign.center,
-                    )),
-                // label: const Text('Robinhood'),
-                selected: source == Source.robinhood,
-                // labelPadding: const EdgeInsets.all(10.0),
-                //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
-                onSelected: (bool selected) {
-                  setState(() {
-                    source = Source.robinhood;
-                    //instrumentPosition = null;
-                  });
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: ChoiceChip(
-                label: SizedBox(
-                    width: 74,
-                    child: const Text(
-                      'Schwab',
-                      textAlign: TextAlign.center,
-                    )),
-                // label: const Text('Schwab'),
-                selected: source == Source.schwab,
-                // labelPadding: const EdgeInsets.all(10.0),
-                onSelected: (bool selected) {
-                  setState(() {
-                    source = Source.schwab;
-                  });
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: ChoiceChip(
-                label: SizedBox(
-                    width: 74,
-                    child: const Text(
-                      'Demo',
-                      textAlign: TextAlign.center,
-                    )),
-                selected: source == Source.demo,
-                // labelPadding: const EdgeInsets.all(10.0),
-                onSelected: (bool selected) {
-                  setState(() {
-                    source = Source.demo;
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
+        ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: 80),
+            child: CarouselView(
+              scrollDirection: Axis.horizontal,
+              itemSnapping: true,
+              itemExtent: 125, // double.infinity, // 360, //
+              onTap: (value) {
+                debugPrint(value.toString());
+                setState(() {
+                  source = value == 0
+                      ? Source.demo
+                      : value == 1
+                          ? Source.robinhood
+                          : value == 2
+                              ? Source.schwab
+                              : Source.plaid;
+                });
+              },
+              // shrinkExtent: 200,
+              // controller: _carouselController,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    label: SizedBox(
+                        width: 74,
+                        child: const Text(
+                          'Demo',
+                          textAlign: TextAlign.center,
+                        )),
+                    selected: source == Source.demo,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = Source.demo;
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    label: SizedBox(
+                        width: 74,
+                        child: const Text(
+                          'Robinhood',
+                          textAlign: TextAlign.center,
+                        )),
+                    // label: const Text('Robinhood'),
+                    selected: source == Source.robinhood,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = Source.robinhood;
+                        //instrumentPosition = null;
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    label: SizedBox(
+                        width: 74,
+                        child: const Text(
+                          'Schwab',
+                          textAlign: TextAlign.center,
+                        )),
+                    // label: const Text('Schwab'),
+                    selected: source == Source.schwab,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = Source.schwab;
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    label: SizedBox(
+                        width: 74,
+                        child: const Text(
+                          'Plaid',
+                          textAlign: TextAlign.center,
+                        )),
+                    selected: source == Source.plaid,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = Source.plaid;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            )),
         if (source == Source.robinhood) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
@@ -428,6 +552,21 @@ class _LoginWidgetState extends State<LoginWidget> {
                     icon: const Icon(Icons.login_outlined),
                     onPressed:
                         challengeRequestId == null ? _login : _handleChallenge,
+                  )))
+        ] else if (source == Source.plaid) ...[
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
+              child: SizedBox(
+                  width: 340.0,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    label: const Text(
+                      "Link Plaid",
+                      style: TextStyle(fontSize: 20.0),
+                      // style: TextStyle(fontSize: 22.0, height: 1.5),
+                    ),
+                    icon: const Icon(Icons.login_outlined),
+                    onPressed: _login, // () => PlaidLink.open(),
                   )))
         ],
       ],

@@ -27,10 +27,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.macOS:
         return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -44,42 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA2-VbuIEHsXYk5-1sRVSzHRQnM2rfusdQ',
-    appId: '1:507549221555:web:ba8c1c83c0ff28c315e6c6',
-    messagingSenderId: '507549221555',
-    projectId: 'investiomanus',
-    authDomain: 'investiomanus.firebaseapp.com',
-    storageBucket: 'investiomanus.appspot.com',
-    measurementId: 'G-HY9MVQQGGF',
+    apiKey: 'AIzaSyA6mGDKGC25nyACBQT-hshY2AQbxirsq6k',
+    appId: '1:409452439863:web:36236233cb7df2184152b2',
+    messagingSenderId: '409452439863',
+    projectId: 'realizealpha',
+    authDomain: 'realizealpha.firebaseapp.com',
+    storageBucket: 'realizealpha.firebasestorage.app',
+    measurementId: 'G-Y5TTR48RBZ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCll0SsOLABNtLmLZptvU3X5WC0XBSxkZk',
-    appId: '1:507549221555:android:5e4509b8b9a595aa15e6c6',
-    messagingSenderId: '507549221555',
-    projectId: 'investiomanus',
-    storageBucket: 'investiomanus.appspot.com',
+    apiKey: 'AIzaSyBmSSNNKbDh7uvlOhlfW__xuiuZi0vkLqw',
+    appId: '1:409452439863:android:478a34d114a866ee4152b2',
+    messagingSenderId: '409452439863',
+    projectId: 'realizealpha',
+    storageBucket: 'realizealpha.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAi4fs3KqI8JMZncfixXL8CAX0QLbKR7LY',
-    appId: '1:507549221555:ios:565c1fedf6f01a3815e6c6',
-    messagingSenderId: '507549221555',
-    projectId: 'investiomanus',
-    storageBucket: 'investiomanus.appspot.com',
-    iosClientId:
-        '507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118.apps.googleusercontent.com',
+    apiKey: 'AIzaSyD-kVrcB5cdLifr6SkUBHD1YXZKxgGt1bo',
+    appId: '1:409452439863:ios:379ee6f6ee12a33e4152b2',
+    messagingSenderId: '409452439863',
+    projectId: 'realizealpha',
+    storageBucket: 'realizealpha.firebasestorage.app',
     iosBundleId: 'com.cidevelop.robinhoodOptionsMobile',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAi4fs3KqI8JMZncfixXL8CAX0QLbKR7LY',
-    appId: '1:507549221555:ios:ee3b06f863386d1715e6c6',
-    messagingSenderId: '507549221555',
-    projectId: 'investiomanus',
-    storageBucket: 'investiomanus.appspot.com',
-    iosClientId:
-        '507549221555-u5ck1erqk1kq1vgkher9qesf4ev6neck.apps.googleusercontent.com',
-    iosBundleId: 'com.cidevelop.robinhoodOptionsMobile.RunnerTests',
+    apiKey: 'AIzaSyD-kVrcB5cdLifr6SkUBHD1YXZKxgGt1bo',
+    appId: '1:409452439863:ios:379ee6f6ee12a33e4152b2',
+    messagingSenderId: '409452439863',
+    projectId: 'realizealpha',
+    storageBucket: 'realizealpha.firebasestorage.app',
+    iosBundleId: 'com.cidevelop.robinhoodOptionsMobile',
   );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyA6mGDKGC25nyACBQT-hshY2AQbxirsq6k',
+    appId: '1:409452439863:web:1dd4c1744757e6bb4152b2',
+    messagingSenderId: '409452439863',
+    projectId: 'realizealpha',
+    authDomain: 'realizealpha.firebaseapp.com',
+    storageBucket: 'realizealpha.firebasestorage.app',
+    measurementId: 'G-YEWHE2RF85',
+  );
+
 }

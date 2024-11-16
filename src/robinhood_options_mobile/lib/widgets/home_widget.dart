@@ -289,6 +289,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           List<Account> accts = data[0] as List<Account>;
           if (accts.isNotEmpty) {
             account = accts[0];
+          } else {
+            account = null;
           }
 
           // for (var acct in accts) {
@@ -2957,7 +2959,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         onPressed: () {/* ... */},
       ),*/
       title: Text(
-        "${userInfo?.profileName} (${widget.user.source == Source.robinhood ? widget.service.name : widget.user.source == Source.schwab ? widget.service.name : widget.user.source == Source.demo ? 'Demo' : ''})",
+        "${userInfo?.profileName} (${widget.service.name})",
         // style: const TextStyle(fontSize: 17.0)
       ),
       // Wrap(

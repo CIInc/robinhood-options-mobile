@@ -1,4 +1,4 @@
-# Investing Mobile
+# RealizeAlpha
 
 This repository implements the Robinhood API to provide an options focused Android and iOS mobile app using the Flutter SDK.
 
@@ -8,8 +8,8 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 
 ### Latest Release
 
-- [Investing Mobile | Apple App Store](https://testflight.apple.com/join/jed18uz8): TestFlight only, production release coming soon.
-- [Investing Mobile | Google Play Store](https://play.google.com/apps/internaltest/4701722902176245187): Internal testing only, production release coming soon.
+- [RealizeAlpha | Apple App Store](https://testflight.apple.com/join/jed18uz8): TestFlight only, production release coming soon.
+- [RealizeAlpha | Google Play Store](https://play.google.com/apps/internaltest/4701722902176245187): Internal testing only, production release coming soon.
 
 <!--
 ## Usage
@@ -131,7 +131,60 @@ flutter pub upgrade --tighten
 2. Run `dart run flutter_launcher_icons` in the project directory to generate all icons for iOS and Android.
 3. Run `dart run flutter_native_splash:create` in the project directoru to generate all splash screens for iOS, Android and Web.
 
+### Linting (javascript & typescript)
+
+To fix issues with code formatting such as:
+> 10 errors and 0 warnings potentially fixable with the `--fix` option.
+> Error: functions predeploy error: Command terminated with non-zero exit code 1
+
+Run the following command in the `functions` directory.
+
+```bash
+npm run lint -- --fix
+```
+
+_You can do this automatically in VS Code by installing the eslint plugin._
+
 ## Publish
+
+### Firebase Hosting
+
+~~`firebase.json` was changed to modify the `hosting` property `"source": "."` to `"public": "build/web"` in order to deploy the custom build.~~
+
+```bash
+#flutter build web --web-renderer html
+flutter build web
+firebase deploy --only hosting
+```
+
+Previously, the public folder was deployed with this configuration:
+```json
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
+```
+
+### Firebase Functions
+
+Functions will automatically deploy with hosting deployments with `firebase deploy`. To deploy only the functions, use the following command.
+
+```bash
+firebase deploy --only functions
+```
+
 
 ### Android Play Store
 

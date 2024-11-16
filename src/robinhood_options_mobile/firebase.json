@@ -1,16 +1,69 @@
 {
   "hosting": {
-    "public": "public",
+    "source": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "realizealpha",
+          "appId": "1:409452439863:android:478a34d114a866ee4152b2",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "realizealpha",
+          "appId": "1:409452439863:ios:379ee6f6ee12a33e4152b2",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "realizealpha",
+          "appId": "1:409452439863:ios:379ee6f6ee12a33e4152b2",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "realizealpha",
+          "configurations": {
+            "android": "1:409452439863:android:478a34d114a866ee4152b2",
+            "ios": "1:409452439863:ios:379ee6f6ee12a33e4152b2",
+            "macos": "1:409452439863:ios:379ee6f6ee12a33e4152b2",
+            "web": "1:409452439863:web:36236233cb7df2184152b2",
+            "windows": "1:409452439863:web:1dd4c1744757e6bb4152b2"
+          }
+        }
       }
-    ]
+    }
   }
 }

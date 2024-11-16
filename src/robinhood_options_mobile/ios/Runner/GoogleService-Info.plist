@@ -2,22 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CLIENT_ID</key>
-	<string>507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.507549221555-ie4a6fk5auvqiiitp1bbj6iqdl9jm118</string>
 	<key>API_KEY</key>
-	<string>AIzaSyAi4fs3KqI8JMZncfixXL8CAX0QLbKR7LY</string>
+	<string>AIzaSyD-kVrcB5cdLifr6SkUBHD1YXZKxgGt1bo</string>
 	<key>GCM_SENDER_ID</key>
-	<string>507549221555</string>
+	<string>409452439863</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.cidevelop.robinhoodOptionsMobile</string>
 	<key>PROJECT_ID</key>
-	<string>investiomanus</string>
+	<string>realizealpha</string>
 	<key>STORAGE_BUCKET</key>
-	<string>investiomanus.appspot.com</string>
+	<string>realizealpha.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,8 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:507549221555:ios:565c1fedf6f01a3815e6c6</string>
-	<key>ADMOB_APP_ID</key>
-	<string>ca-app-pub-9947876916436144~9092652693</string>
+	<string>1:409452439863:ios:379ee6f6ee12a33e4152b2</string>
 </dict>
 </plist>

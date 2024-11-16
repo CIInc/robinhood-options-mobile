@@ -497,7 +497,7 @@
 				DEVELOPMENT_TEAM = 2247Y6M95E;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Investing Mobile";
+				INFOPLIST_KEY_CFBundleDisplayName = "RealizeAlpha";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -681,7 +681,7 @@
 				DEVELOPMENT_TEAM = 2247Y6M95E;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Investing Mobile";
+				INFOPLIST_KEY_CFBundleDisplayName = "RealizeAlpha";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -709,7 +709,7 @@
 				DEVELOPMENT_TEAM = 2247Y6M95E;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Investing Mobile";
+				INFOPLIST_KEY_CFBundleDisplayName = "RealizeAlpha";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (

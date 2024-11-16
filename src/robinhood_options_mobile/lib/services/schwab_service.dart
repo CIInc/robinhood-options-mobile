@@ -58,7 +58,7 @@ class SchwabService implements IBrokerageService {
   @override
   String clientId = 'CHbgBINpRA3H72Sb6LV9pH9ZHsTxjwId';
   @override
-  String redirectUrl = 'https://investiomanus.web.app';
+  String redirectUrl = 'https://realizealpha.web.app';
 
   // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
 
@@ -76,7 +76,7 @@ class SchwabService implements IBrokerageService {
         //     preferEphemeral: true,
         //     silentAuth: false,
         //     useWebview: true,
-        //     httpsHost: 'investiomanus.web.app',
+        //     httpsHost: 'realizealpha.web.app',
         //     httpsPath: '')
       );
     } on Exception catch (e) {
@@ -116,7 +116,7 @@ class SchwabService implements IBrokerageService {
     */
 
     final bodyStr =
-        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=$clientId&redirect_uri=https%3A%2F%2Finvestiomanus.web.app&code=$code';
+        'grant_type=authorization_code&refresh_token=&access_type=offline&client_id=$clientId&redirect_uri=https%3A%2F%2Frealizealpha.web.app&code=$code';
     final response = await http.post(
       tokenEndpoint,
       body: bodyStr,
