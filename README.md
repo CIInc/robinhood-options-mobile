@@ -86,7 +86,15 @@ Navigate to the project directory and run the flutter command.
     rm ./ios/Podfile.lock
     flutter clean
     flutter pub get
-    flutter run
+    flutter build ios
+    # or flutter run
+    ```
+
+    If that doesn't work try a pod repo update.
+    ```bash
+    cd ios
+    pod repo update
+    flutter build ios
     ```
 
 ### Web
@@ -153,7 +161,7 @@ _You can do this automatically in VS Code by installing the eslint plugin._
 
 ```bash
 #flutter build web --web-renderer html
-flutter build web
+flutter build web --release
 firebase deploy --only hosting
 ```
 
