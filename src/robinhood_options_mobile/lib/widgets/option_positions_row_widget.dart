@@ -114,7 +114,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         if (op.legs.length > 0) {
           data.add({
             'domain':
-                '${formatCompactDate.format(op.legs.first.expirationDate!)} \$${formatCompactNumber.format(op.legs.first.strikePrice)} ${op.legs.first.optionType}', // ${op.legs.first.positionType}
+                '${op.legs.first.expirationDate != null ? formatCompactDate.format(op.legs.first.expirationDate!) : ''} \$${op.legs.first.strikePrice != null ? formatCompactNumber.format(op.legs.first.strikePrice) : ''} ${op.legs.first.optionType}', // ${op.legs.first.positionType}
             'measure': value,
             'label': trailingText
           });
@@ -937,9 +937,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
         children: <Widget>[
           ListTile(
             title: Text(
-                '\$${op.legs.isNotEmpty ? formatCompactNumber.format(op.legs.first.strikePrice) : ""} ${op.legs.isNotEmpty ? op.legs.first.optionType.capitalize() : ""} ${op.legs.isNotEmpty ? (op.legs.first.positionType == 'long' ? '+' : '-') : ""}${formatCompactNumber.format(op.quantity!)}'),
+                '\$${op.legs.isNotEmpty && op.legs.first.strikePrice != null ? formatCompactNumber.format(op.legs.first.strikePrice) : ""} ${op.legs.isNotEmpty && op.legs.first.optionType != '' ? op.legs.first.optionType.capitalize() : ""} ${op.legs.isNotEmpty ? (op.legs.first.positionType == 'long' ? '+' : '-') : ""}${formatCompactNumber.format(op.quantity!)}'),
             subtitle: Text(
-                '${op.legs.isNotEmpty ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ""} ${op.legs.isNotEmpty ? formatDate.format(op.legs.first.expirationDate!) : ""}'),
+                '${op.legs.isNotEmpty && op.legs.first.expirationDate != null ? op.legs.first.expirationDate!.compareTo(DateTime.now()) < 0 ? "Expired" : "Expires" : ""} ${op.legs.isNotEmpty && op.legs.first.expirationDate != null ? formatDate.format(op.legs.first.expirationDate!) : ""}'),
             trailing: Wrap(spacing: 8, children: [
               if (icon != null) ...[
                 icon,

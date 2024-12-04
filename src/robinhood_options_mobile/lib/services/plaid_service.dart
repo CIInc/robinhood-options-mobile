@@ -1,8 +1,10 @@
 import 'dart:convert';
 
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
+import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -112,43 +114,66 @@ class PlaidService implements IBrokerageService {
   Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
       PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
       {InstrumentPositionStore? instrumentPositionStore}) async {
+    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('getInvestmentsHoldings');
+    final resp = await callable.call(<String, dynamic>{
+      'access_token': user.oauth2Client?.credentials.accessToken ??
+          jsonDecode(user.credentials!)['accessToken'], // for Plaid
+      // jsonDecode(user.credentials!)['access_token'],
+      // 'scopes': []
+    });
+    var result = resp.data;
+    // debugPrint(jsonEncode(result));
     // var url = '$endpoint/trader/v1/accounts?fields=positions'; // orders
     // var results = await getJson(user, url);
     // //debugPrint(results);
-    // // Remove old acccounts to get current ones
-    // store.removeAll();
+    // Remove old acccounts to get current ones
+    store.removeAll();
     List<Account> accounts = [];
     // for (var i = 0; i < results.length; i++) {
     //   var result = results[i];
-    //   var account = Account.fromSchwabJson(result, user);
-    //   accounts.add(account);
-    //   store.addOrUpdate(account);
+    var account = Account.fromPlaidJson(resp.data, user);
+    accounts.add(account);
+    store.addOrUpdate(account);
 
-    //   if (portfolioStore != null) {
-    //     var portfolio = Portfolio.fromSchwabJson(result);
-    //     portfolioStore.addOrUpdate(portfolio);
-    //     for (var positionJson in result['securitiesAccount']['positions']) {
-    //       if (positionJson['instrument']['assetType'] ==
-    //           "COLLECTIVE_INVESTMENT") {
-    //         var stockPosition = InstrumentPosition.fromSchwabJson(positionJson);
-    //         instrumentPositionStore!.addOrUpdate(stockPosition);
-    //       } else if (positionJson['instrument']['assetType'] == "OPTION") {
-    //         var optionPosition =
-    //             OptionAggregatePosition.fromSchwabJson(positionJson, account);
+    if (portfolioStore != null) {
+      // TODO: Can Portfolio be removed?
+      // var portfolio = Portfolio.fromSchwabJson(result);
+      // portfolioStore.addOrUpdate(portfolio);
+      for (var positionJson in result['holdings']) {
+        var security = result['securities']
+            .firstWhere((h) => h['security_id'] == positionJson['security_id']);
 
-    //         // TODO
-    //         // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
-    //         // optionPosition.instrumentObj = optionInstrument;
-    //         var optionMarketData = await getOptionMarketData(
-    //             user, optionPosition.optionInstrument!);
-    //         optionPosition.optionInstrument!.optionMarketData =
-    //             optionMarketData;
-    //         optionPositionStore!.addOrUpdate(optionPosition);
-    //       }
-    //     }
-    //   }
-    //   // TODO: Add PositionStore and OrdersStore
-    // }
+        // Valid security types are:
+        // cash: Cash, currency, and money market funds
+        // cryptocurrency: Digital or virtual currencies
+        // derivative: Options, warrants, and other derivative instruments
+        // equity: Domestic and foreign equities
+        // etf: Multi-asset exchange-traded investment funds
+        // fixed income: Bonds and certificates of deposit (CDs)
+        // loan: Loans and loan receivables
+        // mutual fund: Open- and closed-end vehicles pooling funds of multiple investors
+        // other: Unknown or other investment types
+        if (security['type'] == "etf" || security['type'] == "equity") {
+          // var stockPosition = InstrumentPosition.fromPlaidJson(positionJson);
+          // instrumentPositionStore!.addOrUpdate(stockPosition);
+        } else if (security['type'] == "derivative") {
+          var optionPosition = OptionAggregatePosition.fromPlaidJson(
+              positionJson, security, account);
+
+          // TODO
+          // var optionInstrument = await getOptionInstrument(user, optionPosition.symbol, optionPosition.direction, strike, fromDate)
+          // optionPosition.instrumentObj = optionInstrument;
+
+          // var optionMarketData =
+          //     await getOptionMarketData(user, optionPosition.optionInstrument!);
+          // optionPosition.optionInstrument!.optionMarketData = optionMarketData;
+          optionPositionStore!.addOrUpdate(optionPosition);
+        }
+      }
+    }
+    // TODO: Add PositionStore and OrdersStore
     return accounts;
   }
 

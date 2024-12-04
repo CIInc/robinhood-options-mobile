@@ -157,6 +157,75 @@ class OptionAggregatePosition {
             '', // longStrategyCode,
             ''); //shortStrategyCode);
 
+  OptionAggregatePosition.fromPlaidJson(
+      dynamic json, dynamic json2, Account acct)
+      : id = json2['security_id'],
+        chain = '', // json['chain'],
+        account = acct.accountNumber, // json['account'],
+        symbol = json2['option_contract']?['underlying_security_ticker'] ??
+            '', // json['symbol'],
+        strategy = json2['option_contract']?['contract_type'] ??
+            '', // json['strategy'],
+        averageOpenPrice = json['cost_basis'] *
+            100, // Multiplied Schwab's average price which is per share, not per contract like Robinhood.
+        legs = [
+          OptionLeg(
+              '', // id
+              null, // position,
+              null, // json["longQuantity"] > 0 ? 'long' : 'short', // positionType,
+              '', // option,
+              null, // positionEffect,
+              0, // ratioQuantity,
+              null, // side,
+              json2['option_contract'] != null
+                  ? DateFormat("MM/dd/yyyy")
+                      .tryParse(json2['option_contract']['expiration_date'])
+                  : null, // expirationDate,
+              json2['option_contract'] != null
+                  ? double.tryParse(json2['option_contract']['strike_price'])
+                  : null, // strikePrice
+              json2['option_contract'] != null
+                  ? json2['option_contract']['contract_type']
+                  : '', // optionType
+              [] // executions
+              )
+        ], // OptionLeg.fromJsonArray(json['legs']),
+        quantity = json['quantity'].toDouble(),
+        intradayAverageOpenPrice =
+            null, // double.tryParse(json['intraday_average_open_price']),
+        intradayQuantity = null, // double.tryParse(json['intraday_quantity']),
+        direction = json2['option_contract']?['contract_type'] ??
+            '', // json['direction'],
+        intradayDirection = '', // json['intraday_direction'],
+        tradeValueMultiplier =
+            null, // double.tryParse(json['trade_value_multiplier']),
+        createdAt = null, // DateTime.tryParse(json['created_at']),
+        updatedAt = null, // DateTime.tryParse(json['updated_at']),
+        strategyCode = '', //json['strategy_code'];
+        optionInstrument = OptionInstrument(
+            json2['security_id'],
+            json2['option_contract']?['underlying_security_ticker'] ?? '',
+            null,
+            json2['option_contract'] != null
+                ? DateFormat("MM/dd/yyyy")
+                    .tryParse(json2['option_contract']['expiration_date'])
+                : null, // expirationDate,
+            json2['security_id'],
+            null,
+            MinTicks(0, 0, 0),
+            '',
+            '',
+            json2['option_contract'] != null
+                ? double.tryParse(json2['option_contract']['strike_price'])
+                : null, // strikePrice
+            '',
+            json2['option_contract']?['contract_type'] ?? '', // type,
+            null,
+            '',
+            null,
+            '', // longStrategyCode,
+            ''); //shortStrategyCode);
+
   // Helpers
   double get marketValue {
     if (optionInstrument == null ||

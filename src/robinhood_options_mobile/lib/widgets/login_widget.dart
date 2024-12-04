@@ -211,7 +211,10 @@ class _LoginWidgetState extends State<LoginWidget> {
     var user = BrokerageUser(
         source,
         '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
-        null, // jsonEncode(resp.data), // client!.credentials.toJson(),
+        jsonEncode(<String, dynamic>{
+          'accessToken': resp.data['access_token'],
+          'scopes': []
+        }), // client!.credentials.toJson(),
         null);
     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
     userStore.addOrUpdate(user);

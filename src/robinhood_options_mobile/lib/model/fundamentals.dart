@@ -78,12 +78,16 @@ class Fundamentals {
             : null,
         float = json['float'] != null ? double.tryParse(json['float']) : null,
         low52Weeks = double.tryParse(json['low_52_weeks']),
-        marketCap = double.tryParse(json['market_cap']),
+        marketCap = json['market_cap'] != null
+            ? double.tryParse(json['market_cap'])
+            : null,
         pbRatio =
             json['pb_ratio'] != null ? double.tryParse(json['pb_ratio']) : null,
         peRatio =
             json['pe_ratio'] != null ? double.tryParse(json['pe_ratio']) : null,
-        sharesOutstanding = double.tryParse(json['shares_outstanding']),
+        sharesOutstanding = json['shares_outstanding'] != null
+            ? double.tryParse(json['shares_outstanding'])
+            : null,
         description = json['description'],
         instrument = json['instrument'],
         ceo = json['ceo'],

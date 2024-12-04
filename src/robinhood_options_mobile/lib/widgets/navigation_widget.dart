@@ -504,9 +504,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               Navigator.pop(context);
               _openLogin();
             }),
-        // const Divider(
-        //   height: 10,
-        // )
+        const Divider(
+          thickness: 0.25,
+          // height: 10,
+        )
       ]);
 
       return Drawer(
@@ -567,15 +568,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   ),
                   Column(children: [
                     AnimatedSwitcher(
-                        duration: Durations.short4,
-                        // transitionBuilder:
-                        //     (Widget child, Animation<double> animation) {
-                        //   return SlideTransition(
-                        //       position: (Tween<Offset>(
-                        //               begin: Offset(0, -0.5), end: Offset.zero))
-                        //           .animate(animation),
-                        //       child: child);
-                        // },
+                        duration: Durations.short2,
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                          return SlideTransition(
+                              position: (Tween<Offset>(
+                                      begin: Offset(0, -0.5), end: Offset.zero))
+                                  .animate(animation),
+                              child: child);
+                        },
                         child: drawerProvider.showDrawerContents
                             ? Column(
                                 children: userWidgets,

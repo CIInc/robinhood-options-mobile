@@ -45,4 +45,15 @@ class Account {
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
         cashHeldForOptionsCollateral = 0.0; // TODO
+
+  Account.fromPlaidJson(dynamic json, BrokerageUser user)
+      : userId = user.id,
+        url = '',
+        portfolioCash = json['accounts'][0]['balances']['current'] as double,
+        accountNumber = json['accounts'][0]['mask'],
+        type = json['accounts'][0]['type'],
+        buyingPower = json['accounts'][0]['balances']['current'] as double,
+        optionLevel =
+            '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
+        cashHeldForOptionsCollateral = 0.0; // TODO
 }

@@ -19,6 +19,8 @@ const configuration = new Configuration({
     },
   },
 });
+// const redirectUrl = "https://realizealpha.web.app";
+
 const plaidClient = new PlaidApi(configuration);
 
 export const createPlaidLinkToken = https.onCall({}, async (request) => {
@@ -37,6 +39,7 @@ export const createPlaidLinkToken = https.onCall({}, async (request) => {
         client_user_id: "1234567890", // userId,
       },
       client_name: "RealizeAlpha",
+      // redirect_uri: redirectUrl,
       country_codes: [CountryCode.Us],
       language: "en",
       products: [Products.Investments, Products.Transactions],
