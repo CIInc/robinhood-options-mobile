@@ -122,15 +122,21 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                   children: [
                 Text(
                     "${positionOrder.instrumentObj!.symbol} ${positionOrder.type} ${positionOrder.side}",
-                    style: const TextStyle(fontSize: 19.0)),
+                    style: TextStyle(
+                        fontSize: 16.0,
+                        color: Theme.of(context).appBarTheme.foregroundColor)),
                 Text(
                     positionOrder.averagePrice != null
                         ? formatCurrency.format(positionOrder.averagePrice)
                         : "",
-                    style: const TextStyle(fontSize: 19.0)),
+                    style: TextStyle(
+                        fontSize: 16.0,
+                        color: Theme.of(context).appBarTheme.foregroundColor)),
                 Text(
                   formatDate.format(positionOrder.updatedAt!),
-                  style: const TextStyle(fontSize: 15.0),
+                  style: TextStyle(
+                      fontSize: 16.0,
+                      color: Theme.of(context).appBarTheme.foregroundColor),
                   textAlign: TextAlign.start,
                 )
               ])),
@@ -139,7 +145,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           /// padding of 72.0 pixels and bottom padding of 16.0 pixels.
           // titlePadding: const EdgeInsetsDirectional.only(start: 6, bottom: 4),
           // centerTitle: false,
-          expandedTitleScale: 1.25,
+          // expandedTitleScale: 1.25,
         ),
         pinned: true,
       ),

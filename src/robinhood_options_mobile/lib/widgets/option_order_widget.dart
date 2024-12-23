@@ -131,7 +131,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-              const Row(children: [SizedBox(height: 70)]),
+              // const Row(children: [SizedBox(height: 70)]),
               Wrap(
                   crossAxisAlignment: WrapCrossAlignment.end,
                   //runAlignment: WrapAlignment.end,
@@ -141,11 +141,17 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                   children: [
                     Text(
                         "${widget.optionOrder.chainSymbol} \$${formatCompactNumber.format(widget.optionOrder.legs.first.strikePrice)} ${widget.optionOrder.strategy}",
-                        style: const TextStyle(fontSize: 20.0)),
+                        style: TextStyle(
+                            fontSize: 16.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor)),
                     Text(
                         formatDate.format(
                             widget.optionOrder.legs.first.expirationDate!),
-                        style: const TextStyle(fontSize: 15.0))
+                        style: TextStyle(
+                            fontSize: 16.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor))
                   ]),
               /*
                   Row(

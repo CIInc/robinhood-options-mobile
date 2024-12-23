@@ -844,6 +844,8 @@ class OptionPositionsRowWidget extends StatelessWidget {
                       // foregroundColor: Theme.of(context).colorScheme.primary,
                       child: Text(
                         ops.first.symbol,
+                        overflow: TextOverflow.fade,
+                        softWrap: false,
                       ))),
           // title: Text(ops.first.symbol),
           title: Text(ops.first.instrumentObj != null

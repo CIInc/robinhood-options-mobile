@@ -153,7 +153,8 @@ class _UserWidgetState extends State<UserWidget> {
           trailing: SizedBox(
               width: 220,
               child: Text(user.profileName!,
-                  style: const TextStyle(fontSize: 16))),
+                  style: const TextStyle(fontSize: 16),
+                  textAlign: TextAlign.end)),
         ),
       ],
       ListTile(
@@ -161,7 +162,9 @@ class _UserWidgetState extends State<UserWidget> {
         title: const Text("Username", style: TextStyle(fontSize: 14)),
         trailing: SizedBox(
             width: 220,
-            child: Text(user.username, style: const TextStyle(fontSize: 16))),
+            child: Text(user.username,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.end)),
       ),
       if (user.lastName != null) ...[
         ListTile(
