@@ -4,7 +4,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:intl/intl.dart';
-import 'package:collection/collection.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -102,8 +101,8 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<UserInfo?> getUser(BrokerageUser user) async {
-    return UserInfo('url', 'id', 'idInfo', user.userName!, 'email', 'firstName',
-        'lastName', null, user.userName!, null, null);
+    return UserInfo(
+        url: 'url', id: 'id', idInfo: 'idInfo', username: user.userName!);
     // dynamic resultJson;
     // resultJson = await getJson(user, url);
     // var usr = UserInfo.fromSchwab(resultJson);

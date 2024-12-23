@@ -178,11 +178,11 @@ class OptionAggregatePosition {
               0, // ratioQuantity,
               null, // side,
               json2['option_contract'] != null
-                  ? DateFormat("MM/dd/yyyy")
+                  ? DateFormat("yyyy-MM-dd") // DateFormat("yyyy-MM-dd")
                       .tryParse(json2['option_contract']['expiration_date'])
                   : null, // expirationDate,
               json2['option_contract'] != null
-                  ? double.tryParse(json2['option_contract']['strike_price'])
+                  ? (json2['option_contract']['strike_price']).toDouble()
                   : null, // strikePrice
               json2['option_contract'] != null
                   ? json2['option_contract']['contract_type']
@@ -207,7 +207,7 @@ class OptionAggregatePosition {
             json2['option_contract']?['underlying_security_ticker'] ?? '',
             null,
             json2['option_contract'] != null
-                ? DateFormat("MM/dd/yyyy")
+                ? DateFormat("yyyy-MM-dd")
                     .tryParse(json2['option_contract']['expiration_date'])
                 : null, // expirationDate,
             json2['security_id'],
@@ -216,7 +216,7 @@ class OptionAggregatePosition {
             '',
             '',
             json2['option_contract'] != null
-                ? double.tryParse(json2['option_contract']['strike_price'])
+                ? (json2['option_contract']['strike_price']).toDouble()
                 : null, // strikePrice
             '',
             json2['option_contract']?['contract_type'] ?? '', // type,

@@ -27,7 +27,6 @@ import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
-import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 import 'package:app_links/app_links.dart';
@@ -466,7 +465,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           title: Text(
               '${user.userName != null ? user.userName! : ''} (${user.source.getValue().capitalize()})'),
           //selected: userInfo!.profileName == userInfo!.profileName,
-          onTap: () {
+          onTap: () async {
             drawerProvider.toggleDrawer();
 
             Provider.of<AccountStore>(context, listen: false).removeAll();
@@ -486,12 +485,16 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             // userStore.items[userIndex].defaultUser = true;
 
             // futureUser = null;
-            _pageIndex = 0;
+            // Page has to be reset before switching the user as the tab list as changes based on the features of BrokerageUser type.
+            // _pageIndex = 0;
+            // Needed to resolve a blank page that would appear when switching users while on a different tab than home.
+            _onPageChanged(0);
             userStore.setCurrentUserIndex(userIndex);
-            userStore.save();
-
-            Navigator.pop(context); // close the drawer
-            // _onPageChanged(4);
+            // userStore.currentUserIndex = userIndex;
+            await userStore.save();
+            if (context.mounted) {
+              Navigator.pop(context); // close the drawer
+            }
           },
         ));
       }
@@ -540,10 +543,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         //backgroundColor: Colors.amber,
                         child: Text(
                       userInfo != null &&
-                              userInfo!.firstName.isNotEmpty &&
-                              userInfo!.lastName.isNotEmpty
-                          ? userInfo!.firstName.substring(0, 1) +
-                              userInfo!.lastName.substring(0, 1)
+                              userInfo!.firstName != null &&
+                              userInfo!.lastName != null &&
+                              userInfo!.firstName!.isNotEmpty &&
+                              userInfo!.lastName!.isNotEmpty
+                          ? userInfo!.firstName!.substring(0, 1) +
+                              userInfo!.lastName!.substring(0, 1)
                           : '',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 32),
@@ -625,32 +630,32 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     // const Divider(
                     //   height: 10,
                     // ),
-                    ListTile(
-                      leading: const Icon(Icons.settings),
-                      title: const Text("Settings"),
-                      //selected: false,
-                      onTap: () {
-                        Navigator.pop(context); // close the drawer
-                        showModalBottomSheet<void>(
-                            context: context,
-                            //isScrollControlled: true,
-                            //useRootNavigator: true,
-                            //constraints: const BoxConstraints(maxHeight: 200),
-                            builder: (_) => MoreMenuBottomSheet(
-                                  userStore.currentUser!,
-                                  /*
-                      chainSymbols: chainSymbols,
-                      positionSymbols: positionSymbols,
-                      cryptoSymbols: cryptoSymbols,
-                      optionSymbolFilters: optionSymbolFilters,
-                      stockSymbolFilters: stockSymbolFilters,
-                      cryptoFilters: cryptoFilters,*/
-                                  onSettingsChanged: (_) => {},
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                ));
-                      },
-                    ),
+                    // ListTile(
+                    //   leading: const Icon(Icons.settings),
+                    //   title: const Text("Settings"),
+                    //   //selected: false,
+                    //   onTap: () {
+                    //     Navigator.pop(context); // close the drawer
+                    //     showModalBottomSheet<void>(
+                    //         context: context,
+                    //         //isScrollControlled: true,
+                    //         //useRootNavigator: true,
+                    //         //constraints: const BoxConstraints(maxHeight: 200),
+                    //         builder: (_) => MoreMenuBottomSheet(
+                    //               userStore.currentUser!,
+                    //               /*
+                    //   chainSymbols: chainSymbols,
+                    //   positionSymbols: positionSymbols,
+                    //   cryptoSymbols: cryptoSymbols,
+                    //   optionSymbolFilters: optionSymbolFilters,
+                    //   stockSymbolFilters: stockSymbolFilters,
+                    //   cryptoFilters: cryptoFilters,*/
+                    //               onSettingsChanged: (_) => {},
+                    //               analytics: widget.analytics,
+                    //               observer: widget.observer,
+                    //             ));
+                    //   },
+                    // ),
                     // const Divider(
                     //   height: 10,
                     // ),

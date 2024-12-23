@@ -14,12 +14,10 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
-import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
-import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart'
-    as oauth2_robinhood;
+import 'package:uuid/uuid.dart';
 
 class LoginWidget extends StatefulWidget {
   const LoginWidget({
@@ -56,10 +54,13 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? clipboardInitialValue;
 
   String? deviceToken;
+  String? requestId;
+  String? computerId;
   String? challengeRequestId;
   String? challengeResponseId;
-  String challengeType = 'email'; //sms
+  String challengeType = 'email'; // 'app'; //sms
   bool mfaRequired = false;
+  bool loading = false;
 
   bool popped = false;
 
@@ -72,13 +73,15 @@ class _LoginWidgetState extends State<LoginWidget> {
   StreamSubscription<LinkEvent>? _streamEvent;
   StreamSubscription<LinkExit>? _streamExit;
   StreamSubscription<LinkSuccess>? _streamSuccess;
-  LinkObject? _successObject;
+  // LinkObject? _successObject;
 
   @override
   void initState() {
     super.initState();
 
     deviceToken = generateDeviceToken();
+    requestId = const Uuid().v4(); // generateDeviceToken();
+
     myFocusNode = FocusNode();
 
     clipboardContentStream.stream.listen((value) {
@@ -116,121 +119,6 @@ class _LoginWidgetState extends State<LoginWidget> {
     _streamSuccess?.cancel();
 
     super.dispose();
-  }
-
-  void _login() async {
-    if (source == Source.schwab) {
-      var code = await SchwabService().login();
-      debugPrint('SchwabService().login(): $code');
-      // Handled by deep links & oauth redirect flow.
-      // if (code != null) {
-      //   var user = await SchwabService.getAccessToken(code);
-      //   var userInfo = await SchwabService().getUser(user!);
-      //   user.userName = userInfo!.username;
-      //   debugPrint('result:${jsonEncode(user)}');
-      //   if (mounted) {
-      //     var userStore =
-      //         Provider.of<BrokerageUserStore>(context, listen: false);
-      //     userStore.addOrUpdate(user);
-      //     userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      //     await userStore.save();
-      //   }
-      // }
-    } else if (source == Source.demo) {
-      DemoService().login();
-      var user = BrokerageUser(source, "Demo Account", null, null);
-      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-      userStore.addOrUpdate(user);
-      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      userStore.save();
-      if (mounted) {
-        Navigator.pop(context, user);
-      }
-    } else if (source == Source.robinhood) {
-      var service = RobinhoodService();
-      setState(() {
-        authenticationResponse = oauth2_robinhood.login(
-            service.authEndpoint, userCtl.text, passCtl.text,
-            identifier: service.clientId,
-            basicAuth: false,
-            deviceToken: deviceToken,
-            mfaCode: smsCtl.text.isNotEmpty
-                ? smsCtl.text
-                : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
-            challengeType: challengeType,
-            challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null,
-            scopes: ['internal']);
-      });
-    } else if (source == Source.plaid) {
-      // var service = PlaidService();
-      // service.login();
-      PlaidLink.open();
-    }
-  }
-
-  void _createLinkTokenConfiguration() async {
-    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
-    HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('createPlaidLinkToken');
-    final resp = await callable.call();
-    // <String, dynamic>{
-    //   'uid': userDocumentReference!.id,
-    //   'role': selectedRole.getValue()
-    // });
-    debugPrint("result: ${resp.data}");
-
-    // setState(() {
-    _configuration = LinkTokenConfiguration(
-      token: resp.data[
-          'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
-    );
-
-    PlaidLink.create(configuration: _configuration!);
-    // });
-  }
-
-  void _onEvent(LinkEvent event) {
-    final name = event.name;
-    final metadata = event.metadata.description();
-    debugPrint("onEvent: $name, metadata: $metadata");
-  }
-
-  void _onSuccess(LinkSuccess event) async {
-    final token = event.publicToken;
-    final metadata = event.metadata.description();
-    debugPrint("onSuccess: $token, metadata: $metadata");
-
-    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
-    HttpsCallable callable = FirebaseFunctions.instance
-        .httpsCallable('exchangePublicTokenForAccessToken');
-    final resp = await callable.call(<String, dynamic>{
-      'publicToken': token,
-    });
-    debugPrint("exchangePublicTokenForAccessToken: ${resp.data}");
-    // client = generateClient(response, tokenEndpoint, scopes, delimiter, identifier, secret, httpClient, onCredentialsRefreshed)
-    var user = BrokerageUser(
-        source,
-        '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
-        jsonEncode(<String, dynamic>{
-          'accessToken': resp.data['access_token'],
-          'scopes': []
-        }), // client!.credentials.toJson(),
-        null);
-    var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-    userStore.addOrUpdate(user);
-    userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-    await userStore.save();
-    if (mounted) {
-      Navigator.pop(context, user);
-    }
-
-    // setState(() => _successObject = event);
-  }
-
-  void _onExit(LinkExit event) {
-    final metadata = event.metadata.description();
-    final error = event.error?.description();
-    debugPrint("onExit metadata: $metadata, error: $error");
   }
 
   @override
@@ -280,7 +168,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       : source == Source.schwab
                           ? SchwabService()
                           : DemoService();
-                  client = oauth2_robinhood.generateClient(
+                  client = generateClient(
                       authenticationSnapshot.data!,
                       source == Source.robinhood
                           ? service.authEndpoint
@@ -349,15 +237,18 @@ class _LoginWidgetState extends State<LoginWidget> {
         width: 340.0,
         height: 60,
         child: ElevatedButton.icon(
-            label: const Text(
-              "Login",
-              style: TextStyle(fontSize: 20.0),
-              // style: TextStyle(fontSize: 22.0, height: 1.5),
-            ),
-            icon: const Icon(Icons.login_outlined),
-            onPressed:
-                _login // challengeRequestId == null ? _login : _handleChallenge,
-            ));
+          label: const Text(
+            "Login",
+            style: TextStyle(fontSize: 20.0),
+            // style: TextStyle(fontSize: 22.0, height: 1.5),
+          ),
+          icon: loading
+              ? const CircularProgressIndicator()
+              : const Icon(Icons.login_outlined),
+          onPressed: loading
+              ? null
+              : (challengeRequestId == null ? _login : _handleChallenge),
+        ));
     var action = waiting
         ? Stack(
             alignment: FractionalOffset.center,
@@ -378,7 +269,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             child: CarouselView(
               scrollDirection: Axis.horizontal,
               itemSnapping: true,
-              itemExtent: 125, // double.infinity, // 360, //
+              itemExtent: 155, // double.infinity, // 360, //
               onTap: (value) {
                 debugPrint(value.toString());
                 setState(() {
@@ -397,8 +288,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                 Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
                     label: SizedBox(
-                        width: 74,
+                        width: 125,
                         child: const Text(
                           'Demo',
                           textAlign: TextAlign.center,
@@ -415,12 +307,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                 Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
                     label: SizedBox(
-                        width: 74,
-                        child: const Text(
-                          'Robinhood',
-                          textAlign: TextAlign.center,
-                        )),
+                      width: 125,
+                      child: const Text(
+                        'Robinhood',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     // label: const Text('Robinhood'),
                     selected: source == Source.robinhood,
                     // labelPadding: const EdgeInsets.all(10.0),
@@ -436,8 +330,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                 Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
                     label: SizedBox(
-                        width: 74,
+                        width: 125,
                         child: const Text(
                           'Schwab',
                           textAlign: TextAlign.center,
@@ -455,8 +350,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                 Padding(
                   padding: const EdgeInsets.all(4.0),
                   child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
                     label: SizedBox(
-                        width: 74,
+                        width: 125,
                         child: const Text(
                           'Plaid',
                           textAlign: TextAlign.center,
@@ -481,7 +377,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     isDense: true,
                     contentPadding: EdgeInsets.all(10),
                     hintText: 'Robinhood username or email'),
-                style: const TextStyle(fontSize: 18.0, height: 2.0)),
+                style: const TextStyle(fontSize: 18.0)), //, height: 2.0
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 15, 30, 15),
@@ -492,7 +388,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     contentPadding: EdgeInsets.all(10),
                     hintText: 'Robinhood password'),
                 obscureText: true,
-                style: const TextStyle(fontSize: 18.0, height: 2.0)),
+                style: const TextStyle(fontSize: 18.0)), //, height: 2.0
           ),
           // challengeRequestId != null
           if (mfaRequired && challengeType == 'sms') ...[
@@ -505,8 +401,8 @@ class _LoginWidgetState extends State<LoginWidget> {
                   decoration: InputDecoration(
                       isDense: true,
                       contentPadding: const EdgeInsets.all(10),
-                      hintText: '$source SMS code received'),
-                  style: const TextStyle(fontSize: 18.0, height: 2.0)),
+                      hintText: 'SMS code received'),
+                  style: const TextStyle(fontSize: 18.0)), //, height: 2.0
             ),
           ] else if (mfaRequired && challengeType == 'app') ...[
             Padding(
@@ -519,7 +415,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       isDense: true,
                       contentPadding: EdgeInsets.all(10),
                       hintText: 'MFA Authenticator App code'),
-                  style: const TextStyle(fontSize: 18.0, height: 2.0)),
+                  style: const TextStyle(fontSize: 18.0)), //, height: 2.0
             ),
           ],
           Padding(
@@ -576,13 +472,109 @@ class _LoginWidgetState extends State<LoginWidget> {
     ));
   }
 
+  void _login() async {
+    if (source == Source.schwab) {
+      var code = await SchwabService().login();
+      debugPrint('SchwabService().login(): $code');
+      // Handled by deep links & oauth redirect flow.
+      // if (code != null) {
+      //   var user = await SchwabService.getAccessToken(code);
+      //   var userInfo = await SchwabService().getUser(user!);
+      //   user.userName = userInfo!.username;
+      //   debugPrint('result:${jsonEncode(user)}');
+      //   if (mounted) {
+      //     var userStore =
+      //         Provider.of<BrokerageUserStore>(context, listen: false);
+      //     userStore.addOrUpdate(user);
+      //     userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      //     await userStore.save();
+      //   }
+      // }
+    } else if (source == Source.demo) {
+      DemoService().login();
+      var user = BrokerageUser(source, "Demo Account", null, null);
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      userStore.save();
+      if (mounted) {
+        Navigator.pop(context, user);
+      }
+    } else if (source == Source.robinhood) {
+      setState(() {
+        loading = true;
+      });
+      var service = RobinhoodService();
+      var response = await service.login(
+          service.authEndpoint, userCtl.text, passCtl.text,
+          clientId: service.clientId,
+          basicAuth: false,
+          deviceToken: deviceToken,
+          requestId: requestId,
+          mfaCode: smsCtl.text.isNotEmpty
+              ? smsCtl.text
+              : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
+          challengeType: challengeType,
+          challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
+      debugPrint(response.body);
+      var authResult = jsonDecode(response.body);
+      if (authResult['verification_workflow'] != null) {
+        var workflowId = authResult['verification_workflow']['id'];
+        var userMachineResponse =
+            await service.userMachine(deviceToken!, workflowId);
+        debugPrint(userMachineResponse.body);
+        var userMachine = jsonDecode(userMachineResponse.body);
+        computerId = userMachine['id'];
+        var userViewResponse = await service.userView(computerId!);
+        debugPrint(userViewResponse.body);
+        var userView = jsonDecode(userViewResponse.body);
+        setState(() {
+          loading = false;
+          mfaRequired = true;
+          challengeType = userView['context']['sheriff_challenge']['type'];
+          challengeRequestId = userView['context']['sheriff_challenge']['id'];
+          myFocusNode.requestFocus();
+        });
+      } else {
+        setState(() {
+          loading = false;
+          authenticationResponse = Future.value(response);
+        });
+      }
+
+      // setState(() {
+      //   authenticationResponse = oauth2_robinhood.login(
+      //       service.authEndpoint, userCtl.text, passCtl.text,
+      //       clientId: service.clientId,
+      //       basicAuth: false,
+      //       deviceToken: deviceToken,
+      //       mfaCode: smsCtl.text.isNotEmpty
+      //           ? smsCtl.text
+      //           : (mfaCtl.text.isNotEmpty ? mfaCtl.text : null),
+      //       challengeType: challengeType,
+      //       challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
+      // });
+    } else if (source == Source.plaid) {
+      // var service = PlaidService();
+      // service.login();
+      PlaidLink.open();
+    }
+  }
+
   void _handleChallenge() async {
     if (challengeRequestId != null) {
-      var challengeResponse = await oauth2_robinhood.respondChallenge(
-          challengeRequestId as String, smsCtl.text);
+      setState(() {
+        loading = true;
+      });
+      var service = RobinhoodService();
+      var challengeResponse = await service.respondChallenge(
+          challengeRequestId!, smsCtl.text.isEmpty ? mfaCtl.text : smsCtl.text);
+      debugPrint(challengeResponse.body);
       this.challengeResponse = Future.value(challengeResponse);
       var responseJson = jsonDecode(challengeResponse.body);
       challengeResponseId = responseJson['id'];
+      var postResponse = await service.postUserView(computerId!);
+      debugPrint(jsonEncode(postResponse.body));
       _login();
     }
   }
@@ -635,20 +627,95 @@ class _LoginWidgetState extends State<LoginWidget> {
     }
     return s;
   }
-  /*
-{
-  "detail":"Request blocked, challenge issued.",
-  "challenge": {
-    "id":"4295ae9f-f6ca-4563-90b4-70ce0f557e1f",
-    "user":"8e620d87-d864-4297-828b-c9b7662f2c2b",
-    "type":"sms",
-    "alternate_type":null,
-    "status":"issued",
-    "remaining_retries":3,
-    "remaining_attempts":3,
-    "expires_at":"2021-03-04T22:49:37.846180-05:00",
-    "updated_at":"2021-03-04T22:44:37.846419-05:00"
+
+  void _createLinkTokenConfiguration() async {
+    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('createPlaidLinkToken');
+    final HttpsCallableResult resp;
+    try {
+      resp = await callable.call();
+      // <String, dynamic>{
+      //   'uid': userDocumentReference!.id,
+      //   'role': selectedRole.getValue()
+      // });
+      debugPrint("result: ${resp.data}");
+      // setState(() {
+      _configuration = LinkTokenConfiguration(
+        token: resp.data[
+            'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
+      );
+
+      PlaidLink.create(configuration: _configuration!);
+      // });
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint(jsonEncode(e));
+    } catch (e) {
+      // Do other things that might be thrown that I have overlooked
+    }
   }
-}
- */
+
+  void _onEvent(LinkEvent event) {
+    final name = event.name;
+    final metadata = event.metadata.description();
+    debugPrint("onEvent: $name, metadata: $metadata");
+
+    if (name == 'ERROR') {
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+            content: Text("${event.metadata.errorMessage}"))); // Login failed:
+    }
+  }
+
+  void _onSuccess(LinkSuccess event) async {
+    final token = event.publicToken;
+    final metadata = event.metadata.description();
+    debugPrint("onSuccess: $token, metadata: $metadata");
+
+    // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
+    HttpsCallable callable = FirebaseFunctions.instance
+        .httpsCallable('exchangePublicTokenForAccessToken');
+    final resp = await callable.call(<String, dynamic>{
+      'publicToken': token,
+    });
+    debugPrint("exchangePublicTokenForAccessToken: ${resp.data}");
+    // client = generateClient(response, tokenEndpoint, scopes, delimiter, identifier, secret, httpClient, onCredentialsRefreshed)
+    var user = BrokerageUser(
+        source,
+        '${event.metadata.institution!.name} ${event.metadata.accounts.first.name}',
+        jsonEncode(<String, dynamic>{
+          'accessToken': resp.data['access_token'],
+          'scopes': []
+        }), // client!.credentials.toJson(),
+        null);
+    if (mounted) {
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+    }
+    if (mounted) {
+      Navigator.pop(context, user);
+    }
+
+    // setState(() => _successObject = event);
+  }
+
+  void _onExit(LinkExit event) {
+    final metadata = event.metadata.description();
+    final error = event.error?.description();
+    debugPrint("onExit metadata: $metadata, error: $error");
+    if (event.error != null) {
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+            content: Text(event.error!.displayMessage ??
+                event.error!.message))); // Login failed:
+    }
+
+    // Call PlaidLink.create() again
+    // _createLinkTokenConfiguration();
+    PlaidLink.create(configuration: _configuration!);
+  }
 }

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/enums.dart';
-import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';

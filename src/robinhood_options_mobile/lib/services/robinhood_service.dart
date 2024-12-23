@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:http/http.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
@@ -71,6 +72,279 @@ class RobinhoodService implements IBrokerageService {
   static Map<String, dynamic> logoUrls = {};
 
   static List<dynamic> forexPairs = [];
+
+  /* 
+  AUTH 
+  */
+
+/*
+*** New Robinhood auth flow as of Dec 2024 ***
+
+POST https://api.robinhood.com/oauth2/token/
+{
+  "device_token": "2f43a48b-214c-4091-bf22-7b282818dae5",
+  "client_id": "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS",
+  "create_read_only_secondary_token": true,
+  "expires_in": 86400,
+  "grant_type": "password",
+  "scope": "internal",
+  "token_request_path": "/login",
+  "username": "******",
+  "password": "******",
+  "long_session": true,
+  "try_passkeys": false,
+  "request_id": "b9a0f4ed-f323-4dd3-bc32-09931cb9a95c"
+}
+Response: {
+  "verification_workflow": {
+      "id": "e6b8d980-e9a3-4bbc-9a5d-c8e73fa4e117",
+      "workflow_status": "workflow_status_internal_pending"
+  }
+}
+POST https://api.robinhood.com/pathfinder/user_machine/ 
+{
+  "device_id": "2f43a48b-214c-4091-bf22-7b282818dae5",
+  "flow": "suv",
+  "input": {
+    "workflow_id": "e6b8d980-e9a3-4bbc-9a5d-c8e73fa4e117"
+  }
+}
+Response: {"id":"46e991c4-2c53-4005-979c-ee500993f535"}
+GET https://api.robinhood.com/pathfinder/inquiries/46e991c4-2c53-4005-979c-ee500993f535/user_view/
+Response: {
+    "page": "ChallengePage",
+    "context": {
+        "initial_alert": null,
+        "sheriff_flow_id": "login_suv",
+        "fallback_cta_text": "Verify with bank instead",
+        "sheriff_challenge": {
+            "id": "dd81e54f-4348-495d-8875-59c6d76dbe2b",
+            "type": "app",
+            "status": "issued",
+            "expires_at": "2024-12-21T22:28:29.520780-05:00",
+            "remaining_retries": 3,
+            "remaining_attempts": 3
+        },
+        "verification_workflow_id": "e6b8d980-e9a3-4bbc-9a5d-c8e73fa4e117"
+    },
+    "type": "page",
+    "type_context": {
+        "page": "ChallengePage",
+        "context": {
+            "initial_alert": null,
+            "sheriff_flow_id": "login_suv",
+            "fallback_cta_text": "Verify with bank instead",
+            "sheriff_challenge": {
+                "id": "dd81e54f-4348-495d-8875-59c6d76dbe2b",
+                "type": "app",
+                "status": "issued",
+                "expires_at": "2024-12-21T22:28:29.520780-05:00",
+                "remaining_retries": 3,
+                "remaining_attempts": 3
+            },
+            "verification_workflow_id": "e6b8d980-e9a3-4bbc-9a5d-c8e73fa4e117"
+        }
+    },
+    "sequence": 0,
+    "state_name": "Challenge",
+    "prev_state_name": "EntryPoint",
+    "polling_interval": null,
+    "renderable_platforms": {
+        "android": "all",
+        "iOS": "all",
+        "web": "all"
+    },
+    "http_status": 200,
+    "should_replace_current_page": false,
+    "toast": null,
+    "locality": "US"
+}
+POST 
+https://api.robinhood.com/challenge/dd81e54f-4348-495d-8875-59c6d76dbe2b/respond/
+{"response":"758447"}
+Response: {
+    "id": "dd81e54f-4348-495d-8875-59c6d76dbe2b",
+    "type": "app",
+    "alternate_type": null,
+    "status": "validated",
+    "remaining_retries": 0,
+    "remaining_attempts": 0,
+    "expires_at": "2024-12-21T22:28:29.520780-05:00",
+    "updated_at": "2024-12-21T22:23:44.798337-05:00",
+    "flow_id": "login_suv",
+    "mfa_status": "app"
+}
+POST https://api.robinhood.com/pathfinder/inquiries/46e991c4-2c53-4005-979c-ee500993f535/user_view/
+{
+  "sequence": 0,
+  "user_input": {
+    "status": "continue"
+  }
+}
+Response: {
+    "page": null,
+    "context": null,
+    "type": "result",
+    "type_context": {
+        "result": "workflow_status_approved",
+        "result_type": "security.verification-result"
+    },
+    "sequence": 0,
+    "state_name": "Challenge",
+    "prev_state_name": "Challenge",
+    "polling_interval": null,
+    "renderable_platforms": {
+        "android": "all",
+        "iOS": "all",
+        "web": "all"
+    },
+    "http_status": null,
+    "should_replace_current_page": false,
+    "toast": null,
+    "locality": "US"
+}
+POST https://api.robinhood.com/oauth2/token/
+{
+  "device_token": "2f43a48b-214c-4091-bf22-7b282818dae5",
+  "client_id": "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS",
+  "create_read_only_secondary_token": true,
+  "expires_in": 86400,
+  "grant_type": "password",
+  "scope": "internal",
+  "token_request_path": "/login",
+  "username": "*****",
+  "password": "*****",
+  "long_session": true,
+  "try_passkeys": false,
+  "request_id": "b9a0f4ed-f323-4dd3-bc32-09931cb9a95c"
+}
+Response: {
+    "access_token": "ayJhbGciOiJFUzI1NiIsImtpZCI6IjIiLCJ0eXAiOiJKV1QifQ.eyJkY3QiOjE3MDUyMTM2NzQsImRldmljZV9oYXNoIjoiMTY5ZjcwNmM1ZWM1YzI5MWUxMjRlZGY3ZWQ2MGJhNmUiLCJleHAiOjE3Mzc0MDAyMTIsImxldmVsMl9hY2Nlc3MiOnRydWUsIm1ldGEiOnsib2lkIjoiYzgyU0gwV1pPc2FiT1hHUDJzeHFjajM0RnhrdmZuV1JaQktsQmpGUyIsIm9uIjoiUm9iaW5ob29kIn0sIm9wdGlvbnMiOnRydWUsInBvcyI6InAiLCJzY29wZSI6ImludGVybmFsIiwic2VydmljZV9yZWNvcmRzIjpbeyJoYWx0ZWQiOmZhbHNlLCJzZXJ2aWNlIjoibnVtbXVzX3VzIiwic2hhcmRfaWQiOjEsInN0YXRlIjoiYXZhaWxhYmxlIn0seyJoYWx0ZWQiOmZhbHNlLCJzZXJ2aWNlIjoiYnJva2ViYWNrX3VzIiwic2hhcmRfaWQiOjMsInN0YXRlIjoiYXZhaWxhYmxlIn1dLCJzbGciOjEsInNscyI6IithU3RGUDhmR3QxSlNSZG16UkRyR0JVbmNTWjdHUmc4WE16Z3UxejFvd0pGa1hXUG1TeTZrWnZ4T05meFFSNlhIZVMxUGtUTlVheDIrTlhaNmVCbEF3PT0iLCJzcm0iOnsiYiI6eyJobCI6ZmFsc2UsInIiOiJ1cyIsInNpZCI6M30sIm4iOnsiaGwiOmZhbHNlLCJyIjoidXMiLCJzaWQiOjF9fSwidG9rZW4iOiJPSTVlbDhlWm1DZGd5VVN4UlM3WkUxNk1KU1B1M3giLCJ1c2VyX2lkIjoiOGU2MjBkODctZDg2NC00Mjk3LTgyOGItYzliNzY2MmYyYzJiIiwidXNlcl9vcmlnaW4iOiJVUyJ9.jI_c056ZzkQXcmNskckvJUExyi87tIf3u4sExxRtoDougx_7lMyjccXABNLL98C3P1IrF1gD43PjqpWl2z737w",
+    "expires_in": 2562387,
+    "token_type": "Bearer",
+    "scope": "internal",
+    "refresh_token": "aZofat96alNGNilsTir0qUjqbWTRUn",
+    "mfa_code": null,
+    "backup_code": null,
+    "user_uuid": "ae620d87-d864-4297-828b-c9b7662f2c2b",
+    "read_only_secondary_access_token": "ayJhbGciOiJFUzI1NiIsImtpZCI6IjIiLCJ0eXAiOiJKV1QifQ.ayJkZXZpY2VfaGFzaCI6IjE2OWY3MDZjNWVjNWMyOTFlMTI0ZWRmN2VkNjBiYTZlIiwiZXhwIjoxNzM3NDAwMjEyLCJsZXZlbDJfYWNjZXNzIjp0cnVlLCJtZXRhIjp7fSwib3B0aW9ucyI6dHJ1ZSwicG9zIjoicyIsInNjb3BlIjoicmVhZCIsInNlcnZpY2VfcmVjb3JkcyI6W3siaGFsdGVkIjpmYWxzZSwic2VydmljZSI6Im51bW11c191cyIsInNoYXJkX2lkIjoxLCJzdGF0ZSI6ImF2YWlsYWJsZSJ9LHsiaGFsdGVkIjpmYWxzZSwic2VydmljZSI6ImJyb2tlYmFja191cyIsInNoYXJkX2lkIjozLCJzdGF0ZSI6ImF2YWlsYWJsZSJ9XSwic2xnIjoxLCJzbHMiOiIvRDdBa2ovaU5FTDliWmtrUXRaNU9lcFdUdTZrWmF1dlBuVzJxR3ZFSTA0R0tVK083MC95Y29UcjMzRTdBWVdtTERIdzJ3eXM4WW9rYTlZbDluVkJDdz09Iiwic3JtIjp7ImIiOnsiaGwiOmZhbHNlLCJyIjoidXMiLCJzaWQiOjN9LCJuIjp7ImhsIjpmYWxzZSwiciI6InVzIiwic2lkIjoxfX0sInRva2VuIjoiNTM0YzVhNzIxMDg0MDQ2MmQxYTg3NzE2YzFhZTkyMGJmMTRlMDZmYzM2OGQ1ZmZiZGUwYzZmZmVjZTg5ZDVlNCIsInVzZXJfaWQiOiI4ZTYyMGQ4Ny1kODY0LTQyOTctODI4Yi1jOWI3NjYyZjJjMmIiLCJ1c2VyX29yaWdpbiI6IlVTIn0.-gi6JRr97vt6o8Z_42RDOXvje3KBmNn_uGAsvKU6f3ILqhRb0-s8PNmJZPR2IFNZOH1crmaEg4p_M7-VCEGLow"
+}
+
+*/
+  Future<Response> login(
+      Uri authorizationEndpoint, String username, String password,
+      {String? clientId,
+      String? secret,
+      String? deviceToken,
+      String? requestId,
+      String? challengeType,
+      String? challengeId,
+      String? mfaCode,
+      String? expiresIn = '86400',
+      Iterable<String>? scopes = const ['internal'],
+      bool basicAuth = true,
+      Client? httpClient,
+      String? delimiter = ' '}) async {
+    var headers = <String, String>{};
+    var body = {
+      'grant_type': 'password',
+      'username': username,
+      'password': password,
+      // 'request_id': const Uuid().v4(), // Generate a request ID
+    };
+    if (clientId != null) {
+      if (basicAuth) {
+        var userPass = '${Uri.encodeFull(clientId)}:${Uri.encodeFull(secret!)}';
+        headers['Authorization'] =
+            'Basic ${base64Encode(ascii.encode(userPass))}';
+        // headers['Authorization'] = basicAuthHeader(clientId, secret as String);
+      } else {
+        body['client_id'] = clientId;
+        if (secret != null) body['client_secret'] = secret;
+      }
+    }
+
+    if (deviceToken != null) {
+      body['device_token'] = deviceToken;
+    }
+
+    if (scopes != null && scopes.isNotEmpty) {
+      body['scope'] = scopes.join(delimiter!);
+    }
+
+    if (expiresIn != null) {
+      body['expires_in'] = expiresIn;
+      body['long_session'] = 'true';
+    }
+    if (requestId != null) {
+      body['request_id'] = requestId;
+    }
+    if (challengeType != null) {
+      body['challenge_type'] = challengeType;
+    }
+    // Once respondChallenge is called, the resulting challenge id should be used as header.
+    if (challengeId != null) {
+      headers['X-ROBINHOOD-CHALLENGE-RESPONSE-ID'] = challengeId;
+    }
+    if (mfaCode != null) {
+      body['mfa_code'] = mfaCode;
+    }
+
+    debugPrint('POST $authorizationEndpoint');
+    // debugPrint(jsonEncode(headers));
+    debugPrint(jsonEncode(body));
+    httpClient ??= Client();
+    var response = await httpClient.post(authorizationEndpoint,
+        headers: headers, body: body);
+    return response;
+  }
+
+  Future<Response> userMachine(String deviceId, String workflowId) {
+    var body = {
+      "device_id": deviceId,
+      "flow": "suv",
+      "input": {"workflow_id": workflowId}
+    };
+    var httpClient = Client();
+    const url = 'https://api.robinhood.com/pathfinder/user_machine/';
+    debugPrint('POST $url');
+    debugPrint(jsonEncode(body));
+    var response = httpClient.post(Uri.parse(url),
+        headers: {'Content-type': 'application/json'}, body: jsonEncode(body));
+    return response;
+  }
+
+  Future<Response> userView(String id) {
+    var httpClient = Client();
+    var url = 'https://api.robinhood.com/pathfinder/inquiries/$id/user_view/';
+    debugPrint('GET $url');
+    var response = httpClient.get(Uri.parse(url));
+    return response;
+  }
+
+  Future<Response> respondChallenge(String id, String mfaCode) {
+    var body = {'response': mfaCode};
+    var httpClient = Client();
+    var url = 'https://api.robinhood.com/challenge/$id/respond/';
+    debugPrint('POST $url');
+    debugPrint(jsonEncode(body));
+    var response = httpClient.post(Uri.parse(url), body: body);
+    return response;
+  }
+
+  Future<Response> postUserView(String id) {
+    var body = {
+      "sequence": 0,
+      "user_input": {"status": "continue"}
+    };
+    var httpClient = Client();
+    var url = 'https://api.robinhood.com/pathfinder/inquiries/$id/user_view/';
+    debugPrint('POST $url');
+    debugPrint(jsonEncode(body));
+    var response = httpClient.post(Uri.parse(url),
+        headers: {'Content-type': 'application/json'}, body: jsonEncode(body));
+    return response;
+  }
 
   /*
   USERS & ACCOUNTS

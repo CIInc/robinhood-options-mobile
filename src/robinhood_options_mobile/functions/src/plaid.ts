@@ -10,12 +10,21 @@ import {
 
 admin.initializeApp();
 
+// const sandboxConfiguration = new Configuration({
+//   basePath: PlaidEnvironments.sandbox,
+//   baseOptions: {
+//     headers: {
+//       "PLAID-CLIENT-ID": "65e4a9695df626001bc299fa",
+//       "PLAID-SECRET": "72c0bc3265418b9c84dc754c7d61e2",
+//     },
+//   },
+// });
 const configuration = new Configuration({
-  basePath: PlaidEnvironments.sandbox,
+  basePath: PlaidEnvironments.production,
   baseOptions: {
     headers: {
       "PLAID-CLIENT-ID": "65e4a9695df626001bc299fa",
-      "PLAID-SECRET": "72c0bc3265418b9c84dc754c7d61e2",
+      "PLAID-SECRET": "d27d4f612cf641411ed491c469a147",
     },
   },
 });

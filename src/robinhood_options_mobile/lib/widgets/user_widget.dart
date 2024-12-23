@@ -130,7 +130,8 @@ class _UserWidgetState extends State<UserWidget> {
     // Color primaryColor = themeData.colorScheme.primary;
     // Color secondaryColor = themeData.colorScheme.secondary;
     Duration tokenExpiration = Duration();
-    if (widget.user.oauth2Client != null) {
+    if (widget.user.oauth2Client != null &&
+        widget.user.oauth2Client!.credentials.expiration != null) {
       tokenExpiration = widget.user.oauth2Client!.credentials.expiration!
           .difference(DateTime.now());
     }
@@ -140,30 +141,43 @@ class _UserWidgetState extends State<UserWidget> {
       ListTile(
         minTileHeight: 10,
         title: const Text("Brokerage", style: TextStyle(fontSize: 14)),
-        trailing: Text(widget.user.source.getValue().capitalize(),
-            style: const TextStyle(fontSize: 16)),
+        trailing: Text(
+          widget.user.source.getValue().capitalize(),
+          style: const TextStyle(fontSize: 16),
+        ),
       ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.profileName, style: const TextStyle(fontSize: 16)),
-      ),
+      if (user.profileName != null) ...[
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
+          trailing: SizedBox(
+              width: 220,
+              child: Text(user.profileName!,
+                  style: const TextStyle(fontSize: 16))),
+        ),
+      ],
       ListTile(
         minTileHeight: 10,
         title: const Text("Username", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.username, style: const TextStyle(fontSize: 16)),
+        trailing: SizedBox(
+            width: 220,
+            child: Text(user.username, style: const TextStyle(fontSize: 16))),
       ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Full Name", style: TextStyle(fontSize: 14)),
-        trailing: Text("${user.firstName} ${user.lastName}",
-            style: const TextStyle(fontSize: 16)),
-      ),
-      ListTile(
-        minTileHeight: 10,
-        title: const Text("Email", style: TextStyle(fontSize: 14)),
-        trailing: Text(user.email, style: const TextStyle(fontSize: 16)),
-      ),
+      if (user.lastName != null) ...[
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Full Name", style: TextStyle(fontSize: 14)),
+          trailing: Text("${user.firstName} ${user.lastName}",
+              style: const TextStyle(fontSize: 16)),
+        ),
+      ],
+      if (user.email != null) ...[
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Email", style: TextStyle(fontSize: 14)),
+          trailing: Text(user.email!, style: const TextStyle(fontSize: 16)),
+        ),
+      ],
       if (user.createdAt != null) ...[
         ListTile(
           minTileHeight: 10,
@@ -189,7 +203,8 @@ class _UserWidgetState extends State<UserWidget> {
       //   ),
       //   trailing: Text(user.id, style: const TextStyle(fontSize: 14)),
       // ),
-      if (widget.user.oauth2Client != null) ...[
+      if (widget.user.oauth2Client != null &&
+          widget.user.oauth2Client!.credentials.expiration != null) ...[
         ListTile(
           minTileHeight: 10,
           title:
@@ -225,7 +240,7 @@ class _UserWidgetState extends State<UserWidget> {
               var userStore =
                   Provider.of<BrokerageUserStore>(context, listen: false);
               userStore.remove(userStore.currentUser!);
-              userStore.save();
+              await userStore.save();
               userStore.setCurrentUserIndex(0);
             },
             label: const Text('Logout'),
