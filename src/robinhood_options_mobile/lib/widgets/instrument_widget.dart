@@ -1721,8 +1721,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             child: const Text('DOWNLOAD REPORT'),
             onPressed: () async {
               var url = instrument.ratingsOverviewObj!["download_url"];
-              await canLaunchUrl(url)
-                  ? await launchUrl(url)
+              var uri = Uri.parse(url);
+              await canLaunchUrl(uri)
+                  ? await launchUrl(uri)
                   : throw 'Could not launch $url';
             },
           ),
@@ -1814,8 +1815,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: const Text('LISTEN TO REPLAY'),
                   onPressed: () async {
                     var url = earning!["call"]["replay_url"];
-                    await canLaunchUrl(url)
-                        ? await launchUrl(url)
+                    var uri = Uri.parse(url);
+                    await canLaunchUrl(uri)
+                        ? await launchUrl(uri)
                         : throw 'Could not launch $url';
                   },
                 ),
@@ -1826,8 +1828,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   child: const Text('LISTEN TO BROADCAST'),
                   onPressed: () async {
                     var url = earning!["call"]["broadcast_url"];
-                    await canLaunchUrl(url)
-                        ? await launchUrl(url)
+                    var uri = Uri.parse(url);
+                    await canLaunchUrl(uri)
+                        ? await launchUrl(uri)
                         : throw 'Could not launch $url';
                   },
                 ),
@@ -2172,8 +2175,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 isThreeLine: true,
                 onTap: () async {
                   var url = instrument.newsObj![index]["url"];
-                  await canLaunchUrl(url)
-                      ? await launchUrl(url)
+                  var uri = Uri.parse(url);
+                  await canLaunchUrl(uri)
+                      ? await launchUrl(uri)
                       : throw 'Could not launch $url';
                 },
               ),
