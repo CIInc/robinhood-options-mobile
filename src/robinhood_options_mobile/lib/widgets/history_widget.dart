@@ -1450,65 +1450,95 @@ class _HistoryPageState extends State<HistoryPage>
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
 
-    return TimeSeriesChart([
-      charts.Series<dynamic, DateTime>(
-          id: 'dividends',
-          //charts.MaterialPalette.blue.shadeDefault,
-          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary),
-          // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-          domainFn: (dynamic domain, _) =>
-              (domain as MapEntry<DateTime, double>).key,
-          // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-          measureFn: (dynamic measure, index) =>
-              (measure as MapEntry<DateTime, double>).value,
-          labelAccessorFn: (datum, index) => formatCompactNumber
-              .format((datum as MapEntry<DateTime, double>).value),
-          data: groupedDividendsData // dividends!,
-          ),
-    ], animate: true, onSelected: (p0) {
-      // debugPrint(p0.value.toString());
-      // var provider =
-      //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
-      // provider.selectionChanged(historical);
-    },
-        seriesRendererConfig: charts.BarRendererConfig<DateTime>(
-          groupingType: charts.BarGroupingType.groupedStacked,
-          // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
-          //     insideLabelStyleSpec:
-          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
-          //     outsideLabelStyleSpec:
-          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
-        ),
-        behaviors: [
-          charts.SelectNearest(),
-          charts.DomainHighlighter(),
-          // charts.ChartTitle('Aggregate →',
-          //     behaviorPosition: charts.BehaviorPosition.start,
-          //     titleOutsideJustification: charts.OutsideJustification
-          //         .middleDrawArea),
-          // charts.SeriesLegend(),
-          // Add the sliding viewport behavior to have the viewport center on the
-          // domain that is currently selected.
-          // charts.SlidingViewport(),
-          // A pan and zoom behavior helps demonstrate the sliding viewport
-          // behavior by allowing the data visible in the viewport to be adjusted
-          // dynamically.
-          charts.PanAndZoomBehavior(),
-        ],
-        domainAxis: charts.DateTimeAxisSpec(
+    return TimeSeriesChart(
+      [
+        charts.Series<dynamic, DateTime>(
+            id: 'dividends',
+            //charts.MaterialPalette.blue.shadeDefault,
+            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+            domainFn: (dynamic domain, _) =>
+                (domain as MapEntry<DateTime, double>).key,
+            // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+            measureFn: (dynamic measure, index) =>
+                (measure as MapEntry<DateTime, double>).value,
+            labelAccessorFn: (datum, index) => formatCompactNumber
+                .format((datum as MapEntry<DateTime, double>).value),
+            data: groupedDividendsData // dividends!,
+            ),
+      ],
+      animate: true,
+      onSelected: (p0) {
+        // debugPrint(p0.value.toString());
+        // var provider =
+        //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+        // provider.selectionChanged(historical);
+      },
+      seriesRendererConfig:
+          // charts.LineRendererConfig(
+          //   includePoints: true,
+          //   includeLine: true,
+          //   includeArea: true,
+          //   stacked: false,
+          //   areaOpacity: 0.2,
+          // ),
+          charts.BarRendererConfig<DateTime>(
+        groupingType: charts.BarGroupingType.groupedStacked,
+        // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
+        //     insideLabelStyleSpec:
+        //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
+        //     outsideLabelStyleSpec:
+        //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
+      ),
+      behaviors: [
+        charts.SelectNearest(),
+        charts.DomainHighlighter(),
+        // charts.ChartTitle('Aggregate →',
+        //     behaviorPosition: charts.BehaviorPosition.start,
+        //     titleOutsideJustification: charts.OutsideJustification
+        //         .middleDrawArea),
+        // charts.SeriesLegend(),
+        // Add the sliding viewport behavior to have the viewport center on the
+        // domain that is currently selected.
+        charts.SlidingViewport(),
+        // A pan and zoom behavior helps demonstrate the sliding viewport
+        // behavior by allowing the data visible in the viewport to be adjusted
+        // dynamically.
+        charts.PanAndZoomBehavior(),
+        // charts.LinePointHighlighter(
+        //   showHorizontalFollowLine:
+        //       charts.LinePointHighlighterFollowLineType.nearest,
+        //   showVerticalFollowLine:
+        //       charts.LinePointHighlighterFollowLineType.nearest,
+        // )
+      ],
+      domainAxis: charts.DateTimeAxisSpec(
           // tickFormatterSpec:
           //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
           //         DateFormat.yMMM()),
           tickProviderSpec: const charts.AutoDateTimeTickProviderSpec(),
-          showAxisLine: true,
+          // showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           viewport: charts.DateTimeExtents(
-              start: DateTime(DateTime.now().year - 1, DateTime.now().month,
-                  1), //DateTime.now().subtract(Duration(days: 365 * 1)),
-              end: DateTime.now().add(Duration(days: 30 - DateTime.now().day))),
-        ));
+              start: DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
+              // DateTime.now().subtract(Duration(days: 365 * 1)),
+              end:
+                  DateTime.now().add(Duration(days: 30 - DateTime.now().day)))),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+          //showAxisLine: true,
+          //renderSpec: charts.GridlineRendererSpec(),
+          viewport: charts.NumericExtents.fromValues(groupedDividendsData
+              .map((e) => e.value)), //.NumericExtents(0, 500),
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+          //renderSpec: charts.NoneRenderSpec(),
+          tickProviderSpec: charts.BasicNumericTickProviderSpec(
+              zeroBound: true,
+              dataIsInWholeNumbers: true,
+              desiredMinTickCount: 5)),
+    );
   }
 
   Widget interestChart() {
@@ -1535,64 +1565,80 @@ class _HistoryPageState extends State<HistoryPage>
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
 
-    return TimeSeriesChart([
-      charts.Series<dynamic, DateTime>(
-          id: 'interests',
-          //charts.MaterialPalette.blue.shadeDefault,
-          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-              Theme.of(context).colorScheme.primary),
-          // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-          domainFn: (dynamic domain, _) =>
-              (domain as MapEntry<DateTime, double>).key,
-          // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-          measureFn: (dynamic measure, index) =>
-              (measure as MapEntry<DateTime, double>).value,
-          labelAccessorFn: (datum, index) => formatCompactNumber
-              .format((datum as MapEntry<DateTime, double>).value),
-          data: groupedInterestsData),
-    ], animate: true, onSelected: (p0) {
-      // debugPrint(p0.value.toString());
-      // var provider =
-      //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
-      // provider.selectionChanged(historical);
-    },
-        seriesRendererConfig: charts.BarRendererConfig<DateTime>(
-          groupingType: charts.BarGroupingType.groupedStacked,
-          // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
-          //     insideLabelStyleSpec:
-          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
-          //     outsideLabelStyleSpec:
-          //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
-        ),
-        behaviors: [
-          charts.SelectNearest(),
-          charts.DomainHighlighter(),
-          // charts.ChartTitle('Aggregate →',
-          //     behaviorPosition: charts.BehaviorPosition.start,
-          //     titleOutsideJustification: charts.OutsideJustification
-          //         .middleDrawArea),
-          // charts.SeriesLegend(),
-          // Add the sliding viewport behavior to have the viewport center on the
-          // domain that is currently selected.
-          // charts.SlidingViewport(),
-          // A pan and zoom behavior helps demonstrate the sliding viewport
-          // behavior by allowing the data visible in the viewport to be adjusted
-          // dynamically.
-          charts.PanAndZoomBehavior(),
-        ],
-        domainAxis: charts.DateTimeAxisSpec(
-          // tickFormatterSpec:
-          //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
-          //         DateFormat.yMMM()),
-          tickProviderSpec: const charts.AutoDateTimeTickProviderSpec(),
-          showAxisLine: true,
+    return TimeSeriesChart(
+      [
+        charts.Series<dynamic, DateTime>(
+            id: 'interests',
+            //charts.MaterialPalette.blue.shadeDefault,
+            colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                Theme.of(context).colorScheme.primary),
+            // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+            domainFn: (dynamic domain, _) =>
+                (domain as MapEntry<DateTime, double>).key,
+            // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+            measureFn: (dynamic measure, index) =>
+                (measure as MapEntry<DateTime, double>).value,
+            labelAccessorFn: (datum, index) => formatCompactNumber
+                .format((datum as MapEntry<DateTime, double>).value),
+            data: groupedInterestsData),
+      ],
+      animate: true,
+      onSelected: (p0) {
+        // debugPrint(p0.value.toString());
+        // var provider =
+        //     Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
+        // provider.selectionChanged(historical);
+      },
+      seriesRendererConfig: charts.BarRendererConfig<DateTime>(
+        groupingType: charts.BarGroupingType.groupedStacked,
+        // barRendererDecorator: charts.BarLabelDecorator<DateTime>(
+        //     insideLabelStyleSpec:
+        //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor),
+        //     outsideLabelStyleSpec:
+        //         charts.TextStyleSpec(fontSize: 11, color: axisLabelColor))
+      ),
+      behaviors: [
+        charts.SelectNearest(),
+        charts.DomainHighlighter(),
+        // charts.ChartTitle('Aggregate →',
+        //     behaviorPosition: charts.BehaviorPosition.start,
+        //     titleOutsideJustification: charts.OutsideJustification
+        //         .middleDrawArea),
+        // charts.SeriesLegend(),
+        // Add the sliding viewport behavior to have the viewport center on the
+        // domain that is currently selected.
+        charts.SlidingViewport(),
+        // A pan and zoom behavior helps demonstrate the sliding viewport
+        // behavior by allowing the data visible in the viewport to be adjusted
+        // dynamically.
+        charts.PanAndZoomBehavior(),
+      ],
+      domainAxis: charts.DateTimeAxisSpec(
+        // tickFormatterSpec:
+        //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
+        //         DateFormat.yMMM()),
+        tickProviderSpec: const charts.AutoDateTimeTickProviderSpec(),
+        showAxisLine: true,
+        renderSpec: charts.SmallTickRendererSpec(
+            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+        viewport: charts.DateTimeExtents(
+            start: DateTime(DateTime.now().year - 1, DateTime.now().month,
+                1), //DateTime.now().subtract(Duration(days: 365 * 1)),
+            end: DateTime.now().add(Duration(days: 30 - DateTime.now().day))),
+      ),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+          //showAxisLine: true,
+          //renderSpec: charts.GridlineRendererSpec(),
+          viewport: charts.NumericExtents.fromValues(groupedInterestsData
+              .map((e) => e.value)), //.NumericExtents(0, 500),
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          viewport: charts.DateTimeExtents(
-              start: DateTime(DateTime.now().year - 1, DateTime.now().month,
-                  1), //DateTime.now().subtract(Duration(days: 365 * 1)),
-              end: DateTime.now().add(Duration(days: 30 - DateTime.now().day))),
-        ));
+          //renderSpec: charts.NoneRenderSpec(),
+          tickProviderSpec: charts.BasicNumericTickProviderSpec(
+              zeroBound: true,
+              dataIsInWholeNumbers: true,
+              desiredMinTickCount: 5)),
+    );
   }
 
   // charts.BarChart dividendBarChart() {

@@ -21,6 +21,7 @@ class TimeSeriesChart extends StatefulWidget {
   final bool dataIsInWholeNumbers;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.AxisSpec<dynamic>? domainAxis;
+  final charts.NumericAxisSpec? primaryMeasureAxis;
   final void Function(dynamic) onSelected;
 
   const TimeSeriesChart(this.seriesList,
@@ -33,6 +34,7 @@ class TimeSeriesChart extends StatefulWidget {
       this.seriesRendererConfig,
       this.behaviors,
       this.domainAxis,
+      this.primaryMeasureAxis,
       this.zeroBound = true,
       this.dataIsInWholeNumbers = true});
 
@@ -64,16 +66,17 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
               ? true
               : false,
       animate: widget.animate,
-      primaryMeasureAxis: charts.NumericAxisSpec(
-          //showAxisLine: true,
-          //renderSpec: charts.GridlineRendererSpec(),
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          //renderSpec: charts.NoneRenderSpec(),
-          tickProviderSpec: charts.BasicNumericTickProviderSpec(
-              zeroBound: widget.zeroBound,
-              dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
-              desiredMinTickCount: 4)),
+      primaryMeasureAxis: widget.primaryMeasureAxis ??
+          charts.NumericAxisSpec(
+              //showAxisLine: true,
+              //renderSpec: charts.GridlineRendererSpec(),
+              renderSpec: charts.SmallTickRendererSpec(
+                  labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+              //renderSpec: charts.NoneRenderSpec(),
+              tickProviderSpec: charts.BasicNumericTickProviderSpec(
+                  zeroBound: widget.zeroBound,
+                  dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
+                  desiredMinTickCount: 4)),
       domainAxis: widget.domainAxis ??
           charts.DateTimeAxisSpec(
             // EndPointsTimeAxisSpec
