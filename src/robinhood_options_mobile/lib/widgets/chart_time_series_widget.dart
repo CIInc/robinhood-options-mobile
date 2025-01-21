@@ -22,12 +22,14 @@ class TimeSeriesChart extends StatefulWidget {
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.AxisSpec<dynamic>? domainAxis;
   final charts.NumericAxisSpec? primaryMeasureAxis;
+  final String Function()? getTextForTextSymbolRenderer;
   final void Function(dynamic) onSelected;
 
   const TimeSeriesChart(this.seriesList,
       {super.key,
       this.animate = true,
       required this.onSelected,
+      this.getTextForTextSymbolRenderer,
       this.open,
       this.close,
       this.hiddenSeries,
@@ -91,7 +93,18 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       selectionModels: [
         charts.SelectionModelConfig(
             type: charts.SelectionModelType.info,
-            changedListener: _onSelectionChanged)
+            changedListener: (charts.SelectionModel model) {
+              if (model.hasDatumSelection) {
+                // var selected = model
+                //     .selectedDatum[0].datum; //  as MapEntry<DateTime, double>
+                var selected = model.selectedDatum
+                    .map((s) => s.datum); //  as MapEntry<DateTime, double>
+                // .toList();
+                widget.onSelected(selected.first);
+              } else {
+                widget.onSelected(null);
+              }
+            })
       ],
       behaviors: widget.behaviors ??
           [
@@ -110,14 +123,19 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                     charts.LinePointHighlighterFollowLineType.all, // .none
                 showVerticalFollowLine:
                     charts.LinePointHighlighterFollowLineType.all,
-                dashPattern: const [], // const [10],
-                defaultRadiusPx: 6),
-            /*
-        charts.InitialSelection(selectedDataConfig: [
-          charts.SeriesDatumConfig<DateTime>(
-              'Adjusted Equity', widget.closeDate)
-        ]),
-        */
+                dashPattern: const [1], // const [10],
+                defaultRadiusPx: 3,
+                // radiusPaddingPx: 6,
+                drawFollowLinesAcrossChart: false,
+                // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
+                symbolRenderer: TextSymbolRenderer(
+                    widget.getTextForTextSymbolRenderer ?? () => '')),
+            charts.InitialSelection(selectedDataConfig: [
+              // charts.SeriesDatumConfig<DateTime>(
+              //     'Adjusted Equity',
+              //     (widget.seriesList.first.data.last as EquityHistorical)
+              //         .beginsAt!)
+            ]),
             if (widget.hiddenSeries != null) ...[
               charts.SeriesLegend(
                 position: charts.BehaviorPosition.top,
@@ -141,6 +159,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                         ? 'Current ${formatCurrency.format(widget.close!)}'
                         : 'Previous ${formatCurrency.format(widget.open!)}',
                     labelStyleSpec: charts.TextStyleSpec(
+                        fontSize: 14,
                         color: rangeAnnotationLabelColor), //axisLabelColor
                     color: rangeAnnotationColor // gray.shade200
                     ),
@@ -158,14 +177,6 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     */
   }
 
-  _onSelectionChanged(charts.SelectionModel model) {
-    if (model.hasDatumSelection) {
-      var selected = model.selectedDatum[0].datum;
-      widget.onSelected(selected);
-    } else {
-      widget.onSelected(null);
-    }
-  }
   /*
   _onSliderChange(Point<int> point, dynamic domain, String roleId,
       charts.SliderListenerDragState dragState) {

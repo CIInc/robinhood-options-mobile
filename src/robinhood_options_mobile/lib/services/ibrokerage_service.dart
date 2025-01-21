@@ -1,6 +1,7 @@
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -14,6 +15,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
@@ -152,9 +154,14 @@ abstract class IBrokerageService {
   // Dividends & Interests
   Stream<List<dynamic>> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore);
-  Future<List<dynamic>> getDividends(BrokerageUser user, String instrumentId);
+  Future<List<dynamic>> getDividends(
+      BrokerageUser user, DividendStore dividendStore,
+      {String? instrumentId});
   Stream<List<dynamic>> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore);
+  Future<List<dynamic>> getInterests(
+      BrokerageUser user, InterestStore dividendStore,
+      {String? instrumentId});
 
   // News, etc
   Future<List<dynamic>> getNews(BrokerageUser user, String symbol);

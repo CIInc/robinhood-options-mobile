@@ -13,7 +13,9 @@ class OptionPositionStore extends ChangeNotifier {
 
   double get equity => _items.isNotEmpty
       ? _items
-          .map((e) => e.marketValue)
+          // Exclude short positions from equity calculation.
+          // .where((e) => e.direction == 'debit')
+          .map((e) => e.direction == 'debit' ? e.marketValue : -e.marketValue)
           /*
               e.legs.first.positionType == "long"
               ? e.marketValue

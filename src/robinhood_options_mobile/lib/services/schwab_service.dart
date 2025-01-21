@@ -8,6 +8,7 @@ import 'package:oauth2/src/utils.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -21,6 +22,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_chain.dart';
@@ -1376,7 +1378,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
-  Future<List> getDividends(BrokerageUser user, String instrumentId) {
+  Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
+      {String? instrumentId}) {
     // TODO: implement getDividends
     throw UnimplementedError();
   }
@@ -1489,6 +1492,13 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   Stream<List> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement streamInterests
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List> getInterests(BrokerageUser user, InterestStore dividendStore,
+      {String? instrumentId}) {
+    // TODO: implement getInterests
     throw UnimplementedError();
   }
 }

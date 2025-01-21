@@ -29,8 +29,8 @@ const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;
 const greekEgdeInset = 10.0;
 
-const summaryValueFontSize = 19.0;
-const summaryLabelFontSize = 10.0;
+const summaryValueFontSize = 18.0;
+const summaryLabelFontSize = 9.0;
 const summaryEgdeInset = 10.0;
 /*
 final ItemScrollController itemScrollController = ItemScrollController();

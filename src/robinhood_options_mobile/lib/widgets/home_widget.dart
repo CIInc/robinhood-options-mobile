@@ -14,10 +14,13 @@ import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
@@ -46,7 +49,9 @@ import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dar
 final formatDate = DateFormat("yMMMd");
 final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
-final formatCompactDate = DateFormat("MMMd");
+final formatCompactDate = DateFormat("MMM d yy");
+final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");
+final formatCompactDateTimeWithMinute = DateFormat("MMM d yy hh:mm a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatCompactCurrency = NumberFormat.compactCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -128,8 +133,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Bounds chartBoundsFilter = Bounds.t24_7;
   ChartDateSpan prevChartDateSpanFilter = ChartDateSpan.day;
   Bounds prevChartBoundsFilter = Bounds.t24_7;
-  EquityHistorical? selection;
+  // EquityHistorical? selection;
   bool animateChart = true;
+
+  Future<List<dynamic>>? futureDividends;
+  Future<List<dynamic>>? futureInterests;
 
   Future<InstrumentPositionStore>? futureStockPositions;
   //Stream<StockPositionStore>? positionStoreStream;
@@ -337,6 +345,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 account!.accountNumber,
                 chartBoundsFilter,
                 chartDateSpanFilter);
+
+            futureDividends = widget.service.getDividends(
+              widget.user,
+              Provider.of<DividendStore>(context, listen: false),
+            );
+            futureInterests = widget.service.getInterests(
+              widget.user,
+              Provider.of<InterestStore>(context, listen: false),
+            );
           }
           /*
           return MultiProvider(
@@ -379,113 +396,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 )
               : null,
               */
-  }
-
-  void _startRefreshTimer() {
-    // Start listening to clipboard
-    refreshTriggerTime = Timer.periodic(
-      const Duration(milliseconds: 15000),
-      (timer) async {
-        await _refresh();
-      },
-    );
-  }
-
-  void _stopRefreshTimer() {
-    if (refreshTriggerTime != null) {
-      refreshTriggerTime!.cancel();
-    }
-  }
-
-  _refresh() async {
-    if (widget.user.refreshEnabled &&
-        widget.user.source == Source.robinhood &&
-        (_notification == null || _notification == AppLifecycleState.resumed)) {
-      if (account != null) {
-        // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
-        // await service.getAccounts(
-        //     widget.user,
-        //     Provider.of<AccountStore>(context, listen: false),
-        //     Provider.of<PortfolioStore>(context, listen: false),
-        //     Provider.of<OptionPositionStore>(context, listen: false));
-        // if (!mounted) return;
-        await widget.service.getPortfolioHistoricals(
-            widget.user,
-            Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-            account!.accountNumber,
-            chartBoundsFilter,
-            chartDateSpanFilter);
-      }
-      if (!mounted) return;
-      await widget.service.refreshOptionMarketData(
-          widget.user,
-          Provider.of<OptionPositionStore>(context, listen: false),
-          Provider.of<OptionInstrumentStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.refreshPositionQuote(
-          widget.user,
-          Provider.of<InstrumentPositionStore>(context, listen: false),
-          Provider.of<QuoteStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.getPortfolios(
-          widget.user, Provider.of<PortfolioStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.refreshNummusHoldings(
-        widget.user,
-        Provider.of<ForexHoldingStore>(context, listen: false),
-      );
-    }
-  }
-
-  // void _animateToNextItem() {
-  //   _carouselController.animateTo(
-  //     _carouselController.offset + 320,
-  //     duration: const Duration(milliseconds: 500),
-  //     curve: Curves.linear,
-  //   );
-  // }
-
-  _onChartSelection(dynamic historical) {
-    var provider =
-        Provider.of<PortfolioHistoricalsSelectionStore>(context, listen: false);
-    provider.selectionChanged(historical);
-    /*
-    if (historical != null) {
-      if (selection != historical as EquityHistorical) {
-        setState(() {
-          selection = historical;
-        });
-      }
-    } else {
-      if (selection != historical) {
-        setState(() {
-          selection = null;
-        });
-      }
-    }
-    */
-  }
-
-  void resetChart(ChartDateSpan span, Bounds bounds) async {
-    // setState(() {
-    prevChartDateSpanFilter = chartDateSpanFilter;
-    chartDateSpanFilter = span;
-    prevChartBoundsFilter = chartBoundsFilter;
-    chartBoundsFilter = bounds;
-    // futurePortfolioHistoricals = null;
-    var portfolioHistoricalStore =
-        Provider.of<PortfolioHistoricalsStore>(context, listen: false);
-    // futurePortfolioHistoricals =
-    await widget.service.getPortfolioHistoricals(
-        widget.user,
-        portfolioHistoricalStore,
-        account!.accountNumber,
-        chartBoundsFilter,
-        chartDateSpanFilter);
-    portfolioHistoricalStore.notify();
   }
 
   Widget _buildPage(BuildContext context,
@@ -709,12 +619,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 textColor = Colors.grey.shade800;
               }
               */
+              var provider = Provider.of<PortfolioHistoricalsSelectionStore>(
+                  context,
+                  listen: false);
               TimeSeriesChart historicalChart = TimeSeriesChart(
                   [
                     charts.Series<EquityHistorical, DateTime>(
                       id: 'Adjusted Equity',
                       colorFn: (_, __) => charts.ColorUtil.fromDartColor(
                           Theme.of(context).colorScheme.primary),
+                      strokeWidthPxFn: (EquityHistorical history, index) => 2,
                       //charts.MaterialPalette.blue.shadeDefault,
                       domainFn: (EquityHistorical history, _) =>
                           history.beginsAt!,
@@ -722,6 +636,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       measureFn: (EquityHistorical history, index) => index == 0
                           ? history.adjustedOpenEquity
                           : history.adjustedCloseEquity,
+                      labelAccessorFn: (EquityHistorical history, index) =>
+                          formatCompactNumber.format((index == 0
+                              ? history.adjustedOpenEquity
+                              : history.adjustedCloseEquity)),
                       data: portfolioHistoricals!.equityHistoricals,
                       /*
                           [
@@ -734,6 +652,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         id: 'Equity',
                         colorFn: (_, __) =>
                             charts.MaterialPalette.green.shadeDefault,
+                        strokeWidthPxFn: (EquityHistorical history, index) => 2,
                         domainFn: (EquityHistorical history, _) =>
                             history.beginsAt!,
                         //filteredEquityHistoricals.indexOf(history),
@@ -748,6 +667,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         id: 'Market Value',
                         colorFn: (_, __) =>
                             charts.MaterialPalette.red.shadeDefault,
+                        strokeWidthPxFn: (EquityHistorical history, index) => 2,
                         domainFn: (EquityHistorical history, _) =>
                             history.beginsAt!,
                         //filteredEquityHistoricals.indexOf(history),
@@ -764,7 +684,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   open: open,
                   close: close,
                   hiddenSeries: const ['Equity', 'Market Value'],
-                  onSelected: _onChartSelection);
+                  onSelected: (dynamic historical) {
+                provider.selectionChanged(historical);
+              }, getTextForTextSymbolRenderer: () {
+                firstHistorical = portfolioHistoricals!.equityHistoricals[0];
+                open = firstHistorical!.adjustedOpenEquity!;
+                if (provider.selection != null) {
+                  changeInPeriod = provider.selection!.adjustedCloseEquity! -
+                      open; // portfolios![0].equityPreviousClose!;
+                  changePercentInPeriod =
+                      changeInPeriod / provider.selection!.adjustedCloseEquity!;
+                } else {
+                  changeInPeriod = close - open;
+                  changePercentInPeriod = changeInPeriod / close;
+                }
+                // String? returnText = widget.user.getDisplayText(changeInPeriod,
+                //     displayValue: DisplayValue.totalReturn);
+                // String? returnPercentText = widget.user.getDisplayText(
+                //     changePercentInPeriod,
+                //     displayValue: DisplayValue.totalReturnPercent);
+                return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
+                // \n$returnText $returnPercentText
+              });
 
               return SliverToBoxAdapter(
                   child: Stack(
@@ -783,14 +724,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     )
                   ],
                   Column(children: [
+                    SizedBox(
+                        height: 460, // 240,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                          //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                          //padding: const EdgeInsets.all(10.0),
+                          child: historicalChart,
+                        )),
                     Consumer<PortfolioHistoricalsSelectionStore>(
                         builder: (context, value, child) {
-                      selection = value.selection;
+                      var selection = value.selection;
                       if (selection != null) {
-                        changeInPeriod = selection!.adjustedCloseEquity! -
+                        changeInPeriod = selection.adjustedCloseEquity! -
                             open; // portfolios![0].equityPreviousClose!;
                         changePercentInPeriod =
-                            changeInPeriod / selection!.adjustedCloseEquity!;
+                            changeInPeriod / selection.adjustedCloseEquity!;
                       } else {
                         changeInPeriod = close - open;
                         changePercentInPeriod = changeInPeriod / close;
@@ -896,7 +846,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 Text(
                                                     formatCurrency.format(
                                                         selection != null
-                                                            ? selection!
+                                                            ? selection
                                                                 .adjustedCloseEquity
                                                             : close),
                                                     textAlign: TextAlign.right,
@@ -906,7 +856,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 Text(
                                                     formatMediumDate.format(
                                                         selection != null
-                                                            ? selection!
+                                                            ? selection
                                                                 .beginsAt!
                                                                 .toLocal()
                                                             : lastHistorical!
@@ -979,63 +929,101 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                       ])))
 
                           /*
-                          ListTile(
-                            title: 
-                                Wrap(
-                              children: [
-                                Text(
-                                    formatCurrency.format(selection != null
-                                        ? selection!.adjustedCloseEquity
-                                        : close),
-                                    style: TextStyle(
-                                        fontSize: 19, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  changeInPeriod > 0
-                                      ? Icons.trending_up
-                                      : (changeInPeriod < 0
-                                          ? Icons.trending_down
-                                          : Icons.trending_flat),
-                                  color: (changeInPeriod > 0
-                                      ? Colors.green
-                                      : (changeInPeriod < 0
-                                          ? Colors.red
-                                          : Colors.grey)),
-                                  //size: 16.0
-                                ),
-                                Container(
-                                  width: 2,
-                                ),
-                                Text(
-                                    formatPercentage
-                                        //.format(selection!.netReturn!.abs()),
-                                        .format(changePercentInPeriod.abs()),
-                                    style: TextStyle(
-                                        fontSize: 19.0, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Text(
-                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                    style: TextStyle(
-                                        fontSize: 19.0, color: textColor)),
-                              ],
-                            ),
-                            subtitle: Text(
-                                '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                                style: const TextStyle(fontSize: 12.0)),
-                          )
-                          */
+                            ListTile(
+                              title:
+                                  Wrap(
+                                children: [
+                                  Text(
+                                      formatCurrency.format(selection != null
+                                          ? selection!.adjustedCloseEquity
+                                          : close),
+                                      style: TextStyle(
+                                          fontSize: 19, color: textColor)),
+                                  Container(
+                                    width: 10,
+                                  ),
+                                  Icon(
+                                    changeInPeriod > 0
+                                        ? Icons.trending_up
+                                        : (changeInPeriod < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (changeInPeriod > 0
+                                        ? Colors.green
+                                        : (changeInPeriod < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    //size: 16.0
+                                  ),
+                                  Container(
+                                    width: 2,
+                                  ),
+                                  Text(
+                                      formatPercentage
+                                          //.format(selection!.netReturn!.abs()),
+                                          .format(changePercentInPeriod.abs()),
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                  Container(
+                                    width: 10,
+                                  ),
+                                  Text(
+                                      "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                      style: TextStyle(
+                                          fontSize: 19.0, color: textColor)),
+                                ],
+                              ),
+                              subtitle: Text(
+                                  '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                  style: const TextStyle(fontSize: 12.0)),
+                            )
+                            */
                           /*
-                    trailing: Wrap(
+                      trailing: Wrap(
+                        children: [
+                          Text(
+                              formatCurrency.format(selection != null
+                                  ? selection!.adjustedCloseEquity
+                                  : close),
+                              style: TextStyle(fontSize: 19, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Icon(
+                            changeInPeriod > 0
+                                ? Icons.trending_up
+                                : (changeInPeriod < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (changeInPeriod > 0
+                                ? Colors.green
+                                : (changeInPeriod < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            //size: 16.0
+                          ),
+                          Container(
+                            width: 2,
+                          ),
+                          Text(
+                              formatPercentage
+                                  //.format(selection!.netReturn!.abs()),
+                                  .format(changePercentInPeriod.abs()),
+                              style: TextStyle(fontSize: 19.0, color: textColor)),
+                          Container(
+                            width: 10,
+                          ),
+                          Text(
+                              "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                              style: TextStyle(fontSize: 19.0, color: textColor)),
+                        ],
+                      ),
+                      */
+                          /*
+                    Wrap(
                       children: [
-                        Text(
-                            formatCurrency.format(selection != null
-                                ? selection!.adjustedCloseEquity
-                                : close),
-                            style: TextStyle(fontSize: 19, color: textColor)),
+                        Text(formatCurrency.format(close),
+                            style: TextStyle(fontSize: 20, color: textColor)),
                         Container(
                           width: 10,
                         ),
@@ -1047,9 +1035,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   : Icons.trending_flat),
                           color: (changeInPeriod > 0
                               ? Colors.green
-                              : (changeInPeriod < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
+                              : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
                           //size: 16.0
                         ),
                         Container(
@@ -1059,67 +1045,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             formatPercentage
                                 //.format(selection!.netReturn!.abs()),
                                 .format(changePercentInPeriod.abs()),
-                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                            style: TextStyle(fontSize: 20.0, color: textColor)),
                         Container(
                           width: 10,
                         ),
                         Text(
                             "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                            style: TextStyle(fontSize: 19.0, color: textColor)),
+                            style: TextStyle(fontSize: 20.0, color: textColor)),
                       ],
                     ),
-                    */
-                          /*
-                  Wrap(
-                    children: [
-                      Text(formatCurrency.format(close),
-                          style: TextStyle(fontSize: 20, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Icon(
-                        changeInPeriod > 0
-                            ? Icons.trending_up
-                            : (changeInPeriod < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (changeInPeriod > 0
-                            ? Colors.green
-                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                        //size: 16.0
-                      ),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              //.format(selection!.netReturn!.abs()),
-                              .format(changePercentInPeriod.abs()),
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ],
-                  ),
-                  Text(
-                      '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                      */
+                    Text(
+                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                        style: TextStyle(fontSize: 10, color: textColor)),
+                        */
                         ],
                       ));
                     }),
-                    SizedBox(
-                        height: 240,
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                          //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                          //padding: const EdgeInsets.all(10.0),
-                          child: historicalChart,
-                        )),
                     SizedBox(
                         height: 56,
                         child: ListView.builder(
@@ -1282,7 +1223,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ],
               ));
             }),
-
             Consumer4<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore>(
                 builder: (context, portfolioStore, stockPositionStore,
@@ -1415,8 +1355,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               if (brightness == Brightness.light) {
                 axisLabelColor = charts.MaterialPalette.gray.shade700;
               }
+              // double portfolioValue = 0.0;
+              // double optionEquityPercent = 0.0;
+              // double positionEquityPercent = 0.0;
+              // double cashPercent = 0.0;
+              // double cryptoPercent = 0.0;
+              // if (account != null) {
+              //   portfolioCash = account.portfolioCash ?? 0;
+              // }
+              // if (portfolioStore.items.isNotEmpty) {
+              //   portfolioValue = (portfolioStore.items[0].equity ?? 0) +
+              //       forexHoldingStore.equity;
+              //   optionEquityPercent =
+              //       optionPositionStore.equity / portfolioValue;
+              //   positionEquityPercent =
+              //       stockPositionStore.equity / portfolioValue;
+              //   cashPercent = portfolioCash / portfolioValue;
+              //   cryptoPercent = forexHoldingStore.equity / portfolioValue;
+              // }
               return SliverToBoxAdapter(
-                  child: ConstrainedBox(
+                  child: Column(
+                children: [
+                  ListTile(
+                    title: const Text(
+                      "Allocation",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                    // subtitle: Text("last 12 months"),
+                    // trailing: Wrap(spacing: 8, children: [
+                    //   Text(
+                    //     "${(positionEquityPercent * 100).round()}:${(optionEquityPercent * 100).round()}:${(cryptoPercent * 100).round()}:${(cashPercent * 100).round()}%",
+                    //     style: const TextStyle(fontSize: 21.0),
+                    //     textAlign: TextAlign.right,
+                    //   )
+                    // ]),
+                  ),
+                  ConstrainedBox(
                       constraints: BoxConstraints(maxHeight: 260), // 320
                       child: CarouselView(
                           scrollDirection: Axis.horizontal,
@@ -1432,11 +1406,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                         id: 'Portfolio Breakdown',
                                         colorFn: (_, index) => shades[index!],
                                         /*
-                                                      colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                          .makeShades(4)[index!],
-                                                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                          Theme.of(context).colorScheme.primary),
-                                                      */
+                                                          colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                              .makeShades(4)[index!],
+                                                          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                              Theme.of(context).colorScheme.primary),
+                                                          */
                                         domainFn: (PieChartData val, index) =>
                                             val.label,
                                         measureFn: (PieChartData val, index) =>
@@ -1464,11 +1438,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                         ]),
                                     behaviors: [
                                       legendBehavior,
-                                      charts.ChartTitle('Allocation',
-                                          titleStyleSpec: charts.TextStyleSpec(
-                                              color: axisLabelColor),
-                                          behaviorPosition:
-                                              charts.BehaviorPosition.end)
+                                      // charts.ChartTitle('Allocation',
+                                      //     titleStyleSpec: charts.TextStyleSpec(
+                                      //         color: axisLabelColor),
+                                      //     behaviorPosition:
+                                      //         charts.BehaviorPosition.end)
                                       // charts.ChartTitle('Portfolio Allocation')
                                     ],
                                     onSelected: (_) {},
@@ -1488,11 +1462,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 Colors.accents
                                                     .length]), // shades[index!],
                                         /*
-                                                    colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                        .makeShades(4)[index!],
-                                                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                        Theme.of(context).colorScheme.primary),
-                                                    */
+                                                        colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                            .makeShades(4)[index!],
+                                                        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                            Theme.of(context).colorScheme.primary),
+                                                        */
                                         domainFn: (PieChartData val, index) =>
                                             val.label,
                                         measureFn: (PieChartData val, index) =>
@@ -1543,11 +1517,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                 Colors.accents
                                                     .length]), // shades[index!],
                                         /*
-                                                    colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                        .makeShades(4)[index!],
-                                                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                        Theme.of(context).colorScheme.primary),
-                                                    */
+                                                        colorFn: (_, index) => charts.MaterialPalette.cyan
+                                                            .makeShades(4)[index!],
+                                                        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                                                            Theme.of(context).colorScheme.primary),
+                                                        */
                                         domainFn: (PieChartData val, index) =>
                                             val.label.length > 17
                                                 ? val.label.replaceRange(
@@ -1589,52 +1563,243 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 : Container(
                                     height: 0,
                                   ),
-                          ])));
+                          ])),
+                ],
+              ));
             }),
 
-            Consumer<OptionPositionStore>(
-                builder: (context, optionPositionStore, child) {
-              //if (optionPositions != null) {
-              var filteredOptionAggregatePositions = optionPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      (positionFilters.isEmpty ||
-                          positionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionFilters.isEmpty ||
-                          optionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionSymbolFilters.isEmpty ||
-                          optionSymbolFilters.contains(element.symbol)))
+            Consumer3<DividendStore, InterestStore, ChartSelectionStore>(
+                builder: (context, dividendStore, interestStore,
+                    chartSelectionStore, child) {
+              if (dividendStore.items.isEmpty || interestStore.items.isEmpty) {
+                return SliverToBoxAdapter(
+                    child: ListTile(
+                  title: const Text(
+                    "Income",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                  subtitle: const Text("last 12 months"),
+                  trailing: Wrap(spacing: 8, children: [
+                    Text(
+                      formatCurrency.format(0),
+                      style: const TextStyle(fontSize: 21.0),
+                      textAlign: TextAlign.right,
+                    )
+                  ]),
+                ));
+              }
+              final groupedDividends = dividendStore.items
+                  // .where((d) =>
+                  //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
+                  .groupListsBy((element) {
+                var dt = DateTime.parse(element["payable_date"]);
+                return DateTime(dt.year, dt.month);
+              });
+              final groupedDividendsData = groupedDividends
+                  .map((k, v) {
+                    return MapEntry(
+                        k,
+                        v
+                            .map((m) => double.parse(m["amount"]))
+                            .reduce((a, b) => a + b));
+                  })
+                  .entries
                   .toList();
+              final groupedInterests = interestStore.items
+                  // .where((d) =>
+                  //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
+                  .groupListsBy((element) {
+                var dt = DateTime.parse(element["pay_date"]);
+                return DateTime(dt.year, dt.month);
+              });
+              final groupedInterestsData = groupedInterests
+                  .map((k, v) {
+                    return MapEntry(
+                        k,
+                        v
+                            .map((m) => double.parse(m["amount"]["amount"]))
+                            .reduce((a, b) => a + b));
+                  })
+                  .entries
+                  .toList();
+              // final groupedCumulativeData =
+              //     (groupedDividendsData + groupedInterestsData)
+              //         .groupListsBy((element) => element.key)
+              //         .map((k, v) => MapEntry(
+              //             k, v.map((e1) => e1.value).reduce((a, b) => a + b)))
+              //         .entries
+              //         .toList()
+              //         .sortedBy<DateTime>((e) => e.key)
+              //         .fold(
+              //             [],
+              //             (sums, element) => sums
+              //               ..add(MapEntry(
+              //                   element.key,
+              //                   element.value +
+              //                       (sums.isEmpty ? 0 : sums.last.value))));
+              var brightness = MediaQuery.of(context).platformBrightness;
+              var axisLabelColor = charts.MaterialPalette.gray.shade200;
+              if (brightness == Brightness.light) {
+                axisLabelColor = charts.MaterialPalette.gray.shade800;
+              }
+              var shades = PieChart.makeShades(
+                  charts.ColorUtil.fromDartColor(Theme.of(context)
+                      .colorScheme
+                      .primary), // .withOpacity(0.75)
+                  3);
 
+              var incomeChart = TimeSeriesChart(
+                [
+                  charts.Series<dynamic, DateTime>(
+                      id: 'Dividends',
+                      //charts.MaterialPalette.blue.shadeDefault,
+                      colorFn: (_, __) => shades[0],
+                      // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+                      domainFn: (dynamic domain, _) =>
+                          (domain as MapEntry<DateTime, double>).key,
+                      // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+                      measureFn: (dynamic measure, index) =>
+                          (measure as MapEntry<DateTime, double>).value,
+                      labelAccessorFn: (datum, index) => formatCompactNumber
+                          .format((datum as MapEntry<DateTime, double>).value),
+                      data: groupedDividendsData // dividends!,
+                      ),
+                  charts.Series<dynamic, DateTime>(
+                    id: 'Interests',
+                    //charts.MaterialPalette.blue.shadeDefault,
+                    colorFn: (_, __) => shades[1],
+                    //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+                    // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+                    domainFn: (dynamic domain, _) =>
+                        (domain as MapEntry<DateTime, double>).key,
+                    // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+                    measureFn: (dynamic measure, index) =>
+                        (measure as MapEntry<DateTime, double>).value,
+                    labelAccessorFn: (datum, index) => formatCompactNumber
+                        .format((datum as MapEntry<DateTime, double>).value),
+                    data: groupedInterestsData,
+                  ),
+                  // charts.Series<dynamic, DateTime>(
+                  //   id: 'Cumulative',
+                  //   //charts.MaterialPalette.blue.shadeDefault,
+                  //   colorFn: (_, __) => shades[2],
+                  //   //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+                  //   // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+                  //   domainFn: (dynamic domain, _) =>
+                  //       (domain as MapEntry<DateTime, double>).key,
+                  //   // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+                  //   measureFn: (dynamic measure, index) =>
+                  //       (measure as MapEntry<DateTime, double>).value,
+                  //   labelAccessorFn: (datum, index) => formatCompactNumber
+                  //       .format((datum as MapEntry<DateTime, double>).value),
+                  //   data: groupedCumulativeData,
+                  // ),
+                ],
+                animate: true,
+                onSelected: (selected) {
+                  chartSelectionStore.selectionChanged(selected);
+                },
+                seriesRendererConfig: charts.BarRendererConfig<DateTime>(
+                  groupingType: charts.BarGroupingType.groupedStacked,
+                ),
+                // hiddenSeries: ['Cumulative'],
+                behaviors: [
+                  charts.SelectNearest(
+                      eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
+                  // charts.DomainHighlighter(),
+                  charts.SeriesLegend(),
+                  // Add the sliding viewport behavior to have the viewport center on the
+                  // domain that is currently selected.
+                  charts.SlidingViewport(),
+                  // A pan and zoom behavior helps demonstrate the sliding viewport
+                  // behavior by allowing the data visible in the viewport to be adjusted
+                  // dynamically.
+                  charts.PanAndZoomBehavior(),
+                  charts.LinePointHighlighter(
+                    symbolRenderer: TextSymbolRenderer(() =>
+                        chartSelectionStore.selection?.value
+                            .round()
+                            .toString() ??
+                        ''),
+                    // chartSelectionStore.selection
+                    //     ?.map((s) => s.value.round().toString())
+                    //     .join(' ') ??
+                    // ''),
+                    seriesIds: ['Dividends', 'Interests'],
+                    // drawFollowLinesAcrossChart: true,
+                    // formatCompactCurrency
+                    //     .format(chartSelection?.value)),
+                    showHorizontalFollowLine: charts
+                        .LinePointHighlighterFollowLineType.none, //.nearest,
+                    showVerticalFollowLine: charts
+                        .LinePointHighlighterFollowLineType.none, //.nearest,
+                  )
+                ],
+                domainAxis: charts.DateTimeAxisSpec(
+                    // tickFormatterSpec:
+                    //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
+                    //         DateFormat.yMMM()),
+                    tickProviderSpec:
+                        const charts.AutoDateTimeTickProviderSpec(),
+                    // showAxisLine: true,
+                    renderSpec: charts.SmallTickRendererSpec(
+                        labelStyle:
+                            charts.TextStyleSpec(color: axisLabelColor)),
+                    viewport: charts.DateTimeExtents(
+                        start: DateTime(
+                            DateTime.now().year - 1, DateTime.now().month, 1),
+                        // DateTime.now().subtract(Duration(days: 365 * 1)),
+                        end: DateTime.now()
+                            .add(Duration(days: 30 - DateTime.now().day)))),
+                primaryMeasureAxis: charts.NumericAxisSpec(
+                    //showAxisLine: true,
+                    //renderSpec: charts.GridlineRendererSpec(),
+                    viewport: charts.NumericExtents.fromValues(
+                        groupedDividendsData
+                            .map((e) => e.value)), //.NumericExtents(0, 500),
+                    renderSpec: charts.SmallTickRendererSpec(
+                        labelStyle:
+                            charts.TextStyleSpec(color: axisLabelColor)),
+                    //renderSpec: charts.NoneRenderSpec(),
+                    tickProviderSpec: charts.BasicNumericTickProviderSpec(
+                        zeroBound: true,
+                        dataIsInWholeNumbers: true,
+                        desiredMinTickCount: 5)),
+              );
+              var totalDividends = groupedDividendsData.isNotEmpty
+                  ? groupedDividendsData
+                      .sortedBy<DateTime>((e) => e.key)
+                      .reversed
+                      .take(12)
+                      .map((e) => e.value)
+                      .reduce((a, b) => a + b)
+                  : 0.0;
               return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    //if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                    /*
-                      const SliverToBoxAdapter(
-                          child: SizedBox(
-                        height: 25.0,
-                      )),
-                      */
-                    OptionPositionsRowWidget(
-                      widget.user,
-                      widget.service,
-                      filteredOptionAggregatePositions,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                    ),
-                    //],
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    ))
-                  ]));
+                  child: Column(children: [
+                ListTile(
+                  title: const Text(
+                    "Income",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                  subtitle: Text("last 12 months"),
+                  trailing: Wrap(spacing: 8, children: [
+                    Text(
+                      formatCurrency.format(totalDividends),
+                      style: const TextStyle(fontSize: 21.0),
+                      textAlign: TextAlign.right,
+                    )
+                  ]),
+                ),
+                SizedBox(
+                    height: 300,
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
+                      //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                      //padding: const EdgeInsets.all(10.0),
+                      child: incomeChart,
+                    )),
+              ]));
             }),
             Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
@@ -1897,6 +2062,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         childCount: filteredPositions.length,
                       ),
                     ),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    ))
+                  ]));
+            }),
+            Consumer<OptionPositionStore>(
+                builder: (context, optionPositionStore, child) {
+              //if (optionPositions != null) {
+              var filteredOptionAggregatePositions = optionPositionStore.items
+                  .where((element) =>
+                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                              (!hasQuantityFilters[1] ||
+                                  element.quantity! <= 0)) &&
+                      (positionFilters.isEmpty ||
+                          positionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionFilters.isEmpty ||
+                          optionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionSymbolFilters.isEmpty ||
+                          optionSymbolFilters.contains(element.symbol)))
+                  .toList();
+
+              return SliverToBoxAdapter(
+                  child: ShrinkWrappingViewport(
+                      offset: ViewportOffset.zero(),
+                      slivers: [
+                    //if (filteredOptionAggregatePositions.isNotEmpty) ...[
+                    /*
+                      const SliverToBoxAdapter(
+                          child: SizedBox(
+                        height: 25.0,
+                      )),
+                      */
+                    OptionPositionsRowWidget(
+                      widget.user,
+                      widget.service,
+                      filteredOptionAggregatePositions,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                    ),
+                    //],
                     const SliverToBoxAdapter(
                         child: SizedBox(
                       height: 25.0,
@@ -3589,6 +3798,92 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             ),
           ]),
     );
+  }
+
+  void _startRefreshTimer() {
+    // Start listening to clipboard
+    refreshTriggerTime = Timer.periodic(
+      const Duration(milliseconds: 15000),
+      (timer) async {
+        await _refresh();
+      },
+    );
+  }
+
+  void _stopRefreshTimer() {
+    if (refreshTriggerTime != null) {
+      refreshTriggerTime!.cancel();
+    }
+  }
+
+  _refresh() async {
+    if (widget.user.refreshEnabled &&
+        widget.user.source == Source.robinhood &&
+        (_notification == null || _notification == AppLifecycleState.resumed)) {
+      if (account != null) {
+        // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
+        // await service.getAccounts(
+        //     widget.user,
+        //     Provider.of<AccountStore>(context, listen: false),
+        //     Provider.of<PortfolioStore>(context, listen: false),
+        //     Provider.of<OptionPositionStore>(context, listen: false));
+        // if (!mounted) return;
+        await widget.service.getPortfolioHistoricals(
+            widget.user,
+            Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+            account!.accountNumber,
+            chartBoundsFilter,
+            chartDateSpanFilter);
+      }
+      if (!mounted) return;
+      await widget.service.refreshOptionMarketData(
+          widget.user,
+          Provider.of<OptionPositionStore>(context, listen: false),
+          Provider.of<OptionInstrumentStore>(context, listen: false));
+
+      if (!mounted) return;
+      await widget.service.refreshPositionQuote(
+          widget.user,
+          Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<QuoteStore>(context, listen: false));
+
+      if (!mounted) return;
+      await widget.service.getPortfolios(
+          widget.user, Provider.of<PortfolioStore>(context, listen: false));
+
+      if (!mounted) return;
+      await widget.service.refreshNummusHoldings(
+        widget.user,
+        Provider.of<ForexHoldingStore>(context, listen: false),
+      );
+    }
+  }
+
+  // void _animateToNextItem() {
+  //   _carouselController.animateTo(
+  //     _carouselController.offset + 320,
+  //     duration: const Duration(milliseconds: 500),
+  //     curve: Curves.linear,
+  //   );
+  // }
+
+  void resetChart(ChartDateSpan span, Bounds bounds) async {
+    // setState(() {
+    prevChartDateSpanFilter = chartDateSpanFilter;
+    chartDateSpanFilter = span;
+    prevChartBoundsFilter = chartBoundsFilter;
+    chartBoundsFilter = bounds;
+    // futurePortfolioHistoricals = null;
+    var portfolioHistoricalStore =
+        Provider.of<PortfolioHistoricalsStore>(context, listen: false);
+    // futurePortfolioHistoricals =
+    await widget.service.getPortfolioHistoricals(
+        widget.user,
+        portfolioHistoricalStore,
+        account!.accountNumber,
+        chartBoundsFilter,
+        chartDateSpanFilter);
+    portfolioHistoricalStore.notify();
   }
 
   Future<void> _pullRefresh() async {

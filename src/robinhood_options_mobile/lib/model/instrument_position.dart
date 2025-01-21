@@ -239,7 +239,9 @@ class InstrumentPosition {
         quantity == 0) {
       return 0;
     }
-    return instrumentObj!.quoteObj!.lastTradePrice! * quantity!;
+    return (instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+            instrumentObj!.quoteObj!.lastTradePrice!) *
+        quantity!;
   }
 
   double get extendedHoursMarketValue {

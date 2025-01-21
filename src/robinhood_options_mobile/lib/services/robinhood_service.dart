@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_historicals.dart';
@@ -880,6 +882,26 @@ Response: {
   }
 
   @override
+  Future<List<dynamic>> getDividends(BrokerageUser user, DividendStore store,
+      {String? instrumentId}) async {
+    // https://api.robinhood.com/dividends/
+    //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
+
+    var results = await pagedGet(user,
+        "$endpoint/dividends/${instrumentId != null ? '?instrument_id=$instrumentId' : ''}");
+    List<dynamic> list = [];
+    store.removeAll();
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+      store.add(result);
+    }
+    list.sort((a, b) => DateTime.parse(b["record_date"]!)
+        .compareTo(DateTime.parse(a["record_date"]!)));
+    return list;
+  }
+
+  @override
   Stream<List<dynamic>> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore) async* {
     // https://api.robinhood.com/accounts/sweeps/?default_to_all_accounts=true&page_size=10
@@ -899,6 +921,26 @@ Response: {
       //     .compareTo(DateTime.parse(a["record_date"]!)));
       yield list;
     }
+  }
+
+  @override
+  Future<List<dynamic>> getInterests(BrokerageUser user, InterestStore store,
+      {String? instrumentId}) async {
+    // https://api.robinhood.com/dividends/
+    //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
+
+    var results = await pagedGet(user,
+        "$endpoint/accounts/sweeps/?default_to_all_accounts=true&page_size=20");
+    List<dynamic> list = [];
+    store.removeAll();
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      list.add(result);
+      store.add(result);
+    }
+    list.sort((a, b) => DateTime.parse(b["pay_date"]!)
+        .compareTo(DateTime.parse(a["pay_date"]!)));
+    return list;
   }
 
   /*
@@ -1388,24 +1430,6 @@ Response: {
       var result = results[i];
       list.add(result);
     }
-    return list;
-  }
-
-  @override
-  Future<List<dynamic>> getDividends(
-      BrokerageUser user, String instrumentId) async {
-    // https://api.robinhood.com/dividends/
-    //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
-
-    var results = await pagedGet(
-        user, "$endpoint/dividends/?instrument_id=$instrumentId");
-    List<dynamic> list = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      list.add(result);
-    }
-    list.sort((a, b) => DateTime.parse(b["record_date"]!)
-        .compareTo(DateTime.parse(a["record_date"]!)));
     return list;
   }
 

@@ -8,7 +8,10 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
+import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
+import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/logo_provider.dart';
 import 'firebase_options.dart';
 
@@ -116,6 +119,15 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => PortfolioHistoricalsSelectionStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => DividendStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InterestStore(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => ChartSelectionStore(),
             ),
             ChangeNotifierProvider(
               create: (context) => OptionPositionStore(),
