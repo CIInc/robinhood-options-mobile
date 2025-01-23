@@ -485,7 +485,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           // selection != null
                           //  ? selection!.adjustedCloseEquity
                           //  : close),
-                          style: const TextStyle(fontSize: 21.0),
+                          style: const TextStyle(
+                              fontSize: totalValueFontSize), //  21.0
                           textAlign: TextAlign.right,
                         )
                       ])
@@ -591,7 +592,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
               open = firstHistorical
-                  .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+                  .adjustedCloseEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
 
               // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
@@ -602,7 +603,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               // }
 
               changeInPeriod = close - open;
-              changePercentInPeriod = changeInPeriod / close;
+              changePercentInPeriod = (close / open) - 1;
+              // Wrong change percent calculation.
+              // changePercentInPeriod = changeInPeriod / close;
 
               // Add latest portfolio value to historical to show current value on chart.
               // if (portfolioStore.items.isNotEmpty) {
@@ -634,11 +637,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           history.beginsAt!,
                       //filteredEquityHistoricals.indexOf(history),
                       measureFn: (EquityHistorical history, index) => index == 0
-                          ? history.adjustedOpenEquity
+                          ? history.adjustedCloseEquity //adjustedOpenEquity
                           : history.adjustedCloseEquity,
                       labelAccessorFn: (EquityHistorical history, index) =>
                           formatCompactNumber.format((index == 0
-                              ? history.adjustedOpenEquity
+                              ? history.adjustedCloseEquity //adjustedOpenEquity
                               : history.adjustedCloseEquity)),
                       data: portfolioHistoricals!.equityHistoricals,
                       /*
@@ -692,11 +695,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 if (provider.selection != null) {
                   changeInPeriod = provider.selection!.adjustedCloseEquity! -
                       open; // portfolios![0].equityPreviousClose!;
-                  changePercentInPeriod =
-                      changeInPeriod / provider.selection!.adjustedCloseEquity!;
+                  changePercentInPeriod = provider
+                              .selection!.adjustedCloseEquity! /
+                          open -
+                      1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
                 } else {
                   changeInPeriod = close - open;
-                  changePercentInPeriod = changeInPeriod / close;
+                  changePercentInPeriod =
+                      (close / open) - 1; // changeInPeriod / close;
                 }
                 // String? returnText = widget.user.getDisplayText(changeInPeriod,
                 //     displayValue: DisplayValue.totalReturn);
@@ -739,11 +745,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       if (selection != null) {
                         changeInPeriod = selection.adjustedCloseEquity! -
                             open; // portfolios![0].equityPreviousClose!;
-                        changePercentInPeriod =
-                            changeInPeriod / selection.adjustedCloseEquity!;
+                        changePercentInPeriod = selection.adjustedCloseEquity! /
+                                open -
+                            1; // changeInPeriod / selection.adjustedCloseEquity!;
                       } else {
                         changeInPeriod = close - open;
-                        changePercentInPeriod = changeInPeriod / close;
+                        changePercentInPeriod =
+                            close / open - 1; // changeInPeriod / close;
                       }
                       String? returnText = widget.user.getDisplayText(
                           changeInPeriod,
@@ -1651,7 +1659,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               var incomeChart = TimeSeriesChart(
                 [
                   charts.Series<dynamic, DateTime>(
-                      id: 'Dividends',
+                      id: 'Dividend',
                       //charts.MaterialPalette.blue.shadeDefault,
                       colorFn: (_, __) => shades[0],
                       // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
@@ -1665,7 +1673,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       data: groupedDividendsData // dividends!,
                       ),
                   charts.Series<dynamic, DateTime>(
-                    id: 'Interests',
+                    id: 'Interest',
                     //charts.MaterialPalette.blue.shadeDefault,
                     colorFn: (_, __) => shades[1],
                     //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
@@ -2133,6 +2141,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         */
                         (cryptoFilters.isEmpty ||
                             cryptoFilters.contains(element.currencyCode)))
+                    .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
+                    .reversed
                     .toList();
                 /*
                 double? value = widget.user
@@ -3599,59 +3609,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   SizedBox(
                     width: 64,
                     child: Text(
-                      "Options",
-                      style: TextStyle(
-                          fontSize: 11.0,
-                          color: Theme.of(context).appBarTheme.foregroundColor),
-                    ),
-                  )
-                ]),
-                /*
-                Container(
-                  width: 3,
-                ),
-                */
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: 50,
-                      child: Text(formatPercentage.format(optionEquityPercent),
-                          style: TextStyle(
-                              fontSize: 12.0,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                          // , color: Theme.of(context).textTheme.bodyMedium!.color
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: 75,
-                    child: Text(
-                        formatCurrency.format(optionPositionStore.equity),
-                        style: TextStyle(
-                            fontSize: 13.0,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                        textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Container(
-                  width: 10,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                    width: 64,
-                    child: Text(
                       "Stocks",
                       style: TextStyle(
                           fontSize: 11.0,
@@ -3684,6 +3641,59 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     child: Text(
                         formatCurrency.format(stockPositionStore.equity),
                         // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
+                        style: TextStyle(
+                            fontSize: 13.0,
+                            color:
+                                Theme.of(context).appBarTheme.foregroundColor),
+                        textAlign: TextAlign.right)),
+                Container(
+                  width: 10,
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Container(
+                  width: 10,
+                ),
+                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      "Options",
+                      style: TextStyle(
+                          fontSize: 11.0,
+                          color: Theme.of(context).appBarTheme.foregroundColor),
+                    ),
+                  )
+                ]),
+                /*
+                Container(
+                  width: 3,
+                ),
+                */
+                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  SizedBox(
+                      width: 50,
+                      child: Text(formatPercentage.format(optionEquityPercent),
+                          style: TextStyle(
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .appBarTheme
+                                  .foregroundColor),
+                          // , color: Theme.of(context).textTheme.bodyMedium!.color
+                          textAlign: TextAlign.right))
+                ]),
+                Container(
+                  width: 5,
+                ),
+                SizedBox(
+                    width: 75,
+                    child: Text(
+                        formatCurrency.format(optionPositionStore.equity),
                         style: TextStyle(
                             fontSize: 13.0,
                             color:

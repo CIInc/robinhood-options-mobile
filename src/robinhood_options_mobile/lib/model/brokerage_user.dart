@@ -164,21 +164,12 @@ class BrokerageUser {
         break;
       case DisplayValue.todayReturnPercent:
         var numerator = ops
-            .map((OptionAggregatePosition e) => e.changeToday)
+            .map((OptionAggregatePosition e) => e.marketValue)
             .reduce((a, b) => a + b);
         var denominator = ops
             .map((OptionAggregatePosition e) => e.marketValue - e.changeToday)
             .reduce((a, b) => a + b);
-        /*
-        var numerator = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-            */
-        value = numerator / denominator;
+        value = numerator / denominator - 1;
         break;
       case DisplayValue.totalReturn:
         value = ops
@@ -187,25 +178,12 @@ class BrokerageUser {
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
-            .map((OptionAggregatePosition e) => e.gainLoss)
+            .map((OptionAggregatePosition e) => e.marketValue)
             .reduce((a, b) => a + b);
         var denominator = ops
             .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
-        /*
-        var numerator = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
-        var denominator = ops
-            .map((OptionAggregatePosition e) => e.totalCost)
-            .reduce((a, b) => a + b);
-            */
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
+        value = numerator / denominator - 1;
         break;
       default:
     }
@@ -241,18 +219,12 @@ class BrokerageUser {
         break;
       case DisplayValue.todayReturnPercent:
         var numerator = ops
-            .map((InstrumentPosition e) => e.gainLossPercentToday * e.totalCost)
+            .map((InstrumentPosition e) => e.marketValue)
             .reduce((a, b) => a + b);
         var denominator = ops
-            .map((InstrumentPosition e) => e.totalCost)
+            .map((InstrumentPosition e) => e.marketValue - e.gainLossToday)
             .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
+        value = numerator / denominator - 1;
         break;
       case DisplayValue.totalReturn:
         value = ops
@@ -261,17 +233,12 @@ class BrokerageUser {
         break;
       case DisplayValue.totalReturnPercent:
         var numerator = ops
-            .map((InstrumentPosition e) => e.gainLossPercent * e.totalCost)
+            .map((InstrumentPosition e) => e.marketValue)
             .reduce((a, b) => a + b);
         var denominator = ops
             .map((InstrumentPosition e) => e.totalCost)
             .reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
+        value = numerator / denominator - 1;
         break;
       default:
     }
@@ -305,34 +272,22 @@ class BrokerageUser {
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturnPercent:
-        var numerator = ops
-            .map((ForexHolding e) => e.gainLossPercentToday * e.totalCost)
+        var numerator =
+            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
+        var denominator = ops
+            .map((ForexHolding e) => e.marketValue - e.gainLossToday)
             .reduce((a, b) => a + b);
-        var denominator =
-            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) =>
-                e.changePercentToday * e.marketValue)
-            .reduce((a, b) => a + b);
-            */
+        value = numerator / denominator - 1;
         break;
       case DisplayValue.totalReturn:
         value = ops.map((ForexHolding e) => e.gainLoss).reduce((a, b) => a + b);
         break;
       case DisplayValue.totalReturnPercent:
-        var numerator = ops
-            .map((ForexHolding e) => e.gainLossPercent * e.totalCost)
-            .reduce((a, b) => a + b);
+        var numerator =
+            ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
         var denominator =
             ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
-        value = numerator / denominator;
-        /*
-        value = ops
-            .map((OptionAggregatePosition e) => e.gainLossPercent)
-            .reduce((a, b) => a + b);
-            */
+        value = numerator / denominator - 1;
         break;
       default:
     }

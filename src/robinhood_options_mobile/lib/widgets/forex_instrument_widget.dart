@@ -169,12 +169,13 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       open = firstHistorical.openPrice!;
       close = lastHistorical.closePrice!;
       changeInPeriod = close - open;
-      changePercentInPeriod = changeInPeriod / close;
+      changePercentInPeriod = close / open - 1; // changeInPeriod / close;
 
       if (selection != null) {
         changeInPeriod = selection!.closePrice! -
             open; // portfolios![0].equityPreviousClose!;
-        changePercentInPeriod = changeInPeriod / selection!.closePrice!;
+        changePercentInPeriod = selection!.closePrice! / open -
+            1; // changeInPeriod / selection!.closePrice!;
       }
 
       if (chart == null) {

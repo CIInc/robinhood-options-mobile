@@ -484,7 +484,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   .openPrice!; // instrument.instrumentHistoricalsObj!.previousClosePrice ??
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
-              changePercentInPeriod = changeInPeriod / close;
+              changePercentInPeriod =
+                  close / open - 1; // changeInPeriod / close;
 
               var brightness = MediaQuery.of(context).platformBrightness;
               var textColor = Theme.of(context).colorScheme.surface;
@@ -584,11 +585,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     selection = value.selection;
                     if (selection != null) {
                       changeInPeriod = selection!.closePrice! - open;
-                      changePercentInPeriod =
-                          changeInPeriod / selection!.closePrice!;
+                      changePercentInPeriod = selection!.closePrice! / open -
+                          1; // changeInPeriod / selection!.closePrice!;
                     } else {
                       changeInPeriod = close - open;
-                      changePercentInPeriod = changeInPeriod / close;
+                      changePercentInPeriod =
+                          close / open - 1; // changeInPeriod / close;
                     }
                     return SizedBox(
                         height: 43,

@@ -282,7 +282,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 trailing: Wrap(spacing: 8, children: [
                   Text(
                     marketValueText,
-                    style: const TextStyle(fontSize: totalValueFontSize),
+                    style: const TextStyle(fontSize: 21.0),
                     textAlign: TextAlign.right,
                   )
                 ]),
@@ -860,7 +860,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
             if (trailingText != null) ...[
               Text(
                 trailingText,
-                style: const TextStyle(fontSize: totalValueFontSize),
+                style: const TextStyle(fontSize: 21.0),
                 textAlign: TextAlign.right,
               )
             ]

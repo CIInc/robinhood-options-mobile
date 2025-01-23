@@ -327,11 +327,13 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               open = firstHistorical.openPrice!;
               close = lastHistorical.closePrice!;
               changeInPeriod = close - open;
-              changePercentInPeriod = changeInPeriod / close;
+              changePercentInPeriod =
+                  close / open - 1; // changeInPeriod / close;
 
               if (selection != null) {
                 changeInPeriod = selection!.closePrice! - open;
-                changePercentInPeriod = changeInPeriod / selection!.closePrice!;
+                changePercentInPeriod = selection!.closePrice! / open -
+                    1; // changeInPeriod / selection!.closePrice!;
               }
 
               var brightness = MediaQuery.of(context).platformBrightness;
@@ -426,11 +428,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     selection = value.selection;
                     if (selection != null) {
                       changeInPeriod = selection!.closePrice! - open;
-                      changePercentInPeriod =
-                          changeInPeriod / selection!.closePrice!;
+                      changePercentInPeriod = selection!.closePrice! / open -
+                          1; // changeInPeriod / selection!.closePrice!;
                     } else {
                       changeInPeriod = close - open;
-                      changePercentInPeriod = changeInPeriod / close;
+                      changePercentInPeriod =
+                          close / open - 1; // changeInPeriod / close;
                     }
 
                     return SizedBox(
