@@ -24,7 +24,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
@@ -410,6 +410,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //     onPressed: () {
             //       showModalBottomSheet<void>(
             //         context: context,
+            //        showDragHandle: true,
             //         //isScrollControlled: true,
             //         //useRootNavigator: true,
             //         //constraints: const BoxConstraints(maxHeight: 200),
@@ -944,7 +945,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: SizedBox(
                       height: 25.0,
                     )),
-                    OptionPositionsRowWidget(
+                    OptionPositionsWidget(
                       widget.user,
                       widget.service,
                       filteredOptionPositions,
@@ -2213,6 +2214,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 onPressed: () {
                   showModalBottomSheet<void>(
                     context: context,
+                    showDragHandle: true,
                     constraints: const BoxConstraints(maxHeight: 260),
                     builder: (BuildContext context) {
                       return Column(
@@ -2220,7 +2222,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ListTile(
-                            tileColor: Theme.of(context).colorScheme.primary,
+                            // tileColor: Theme.of(context).colorScheme.primary,
                             leading: const Icon(Icons.filter_list),
                             title: const Text(
                               "Filter Position Orders",

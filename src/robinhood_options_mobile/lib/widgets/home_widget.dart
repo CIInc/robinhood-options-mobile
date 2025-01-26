@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'dart:math' as math;
 
@@ -30,21 +31,19 @@ import 'package:robinhood_options_mobile/model/portfolio_historicals_selection_s
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
-import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
-import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
-import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
-import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
-import 'package:robinhood_options_mobile/widgets/option_positions_row_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
@@ -464,33 +463,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
               return SliverToBoxAdapter(
                   child: ListTile(
-                      title: const Text(
-                        "Portfolio",
-                        style: TextStyle(fontSize: 19.0),
-                      ),
-                      subtitle: Text(
-                        // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                        updatedAt != null
-                            ? formatLongDate.format(updatedAt.toLocal())
-                            : '',
-                        // selection != null
-                        // ? selection!.beginsAt!.toLocal()
-                        // : lastHistorical!.beginsAt!.toLocal()),
-                        style: const TextStyle(fontSize: 10.0),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Wrap(spacing: 8, children: [
-                        Text(
-                          formatCurrency.format(close),
-                          // selection != null
-                          //  ? selection!.adjustedCloseEquity
-                          //  : close),
-                          style: const TextStyle(
-                              fontSize: totalValueFontSize), //  21.0
-                          textAlign: TextAlign.right,
-                        )
-                      ])
-                      /*
+                title: const Text(
+                  "Portfolio",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+                subtitle: Text(
+                  // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+                  updatedAt != null
+                      ? formatLongDate.format(updatedAt.toLocal())
+                      : '',
+                  // selection != null
+                  // ? selection!.beginsAt!.toLocal()
+                  // : lastHistorical!.beginsAt!.toLocal()),
+                  style: const TextStyle(fontSize: 10.0),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Wrap(spacing: 8, children: [
+                  Text(
+                    formatCurrency.format(close),
+                    // selection != null
+                    //  ? selection!.adjustedCloseEquity
+                    //  : close),
+                    style:
+                        const TextStyle(fontSize: totalValueFontSize), //  21.0
+                    textAlign: TextAlign.right,
+                  ),
+                ]),
+                // shape: Border(),
+                // children: [
+                //   _buildExpandedSliverAppBarTitle(
+                //       userInfo,
+                //       portfolioStore.items,
+                //       portfolioStore,
+                //       optionPositionStore,
+                //       stockPositionStore,
+                //       forexHoldingStore)
+                // ],
+                /*
                               Wrap(
                                 children: [
                                   Text(
@@ -533,7 +542,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                           fontSize: 19.0, color: textColor)),
                                 ],
                               )*/
-                      ));
+              ));
             }),
             Consumer<PortfolioHistoricalsStore>(
                 builder: (context, portfolioHistoricalsStore, child) {
@@ -731,7 +740,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ],
                   Column(children: [
                     SizedBox(
-                        height: 460, // 240,
+                        height: 450, // 240,
                         child: Padding(
                           padding:
                               const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
@@ -1284,6 +1293,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               //}
               data.sort((a, b) => b.value.compareTo(a.value));
 
+              const maxLabelChars = 15;
+              final maxSectors = 5;
+              final maxIndustries = 5;
+
               List<PieChartData> diversificationSectorData = [];
               var groupedBySector = stockPositionStore.items.groupListsBy(
                   (item) => item.instrumentObj != null &&
@@ -1298,7 +1311,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .entries
                   .toList();
               groupedSectors.sort((a, b) => b.value.compareTo(a.value));
-              final maxSectors = 8;
               for (var groupedSector in groupedSectors.take(maxSectors)) {
                 diversificationSectorData
                     .add(PieChartData(groupedSector.key, groupedSector.value));
@@ -1329,7 +1341,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .toList();
               groupedIndustry.sort((a, b) => b.value.compareTo(a.value));
 
-              final maxIndustries = 8;
               for (var groupedSector in groupedIndustry.take(maxIndustries)) {
                 diversificationIndustryData
                     .add(PieChartData(groupedSector.key, groupedSector.value));
@@ -1400,177 +1411,334 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ),
                   ConstrainedBox(
                       constraints: BoxConstraints(maxHeight: 260), // 320
-                      child: CarouselView(
-                          scrollDirection: Axis.horizontal,
-                          itemSnapping: true,
-                          itemExtent: double.infinity, // 360, //
-                          // shrinkExtent: 200,
-                          controller: _carouselController,
-                          children: [
-                            total > 0
-                                ? PieChart(
-                                    [
-                                      charts.Series<PieChartData, String>(
-                                        id: 'Portfolio Breakdown',
-                                        colorFn: (_, index) => shades[index!],
-                                        /*
+                      child:
+                          // ListView.builder(
+                          //     padding: const EdgeInsets.all(5.0),
+                          //     scrollDirection: Axis.horizontal,
+                          //     itemCount: 3,
+                          //     itemBuilder: (context, index) {
+                          //       if (index == 0) {
+                          //         return PieChart(
+                          //           [
+                          //             charts.Series<PieChartData, String>(
+                          //               id: 'Portfolio Breakdown',
+                          //               colorFn: (_, index) => shades[index!],
+                          //               /*
+                          //                                     colorFn: (_, index) => charts.MaterialPalette.cyan
+                          //                                         .makeShades(4)[index!],
+                          //                                     colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                          //                                         Theme.of(context).colorScheme.primary),
+                          //                                     */
+                          //               domainFn: (PieChartData val, index) =>
+                          //                   val.label,
+                          //               measureFn: (PieChartData val, index) =>
+                          //                   val.value,
+                          //               // labelAccessorFn:
+                          //               //     (PieChartData val, _) => '',
+                          //               // labelAccessorFn: (PieChartData val,
+                          //               //         _) =>
+                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                          //               data: data,
+                          //             ),
+                          //           ],
+                          //           animate: false,
+                          //           renderer: charts.ArcRendererConfig(
+                          //               //arcWidth: 60,
+                          //               arcRendererDecorators: [
+                          //                 charts.ArcLabelDecorator(
+                          //                     // insideLabelStyleSpec:
+                          //                     //     charts.TextStyleSpec(fontSize: 14),
+                          //                     // labelPadding: 0,
+                          //                     outsideLabelStyleSpec:
+                          //                         charts.TextStyleSpec(
+                          //                             fontSize: 12,
+                          //                             color: axisLabelColor))
+                          //               ]),
+                          //           behaviors: [
+                          //             legendBehavior,
+                          //             // charts.ChartTitle('Allocation',
+                          //             //     titleStyleSpec: charts.TextStyleSpec(
+                          //             //         color: axisLabelColor),
+                          //             //     behaviorPosition:
+                          //             //         charts.BehaviorPosition.end)
+                          //             // charts.ChartTitle('Portfolio Allocation')
+                          //           ],
+                          //           onSelected: (_) {},
+                          //         );
+                          //       } else if (index == 1) {
+                          //         return PieChart(
+                          //           [
+                          //             charts.Series<PieChartData, String>(
+                          //               id: 'Diversification Sector',
+                          //               colorFn: (_, index) => charts.ColorUtil
+                          //                   .fromDartColor(Colors.accents[index! %
+                          //                       Colors.accents
+                          //                           .length]), // shades[index!],
+                          //               /*
+                          //                                   colorFn: (_, index) => charts.MaterialPalette.cyan
+                          //                                       .makeShades(4)[index!],
+                          //                                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                          //                                       Theme.of(context).colorScheme.primary),
+                          //                                   */
+                          //               domainFn: (PieChartData val, index) =>
+                          //                   val.label,
+                          //               measureFn: (PieChartData val, index) =>
+                          //                   val.value,
+                          //               labelAccessorFn: (PieChartData val, _) =>
+                          //                   '',
+                          //               // labelAccessorFn: (PieChartData val,
+                          //               //         _) =>
+                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                          //               data: diversificationSectorData,
+                          //             ),
+                          //           ],
+                          //           animate: false,
+                          //           renderer: charts.ArcRendererConfig(
+                          //               arcWidth: 14,
+                          //               arcRendererDecorators: [
+                          //                 charts.ArcLabelDecorator(
+                          //                     // insideLabelStyleSpec:
+                          //                     //     charts.TextStyleSpec(fontSize: 14),
+                          //                     // labelPadding: 0,
+                          //                     outsideLabelStyleSpec:
+                          //                         charts.TextStyleSpec(
+                          //                             fontSize: 12,
+                          //                             color: axisLabelColor))
+                          //               ]),
+                          //           onSelected: (_) {},
+                          //           behaviors: [
+                          //             legendBehavior,
+                          //             charts.ChartTitle('Sector',
+                          //                 titleStyleSpec: charts.TextStyleSpec(
+                          //                     color: axisLabelColor),
+                          //                 behaviorPosition:
+                          //                     charts.BehaviorPosition.end)
+                          //           ],
+                          //         );
+                          //       } else {
+                          //         return PieChart(
+                          //           [
+                          //             charts.Series<PieChartData, String>(
+                          //               id: 'Diversification Industry',
+                          //               colorFn: (_, index) => charts.ColorUtil
+                          //                   .fromDartColor(Colors.accents[index! %
+                          //                       Colors.accents
+                          //                           .length]), // shades[index!],
+                          //               /*
+                          //                                   colorFn: (_, index) => charts.MaterialPalette.cyan
+                          //                                       .makeShades(4)[index!],
+                          //                                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                          //                                       Theme.of(context).colorScheme.primary),
+                          //                                   */
+                          //               domainFn: (PieChartData val, index) =>
+                          //                   val.label.length > maxLabelChars
+                          //                       ? val.label.replaceRange(
+                          //                           maxLabelChars, val.label.length, '...')
+                          //                       : val.label,
+                          //               measureFn: (PieChartData val, index) =>
+                          //                   val.value,
+                          //               labelAccessorFn: (PieChartData val, _) =>
+                          //                   '',
+                          //               // labelAccessorFn: (PieChartData val,
+                          //               //         _) =>
+                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                          //               data: diversificationIndustryData,
+                          //             ),
+                          //           ],
+                          //           animate: false,
+                          //           renderer: charts.ArcRendererConfig(
+                          //               arcWidth: 14,
+                          //               arcRendererDecorators: [
+                          //                 charts.ArcLabelDecorator(
+                          //                     // insideLabelStyleSpec:
+                          //                     //     charts.TextStyleSpec(fontSize: 14),
+                          //                     // labelPadding: 0,
+                          //                     outsideLabelStyleSpec:
+                          //                         charts.TextStyleSpec(
+                          //                             fontSize: 12,
+                          //                             color: axisLabelColor))
+                          //               ]),
+                          //           behaviors: [
+                          //             legendBehavior,
+                          //             charts.ChartTitle('Industry',
+                          //                 titleStyleSpec: charts.TextStyleSpec(
+                          //                     color: axisLabelColor),
+                          //                 behaviorPosition:
+                          //                     charts.BehaviorPosition.end)
+                          //           ],
+                          //           onSelected: (_) {},
+                          //         );
+                          //       }
+                          //     })
+                          CarouselView(
+                              // padding: const EdgeInsets.all(5.0),
+                              scrollDirection: Axis.horizontal,
+                              itemSnapping: true,
+                              itemExtent: double.infinity, // 360, //
+                              // shrinkExtent: 200,
+                              // controller: _carouselController,
+                              onTap: (value) {},
+                              children: [
+                            if (total > 0) ...[
+                              PieChart(
+                                [
+                                  charts.Series<PieChartData, String>(
+                                    id: 'Portfolio Breakdown',
+                                    colorFn: (_, index) => shades[index!],
+                                    /*
                                                           colorFn: (_, index) => charts.MaterialPalette.cyan
                                                               .makeShades(4)[index!],
                                                           colorFn: (_, __) => charts.ColorUtil.fromDartColor(
                                                               Theme.of(context).colorScheme.primary),
                                                           */
-                                        domainFn: (PieChartData val, index) =>
-                                            val.label,
-                                        measureFn: (PieChartData val, index) =>
-                                            val.value,
-                                        labelAccessorFn:
-                                            (PieChartData val, _) => '',
-                                        // labelAccessorFn: (PieChartData val,
-                                        //         _) =>
-                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                        data: data,
-                                      ),
-                                    ],
-                                    animate: false,
-                                    renderer: charts.ArcRendererConfig(
-                                        //arcWidth: 60,
-                                        arcRendererDecorators: [
-                                          charts.ArcLabelDecorator(
-                                              // insideLabelStyleSpec:
-                                              //     charts.TextStyleSpec(fontSize: 14),
-                                              // labelPadding: 0,
-                                              outsideLabelStyleSpec:
-                                                  charts.TextStyleSpec(
-                                                      fontSize: 12,
-                                                      color: axisLabelColor))
-                                        ]),
-                                    behaviors: [
-                                      legendBehavior,
-                                      // charts.ChartTitle('Allocation',
-                                      //     titleStyleSpec: charts.TextStyleSpec(
-                                      //         color: axisLabelColor),
-                                      //     behaviorPosition:
-                                      //         charts.BehaviorPosition.end)
-                                      // charts.ChartTitle('Portfolio Allocation')
-                                    ],
-                                    onSelected: (_) {},
-                                  )
-                                : Container(
-                                    height: 0,
+                                    domainFn: (PieChartData val, index) =>
+                                        val.label,
+                                    measureFn: (PieChartData val, index) =>
+                                        val.value,
+                                    labelAccessorFn: (PieChartData val, _) =>
+                                        '',
+                                    // labelAccessorFn: (PieChartData val,
+                                    //         _) =>
+                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                    data: data,
                                   ),
-                            total > 0
-                                ? PieChart(
-                                    [
-                                      charts.Series<PieChartData, String>(
-                                        id: 'Diversification Sector',
-                                        colorFn: (_, index) => charts
-                                            .ColorUtil.fromDartColor(Colors
-                                                .accents[
-                                            index! %
-                                                Colors.accents
-                                                    .length]), // shades[index!],
-                                        /*
+                                ],
+                                animate: false,
+                                renderer: charts.ArcRendererConfig(),
+                                // renderer: charts.ArcRendererConfig(
+                                //     //arcWidth: 60,
+                                //     arcRendererDecorators: [
+                                //       charts.ArcLabelDecorator(
+                                //           // insideLabelStyleSpec:
+                                //           //     charts.TextStyleSpec(fontSize: 14),
+                                //           // labelPadding: 0,
+                                //           outsideLabelStyleSpec:
+                                //               charts.TextStyleSpec(
+                                //                   fontSize: 12,
+                                //                   color: axisLabelColor))
+                                //     ]),
+                                behaviors: [
+                                  legendBehavior,
+                                  // charts.ChartTitle('Allocation',
+                                  //     titleStyleSpec: charts.TextStyleSpec(
+                                  //         color: axisLabelColor),
+                                  //     behaviorPosition:
+                                  //         charts.BehaviorPosition.end)
+                                  // charts.ChartTitle('Portfolio Allocation')
+                                ],
+                                onSelected: (_) {},
+                              ),
+                              PieChart(
+                                [
+                                  charts.Series<PieChartData, String>(
+                                    id: 'Diversification Sector',
+                                    colorFn: (_, index) => charts.ColorUtil
+                                        .fromDartColor(Colors.accents[index! %
+                                            Colors.accents
+                                                .length]), // shades[index!],
+                                    /*
                                                         colorFn: (_, index) => charts.MaterialPalette.cyan
                                                             .makeShades(4)[index!],
                                                         colorFn: (_, __) => charts.ColorUtil.fromDartColor(
                                                             Theme.of(context).colorScheme.primary),
                                                         */
-                                        domainFn: (PieChartData val, index) =>
-                                            val.label,
-                                        measureFn: (PieChartData val, index) =>
-                                            val.value,
-                                        labelAccessorFn:
-                                            (PieChartData val, _) => '',
-                                        // labelAccessorFn: (PieChartData val,
-                                        //         _) =>
-                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                        data: diversificationSectorData,
-                                      ),
-                                    ],
-                                    animate: false,
-                                    renderer: charts.ArcRendererConfig(
-                                        arcWidth: 14,
-                                        arcRendererDecorators: [
-                                          charts.ArcLabelDecorator(
-                                              // insideLabelStyleSpec:
-                                              //     charts.TextStyleSpec(fontSize: 14),
-                                              // labelPadding: 0,
-                                              outsideLabelStyleSpec:
-                                                  charts.TextStyleSpec(
-                                                      fontSize: 12,
-                                                      color: axisLabelColor))
-                                        ]),
-                                    onSelected: (_) {},
-                                    behaviors: [
-                                      legendBehavior,
-                                      charts.ChartTitle('Sector',
-                                          titleStyleSpec: charts.TextStyleSpec(
-                                              color: axisLabelColor),
-                                          behaviorPosition:
-                                              charts.BehaviorPosition.end)
-                                    ],
-                                  )
-                                : Container(
-                                    height: 0,
+                                    domainFn: (PieChartData val, index) =>
+                                        val.label.length > maxLabelChars
+                                            ? val.label.replaceRange(
+                                                maxLabelChars,
+                                                val.label.length,
+                                                '...')
+                                            : val.label,
+                                    measureFn: (PieChartData val, index) =>
+                                        val.value,
+                                    labelAccessorFn: (PieChartData val, _) =>
+                                        '',
+                                    // labelAccessorFn: (PieChartData val,
+                                    //         _) =>
+                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                    data: diversificationSectorData,
                                   ),
-                            total > 0
-                                ? PieChart(
-                                    [
-                                      charts.Series<PieChartData, String>(
-                                        id: 'Diversification Industry',
-                                        colorFn: (_, index) => charts
-                                            .ColorUtil.fromDartColor(Colors
-                                                .accents[
-                                            index! %
-                                                Colors.accents
-                                                    .length]), // shades[index!],
-                                        /*
+                                ],
+                                animate: false,
+                                renderer: charts.ArcRendererConfig(),
+                                // renderer: charts.ArcRendererConfig(
+                                //     arcWidth: 14,
+                                //     arcRendererDecorators: [
+                                //       charts.ArcLabelDecorator(
+                                //           // insideLabelStyleSpec:
+                                //           //     charts.TextStyleSpec(fontSize: 14),
+                                //           // labelPadding: 0,
+                                //           outsideLabelStyleSpec:
+                                //               charts.TextStyleSpec(
+                                //                   fontSize: 12,
+                                //                   color: axisLabelColor))
+                                //     ]),
+                                onSelected: (_) {},
+                                behaviors: [
+                                  legendBehavior,
+                                  charts.ChartTitle('Sector',
+                                      titleStyleSpec: charts.TextStyleSpec(
+                                          color: axisLabelColor),
+                                      behaviorPosition:
+                                          charts.BehaviorPosition.end)
+                                ],
+                              ),
+                              PieChart(
+                                [
+                                  charts.Series<PieChartData, String>(
+                                    id: 'Diversification Industry',
+                                    colorFn: (_, index) => charts.ColorUtil
+                                        .fromDartColor(Colors.accents[index! %
+                                            Colors.accents
+                                                .length]), // shades[index!],
+                                    /*
                                                         colorFn: (_, index) => charts.MaterialPalette.cyan
                                                             .makeShades(4)[index!],
                                                         colorFn: (_, __) => charts.ColorUtil.fromDartColor(
                                                             Theme.of(context).colorScheme.primary),
                                                         */
-                                        domainFn: (PieChartData val, index) =>
-                                            val.label.length > 17
-                                                ? val.label.replaceRange(
-                                                    17, val.label.length, '...')
-                                                : val.label,
-                                        measureFn: (PieChartData val, index) =>
-                                            val.value,
-                                        labelAccessorFn:
-                                            (PieChartData val, _) => '',
-                                        // labelAccessorFn: (PieChartData val,
-                                        //         _) =>
-                                        //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                        data: diversificationIndustryData,
-                                      ),
-                                    ],
-                                    animate: false,
-                                    renderer: charts.ArcRendererConfig(
-                                        arcWidth: 14,
-                                        arcRendererDecorators: [
-                                          charts.ArcLabelDecorator(
-                                              // insideLabelStyleSpec:
-                                              //     charts.TextStyleSpec(fontSize: 14),
-                                              // labelPadding: 0,
-                                              outsideLabelStyleSpec:
-                                                  charts.TextStyleSpec(
-                                                      fontSize: 12,
-                                                      color: axisLabelColor))
-                                        ]),
-                                    behaviors: [
-                                      legendBehavior,
-                                      charts.ChartTitle('Industry',
-                                          titleStyleSpec: charts.TextStyleSpec(
-                                              color: axisLabelColor),
-                                          behaviorPosition:
-                                              charts.BehaviorPosition.end)
-                                    ],
-                                    onSelected: (_) {},
-                                  )
-                                : Container(
-                                    height: 0,
+                                    domainFn: (PieChartData val, index) =>
+                                        val.label.length > maxLabelChars
+                                            ? val.label.replaceRange(
+                                                maxLabelChars,
+                                                val.label.length,
+                                                '...')
+                                            : val.label,
+                                    measureFn: (PieChartData val, index) =>
+                                        val.value,
+                                    labelAccessorFn: (PieChartData val, _) =>
+                                        '',
+                                    // labelAccessorFn: (PieChartData val,
+                                    //         _) =>
+                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                    data: diversificationIndustryData,
                                   ),
+                                ],
+                                animate: false,
+                                renderer: charts.ArcRendererConfig(),
+                                // renderer: charts.ArcRendererConfig(
+                                //     arcWidth: 14,
+                                //     arcRendererDecorators: [
+                                //       charts.ArcLabelDecorator(
+                                //           // insideLabelStyleSpec:
+                                //           //     charts.TextStyleSpec(fontSize: 14),
+                                //           // labelPadding: 0,
+                                //           outsideLabelStyleSpec:
+                                //               charts.TextStyleSpec(
+                                //                   fontSize: 12,
+                                //                   color: axisLabelColor))
+                                //     ]),
+                                behaviors: [
+                                  legendBehavior,
+                                  charts.ChartTitle('Industry',
+                                      titleStyleSpec: charts.TextStyleSpec(
+                                          color: axisLabelColor),
+                                      behaviorPosition:
+                                          charts.BehaviorPosition.end)
+                                ],
+                                onSelected: (_) {},
+                              )
+                            ],
                           ])),
                 ],
               ));
@@ -1579,235 +1747,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             Consumer3<DividendStore, InterestStore, ChartSelectionStore>(
                 builder: (context, dividendStore, interestStore,
                     chartSelectionStore, child) {
-              if (dividendStore.items.isEmpty || interestStore.items.isEmpty) {
-                return SliverToBoxAdapter(
-                    child: ListTile(
-                  title: const Text(
-                    "Income",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                  subtitle: const Text("last 12 months"),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(
-                      formatCurrency.format(0),
-                      style: const TextStyle(fontSize: 21.0),
-                      textAlign: TextAlign.right,
-                    )
-                  ]),
-                ));
-              }
-              final groupedDividends = dividendStore.items
-                  // .where((d) =>
-                  //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
-                  .groupListsBy((element) {
-                var dt = DateTime.parse(element["payable_date"]);
-                return DateTime(dt.year, dt.month);
-              });
-              final groupedDividendsData = groupedDividends
-                  .map((k, v) {
-                    return MapEntry(
-                        k,
-                        v
-                            .map((m) => double.parse(m["amount"]))
-                            .reduce((a, b) => a + b));
-                  })
-                  .entries
-                  .toList();
-              final groupedInterests = interestStore.items
-                  // .where((d) =>
-                  //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
-                  .groupListsBy((element) {
-                var dt = DateTime.parse(element["pay_date"]);
-                return DateTime(dt.year, dt.month);
-              });
-              final groupedInterestsData = groupedInterests
-                  .map((k, v) {
-                    return MapEntry(
-                        k,
-                        v
-                            .map((m) => double.parse(m["amount"]["amount"]))
-                            .reduce((a, b) => a + b));
-                  })
-                  .entries
-                  .toList();
-              // final groupedCumulativeData =
-              //     (groupedDividendsData + groupedInterestsData)
-              //         .groupListsBy((element) => element.key)
-              //         .map((k, v) => MapEntry(
-              //             k, v.map((e1) => e1.value).reduce((a, b) => a + b)))
-              //         .entries
-              //         .toList()
-              //         .sortedBy<DateTime>((e) => e.key)
-              //         .fold(
-              //             [],
-              //             (sums, element) => sums
-              //               ..add(MapEntry(
-              //                   element.key,
-              //                   element.value +
-              //                       (sums.isEmpty ? 0 : sums.last.value))));
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var axisLabelColor = charts.MaterialPalette.gray.shade200;
-              if (brightness == Brightness.light) {
-                axisLabelColor = charts.MaterialPalette.gray.shade800;
-              }
-              var shades = PieChart.makeShades(
-                  charts.ColorUtil.fromDartColor(Theme.of(context)
-                      .colorScheme
-                      .primary), // .withOpacity(0.75)
-                  3);
-
-              var incomeChart = TimeSeriesChart(
-                [
-                  charts.Series<dynamic, DateTime>(
-                      id: 'Dividend',
-                      //charts.MaterialPalette.blue.shadeDefault,
-                      colorFn: (_, __) => shades[0],
-                      // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-                      domainFn: (dynamic domain, _) =>
-                          (domain as MapEntry<DateTime, double>).key,
-                      // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-                      measureFn: (dynamic measure, index) =>
-                          (measure as MapEntry<DateTime, double>).value,
-                      labelAccessorFn: (datum, index) => formatCompactNumber
-                          .format((datum as MapEntry<DateTime, double>).value),
-                      data: groupedDividendsData // dividends!,
-                      ),
-                  charts.Series<dynamic, DateTime>(
-                    id: 'Interest',
-                    //charts.MaterialPalette.blue.shadeDefault,
-                    colorFn: (_, __) => shades[1],
-                    //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-                    // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-                    domainFn: (dynamic domain, _) =>
-                        (domain as MapEntry<DateTime, double>).key,
-                    // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-                    measureFn: (dynamic measure, index) =>
-                        (measure as MapEntry<DateTime, double>).value,
-                    labelAccessorFn: (datum, index) => formatCompactNumber
-                        .format((datum as MapEntry<DateTime, double>).value),
-                    data: groupedInterestsData,
-                  ),
-                  // charts.Series<dynamic, DateTime>(
-                  //   id: 'Cumulative',
-                  //   //charts.MaterialPalette.blue.shadeDefault,
-                  //   colorFn: (_, __) => shades[2],
-                  //   //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-                  //   // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-                  //   domainFn: (dynamic domain, _) =>
-                  //       (domain as MapEntry<DateTime, double>).key,
-                  //   // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-                  //   measureFn: (dynamic measure, index) =>
-                  //       (measure as MapEntry<DateTime, double>).value,
-                  //   labelAccessorFn: (datum, index) => formatCompactNumber
-                  //       .format((datum as MapEntry<DateTime, double>).value),
-                  //   data: groupedCumulativeData,
-                  // ),
-                ],
-                animate: true,
-                onSelected: (selected) {
-                  chartSelectionStore.selectionChanged(selected);
-                },
-                seriesRendererConfig: charts.BarRendererConfig<DateTime>(
-                  groupingType: charts.BarGroupingType.groupedStacked,
-                ),
-                // hiddenSeries: ['Cumulative'],
-                behaviors: [
-                  charts.SelectNearest(
-                      eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
-                  // charts.DomainHighlighter(),
-                  charts.SeriesLegend(),
-                  // Add the sliding viewport behavior to have the viewport center on the
-                  // domain that is currently selected.
-                  charts.SlidingViewport(),
-                  // A pan and zoom behavior helps demonstrate the sliding viewport
-                  // behavior by allowing the data visible in the viewport to be adjusted
-                  // dynamically.
-                  charts.PanAndZoomBehavior(),
-                  charts.LinePointHighlighter(
-                    symbolRenderer: TextSymbolRenderer(() =>
-                        chartSelectionStore.selection?.value
-                            .round()
-                            .toString() ??
-                        ''),
-                    // chartSelectionStore.selection
-                    //     ?.map((s) => s.value.round().toString())
-                    //     .join(' ') ??
-                    // ''),
-                    seriesIds: ['Dividends', 'Interests'],
-                    // drawFollowLinesAcrossChart: true,
-                    // formatCompactCurrency
-                    //     .format(chartSelection?.value)),
-                    showHorizontalFollowLine: charts
-                        .LinePointHighlighterFollowLineType.none, //.nearest,
-                    showVerticalFollowLine: charts
-                        .LinePointHighlighterFollowLineType.none, //.nearest,
-                  )
-                ],
-                domainAxis: charts.DateTimeAxisSpec(
-                    // tickFormatterSpec:
-                    //     charts.BasicDateTimeTickFormatterSpec.fromDateFormat(
-                    //         DateFormat.yMMM()),
-                    tickProviderSpec:
-                        const charts.AutoDateTimeTickProviderSpec(),
-                    // showAxisLine: true,
-                    renderSpec: charts.SmallTickRendererSpec(
-                        labelStyle:
-                            charts.TextStyleSpec(color: axisLabelColor)),
-                    viewport: charts.DateTimeExtents(
-                        start: DateTime(
-                            DateTime.now().year - 1, DateTime.now().month, 1),
-                        // DateTime.now().subtract(Duration(days: 365 * 1)),
-                        end: DateTime.now()
-                            .add(Duration(days: 30 - DateTime.now().day)))),
-                primaryMeasureAxis: charts.NumericAxisSpec(
-                    //showAxisLine: true,
-                    //renderSpec: charts.GridlineRendererSpec(),
-                    viewport: charts.NumericExtents.fromValues(
-                        groupedDividendsData
-                            .map((e) => e.value)), //.NumericExtents(0, 500),
-                    renderSpec: charts.SmallTickRendererSpec(
-                        labelStyle:
-                            charts.TextStyleSpec(color: axisLabelColor)),
-                    //renderSpec: charts.NoneRenderSpec(),
-                    tickProviderSpec: charts.BasicNumericTickProviderSpec(
-                        zeroBound: true,
-                        dataIsInWholeNumbers: true,
-                        desiredMinTickCount: 5)),
-              );
-              var totalDividends = groupedDividendsData.isNotEmpty
-                  ? groupedDividendsData
-                      .sortedBy<DateTime>((e) => e.key)
-                      .reversed
-                      .take(12)
-                      .map((e) => e.value)
-                      .reduce((a, b) => a + b)
-                  : 0.0;
-              return SliverToBoxAdapter(
-                  child: Column(children: [
-                ListTile(
-                  title: const Text(
-                    "Income",
-                    style: TextStyle(fontSize: 19.0),
-                  ),
-                  subtitle: Text("last 12 months"),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(
-                      formatCurrency.format(totalDividends),
-                      style: const TextStyle(fontSize: 21.0),
-                      textAlign: TextAlign.right,
-                    )
-                  ]),
-                ),
-                SizedBox(
-                    height: 300,
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                      //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                      //padding: const EdgeInsets.all(10.0),
-                      child: incomeChart,
-                    )),
-              ]));
+              return IncomeTransactionsWidget(widget.user, widget.service,
+                  dividendStore, interestStore, chartSelectionStore,
+                  showList: false,
+                  analytics: widget.analytics,
+                  observer: widget.observer);
             }),
             Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
@@ -1844,237 +1788,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 icon = widget.user.getDisplayIcon(value);
               }
               */
-
-              List<charts.Series<dynamic, String>> barChartSeriesList = [];
-              var data = [];
-              for (var position in filteredPositions) {
-                if (position.instrumentObj != null) {
-                  double? value = widget.user.getPositionDisplayValue(position);
-                  String? trailingText = widget.user.getDisplayText(value);
-                  data.add({
-                    'domain': position.instrumentObj!.symbol,
-                    'measure': value,
-                    'label': trailingText
-                  });
-                }
-              }
-              barChartSeriesList.add(charts.Series<dynamic, String>(
-                  id: widget.user.displayValue.toString(),
-                  data: data,
-                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                      Theme.of(context).colorScheme.primary),
-                  domainFn: (var d, _) => d['domain'],
-                  measureFn: (var d, _) => d['measure'],
-                  labelAccessorFn: (d, _) => d['label'],
-                  insideLabelStyleAccessorFn: (datum, index) =>
-                      charts.TextStyleSpec(
-                          color: charts.ColorUtil.fromDartColor(
-                        Theme.of(context).brightness == Brightness.light
-                            ? Theme.of(context).colorScheme.surface
-                            : Theme.of(context).colorScheme.inverseSurface,
-                      )),
-                  outsideLabelStyleAccessorFn: (datum, index) =>
-                      charts.TextStyleSpec(
-                          color: charts.ColorUtil.fromDartColor(
-                              Theme.of(context)
-                                  .textTheme
-                                  .labelSmall!
-                                  .color!))));
-              var brightness = MediaQuery.of(context).platformBrightness;
-              var axisLabelColor = charts.MaterialPalette.gray.shade500;
-              if (brightness == Brightness.light) {
-                axisLabelColor = charts.MaterialPalette.gray.shade700;
-              }
-              var primaryMeasureAxis = charts.NumericAxisSpec(
-                //showAxisLine: true,
-                //renderSpec: charts.GridlineRendererSpec(),
-                renderSpec: charts.GridlineRendererSpec(
-                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-                //renderSpec: charts.NoneRenderSpec(),
-                //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-                //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-                //tickProviderSpec:
-                //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-                //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
+              return InstrumentPositionsWidget(
+                widget.user,
+                widget.service,
+                filteredPositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
               );
-              if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-                  widget.user.displayValue == DisplayValue.totalReturnPercent) {
-                var positionDisplayValues = filteredPositions
-                    .map((e) => widget.user.getPositionDisplayValue(e));
-                var minimum = 0.0;
-                var maximum = 0.0;
-                if (positionDisplayValues.isNotEmpty) {
-                  minimum = positionDisplayValues.reduce(math.min);
-                  if (minimum < 0) {
-                    minimum -= 0.05;
-                  } else if (minimum > 0) {
-                    minimum = 0;
-                  }
-                  maximum = positionDisplayValues.reduce(math.max);
-                  if (maximum > 0) {
-                    maximum += 0.05;
-                  } else if (maximum < 0) {
-                    maximum = 0;
-                  }
-                }
-
-                primaryMeasureAxis = charts.PercentAxisSpec(
-                    viewport: charts.NumericExtents(minimum, maximum),
-                    renderSpec: charts.GridlineRendererSpec(
-                        labelStyle:
-                            charts.TextStyleSpec(color: axisLabelColor)));
-              }
-              var positionChart = BarChart(barChartSeriesList,
-                  renderer: charts.BarRendererConfig(
-                      barRendererDecorator: charts.BarLabelDecorator<String>(),
-                      cornerStrategy: const charts.ConstCornerStrategy(10)),
-                  primaryMeasureAxis: primaryMeasureAxis,
-                  barGroupingType: null,
-                  domainAxis: charts.OrdinalAxisSpec(
-                      renderSpec: charts.SmallTickRendererSpec(
-                          labelStyle:
-                              charts.TextStyleSpec(color: axisLabelColor))),
-                  onSelected: (dynamic historical) {
-                debugPrint(historical
-                    .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-                var position = filteredPositions.firstWhere((element) =>
-                    element.instrumentObj!.symbol == historical['domain']);
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                              widget.user,
-                              widget.service,
-                              position.instrumentObj!,
-                              heroTag:
-                                  'logo_${position.instrumentObj!.symbol}${position.instrumentObj!.id}',
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                            )));
-              });
-
-              double? marketValue = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions,
-                      displayValue: DisplayValue.marketValue);
-              String? marketValueText = widget.user.getDisplayText(marketValue!,
-                  displayValue: DisplayValue.marketValue);
-
-              double? totalReturn = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions,
-                      displayValue: DisplayValue.totalReturn);
-              String? totalReturnText = widget.user.getDisplayText(totalReturn!,
-                  displayValue: DisplayValue.totalReturn);
-
-              double? totalReturnPercent = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions,
-                      displayValue: DisplayValue.totalReturnPercent);
-              String? totalReturnPercentText = widget.user.getDisplayText(
-                  totalReturnPercent!,
-                  displayValue: DisplayValue.totalReturnPercent);
-
-              double? todayReturn = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions,
-                      displayValue: DisplayValue.todayReturn);
-              String? todayReturnText = widget.user.getDisplayText(todayReturn!,
-                  displayValue: DisplayValue.todayReturn);
-
-              double? todayReturnPercent = widget.user
-                  .getPositionAggregateDisplayValue(filteredPositions,
-                      displayValue: DisplayValue.todayReturnPercent);
-              String? todayReturnPercentText = widget.user.getDisplayText(
-                  todayReturnPercent!,
-                  displayValue: DisplayValue.todayReturnPercent);
-
-              Icon todayIcon =
-                  widget.user.getDisplayIcon(todayReturn, size: 27.0);
-              Icon totalIcon =
-                  widget.user.getDisplayIcon(totalReturn, size: 27.0);
-
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    SliverToBoxAdapter(
-                        child: Column(children: [
-                      ListTile(
-                        title: const Text(
-                          "Stocks",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
-                        trailing: Wrap(spacing: 8, children: [
-                          Text(
-                            marketValueText,
-                            style: const TextStyle(fontSize: 21.0),
-                            textAlign: TextAlign.right,
-                          )
-                          /*
-                          if (icon != null) ...[
-                            icon,
-                          ],
-                          if (trailingText != null) ...[
-                            Text(
-                              trailingText,
-                              style: const TextStyle(fontSize: 21.0),
-                              textAlign: TextAlign.right,
-                            )
-                          ]
-                          */
-                        ]),
-                      ),
-                      /*
-        if (widget.user.displayValue != DisplayValue.lastPrice) ...[
-          SizedBox(
-              height: barChartSeriesList.first.data.length == 1
-                  ? 75
-                  : barChartSeriesList.first.data.length * 50,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                    10.0, 0, 10, 10), //EdgeInsets.zero
-                child: positionChart,
-              )),
-        ],
-        */
-                      buildDetailScrollView(
-                          todayIcon,
-                          todayReturnText,
-                          todayReturnPercentText,
-                          totalIcon,
-                          totalReturnText,
-                          totalReturnPercentText)
-                    ])),
-                    if (
-                        //widget.user.displayValue != DisplayValue.lastPrice &&
-                        barChartSeriesList.isNotEmpty &&
-                            barChartSeriesList.first.data.isNotEmpty) ...[
-                      SliverToBoxAdapter(
-                          child: SizedBox(
-                              height: barChartSeriesList.first.data.length == 1
-                                  ? 75
-                                  : barChartSeriesList.first.data.length *
-                                      30, //  * 25 + 50
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    10.0, 0, 10, 10), //EdgeInsets.zero
-                                child: positionChart,
-                              )))
-                    ],
-                    SliverList(
-                      // delegate: SliverChildListDelegate(widgets),
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          return _buildPositionRow(filteredPositions, index);
-                        },
-                        // Or, uncomment the following line:
-                        childCount: filteredPositions.length,
-                      ),
-                    ),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    ))
-                  ]));
             }),
             Consumer<OptionPositionStore>(
                 builder: (context, optionPositionStore, child) {
@@ -2095,30 +1816,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           optionSymbolFilters.contains(element.symbol)))
                   .toList();
 
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    //if (filteredOptionAggregatePositions.isNotEmpty) ...[
-                    /*
-                      const SliverToBoxAdapter(
-                          child: SizedBox(
-                        height: 25.0,
-                      )),
-                      */
-                    OptionPositionsRowWidget(
-                      widget.user,
-                      widget.service,
-                      filteredOptionAggregatePositions,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                    ),
-                    //],
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    ))
-                  ]));
+              return OptionPositionsWidget(
+                widget.user,
+                widget.service,
+                filteredOptionAggregatePositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+              );
             }),
             Consumer<ForexHoldingStore>(
               builder: (context, forexHoldingStore, child) {
@@ -2144,371 +1849,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
                     .reversed
                     .toList();
-                /*
-                double? value = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings);
-                String? trailingText;
-                Icon? icon;
-                if (value != null) {
-                  trailingText = widget.user.getDisplayText(value);
-                  icon = widget.user.getDisplayIcon(value);
-                }
-                */
-
-                List<charts.Series<dynamic, String>> barChartSeriesList = [];
-                var data = [];
-                for (var position in filteredHoldings) {
-                  if (position.quoteObj != null) {
-                    double? value = widget.user.getCryptoDisplayValue(position);
-                    String? trailingText = widget.user.getDisplayText(value);
-                    data.add({
-                      'domain': position.currencyCode,
-                      'measure': value,
-                      'label': trailingText
-                    });
-                  }
-                }
-                barChartSeriesList.add(charts.Series<dynamic, String>(
-                  id: widget.user.displayValue.toString(),
-                  data: data,
-                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                      Theme.of(context).colorScheme.primary),
-                  domainFn: (var d, _) => d['domain'],
-                  measureFn: (var d, _) => d['measure'],
-                  labelAccessorFn: (d, _) => d['label'],
-                ));
-                var brightness = MediaQuery.of(context).platformBrightness;
-                var axisLabelColor = charts.MaterialPalette.gray.shade500;
-                if (brightness == Brightness.light) {
-                  axisLabelColor = charts.MaterialPalette.gray.shade700;
-                }
-                var primaryMeasureAxis = charts.NumericAxisSpec(
-                  //showAxisLine: true,
-                  //renderSpec: charts.GridlineRendererSpec(),
-                  renderSpec: charts.GridlineRendererSpec(
-                      labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-                  //renderSpec: charts.NoneRenderSpec(),
-                  //tickProviderSpec: charts.BasicNumericTickProviderSpec(),
-                  //tickProviderSpec: charts.NumericEndPointsTickProviderSpec(),
-                  //tickProviderSpec:
-                  //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
-                  //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
-                );
-                if (widget.user.displayValue ==
-                        DisplayValue.todayReturnPercent ||
-                    widget.user.displayValue ==
-                        DisplayValue.totalReturnPercent) {
-                  var positionDisplayValues = filteredHoldings
-                      .map((e) => widget.user.getCryptoDisplayValue(e));
-                  var minimum = 0.0;
-                  var maximum = 0.0;
-                  if (positionDisplayValues.isNotEmpty) {
-                    minimum = positionDisplayValues.reduce(math.min);
-                    if (minimum < 0) {
-                      minimum -= 0.05;
-                    } else if (minimum > 0) {
-                      minimum = 0;
-                    }
-                    maximum = positionDisplayValues.reduce(math.max);
-                    if (maximum > 0) {
-                      maximum += 0.05;
-                    } else if (maximum < 0) {
-                      maximum = 0;
-                    }
-                  }
-
-                  primaryMeasureAxis = charts.PercentAxisSpec(
-                      viewport: charts.NumericExtents(minimum, maximum),
-                      renderSpec: charts.GridlineRendererSpec(
-                          labelStyle:
-                              charts.TextStyleSpec(color: axisLabelColor)));
-                }
-                var positionChart = BarChart(barChartSeriesList,
-                    renderer: charts.BarRendererConfig(
-                        barRendererDecorator:
-                            charts.BarLabelDecorator<String>(),
-                        cornerStrategy: const charts.ConstCornerStrategy(10)),
-                    primaryMeasureAxis: primaryMeasureAxis,
-                    barGroupingType: null,
-                    domainAxis: charts.OrdinalAxisSpec(
-                        renderSpec: charts.SmallTickRendererSpec(
-                            labelStyle:
-                                charts.TextStyleSpec(color: axisLabelColor))),
-                    onSelected: (dynamic historical) {
-                  debugPrint(historical
-                      .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-                  var holding = filteredHoldings.firstWhere((element) =>
-                      element.currencyCode == historical['domain']);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => ForexInstrumentWidget(
-                                widget.user,
-                                widget.service,
-                                //account!,
-                                holding,
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                              )));
-                });
-
-                double? marketValue = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings,
-                        displayValue: DisplayValue.marketValue);
-                String? marketValueText = widget.user.getDisplayText(
-                    marketValue!,
-                    displayValue: DisplayValue.marketValue);
-
-                double? totalReturn = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings,
-                        displayValue: DisplayValue.totalReturn);
-                String? totalReturnText = widget.user.getDisplayText(
-                    totalReturn!,
-                    displayValue: DisplayValue.totalReturn);
-
-                double? totalReturnPercent = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings,
-                        displayValue: DisplayValue.totalReturnPercent);
-                String? totalReturnPercentText = widget.user.getDisplayText(
-                    totalReturnPercent!,
-                    displayValue: DisplayValue.totalReturnPercent);
-
-                double? todayReturn = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings,
-                        displayValue: DisplayValue.todayReturn);
-                String? todayReturnText = widget.user.getDisplayText(
-                    todayReturn!,
-                    displayValue: DisplayValue.todayReturn);
-
-                double? todayReturnPercent = widget.user
-                    .getCryptoAggregateDisplayValue(filteredHoldings,
-                        displayValue: DisplayValue.todayReturnPercent);
-                String? todayReturnPercentText = widget.user.getDisplayText(
-                    todayReturnPercent!,
-                    displayValue: DisplayValue.todayReturnPercent);
-
-                Icon todayIcon =
-                    widget.user.getDisplayIcon(todayReturn, size: 27.0);
-                Icon totalIcon =
-                    widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
                 return SliverToBoxAdapter(
                     child: ShrinkWrappingViewport(
                         offset: ViewportOffset.zero(),
                         slivers: [
-                      SliverToBoxAdapter(
-                          child: Column(children: [
-                        ListTile(
-                            title: const Text(
-                              "Cryptos",
-                              style: TextStyle(fontSize: 19.0),
-                            ),
-                            subtitle: Text(
-                                "${formatCompactNumber.format(filteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
-                            trailing: Wrap(spacing: 8, children: [
-                              Text(
-                                marketValueText,
-                                style: const TextStyle(fontSize: 21.0),
-                                textAlign: TextAlign.right,
-                              )
-                              /*
-                              if (icon != null) ...[
-                                icon,
-                              ],
-                              if (trailingText != null) ...[
-                                Text(
-                                  trailingText,
-                                  style: const TextStyle(fontSize: 21.0),
-                                  textAlign: TextAlign.right,
-                                )
-                              ]
-                              */
-                            ])),
-                        SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 5),
-                                child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      /*
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                Text(marketValueText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                                //Container(height: 5),
-                                                //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                                const Text("Market Value",
-                                                    style: TextStyle(
-                                                        fontSize:
-                                                            summaryLabelFontSize)),
-                                              ]),
-                                        ),
-                                        */
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Wrap(spacing: 8, children: [
-                                                todayIcon,
-                                                Text(todayReturnText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize))
-                                              ]),
-                                              /*
-                                              Text(todayReturnText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                                          */
-                                              /*
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                              const Text("Return Today",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(todayReturnPercentText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                              const Text("Return Today %",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Wrap(spacing: 8, children: [
-                                                totalIcon,
-                                                Text(totalReturnText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize))
-                                              ]),
-                                              /*
-                                              Text(totalReturnText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-                                    */
-                                              /*
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                                              //Container(height: 5),
-                                              //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                              const Text("Total Return",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(
-                                            summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: <Widget>[
-                                              Text(totalReturnPercentText,
-                                                  style: const TextStyle(
-                                                      fontSize:
-                                                          summaryValueFontSize)),
-
-                                              //Container(height: 5),
-                                              //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                              const Text("Total Return %",
-                                                  style: TextStyle(
-                                                      fontSize:
-                                                          summaryLabelFontSize)),
-                                            ]),
-                                      ),
-                                    ])))
-                      ])),
-                      if (widget.user.displayValue != DisplayValue.lastPrice &&
-                          barChartSeriesList.isNotEmpty &&
-                          barChartSeriesList.first.data.isNotEmpty) ...[
-                        SliverToBoxAdapter(
-                            child: SizedBox(
-                                height: barChartSeriesList.first.data.length ==
-                                        1
-                                    ? 75
-                                    : barChartSeriesList.first.data.length * 50,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      10.0, 0, 10, 10), //EdgeInsets.zero
-                                  child: positionChart,
-                                )))
-                      ],
-                      SliverList(
-                        // delegate: SliverChildListDelegate(widgets),
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext context, int index) {
-                            return _buildCryptoRow(filteredHoldings, index);
-                          },
-                          // Or, uncomment the following line:
-                          childCount: filteredHoldings.length,
-                        ),
-                      ),
+                      //if (filteredOptionAggregatePositions.isNotEmpty) ...[
+                      /*
                       const SliverToBoxAdapter(
                           child: SizedBox(
                         height: 25.0,
-                      ))
+                      )),
+                      */
+                      ForexPositionsWidget(
+                        widget.user,
+                        widget.service,
+                        filteredHoldings,
+                        showList: false,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      ),
+                      //],
+                      // const SliverToBoxAdapter(
+                      //     child: SizedBox(
+                      //   height: 25.0,
+                      // ))
                     ]));
               },
-            ),
-            /*
-            Consumer<PortfolioStore>(builder: (context, portfolioStore, child) {
-              return SliverToBoxAdapter(
-                  child: ShrinkWrappingViewport(
-                      offset: ViewportOffset.zero(),
-                      slivers: [
-                    SliverToBoxAdapter(
-                        child: Column(children: const [
-                      ListTile(
-                        title: Text(
-                          "Portfolios",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                      )
-                    ])),
-                    portfoliosWidget(portfolioStore.items),
-                    const SliverToBoxAdapter(
-                        child: SizedBox(
-                      height: 25.0,
-                    ))
-                  ]));
-            }),
-            */
-            // TODO: Introduce web banner
+            ), // TODO: Introduce web banner
             if (!kIsWeb) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
               SliverToBoxAdapter(child: AdBannerWidget()),
             ],
             const SliverToBoxAdapter(
@@ -3119,27 +2492,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     chainSymbols = optionPositionStore.symbols;
     chainSymbols.sort((a, b) => (a.compareTo(b)));
 
-    double portfolioValue = 0.0;
-    double stockAndOptionsEquityPercent = 0.0;
-    double optionEquityPercent = 0.0;
-    double positionEquityPercent = 0.0;
-    double portfolioCash = 0.0;
-    double cashPercent = 0.0;
-    double cryptoPercent = 0.0;
-    if (account != null) {
-      portfolioCash = account.portfolioCash ?? 0;
-    }
-    if (portfolioStore.items.isNotEmpty) {
-      portfolioValue =
-          (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-      stockAndOptionsEquityPercent =
-          portfolioStore.items[0].marketValue! / portfolioValue;
-      optionEquityPercent = optionPositionStore.equity / portfolioValue;
-      positionEquityPercent = stockPositionStore.equity / portfolioValue;
-      cashPercent = portfolioCash / portfolioValue;
-      cryptoPercent = forexHoldingStore.equity / portfolioValue;
-    }
-
     // double changeInPeriod = 0;
     // double changePercentInPeriod = 0;
     // if (portfolioStore.items.isNotEmpty &&
@@ -3233,46 +2585,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //             ]),
       //       ]
       //     ]),
-      flexibleSpace:
-          // FlexibleSpaceBar(
-          //       title: _buildExpandedSliverAppBarTitle(
-          //               userInfo,
-          //               portfolioValue,
-          //               stockAndOptionsEquityPercent,
-          //               portfolioStore.items,
-          //               optionEquityPercent,
-          //               portfolioStore,
-          //               optionPositionStore,
-          //               stockPositionStore,
-          //               forexHoldingStore,
-          //               positionEquityPercent,
-          //               cryptoPercent,
-          //               cashPercent,
-          //               portfolioCash)),
-          LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-        //var top = constraints.biggest.height;
-        //debugPrint(top.toString());
-        //debugPrint(kToolbarHeight.toString());
-
-        // List<PieChartData> data = [];
-        // if (portfolioStore.items.isNotEmpty) {
-        //   data.add(PieChartData(
-        //       'Options\n\$${formatCompactNumber.format(optionPositionStore.equity)}',
-        //       optionPositionStore.equity)); // / portfolioValue
-        //   data.add(PieChartData(
-        //       'Stocks\n\$${formatCompactNumber.format(stockPositionStore.equity)}',
-        //       stockPositionStore.equity)); // / portfolioValue
-        //   data.add(PieChartData(
-        //       'Crypto\n\$${formatCompactNumber.format(forexHoldingStore.equity)}',
-        //       forexHoldingStore.equity)); // / portfolioValue
-        //   double portfolioCash = account != null ? account.portfolioCash! : 0;
-        //   data.add(PieChartData(
-        //       'Cash\n\$${formatCompactNumber.format(portfolioCash)}',
-        //       portfolioCash)); // / portfolioValue
-        // }
-        // data.sort((a, b) => b.value.compareTo(a.value));
-
+      flexibleSpace: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
         final settings = context
             .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
 
@@ -3291,6 +2605,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //         Theme.of(context).colorScheme.primary),
         //     4);
         return FlexibleSpaceBar(
+            expandedTitleScale: 1.25,
             // titlePadding:
             //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //centerTitle: true,
@@ -3342,20 +2657,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             title: Opacity(
                 //duration: Duration(milliseconds: 300),
                 opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                child: _buildExpandedSliverAppBarTitle(
-                    userInfo,
-                    portfolioValue,
-                    stockAndOptionsEquityPercent,
-                    portfolioStore.items,
-                    optionEquityPercent,
-                    portfolioStore,
-                    optionPositionStore,
-                    stockPositionStore,
-                    forexHoldingStore,
-                    positionEquityPercent,
-                    cryptoPercent,
-                    cashPercent,
-                    portfolioCash)));
+                child: //Container()
+                    SingleChildScrollView(
+                        child: _buildExpandedSliverAppBarTitle(
+                            userInfo,
+                            portfolioStore.items,
+                            portfolioStore,
+                            optionPositionStore,
+                            stockPositionStore,
+                            forexHoldingStore))));
       }),
       actions: <Widget>[
         IconButton(
@@ -3417,20 +2727,40 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     return sliverAppBar;
   }
 
-  SingleChildScrollView _buildExpandedSliverAppBarTitle(
+  Widget _buildExpandedSliverAppBarTitle(
       UserInfo? userInfo,
-      double portfolioValue,
-      double stockAndOptionsEquityPercent,
       List<Portfolio> portfolios,
-      double optionEquityPercent,
       PortfolioStore portfolioStore,
       OptionPositionStore optionPositionStore,
       InstrumentPositionStore stockPositionStore,
-      ForexHoldingStore forexHoldingStore,
-      double positionEquityPercent,
-      double cryptoPercent,
-      double cashPercent,
-      double portfolioCash) {
+      ForexHoldingStore forexHoldingStore) {
+    const labelFontSize = 14.0;
+    const percentFontSize = 15.0;
+    const valueFontSize = 16.0;
+    const labelWidth = 75.0;
+    const percentWidth = 60.0;
+    const valueWidth = 100.0;
+
+    double portfolioValue = 0.0;
+    // double stockAndOptionsEquityPercent = 0.0;
+    double optionEquityPercent = 0.0;
+    double positionEquityPercent = 0.0;
+    double portfolioCash = 0.0;
+    double cashPercent = 0.0;
+    double cryptoPercent = 0.0;
+    if (account != null) {
+      portfolioCash = account!.portfolioCash ?? 0;
+    }
+    if (portfolioStore.items.isNotEmpty) {
+      portfolioValue =
+          (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+      // stockAndOptionsEquityPercent =
+      //     portfolioStore.items[0].marketValue! / portfolioValue;
+      optionEquityPercent = optionPositionStore.equity / portfolioValue;
+      positionEquityPercent = stockPositionStore.equity / portfolioValue;
+      cashPercent = portfolioCash / portfolioValue;
+      cryptoPercent = forexHoldingStore.equity / portfolioValue;
+    }
     /*
     List<PieChartData> data = [];
     if (portfolioStore.items.isNotEmpty) {
@@ -3450,168 +2780,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
     data.sort((a, b) => b.value.compareTo(a.value));
     */
-    return SingleChildScrollView(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Column(
           //mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            /*
-            Row(
-              children: [
-                SizedBox(
-                    height: 180,
-                    width: 180,
-                    child: Padding(
-                      //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                      padding: const EdgeInsets.all(10.0),
-                      child: PieChart(
-                        [
-                          charts.Series<PieChartData, String>(
-                            id: 'Portfolio Breakdown',
-                            //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-                            domainFn: (PieChartData val, index) => val.label,
-                            measureFn: (PieChartData val, index) => val.value,
-                            data: data,
-                          ),
-                        ],
-                        renderer: new charts.ArcRendererConfig(
-                            arcWidth: 60,
-                            arcRendererDecorators: [
-                              new charts.ArcLabelDecorator()
-                            ]),
-                        onSelected: (_) {},
-                      ),
-                    )),
-              ],
-            ),
-            */
-            /*Row(children: const [SizedBox(height: 68)]),*/
-            /*
-            Wrap(
-                crossAxisAlignment: WrapCrossAlignment.end,
-                //runAlignment: WrapAlignment.end,
-                //alignment: WrapAlignment.end,
-                spacing: 10,
-                //runSpacing: 5,
-                children: [
-                  Text(
-                    user!.profileName,
-                    //style: const TextStyle(fontSize: 20.0)
-                  ),
-                  Text(
-                    formatCurrency.format(portfolioValue),
-                    //style: const TextStyle(fontSize: 20.0),
-                    //textAlign: TextAlign.right
-                  ),
-                ]),
-                */
-            /*
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Container(
-                  width: 10,
-                ),
-                Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
-                      SizedBox(
-                        width: 80,
-                        child: Text(
-                          "Portfolio Value",
-                          style: TextStyle(fontSize: 10.0),
-                        ),
-                      )
-                    ]),
-                Container(
-                  width: 3,
-                ),
-                Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: const [
-                      SizedBox(
-                          width: 39,
-                          child: Text("", //${formatPercentage.format(1)}
-                              style: TextStyle(fontSize: 10.0),
-                              textAlign: TextAlign.right))
-                    ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: 65,
-                    child: Text(formatCurrency.format(portfolioValue),
-                        style: const TextStyle(fontSize: 12.0),
-                        textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
-              ],
-            ),
-            */
-            /*
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Container(
-                  width: 10,
-                ),
-                Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: const [
-                      SizedBox(
-                        width: 80,
-                        child: Text(
-                          "Stocks & Options",
-                          style: TextStyle(fontSize: 10.0),
-                        ),
-                      )
-                    ]),
-                Container(
-                  width: 3,
-                ),
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: 40,
-                      child: Text(
-                          formatPercentage.format(stockAndOptionsEquityPercent),
-                          style: const TextStyle(fontSize: 11.0),
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: 75,
-                    child: Text(
-                        formatCurrency.format(portfolios[0].marketValue),
-                        style: const TextStyle(fontSize: 13.0),
-                        textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
-              ],
-            ),
-            */
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Container(
-                  width: 10,
-                ),
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
                   SizedBox(
-                    width: 64,
+                    width: labelWidth,
                     child: Text(
                       "Stocks",
                       style: TextStyle(
-                          fontSize: 11.0,
+                          fontSize: labelFontSize,
                           color: Theme.of(context).appBarTheme.foregroundColor),
                     ),
                   )
@@ -3623,11 +2809,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 50,
+                      width: percentWidth,
                       child: Text(
                           formatPercentage.format(positionEquityPercent),
                           style: TextStyle(
-                              fontSize: 12.0,
+                              fontSize: percentFontSize,
                               color: Theme.of(context)
                                   .appBarTheme
                                   .foregroundColor),
@@ -3637,18 +2823,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   width: 5,
                 ),
                 SizedBox(
-                    width: 75,
+                    width: valueWidth,
                     child: Text(
                         formatCurrency.format(stockPositionStore.equity),
                         // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
                         style: TextStyle(
-                            fontSize: 13.0,
+                            fontSize: valueFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
               ],
             ),
             Row(
@@ -3656,16 +2839,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Container(
-                  width: 10,
-                ),
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
                   SizedBox(
-                    width: 64,
+                    width: labelWidth,
                     child: Text(
                       "Options",
                       style: TextStyle(
-                          fontSize: 11.0,
+                          fontSize: labelFontSize,
                           color: Theme.of(context).appBarTheme.foregroundColor),
                     ),
                   )
@@ -3677,10 +2857,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 50,
+                      width: percentWidth,
                       child: Text(formatPercentage.format(optionEquityPercent),
                           style: TextStyle(
-                              fontSize: 12.0,
+                              fontSize: percentFontSize,
                               color: Theme.of(context)
                                   .appBarTheme
                                   .foregroundColor),
@@ -3691,17 +2871,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   width: 5,
                 ),
                 SizedBox(
-                    width: 75,
+                    width: valueWidth,
                     child: Text(
                         formatCurrency.format(optionPositionStore.equity),
                         style: TextStyle(
-                            fontSize: 13.0,
+                            fontSize: valueFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
               ],
             ),
             Row(
@@ -3709,16 +2886,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Container(
-                  width: 10,
-                ),
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
                   SizedBox(
-                      width: 64,
+                      width: labelWidth,
                       child: Text(
                         "Crypto",
                         style: TextStyle(
-                            fontSize: 11.0,
+                            fontSize: labelFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                       )),
@@ -3730,10 +2904,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 50,
+                      width: percentWidth,
                       child: Text(formatPercentage.format(cryptoPercent),
                           style: TextStyle(
-                              fontSize: 12.0,
+                              fontSize: percentFontSize,
                               color: Theme.of(context)
                                   .appBarTheme
                                   .foregroundColor),
@@ -3743,16 +2917,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   width: 5,
                 ),
                 SizedBox(
-                    width: 75,
+                    width: valueWidth,
                     child: Text(formatCurrency.format(forexHoldingStore.equity),
                         style: TextStyle(
-                            fontSize: 13.0,
+                            fontSize: valueFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
               ],
             ),
             Row(
@@ -3760,16 +2931,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Container(
-                  width: 10,
-                ),
                 Column(mainAxisAlignment: MainAxisAlignment.start, children: [
                   SizedBox(
-                      width: 64,
+                      width: labelWidth,
                       child: Text(
                         "Cash",
                         style: TextStyle(
-                            fontSize: 11.0,
+                            fontSize: labelFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                       )),
@@ -3781,10 +2949,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 */
                 Column(mainAxisAlignment: MainAxisAlignment.end, children: [
                   SizedBox(
-                      width: 50,
+                      width: percentWidth,
                       child: Text(formatPercentage.format(cashPercent),
                           style: TextStyle(
-                              fontSize: 12.0,
+                              fontSize: percentFontSize,
                               color: Theme.of(context)
                                   .appBarTheme
                                   .foregroundColor),
@@ -3794,16 +2962,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   width: 5,
                 ),
                 SizedBox(
-                    width: 75,
+                    width: valueWidth,
                     child: Text(formatCurrency.format(portfolioCash),
                         style: TextStyle(
-                            fontSize: 13.0,
+                            fontSize: valueFontSize,
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor),
                         textAlign: TextAlign.right)),
-                Container(
-                  width: 10,
-                ),
               ],
             ),
           ]),
@@ -3914,6 +3079,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   showSettings() {
     showModalBottomSheet<void>(
         context: context,
+        showDragHandle: true,
         //isScrollControlled: true,
         //useRootNavigator: true,
         //constraints: const BoxConstraints(maxHeight: 200),
@@ -3942,260 +3108,133 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
   }
 
-  Widget _buildPositionRow(List<InstrumentPosition> positions, int index) {
-    var instrument = positions[index].instrumentObj;
+  // Widget _buildPositionRow(List<InstrumentPosition> positions, int index) {
+  //   var instrument = positions[index].instrumentObj;
 
-    double value = widget.user.getPositionDisplayValue(positions[index]);
-    String trailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
-        ? null
-        : widget.user.getDisplayIcon(value);
+  //   double value = widget.user.getPositionDisplayValue(positions[index]);
+  //   String trailingText = widget.user.getDisplayText(value);
+  //   Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
+  //           widget.user.displayValue == DisplayValue.marketValue)
+  //       ? null
+  //       : widget.user.getDisplayIcon(value);
 
-    double? totalReturn = widget.user.getPositionDisplayValue(positions[index],
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
-        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
+  //   double? totalReturn = widget.user.getPositionDisplayValue(positions[index],
+  //       displayValue: DisplayValue.totalReturn);
+  //   String? totalReturnText = widget.user
+  //       .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getPositionDisplayValue(
-        positions[index],
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
-        totalReturnPercent,
-        displayValue: DisplayValue.totalReturnPercent);
+  //   double? totalReturnPercent = widget.user.getPositionDisplayValue(
+  //       positions[index],
+  //       displayValue: DisplayValue.totalReturnPercent);
+  //   String? totalReturnPercentText = widget.user.getDisplayText(
+  //       totalReturnPercent,
+  //       displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getPositionDisplayValue(positions[index],
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
-        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
+  //   double? todayReturn = widget.user.getPositionDisplayValue(positions[index],
+  //       displayValue: DisplayValue.todayReturn);
+  //   String? todayReturnText = widget.user
+  //       .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getPositionDisplayValue(
-        positions[index],
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
-        todayReturnPercent,
-        displayValue: DisplayValue.todayReturnPercent);
+  //   double? todayReturnPercent = widget.user.getPositionDisplayValue(
+  //       positions[index],
+  //       displayValue: DisplayValue.todayReturnPercent);
+  //   String? todayReturnPercentText = widget.user.getDisplayText(
+  //       todayReturnPercent,
+  //       displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
+  //   Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
+  //   Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
-    return Card(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        /*
-        leading: CircleAvatar(
-            child: Text(formatCompactNumber.format(positions[index].quantity!),
-                style: const TextStyle(fontSize: 17))),
-                */
-        leading: instrument != null
-            ? Hero(
-                tag: 'logo_${instrument.symbol}${instrument.id}',
-                child: instrument.logoUrl != null
-                    ? Image.network(
-                        instrument.logoUrl!,
-                        width: 50,
-                        height: 50,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          RobinhoodService.removeLogo(instrument);
-                          return CircleAvatar(
-                              radius: 25,
-                              // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
-                              //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              child: Text(instrument.symbol,
-                                  overflow: TextOverflow.fade,
-                                  softWrap: false));
-                        },
-                      )
-                    : CircleAvatar(
-                        radius: 25,
-                        // foregroundColor: Theme.of(context).colorScheme.primary,
-                        child: Text(instrument.symbol,
-                            overflow: TextOverflow.fade, softWrap: false)))
-            : null,
-        title: Text(
-          instrument != null ? instrument.simpleName ?? instrument.name : "",
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text("${positions[index].quantity} shares"),
-        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-        /*
-        subtitle: Text(
-            '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-            */
-        trailing: //GestureDetector(child:
-            Wrap(spacing: 8, children: [
-          if (icon != null) ...[
-            icon,
-          ],
-          Text(
-            trailingText,
-            style: const TextStyle(fontSize: 21.0),
-            textAlign: TextAlign.right,
-          )
-        ]),
-        //, onTap: () => showSettings()),
-        // isThreeLine: true,
-        onTap: () {
-          /* For navigation within this tab, uncomment
-          widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-              builder: (context) => InstrumentWidget(ru, accounts!.first,
-                  positions[index].instrumentObj as Instrument,
-                  position: positions[index])));
-                  */
-          var futureFromInstrument = Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
-                        widget.user,
-                        widget.service,
-                        instrument!,
-                        heroTag: 'logo_${instrument.symbol}${instrument.id}',
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      )));
-          // Refresh in case settings were updated.
-          futureFromInstrument.then((value) => setState(() {}));
-        },
-      ),
-      if (widget.user.showPositionDetails) ...[
-        buildDetailScrollView(
-            todayIcon,
-            todayReturnText,
-            todayReturnPercentText,
-            totalIcon,
-            totalReturnText,
-            totalReturnPercentText)
-      ]
-    ]));
-  }
-
-  Widget _buildCryptoRow(List<ForexHolding> holdings, int index) {
-    double value = widget.user.getCryptoDisplayValue(holdings[index]);
-    String trailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
-        ? null
-        : widget.user.getDisplayIcon(value);
-
-    double? totalReturn = widget.user.getCryptoDisplayValue(holdings[index],
-        displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
-        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
-
-    double? totalReturnPercent = widget.user.getCryptoDisplayValue(
-        holdings[index],
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
-        totalReturnPercent,
-        displayValue: DisplayValue.totalReturnPercent);
-
-    double? todayReturn = widget.user.getCryptoDisplayValue(holdings[index],
-        displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
-        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
-
-    double? todayReturnPercent = widget.user.getCryptoDisplayValue(
-        holdings[index],
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
-        todayReturnPercent,
-        displayValue: DisplayValue.todayReturnPercent);
-
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
-
-    return Card(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        leading: Hero(
-            tag: 'logo_crypto_${holdings[index].currencyCode}',
-            child: CircleAvatar(
-                radius: 25,
-                // foregroundColor: Theme.of(context).colorScheme.primary,
-                child: Text(holdings[index].currencyCode,
-                    overflow: TextOverflow.fade, softWrap: false))),
-
-        /*
-        leading: CircleAvatar(
-            child: Icon(
-                holdings[index].gainLossPerShare > 0
-                    ? Icons.trending_up
-                    : (holdings[index].gainLossPerShare < 0
-                        ? Icons.trending_down
-                        : Icons.trending_flat),
-                color: (holdings[index].gainLossPerShare > 0
-                    ? Colors.green
-                    : (holdings[index].gainLossPerShare < 0
-                        ? Colors.red
-                        : Colors.grey)),
-                size: 36.0)),
-                */
-        title: Text(holdings[index].currencyName),
-        subtitle: Text("${holdings[index].quantity} shares"),
-        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-        /*
-        subtitle: Text(
-            '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-            */
-        trailing: Wrap(spacing: 8, children: [
-          if (icon != null) ...[
-            icon,
-          ],
-          //if (trailingText != null) ...[
-          Text(
-            trailingText,
-            style: const TextStyle(fontSize: 21.0),
-            textAlign: TextAlign.right,
-          )
-          //]
-        ]),
-        // isThreeLine: true,
-        onTap: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => ForexInstrumentWidget(
-                        widget.user,
-                        widget.service,
-                        //account!,
-                        holdings[index],
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                      )));
-          /*
-          showDialog<String>(
-              context: context,
-              builder: (BuildContext context) => AlertDialog(
-                    title: const Text('Alert'),
-                    content: const Text('This feature is not implemented.'),
-                    actions: <Widget>[
-                      /*
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, 'Cancel'),
-                      child: const Text('Cancel'),
-                    ),
-                    */
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, 'OK'),
-                        child: const Text('OK'),
-                      ),
-                    ],
-                  ));
-                  */
-        },
-      ),
-      if (widget.user.showPositionDetails) ...[
-        buildDetailScrollView(
-            todayIcon,
-            todayReturnText,
-            todayReturnPercentText,
-            totalIcon,
-            totalReturnText,
-            totalReturnPercentText)
-      ]
-    ]));
-  }
+  //   return Card(
+  //       child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //     ListTile(
+  //       /*
+  //       leading: CircleAvatar(
+  //           child: Text(formatCompactNumber.format(positions[index].quantity!),
+  //               style: const TextStyle(fontSize: 17))),
+  //               */
+  //       leading: instrument != null
+  //           ? Hero(
+  //               tag: 'logo_${instrument.symbol}${instrument.id}',
+  //               child: instrument.logoUrl != null
+  //                   ? Image.network(
+  //                       instrument.logoUrl!,
+  //                       width: 50,
+  //                       height: 50,
+  //                       errorBuilder: (BuildContext context, Object exception,
+  //                           StackTrace? stackTrace) {
+  //                         RobinhoodService.removeLogo(instrument);
+  //                         return CircleAvatar(
+  //                             radius: 25,
+  //                             // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
+  //                             //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+  //                             child: Text(instrument.symbol,
+  //                                 overflow: TextOverflow.fade,
+  //                                 softWrap: false));
+  //                       },
+  //                     )
+  //                   : CircleAvatar(
+  //                       radius: 25,
+  //                       // foregroundColor: Theme.of(context).colorScheme.primary,
+  //                       child: Text(instrument.symbol,
+  //                           overflow: TextOverflow.fade, softWrap: false)))
+  //           : null,
+  //       title: Text(
+  //         instrument != null ? instrument.simpleName ?? instrument.name : "",
+  //         overflow: TextOverflow.ellipsis,
+  //       ),
+  //       subtitle: Text("${positions[index].quantity} shares"),
+  //       //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+  //       /*
+  //       subtitle: Text(
+  //           '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+  //           */
+  //       trailing: //GestureDetector(child:
+  //           Wrap(spacing: 8, children: [
+  //         if (icon != null) ...[
+  //           icon,
+  //         ],
+  //         Text(
+  //           trailingText,
+  //           style: const TextStyle(fontSize: 21.0),
+  //           textAlign: TextAlign.right,
+  //         )
+  //       ]),
+  //       //, onTap: () => showSettings()),
+  //       // isThreeLine: true,
+  //       onTap: () {
+  //         /* For navigation within this tab, uncomment
+  //         widget.navigatorKey!.currentState!.push(MaterialPageRoute(
+  //             builder: (context) => InstrumentWidget(ru, accounts!.first,
+  //                 positions[index].instrumentObj as Instrument,
+  //                 position: positions[index])));
+  //                 */
+  //         var futureFromInstrument = Navigator.push(
+  //             context,
+  //             MaterialPageRoute(
+  //                 builder: (context) => InstrumentWidget(
+  //                       widget.user,
+  //                       widget.service,
+  //                       instrument!,
+  //                       heroTag: 'logo_${instrument.symbol}${instrument.id}',
+  //                       analytics: widget.analytics,
+  //                       observer: widget.observer,
+  //                     )));
+  //         // Refresh in case settings were updated.
+  //         futureFromInstrument.then((value) => setState(() {}));
+  //       },
+  //     ),
+  //     if (widget.user.showPositionDetails) ...[
+  //       buildDetailScrollView(
+  //           todayIcon,
+  //           todayReturnText,
+  //           todayReturnPercentText,
+  //           totalIcon,
+  //           totalReturnText,
+  //           totalReturnPercentText)
+  //     ]
+  //   ]));
+  // }
 
   /*
   void _generateCsvFile() async {

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
@@ -80,13 +81,21 @@ class MyApp extends StatelessWidget {
       // Platform.isAndroid
       ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.light(
-              primary: Colors.purple, secondary: Colors.indigoAccent)
+              primary: Colors.purple,
+              secondary:
+                  // CupertinoColors.systemMint
+                  CupertinoColors.systemGrey4
+              // Colors.indigoAccent
+              )
           : lightDynamic ?? const ColorScheme.light();
       // primary: Color.fromRGBO(156, 39, 176, 0.7),
       // secondary: Color.fromRGBO(83, 109, 254, 0.7))
       ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.dark(
-              primary: Colors.purple, secondary: Colors.indigoAccent)
+              primary: Colors.purple, secondary: CupertinoColors.systemGrey
+              // CupertinoColors.systemMint
+              // Colors.indigoAccent
+              )
           : darkDynamic ?? const ColorScheme.dark();
       ThemeData lightTheme = ThemeData(
           colorScheme: colorScheme

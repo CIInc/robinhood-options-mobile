@@ -63,25 +63,20 @@ class BarChartState extends State<BarChart> {
             type: charts.SelectionModelType.info,
             changedListener: _onSelectionChanged)
       ],
-      /*
-      behaviors: [
-        charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
-        charts.LinePointHighlighter(
-            showHorizontalFollowLine:
-                charts.LinePointHighlighterFollowLineType.none,
-            showVerticalFollowLine:
-                charts.LinePointHighlighterFollowLineType.nearest,
-            dashPattern: const []),
-        //charts.InitialSelection(selectedDataConfig: [
-        //  charts.SeriesDatumConfig<DateTime>(
-        //      'Adjusted Equity', widget.closeDate)
-        //]),
-        //charts.SeriesLegend(
-        //  position: charts.BehaviorPosition.top,
-        //  defaultHiddenSeries: widget.hiddenSeries,
-        //),
-      ],
-            */
+      // behaviors: [
+      // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
+      // charts.LinePointHighlighter(
+      //     showHorizontalFollowLine:
+      //         charts.LinePointHighlighterFollowLineType.none,
+      //     showVerticalFollowLine:
+      //         charts.LinePointHighlighterFollowLineType.nearest,
+      //     dashPattern: const []),
+      //charts.InitialSelection(selectedDataConfig: [
+      //  charts.SeriesDatumConfig<DateTime>(
+      //      'Adjusted Equity', widget.closeDate)
+      //]),
+      // charts.SeriesLegend(),
+      // ],
     );
   }
 

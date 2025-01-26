@@ -155,6 +155,7 @@ class _ListsWidgetState extends State<ListsWidget>
                 onPressed: () {
                   showModalBottomSheet<void>(
                     context: context,
+                    showDragHandle: true
                     //constraints: BoxConstraints(maxHeight: 260),
                     builder: (BuildContext context) {
                       return Column(
@@ -162,7 +163,7 @@ class _ListsWidgetState extends State<ListsWidget>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ListTile(
-                            tileColor: Theme.of(context).colorScheme.primary,
+                            // tileColor: Theme.of(context).colorScheme.primary,
                             leading: const Icon(Icons.sort),
                             title: const Text(
                               "Sort Watch List",
@@ -259,6 +260,7 @@ class _ListsWidgetState extends State<ListsWidget>
               onPressed: () {
                 showModalBottomSheet<void>(
                   context: context,
+                  showDragHandle: true,
                   //constraints: BoxConstraints(maxHeight: 260),
                   builder: (BuildContext context) {
                     return Column(
@@ -266,7 +268,7 @@ class _ListsWidgetState extends State<ListsWidget>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ListTile(
-                          tileColor: Theme.of(context).colorScheme.primary,
+                          // tileColor: Theme.of(context).colorScheme.primary,
                           leading: const Icon(Icons.sort),
                           title: const Text(
                             "Sort Watch List",

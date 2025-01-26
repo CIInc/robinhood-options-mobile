@@ -140,6 +140,7 @@ class _ListWidgetState extends State<ListWidget>
                 onPressed: () {
                   showModalBottomSheet<void>(
                     context: context,
+                    showDragHandle: true,
                     //constraints: BoxConstraints(maxHeight: 260),
                     builder: (BuildContext context) {
                       return Column(
@@ -147,7 +148,7 @@ class _ListWidgetState extends State<ListWidget>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ListTile(
-                            tileColor: Theme.of(context).colorScheme.primary,
+                            // tileColor: Theme.of(context).colorScheme.primary,
                             leading: const Icon(Icons.sort),
                             title: const Text(
                               "Sort Watch List",
@@ -239,6 +240,7 @@ class _ListWidgetState extends State<ListWidget>
                             onPressed: () {
                               showModalBottomSheet<void>(
                                 context: context,
+                                showDragHandle: true,
                                 constraints:
                                     const BoxConstraints(maxHeight: 260),
                                 builder: (BuildContext context) {
@@ -248,9 +250,9 @@ class _ListWidgetState extends State<ListWidget>
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
-                                        tileColor: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        // tileColor: Theme.of(context)
+                                        //     .colorScheme
+                                        //     .primary,
                                         title: const Text(
                                           "Sort Watch List",
                                           style: TextStyle(fontSize: 19.0),

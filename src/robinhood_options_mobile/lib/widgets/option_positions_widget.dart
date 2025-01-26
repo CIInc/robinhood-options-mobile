@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -23,27 +24,23 @@ final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatNumber = NumberFormat("0.####");
 final formatCompactNumber = NumberFormat.compact();
 
-const totalValueFontSize = 22.0;
-
 const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;
 const greekEgdeInset = 10.0;
 
-const summaryValueFontSize = 18.0;
-const summaryLabelFontSize = 9.0;
-const summaryEgdeInset = 10.0;
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
 final ItemPositionsListener itemPositionListener =
     ItemPositionsListener.create();
     */
 
-class OptionPositionsRowWidget extends StatelessWidget {
-  const OptionPositionsRowWidget(
+class OptionPositionsWidget extends StatelessWidget {
+  const OptionPositionsWidget(
     this.user,
     this.service,
     //this.account,
     this.filteredOptionPositions, {
+    this.showList = true,
     super.key,
     required this.analytics,
     required this.observer,
@@ -53,6 +50,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final bool showList;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
 
@@ -121,7 +119,9 @@ class OptionPositionsRowWidget extends StatelessWidget {
         }
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: user.displayValue.toString(),
+        id: BrokerageUser.displayValueText(user.displayValue!),
+        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+            Theme.of(context).colorScheme.primary),
         data: data,
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['measure'],
@@ -157,7 +157,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
         });
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
-          id: user.displayValue.toString(),
+          id: BrokerageUser.displayValueText(user.displayValue!),
           data: data,
           colorFn: (_, __) => charts.ColorUtil.fromDartColor(
               Theme.of(context).colorScheme.primary),
@@ -273,10 +273,42 @@ class OptionPositionsRowWidget extends StatelessWidget {
                 //alignment: Alignment.centerLeft,
                 children: [
               ListTile(
-                title: const Text(
-                  "Options",
-                  style: TextStyle(fontSize: 19.0),
-                ),
+                title: Wrap(children: [
+                  const Text(
+                    "Options",
+                    style: TextStyle(fontSize: 19.0),
+                  ),
+                  if (!showList) ...[
+                    SizedBox(
+                      height: 28,
+                      child: IconButton(
+                        // iconSize: 16,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.chevron_right),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => Material(
+                                        child: CustomScrollView(slivers: [
+                                      SliverAppBar(
+                                        title: Text("Options"),
+                                        pinned: true,
+                                      ),
+                                      OptionPositionsWidget(
+                                        user,
+                                        service,
+                                        filteredOptionPositions,
+                                        analytics: analytics,
+                                        observer: observer,
+                                      )
+                                    ]))),
+                          );
+                        },
+                      ),
+                    )
+                  ]
+                ]),
                 subtitle: Text(
                     "${formatCompactNumber.format(filteredOptionPositions.length)} positions, ${formatCompactNumber.format(contracts)} contracts${groupedOptionAggregatePositions.length > 1 ? ", ${formatCompactNumber.format(groupedOptionAggregatePositions.length)} underlying" : ""}"),
                 trailing: Wrap(spacing: 8, children: [
@@ -286,6 +318,7 @@ class OptionPositionsRowWidget extends StatelessWidget {
                     textAlign: TextAlign.right,
                   )
                 ]),
+                onTap: null,
               ),
               _buildDetailScrollRow(
                   filteredOptionPositions,
@@ -318,33 +351,35 @@ class OptionPositionsRowWidget extends StatelessWidget {
             ]
                 //)
                 )),
-        user.optionsView == OptionsView.list
-            ? SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                  return _buildOptionPositionRow(
-                      filteredOptionPositions[index], context);
-                }, childCount: filteredOptionPositions.length),
-              )
-            : /*ScrollablePositionedList.builder(
+        if (showList) ...[
+          user.optionsView == OptionsView.list
+              ? SliverList(
+                  // delegate: SliverChildListDelegate(widgets),
+                  delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                    return _buildOptionPositionRow(
+                        filteredOptionPositions[index], context);
+                  }, childCount: filteredOptionPositions.length),
+                )
+              : /*ScrollablePositionedList.builder(
                 itemCount: groupedOptionAggregatePositions.length,
                 itemBuilder: (context, index) => Text('Item $index'),
                 itemScrollController: itemScrollController,
                 itemPositionsListener: itemPositionListener,
               )*/
 
-            SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) {
-                  return _buildOptionPositionSymbolRow(
-                      sortedGroupedOptionAggregatePositions.elementAt(index),
-                      context,
-                      excludeGroupRow:
-                          false); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
-                }, childCount: sortedGroupedOptionAggregatePositions.length),
-              )
+              SliverList(
+                  // delegate: SliverChildListDelegate(widgets),
+                  delegate: SliverChildBuilderDelegate(
+                      (BuildContext context, int index) {
+                    return _buildOptionPositionSymbolRow(
+                        sortedGroupedOptionAggregatePositions.elementAt(index),
+                        context,
+                        excludeGroupRow:
+                            false); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
+                  }, childCount: sortedGroupedOptionAggregatePositions.length),
+                )
+        ]
       ],
     ));
   }

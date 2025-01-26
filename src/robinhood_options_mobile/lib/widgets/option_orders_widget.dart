@@ -84,6 +84,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                     onPressed: () {
                       showModalBottomSheet<void>(
                         context: context,
+                        showDragHandle: true,
                         constraints: const BoxConstraints(maxHeight: 260),
                         builder: (BuildContext context) {
                           return Column(
@@ -91,8 +92,8 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               ListTile(
-                                tileColor:
-                                    Theme.of(context).colorScheme.surface,
+                                // tileColor:
+                                //     Theme.of(context).colorScheme.surface,
                                 leading: const Icon(Icons.filter_list),
                                 title: const Text(
                                   "Filter Option Orders",

@@ -391,32 +391,34 @@ class _LoginWidgetState extends State<LoginWidget> {
                 style: const TextStyle(fontSize: 18.0)), //, height: 2.0
           ),
           // challengeRequestId != null
-          if (mfaRequired && challengeType == 'sms') ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
-              child: TextField(
-                  controller: smsCtl,
-                  focusNode: myFocusNode,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: const EdgeInsets.all(10),
-                      hintText: 'SMS code received'),
-                  style: const TextStyle(fontSize: 18.0)), //, height: 2.0
-            ),
-          ] else if (mfaRequired && challengeType == 'app') ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
-              child: TextField(
-                  controller: mfaCtl,
-                  focusNode: myFocusNode,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.all(10),
-                      hintText: 'MFA Authenticator App code'),
-                  style: const TextStyle(fontSize: 18.0)), //, height: 2.0
-            ),
+          if (mfaRequired) ...[
+            if (challengeType == 'sms') ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
+                child: TextField(
+                    controller: smsCtl,
+                    focusNode: myFocusNode,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.all(10),
+                        hintText: 'SMS code received'),
+                    style: const TextStyle(fontSize: 18.0)), //, height: 2.0
+              ),
+            ] else if (challengeType == 'app') ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
+                child: TextField(
+                    controller: mfaCtl,
+                    focusNode: myFocusNode,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.all(10),
+                        hintText: 'MFA Authenticator App code'),
+                    style: const TextStyle(fontSize: 18.0)), //, height: 2.0
+              ),
+            ]
           ],
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)

@@ -63,10 +63,10 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       widget.seriesList,
       defaultRenderer: widget.seriesRendererConfig ??
           charts.LineRendererConfig(includeArea: true, stacked: false),
-      defaultInteractions:
-          widget.seriesRendererConfig is charts.LineRendererConfig
-              ? true
-              : false,
+      // defaultInteractions:
+      //     widget.seriesRendererConfig is charts.LineRendererConfig
+      //         ? true
+      //         : false,
       animate: widget.animate,
       primaryMeasureAxis: widget.primaryMeasureAxis ??
           charts.NumericAxisSpec(
@@ -78,7 +78,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
               tickProviderSpec: charts.BasicNumericTickProviderSpec(
                   zeroBound: widget.zeroBound,
                   dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
-                  desiredMinTickCount: 4)),
+                  desiredMinTickCount: 6)),
       domainAxis: widget.domainAxis ??
           charts.DateTimeAxisSpec(
             // EndPointsTimeAxisSpec
@@ -153,11 +153,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                         : widget.open!,
                     charts.RangeAnnotationAxisType.measure,
                     startLabel: widget.open! <= widget.close!
-                        ? 'Previous ${formatCurrency.format(widget.open!)}'
-                        : 'Current ${formatCurrency.format(widget.close!)}',
+                        ? 'open ${formatCurrency.format(widget.open!)}'
+                        : 'close ${formatCurrency.format(widget.close!)}',
                     endLabel: widget.open! <= widget.close!
-                        ? 'Current ${formatCurrency.format(widget.close!)}'
-                        : 'Previous ${formatCurrency.format(widget.open!)}',
+                        ? 'close ${formatCurrency.format(widget.close!)}'
+                        : 'open ${formatCurrency.format(widget.open!)}',
                     labelStyleSpec: charts.TextStyleSpec(
                         fontSize: 14,
                         color: rangeAnnotationLabelColor), //axisLabelColor

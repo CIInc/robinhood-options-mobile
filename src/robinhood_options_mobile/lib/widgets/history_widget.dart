@@ -484,43 +484,44 @@ class _HistoryPageState extends State<HistoryPage>
                 onPressed: () {
                   showModalBottomSheet<void>(
                     context: context,
+                    showDragHandle: true,
                     //constraints: BoxConstraints(maxHeight: 260),
                     builder: (BuildContext context) {
                       return Scaffold(
-                          appBar: AppBar(
-                              leading: const CloseButton(),
-                              title: const Text('History Settings')),
+                          // appBar: AppBar(
+                          //     // leading: const CloseButton(),
+                          //     title: const Text('History Settings')),
                           body: ListView(
-                            //Column(
-                            //mainAxisAlignment: MainAxisAlignment.start,
-                            //crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              ListTile(
-                                title: const Text("Share"),
-                                trailing: IconButton(
-                                  onPressed: _closeAndShowShareView,
-                                  icon: showShareView
-                                      ? const Icon(Icons.preview)
-                                      : const Icon(Icons.share),
-                                ),
-                              ),
-                              const ListTile(
-                                leading: Icon(Icons.filter_list),
-                                title: Text(
-                                  "Filters",
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const ListTile(
-                                title: Text("Order State & Date"),
-                              ),
-                              orderFilterWidget,
-                              orderDateFilterWidget,
-                              const ListTile(
-                                title: Text("Symbols"),
-                              ),
-                              stockOrderSymbolFilterWidget,
-                              /*                         
+                        //Column(
+                        //mainAxisAlignment: MainAxisAlignment.start,
+                        //crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          ListTile(
+                            title: const Text("Share"),
+                            trailing: IconButton(
+                              onPressed: _closeAndShowShareView,
+                              icon: showShareView
+                                  ? const Icon(Icons.preview)
+                                  : const Icon(Icons.share),
+                            ),
+                          ),
+                          const ListTile(
+                            leading: Icon(Icons.filter_list),
+                            title: Text(
+                              "Filters",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const ListTile(
+                            title: Text("Order State & Date"),
+                          ),
+                          orderFilterWidget,
+                          orderDateFilterWidget,
+                          const ListTile(
+                            title: Text("Symbols"),
+                          ),
+                          stockOrderSymbolFilterWidget,
+                          /*                         
                           Column(
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -576,11 +577,11 @@ class _HistoryPageState extends State<HistoryPage>
                             ],
                           )
                           */
-                              const SizedBox(
-                                height: 25.0,
-                              )
-                            ],
-                          ));
+                          const SizedBox(
+                            height: 25.0,
+                          )
+                        ],
+                      ));
                     },
                   );
                 })
@@ -628,6 +629,7 @@ class _HistoryPageState extends State<HistoryPage>
                             onPressed: () {
                               var future = showModalBottomSheet<void>(
                                 context: context,
+                                // showDragHandle: true,
                                 // constraints: BoxConstraints(maxHeight: 260),
                                 builder:
                                     /*
@@ -2071,62 +2073,73 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
 
       await showModalBottomSheet<void>(
         context: context,
+        showDragHandle: true,
         //isScrollControlled: true,
         //useRootNavigator: true,
         //constraints: BoxConstraints(maxHeight: 260),
         builder: (BuildContext context) {
           return Scaffold(
-              appBar: AppBar(
-                leading: const CloseButton(),
-                title: const Text('Sharing Options'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Share.share(ordersText);
-                    },
-                  )
-                ],
-              ),
+              // appBar: AppBar(
+              //   // leading: const CloseButton(),
+              //   title: const Text('Sharing Options'),
+              //   actions: [
+              //     IconButton(
+              //       icon: const Icon(Icons.send),
+              //       onPressed: () {
+              //         Navigator.pop(context);
+              //         Share.share(ordersText);
+              //       },
+              //     )
+              //   ],
+              // ),
               body: ListView(
-                //Column(
-                //mainAxisAlignment: MainAxisAlignment.start,
-                //crossAxisAlignment: CrossAxisAlignment.center,
+            //Column(
+            //mainAxisAlignment: MainAxisAlignment.start,
+            //crossAxisAlignment: CrossAxisAlignment.center,
 
-                children: [
-                  CheckboxListTile(
-                    value: shareText,
-                    onChanged: (bool? newValue) {
-                      setState(() {
-                        shareText = newValue!;
-                      });
-                    },
-                    title: const Text(
-                        "Share Text"), // , style: TextStyle(fontSize: 18.0)),
-                    //subtitle: subtitle,
-                  ),
-                  CheckboxListTile(
-                    value: shareLink,
-                    onChanged: (bool? newValue) {
-                      setState(() {
-                        shareLink = newValue!;
-                      });
-                    },
-                    title: const Text(
-                        "Share Link"), // , style: TextStyle(fontSize: 18.0)),
-                    //subtitle: subtitle,
-                  ),
-                  ListTile(
-                    subtitle: Text(ordersText,
-                        maxLines: 17, overflow: TextOverflow.ellipsis),
-                    /*
+            children: [
+              ListTile(
+                title: const Text('Sharing Options'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.send),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Share.share(ordersText);
+                  },
+                ),
+              ),
+              CheckboxListTile(
+                value: shareText,
+                onChanged: (bool? newValue) {
+                  setState(() {
+                    shareText = newValue!;
+                  });
+                },
+                title: const Text(
+                    "Share Text"), // , style: TextStyle(fontSize: 18.0)),
+                //subtitle: subtitle,
+              ),
+              CheckboxListTile(
+                value: shareLink,
+                onChanged: (bool? newValue) {
+                  setState(() {
+                    shareLink = newValue!;
+                  });
+                },
+                title: const Text(
+                    "Share Link"), // , style: TextStyle(fontSize: 18.0)),
+                //subtitle: subtitle,
+              ),
+              ListTile(
+                subtitle: Text(ordersText,
+                    maxLines: 17, overflow: TextOverflow.ellipsis),
+                /*
                                   trailing: TextButton(
                                       child: const Text("APPLY"),
                                       onPressed: () => Navigator.pop(context))*/
-                  ),
-                ],
-              ));
+              ),
+            ],
+          ));
         },
       );
     }

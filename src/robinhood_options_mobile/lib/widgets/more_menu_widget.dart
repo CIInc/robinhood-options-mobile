@@ -57,14 +57,14 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   Widget build(BuildContext context) {
     userStore = Provider.of<BrokerageUserStore>(context, listen: true);
     return Scaffold(
-        appBar:
-            AppBar(leading: const CloseButton(), title: const Text('Settings')),
+        // appBar:
+        //     AppBar(leading: const CloseButton(), title: const Text('Settings')),
         body: ListView(
-          //Column(
-          //mainAxisAlignment: MainAxisAlignment.start,
-          //crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            /*
+      //Column(
+      //mainAxisAlignment: MainAxisAlignment.start,
+      //crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        /*
             RadioListTile<bool>(
                 //leading: const Icon(Icons.account_circle),
                 title: const Text("No Refresh"),
@@ -90,129 +90,127 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                 Navigator.pop(context, 'dialog');
               },
             */
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Market Data",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
-            ),
-            SwitchListTile(
-              //leading: Icon(Icons.functions),
-              title: const Text("Refresh Market Data"),
-              subtitle: const Text("Occurs every 15 seconds"),
-              value: widget.user.refreshEnabled,
-              onChanged: (bool value) {
-                setState(() {
-                  widget.user.refreshEnabled = value;
-                });
-                _onSettingsChanged();
-              },
-              secondary: const Icon(Icons.refresh),
-            ),
-            // const Divider(
-            //   height: 10,
-            // ),
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Portfolio View",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
-            ),
-            SwitchListTile(
-              //leading: Icon(Icons.functions),
-              title: const Text("Position Details"),
-              subtitle: const Text("Displays P/L and Greeks."),
-              value: widget.user.showPositionDetails,
-              onChanged: (bool value) {
-                setState(() {
-                  widget.user.showPositionDetails = value;
-                });
-                _onSettingsChanged();
-              },
-              secondary: const Icon(Icons.functions),
-            ),
-            // const Divider(
-            //   height: 10,
-            // ),
-            const ListTile(
-              leading: Icon(Icons.line_axis),
-              title: Text(
-                "Primary Measure",
-                // style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              // subtitle: Text('Used in portfolio charts.'),
-            ),
-            RadioListTile<bool>(
-                title: const Text("Last Price"),
-                value: widget.user.displayValue == DisplayValue.lastPrice,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.lastPrice;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            RadioListTile<bool>(
-                title: const Text("Market Value"),
-                value: widget.user.displayValue == DisplayValue.marketValue,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.marketValue;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            RadioListTile<bool>(
-                title: const Text("Return Today"),
-                value: widget.user.displayValue == DisplayValue.todayReturn,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturn;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            RadioListTile<bool>(
-                title: const Text("Return % Today"),
-                value:
-                    widget.user.displayValue == DisplayValue.todayReturnPercent,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturnPercent;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            RadioListTile<bool>(
-                title: const Text("Total Return"),
-                value: widget.user.displayValue == DisplayValue.totalReturn,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturn;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            RadioListTile<bool>(
-                title: const Text("Total Return %"),
-                value:
-                    widget.user.displayValue == DisplayValue.totalReturnPercent,
-                groupValue: true, //"refresh-setting"
-                onChanged: (val) {
-                  setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturnPercent;
-                  });
-                  _onSettingsChanged();
-                  Navigator.pop(context, 'dialog');
-                }),
-            /*
+        const ListTile(
+          // leading: Icon(Icons),
+          title: Text(
+            "Market Data",
+            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+          ),
+        ),
+        SwitchListTile(
+          //leading: Icon(Icons.functions),
+          title: const Text("Refresh Market Data"),
+          subtitle: const Text("Occurs every 15 seconds"),
+          value: widget.user.refreshEnabled,
+          onChanged: (bool value) {
+            setState(() {
+              widget.user.refreshEnabled = value;
+            });
+            _onSettingsChanged();
+          },
+          secondary: const Icon(Icons.refresh),
+        ),
+        // const Divider(
+        //   height: 10,
+        // ),
+        const ListTile(
+          // leading: Icon(Icons),
+          title: Text(
+            "Portfolio View",
+            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+          ),
+        ),
+        SwitchListTile(
+          //leading: Icon(Icons.functions),
+          title: const Text("Position Details"),
+          subtitle: const Text("Displays P/L and Greeks."),
+          value: widget.user.showPositionDetails,
+          onChanged: (bool value) {
+            setState(() {
+              widget.user.showPositionDetails = value;
+            });
+            _onSettingsChanged();
+          },
+          secondary: const Icon(Icons.functions),
+        ),
+        // const Divider(
+        //   height: 10,
+        // ),
+        const ListTile(
+          leading: Icon(Icons.line_axis),
+          title: Text(
+            "Primary Measure",
+            // style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          // subtitle: Text('Used in portfolio charts.'),
+        ),
+        RadioListTile<bool>(
+            title: const Text("Last Price"),
+            value: widget.user.displayValue == DisplayValue.lastPrice,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.lastPrice;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        RadioListTile<bool>(
+            title: const Text("Market Value"),
+            value: widget.user.displayValue == DisplayValue.marketValue,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.marketValue;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        RadioListTile<bool>(
+            title: const Text("Return Today"),
+            value: widget.user.displayValue == DisplayValue.todayReturn,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.todayReturn;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        RadioListTile<bool>(
+            title: const Text("Return % Today"),
+            value: widget.user.displayValue == DisplayValue.todayReturnPercent,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.todayReturnPercent;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        RadioListTile<bool>(
+            title: const Text("Total Return"),
+            value: widget.user.displayValue == DisplayValue.totalReturn,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.totalReturn;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        RadioListTile<bool>(
+            title: const Text("Total Return %"),
+            value: widget.user.displayValue == DisplayValue.totalReturnPercent,
+            groupValue: true, //"refresh-setting"
+            onChanged: (val) {
+              setState(() {
+                widget.user.displayValue = DisplayValue.totalReturnPercent;
+              });
+              _onSettingsChanged();
+              Navigator.pop(context, 'dialog');
+            }),
+        /*
             const Divider(
               height: 10,
             ),
@@ -251,336 +249,334 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               },
             ),
             */
-            // const Divider(
-            //   height: 10,
-            // ),
-            // const Divider(
-            //   height: 10,
-            // ),
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Options View",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
-            ),
-            SwitchListTile(
-              //leading: Icon(Icons.functions),
-              title: const Text("Group by Stock"),
-              value: widget.user.optionsView == OptionsView.grouped,
-              onChanged: (bool value) {
-                setState(() {
-                  widget.user.optionsView =
-                      value ? OptionsView.grouped : OptionsView.list;
-                  //widget.user.showPositionDetails = value;
-                });
-                _onSettingsChanged();
-              },
-              secondary: const Icon(Icons.view_module),
-            ),
-            const ListTile(
-              leading: Icon(Icons.sort),
-              title: Text(
-                "Sort",
-              ),
-            ),
-            RadioListTile<bool>(
-              title: const Text("Expiration Date"),
-              value: widget.user.sortOptions == DisplayValue.expirationDate,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.expirationDate;
-                  widget.user.sortDirection = SortDirection.asc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions == DisplayValue.expirationDate
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Last Price"),
-              value: widget.user.sortOptions == DisplayValue.lastPrice,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.lastPrice;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions == DisplayValue.lastPrice
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Market Value"),
-              value: widget.user.sortOptions == DisplayValue.marketValue,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.marketValue;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions == DisplayValue.marketValue
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Return Today"),
-              value: widget.user.sortOptions == DisplayValue.todayReturn,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.todayReturn;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions == DisplayValue.todayReturn
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Return % Today"),
-              value: widget.user.sortOptions == DisplayValue.todayReturnPercent,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.todayReturnPercent;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions ==
-                      DisplayValue.todayReturnPercent
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Total Return"),
-              value: widget.user.sortOptions == DisplayValue.totalReturn,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.totalReturn;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions == DisplayValue.todayReturn
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
-            RadioListTile<bool>(
-              title: const Text("Total Return %"),
-              value: widget.user.sortOptions == DisplayValue.totalReturnPercent,
-              groupValue: true, //"refresh-setting"
-              onChanged: (val) {
-                setState(() {
-                  widget.user.sortOptions = DisplayValue.totalReturnPercent;
-                  widget.user.sortDirection = SortDirection.desc;
-                });
-                _onSettingsChanged();
-                Navigator.pop(context, 'dialog');
-              },
-              secondary: widget.user.sortOptions ==
-                      DisplayValue.totalReturnPercent
-                  ? IconButton(
-                      icon: Icon(widget.user.sortDirection == SortDirection.desc
-                          ? Icons.south
-                          : Icons.north),
-                      onPressed: () {
-                        setState(() {
-                          widget.user.sortDirection =
-                              widget.user.sortDirection == SortDirection.asc
-                                  ? SortDirection.desc
-                                  : SortDirection.asc;
-                        });
-                        _onSettingsChanged();
-                        Navigator.pop(context, 'dialog');
-                        // showSettings();
-                      },
-                    )
-                  : null,
-            ),
+        // const Divider(
+        //   height: 10,
+        // ),
+        // const Divider(
+        //   height: 10,
+        // ),
+        const ListTile(
+          // leading: Icon(Icons),
+          title: Text(
+            "Options View",
+            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+          ),
+        ),
+        SwitchListTile(
+          //leading: Icon(Icons.functions),
+          title: const Text("Group by Stock"),
+          value: widget.user.optionsView == OptionsView.grouped,
+          onChanged: (bool value) {
+            setState(() {
+              widget.user.optionsView =
+                  value ? OptionsView.grouped : OptionsView.list;
+              //widget.user.showPositionDetails = value;
+            });
+            _onSettingsChanged();
+          },
+          secondary: const Icon(Icons.view_module),
+        ),
+        const ListTile(
+          leading: Icon(Icons.sort),
+          title: Text(
+            "Sort",
+          ),
+        ),
+        RadioListTile<bool>(
+          title: const Text("Expiration Date"),
+          value: widget.user.sortOptions == DisplayValue.expirationDate,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.expirationDate;
+              widget.user.sortDirection = SortDirection.asc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.expirationDate
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Last Price"),
+          value: widget.user.sortOptions == DisplayValue.lastPrice,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.lastPrice;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.lastPrice
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Market Value"),
+          value: widget.user.sortOptions == DisplayValue.marketValue,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.marketValue;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.marketValue
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Return Today"),
+          value: widget.user.sortOptions == DisplayValue.todayReturn,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.todayReturn;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.todayReturn
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Return % Today"),
+          value: widget.user.sortOptions == DisplayValue.todayReturnPercent,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.todayReturnPercent;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.todayReturnPercent
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Total Return"),
+          value: widget.user.sortOptions == DisplayValue.totalReturn,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.totalReturn;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.todayReturn
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
+        RadioListTile<bool>(
+          title: const Text("Total Return %"),
+          value: widget.user.sortOptions == DisplayValue.totalReturnPercent,
+          groupValue: true, //"refresh-setting"
+          onChanged: (val) {
+            setState(() {
+              widget.user.sortOptions = DisplayValue.totalReturnPercent;
+              widget.user.sortDirection = SortDirection.desc;
+            });
+            _onSettingsChanged();
+            Navigator.pop(context, 'dialog');
+          },
+          secondary: widget.user.sortOptions == DisplayValue.totalReturnPercent
+              ? IconButton(
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north),
+                  onPressed: () {
+                    setState(() {
+                      widget.user.sortDirection =
+                          widget.user.sortDirection == SortDirection.asc
+                              ? SortDirection.desc
+                              : SortDirection.asc;
+                    });
+                    _onSettingsChanged();
+                    Navigator.pop(context, 'dialog');
+                    // showSettings();
+                  },
+                )
+              : null,
+        ),
 
-            // const Divider(
-            //   height: 10,
-            // ),
-            const ListTile(
-              leading: Icon(Icons.filter_list),
-              title: Text(
-                "Filters",
-              ),
-            ),
-            //openClosedFilterWidget(bottomState),
-            const ListTile(
-              //leading: Icon(Icons.filter_list),
-              title: Text("Type"),
-            ),
-            optionTypeFilterWidget,
-            //optionTypeFilterWidget(bottomState),
-            if (widget.chainSymbols != null) ...[
-              const ListTile(
-                //leading: Icon(Icons.filter_list),
-                title: Text("Symbols"),
-              ),
-              optionSymbolFilterWidget,
-              //optionSymbolFilterWidget(bottomState),
-            ],
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Stocks View",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.filter_list),
-              title: Text(
-                "Filters",
-              ),
-            ),
-            // const ListTile(
-            //   //leading: Icon(Icons.filter_list),
-            //   title: Text("Position Type"),
-            // ),
-            // positionTypeFilterWidget,
-            if (widget.positionSymbols != null) ...[
-              // const ListTile(
-              //   //leading: Icon(Icons.filter_list),
-              //   title: Text("Symbols"),
-              // ),
-              stockOrderSymbolFilterWidget,
-              //stockOrderSymbolFilterWidget(bottomState),
-            ],
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Crypto View",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
-            ),
-            const ListTile(
-              leading: Icon(Icons.filter_list),
-              title: Text(
-                "Filters",
-              ),
-            ),
-            if (widget.cryptoSymbols != null) ...[
-              // const ListTile(
-              //   title: Text("Symbols"),
-              // ),
-              cryptoFilterWidget,
-              //cryptoFilterWidget(bottomState),
-            ],
+        // const Divider(
+        //   height: 10,
+        // ),
+        const ListTile(
+          leading: Icon(Icons.filter_list),
+          title: Text(
+            "Filters",
+          ),
+        ),
+        //openClosedFilterWidget(bottomState),
+        const ListTile(
+          //leading: Icon(Icons.filter_list),
+          title: Text("Type"),
+        ),
+        optionTypeFilterWidget,
+        //optionTypeFilterWidget(bottomState),
+        if (widget.chainSymbols != null) ...[
+          const ListTile(
+            //leading: Icon(Icons.filter_list),
+            title: Text("Symbols"),
+          ),
+          optionSymbolFilterWidget,
+          //optionSymbolFilterWidget(bottomState),
+        ],
+        const ListTile(
+          // leading: Icon(Icons),
+          title: Text(
+            "Stocks View",
+            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+          ),
+        ),
+        const ListTile(
+          leading: Icon(Icons.filter_list),
+          title: Text(
+            "Filters",
+          ),
+        ),
+        // const ListTile(
+        //   //leading: Icon(Icons.filter_list),
+        //   title: Text("Position Type"),
+        // ),
+        // positionTypeFilterWidget,
+        if (widget.positionSymbols != null) ...[
+          // const ListTile(
+          //   //leading: Icon(Icons.filter_list),
+          //   title: Text("Symbols"),
+          // ),
+          stockOrderSymbolFilterWidget,
+          //stockOrderSymbolFilterWidget(bottomState),
+        ],
+        const ListTile(
+          // leading: Icon(Icons),
+          title: Text(
+            "Crypto View",
+            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+          ),
+        ),
+        const ListTile(
+          leading: Icon(Icons.filter_list),
+          title: Text(
+            "Filters",
+          ),
+        ),
+        if (widget.cryptoSymbols != null) ...[
+          // const ListTile(
+          //   title: Text("Symbols"),
+          // ),
+          cryptoFilterWidget,
+          //cryptoFilterWidget(bottomState),
+        ],
 
-            const Divider(
-              color: Colors.transparent,
-              height: 10,
-            ),
-            if (widget.user.userName != null) ...[
-              /*
+        const Divider(
+          color: Colors.transparent,
+          height: 10,
+        ),
+        if (widget.user.userName != null) ...[
+          /*
               ListTile(
                   leading: const Icon(Icons.account_circle),
                   title: const Text("Profile"),
@@ -588,7 +584,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                     _openLogin();
                   }),
                   */
-              /*
+          /*
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text("Logout"),
@@ -628,24 +624,24 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
                 },
               ),
               */
-            ] else ...[
-              ListTile(
-                leading: const Icon(Icons.login),
-                title: const Text("Login"),
-                onTap: () {
-                  _openLogin();
-                },
-              ),
-              const Divider(
-                height: 10,
-              )
-            ],
+        ] else ...[
+          ListTile(
+            leading: const Icon(Icons.login),
+            title: const Text("Login"),
+            onTap: () {
+              _openLogin();
+            },
+          ),
+          const Divider(
+            height: 10,
+          )
+        ],
 
-            const SizedBox(
-              height: 25.0,
-            )
-          ],
-        ));
+        const SizedBox(
+          height: 25.0,
+        )
+      ],
+    ));
   }
 
   Future<void> _onSettingsChanged({bool persistUser = true}) async {

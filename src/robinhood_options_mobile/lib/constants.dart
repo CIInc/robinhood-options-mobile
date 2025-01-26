@@ -23,3 +23,9 @@ class Constants {
   static const String searchBanneriOSAdUnit =
       'ca-app-pub-9947876916436144/3130729634';
 }
+
+const totalValueFontSize = 23.0;
+
+const summaryValueFontSize = 18.0;
+const summaryLabelFontSize = 9.0;
+const summaryEgdeInset = 10.0;
