@@ -882,7 +882,8 @@ Response: {
   }
 
   @override
-  Future<List<dynamic>> getDividends(BrokerageUser user, DividendStore store,
+  Future<List<dynamic>> getDividends(
+      BrokerageUser user, DividendStore store, InstrumentStore instrumentStore,
       {String? instrumentId}) async {
     // https://api.robinhood.com/dividends/
     //https://api.robinhood.com/dividends/?instrument_id=943c5009-a0bb-4665-8cf4-a95dab5874e4
@@ -898,6 +899,25 @@ Response: {
     }
     list.sort((a, b) => DateTime.parse(b["record_date"]!)
         .compareTo(DateTime.parse(a["record_date"]!)));
+
+    var instrumentIds = list
+        .map((e) {
+          var splits = (e["instrument"] as String).split("/");
+          return splits[splits.length - 2];
+        })
+        .toSet()
+        .toList();
+    var instrumentObjs =
+        await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+    for (var instrumentObj in instrumentObjs) {
+      var pos = list.where((element) =>
+          element["instrument"].toString().contains(instrumentObj.id));
+      for (var po in pos) {
+        po["instrumentObj"] = instrumentObj;
+      }
+      // yield list;
+    }
+
     return list;
   }
 

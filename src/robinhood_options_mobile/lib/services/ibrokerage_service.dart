@@ -154,8 +154,8 @@ abstract class IBrokerageService {
   // Dividends & Interests
   Stream<List<dynamic>> streamDividends(
       BrokerageUser user, InstrumentStore instrumentStore);
-  Future<List<dynamic>> getDividends(
-      BrokerageUser user, DividendStore dividendStore,
+  Future<List<dynamic>> getDividends(BrokerageUser user,
+      DividendStore dividendStore, InstrumentStore instrumentStore,
       {String? instrumentId});
   Stream<List<dynamic>> streamInterests(
       BrokerageUser user, InstrumentStore instrumentStore);

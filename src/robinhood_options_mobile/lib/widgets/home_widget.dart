@@ -348,6 +348,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             futureDividends = widget.service.getDividends(
               widget.user,
               Provider.of<DividendStore>(context, listen: false),
+              Provider.of<InstrumentStore>(context, listen: false),
             );
             futureInterests = widget.service.getInterests(
               widget.user,
@@ -697,7 +698,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   close: close,
                   hiddenSeries: const ['Equity', 'Market Value'],
                   onSelected: (dynamic historical) {
-                provider.selectionChanged(historical);
+                provider.selectionChanged(historical); //?.first
               }, getTextForTextSymbolRenderer: () {
                 firstHistorical = portfolioHistoricals!.equityHistoricals[0];
                 open = firstHistorical!.adjustedOpenEquity!;
@@ -2605,7 +2606,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //         Theme.of(context).colorScheme.primary),
         //     4);
         return FlexibleSpaceBar(
-            expandedTitleScale: 1.25,
+            expandedTitleScale: 1.2,
             // titlePadding:
             //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
             //centerTitle: true,

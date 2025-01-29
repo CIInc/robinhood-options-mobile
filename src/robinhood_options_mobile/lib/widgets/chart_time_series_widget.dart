@@ -17,11 +17,13 @@ class TimeSeriesChart extends StatefulWidget {
   final double? close;
   final List<String>? hiddenSeries;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
+  final List<charts.SeriesRendererConfig<DateTime>>? customSeriesRenderers;
   final bool zeroBound;
   final bool dataIsInWholeNumbers;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.AxisSpec<dynamic>? domainAxis;
   final charts.NumericAxisSpec? primaryMeasureAxis;
+  final charts.NumericAxisSpec? secondaryMeasureAxis;
   final String Function()? getTextForTextSymbolRenderer;
   final void Function(dynamic) onSelected;
 
@@ -34,9 +36,11 @@ class TimeSeriesChart extends StatefulWidget {
       this.close,
       this.hiddenSeries,
       this.seriesRendererConfig,
+      this.customSeriesRenderers,
       this.behaviors,
       this.domainAxis,
       this.primaryMeasureAxis,
+      this.secondaryMeasureAxis,
       this.zeroBound = true,
       this.dataIsInWholeNumbers = true});
 
@@ -63,6 +67,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       widget.seriesList,
       defaultRenderer: widget.seriesRendererConfig ??
           charts.LineRendererConfig(includeArea: true, stacked: false),
+      customSeriesRenderers: widget.customSeriesRenderers ?? [],
       // defaultInteractions:
       //     widget.seriesRendererConfig is charts.LineRendererConfig
       //         ? true
@@ -79,6 +84,7 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                   zeroBound: widget.zeroBound,
                   dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
                   desiredMinTickCount: 6)),
+      secondaryMeasureAxis: widget.secondaryMeasureAxis,
       domainAxis: widget.domainAxis ??
           charts.DateTimeAxisSpec(
             // EndPointsTimeAxisSpec

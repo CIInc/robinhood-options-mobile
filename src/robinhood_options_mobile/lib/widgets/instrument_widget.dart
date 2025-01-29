@@ -189,7 +189,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     futureLists ??= widget.service.getLists(user, instrument.id);
 
     futureDividends ??= widget.service.getDividends(
-        user, Provider.of<DividendStore>(context, listen: false),
+        user,
+        Provider.of<DividendStore>(context, listen: false),
+        Provider.of<InstrumentStore>(context, listen: false),
         instrumentId: instrument.id);
 
     futureRatings ??= widget.service.getRatings(user, instrument.id);

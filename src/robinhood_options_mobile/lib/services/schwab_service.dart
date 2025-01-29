@@ -1379,6 +1379,7 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
+      InstrumentStore instrumentStore,
       {String? instrumentId}) {
     // TODO: implement getDividends
     throw UnimplementedError();

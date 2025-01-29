@@ -58,7 +58,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   String? computerId;
   String? challengeRequestId;
   String? challengeResponseId;
-  String challengeType = 'email'; // 'app'; //sms
+  String challengeType = 'email'; // 'app'; //sms // prompt
   bool mfaRequired = false;
   bool loading = false;
 
@@ -237,8 +237,10 @@ class _LoginWidgetState extends State<LoginWidget> {
         width: 340.0,
         height: 60,
         child: ElevatedButton.icon(
-          label: const Text(
-            "Login",
+          label: Text(
+            mfaRequired && challengeType == 'prompt'
+                ? 'Continue after prompt'
+                : 'Login',
             style: TextStyle(fontSize: 20.0),
             // style: TextStyle(fontSize: 22.0, height: 1.5),
           ),
@@ -653,6 +655,9 @@ class _LoginWidgetState extends State<LoginWidget> {
     } on FirebaseFunctionsException catch (e) {
       debugPrint(jsonEncode(e));
     } catch (e) {
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text("${e}"))); // Login failed:
       // Do other things that might be thrown that I have overlooked
     }
   }

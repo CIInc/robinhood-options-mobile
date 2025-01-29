@@ -584,6 +584,7 @@ class PlaidService implements IBrokerageService {
 
   @override
   Future<List> getDividends(BrokerageUser user, DividendStore dividendStore,
+      InstrumentStore instrumentStore,
       {String? instrumentId}) {
     // TODO: implement getDividends
     throw UnimplementedError();
