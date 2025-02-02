@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
@@ -13,15 +14,17 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.####");
+final formatNumber = NumberFormat("0.##");
 final formatCompactNumber = NumberFormat.compact();
 
 /*
@@ -61,28 +64,52 @@ class IncomeTransactionsWidget extends StatefulWidget {
 class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   List<String> transactionFilters = <String>[
     'interest',
+    'dividend',
     'paid',
     'reinvested',
+    // 'pending',
     // DateTime.now().year.toString(),
     // (DateTime.now().year - 1).toString(),
     // (DateTime.now().year - 2).toString(),
     // '<= ${(DateTime.now().year - 3).toString()}'
   ];
+  List<String> transactionSymbolFilters = <String>[];
 
   @override
   Widget build(BuildContext context) {
+    var dividendSymbols = widget.dividendStore.items
+        .where((e) =>
+            e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null)
+        .sortedBy<DateTime>((e) => e["payable_date"] != null
+            ? DateTime.parse(e["payable_date"])
+            : DateTime.parse(e["pay_date"]))
+        .reversed
+        .map((e) => e["instrumentObj"].symbol as String)
+        .toSet()
+        .toList();
+
     // var thisYear = DateTime.now().year;
     // var lastYear = thisYear - 1;
     // var priorTolastYear = lastYear - 1;
     // var priorYears = '<= ${priorTolastYear - 1}';
+
     var dividendItems = widget.dividendStore.items
         .where((e) =>
                 e["state"] != "voided" &&
-                (transactionFilters.contains("pending") ||
-                    e["state"] != "pending") &&
-                (transactionFilters.contains("paid") || e["state"] != "paid") &&
-                (transactionFilters.contains("reinvested") ||
-                    e["state"] != "reinvested")
+                transactionFilters.contains("dividend") &&
+                ((!transactionFilters.contains("pending") &&
+                        !transactionFilters.contains("paid") &&
+                        !transactionFilters.contains("reinvested")) ||
+                    (transactionFilters.contains("pending") ||
+                            e["state"] != "pending") &&
+                        (transactionFilters.contains("paid") ||
+                            e["state"] != "paid") &&
+                        (transactionFilters.contains("reinvested") ||
+                            e["state"] != "reinvested")) &&
+                (transactionSymbolFilters.isEmpty ||
+                    (e["instrumentObj"] != null &&
+                        transactionSymbolFilters
+                            .contains(e["instrumentObj"].symbol)))
             //     &&
             // (transactionFilters.contains(thisYear.toString()) ||
             //     DateTime.parse(e["payable_date"]).year != thisYear) &&
@@ -107,8 +134,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             // (transactionFilters.contains(priorYears.toString()) ||
             //     DateTime.parse(e["pay_date"]).year >= priorTolastYear)
             &&
-            (transactionFilters.contains("interest") ||
-                e["reason"] != "interest_payment"))
+            (transactionFilters
+                .contains("interest"))) // || e["reason"] != "interest_payment"
         .toList();
 
     var incomeTransactions = (dividendItems + interestItems)
@@ -232,7 +259,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         widget.chartSelectionStore.selectionChanged(selected);
       },
       seriesRendererConfig: charts.BarRendererConfig<DateTime>(
-        groupingType: charts.BarGroupingType.groupedStacked,
+        groupingType: charts.BarGroupingType.stacked,
       ),
       customSeriesRenderers: [
         charts.LineRendererConfig(
@@ -244,7 +271,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         // charts.SelectNearest(
         //     eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
         // charts.DomainHighlighter(),
+        // TODO: Doesn't work all the time, the legend repositions itself.
+        // if (!widget.showList) ...[
         charts.SeriesLegend(),
+        // ],
         // Add the sliding viewport behavior to have the viewport center on the
         // domain that is currently selected.
         charts.SlidingViewport(),
@@ -285,41 +315,92 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           viewport: charts.DateTimeExtents(
               start:
                   // DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
-                  DateTime.now().subtract(Duration(days: 365 * 1)),
+                  DateTime.now().subtract(Duration(days: 365)),
               end:
                   DateTime.now().add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
-          //showAxisLine: true,
-          //renderSpec: charts.GridlineRendererSpec(),
-          // viewport: charts.NumericExtents.fromValues(
-          //     (groupedInterestsData + groupedDividendsData)
-          //         .map((e) => e.value)), //.NumericExtents(0, 500),
+          // showAxisLine: true,
+          // renderSpec: charts.GridlineRendererSpec(),
+          // TODO: Figure out why autoViewport is not working for pending or interest data, they require explicit setting of viewport which is different than the auto.
+          viewport: groupedDividendsData.isEmpty && groupedInterestsData.isEmpty
+              ? null
+              :
+              // transactionFilters.contains('pending') ||
+              //         (!transactionFilters.contains('dividend') &&
+              //             transactionFilters.contains('interest'))
+              //     ?
+              // charts.NumericExtents.fromValues((groupedInterestsData +
+              //         groupedDividendsData +
+              //         [MapEntry<DateTime, double>(DateTime.now(), 0.0)])
+              //     .map((e) => e.value))
+              charts.NumericExtents(
+                  0,
+                  (groupedDividendsData + groupedInterestsData)
+                          .map((e) => e.value)
+                          .max *
+                      1.1), // : null,
+          // measureAxisNumericExtents = charts.NumericExtents(
+          //     measureAxisNumericExtents.min, measureAxisNumericExtents.max * 1.1);
+          //.NumericExtents(0, 500),
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           //renderSpec: charts.NoneRenderSpec(),
           tickProviderSpec: charts.BasicNumericTickProviderSpec(
-              zeroBound: true,
-              dataIsInWholeNumbers: true,
-              desiredMinTickCount: 6)),
+              // zeroBound: true,
+              // dataIsInWholeNumbers: true,
+              desiredTickCount: 6)),
       secondaryMeasureAxis: charts.NumericAxisSpec(
+          renderSpec: charts.SmallTickRendererSpec(
+              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           tickProviderSpec:
               charts.BasicNumericTickProviderSpec(desiredTickCount: 6)),
     );
-    var totalDividends =
-        groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty
-            ? (groupedDividendsData + groupedInterestsData)
-                // .where((e) => (e["payable_date"] != null
-                //         ? DateTime.parse(e["payable_date"])
-                //         : DateTime.parse(e["pay_date"]))
-                //     .isAfter(DateTime.now().subtract(Duration(days: 365))))
-                .where((e) =>
-                    e.key.isAfter(DateTime.now().subtract(Duration(days: 365))))
-                // .sortedBy<DateTime>((e) => e.key)
-                // .reversed
-                // .take(12)
-                .map((e) => e.value)
-                .reduce((a, b) => a + b)
+    var pastYearDividends = groupedDividendsData.take(12).toList() +
+        groupedInterestsData.take(12).toList();
+    // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
+    //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
+    // var pastMonthDividends = groupedDividendsData.take(1).toList() +
+    //     groupedInterestsData.take(1).toList();
+    // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
+    //     .where(
+    //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
+    var pastYearTotalIncome =
+        (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
+                pastYearDividends.isNotEmpty
+            ? pastYearDividends.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0;
+    double? pastYearYield;
+    String dividendInterval = '';
+    if (incomeTransactions.isNotEmpty && transactionSymbolFilters.isNotEmpty) {
+      var transaction = incomeTransactions[0]; //.firstWhereOrNull((e) =>
+      // e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null);
+      Map<String, dynamic>? prevTransaction;
+      if (incomeTransactions.length > 1) {
+        prevTransaction = incomeTransactions[1]; //.firstWhereOrNull((e) =>
+      }
+      var instrument = transaction["instrumentObj"];
+      if (instrument != null && instrument.quoteObj != null) {
+        pastYearYield =
+            // totalDividends / double.parse(transaction!["position"])
+            double.parse(transaction!["rate"]) /
+                instrument.quoteObj.lastTradePrice;
+        var currDate = DateTime.parse(transaction["payable_date"]);
+        if (prevTransaction != null) {
+          var prevDate = DateTime.parse(prevTransaction["payable_date"]);
+          if (currDate.difference(prevDate).inDays <= 8) {
+            pastYearYield = pastYearYield * 52;
+            dividendInterval = 'weekly';
+          } else if (currDate.difference(prevDate).inDays <= 31) {
+            pastYearYield = pastYearYield * 12;
+            dividendInterval = 'monthly';
+          } else if (currDate.difference(prevDate).inDays <= 31 * 3) {
+            pastYearYield = pastYearYield * 4;
+            dividendInterval = 'quarterly';
+          }
+        }
+      }
+    }
+
     if (widget.dividendStore.items.isEmpty ||
         widget.interestStore.items.isEmpty) {
       return SliverToBoxAdapter(
@@ -357,31 +438,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.chevron_right),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => Material(
-                                  child: CustomScrollView(slivers: [
-                                SliverAppBar(
-                                  title: Text("Income"),
-                                  pinned: true,
-                                ),
-                                // SliverPersistentHeader(
-                                //   pinned: true,
-                                //   // floating: true,
-                                //   delegate: PersistentHeader('test'),
-                                // ),
-                                IncomeTransactionsWidget(
-                                  widget.user,
-                                  widget.service,
-                                  widget.dividendStore,
-                                  widget.interestStore,
-                                  widget.chartSelectionStore,
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                )
-                              ]))),
-                    );
+                    navigateToFullPage(context);
                   },
                 ),
               )
@@ -390,12 +447,65 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           subtitle: Text("last 12 months"),
           trailing: Wrap(spacing: 8, children: [
             Text(
-              formatCurrency.format(totalDividends),
+              formatCurrency.format(pastYearTotalIncome),
               style: const TextStyle(fontSize: 21.0),
               textAlign: TextAlign.right,
-            )
+            ),
+            // if (pastYearYield != null) ...[
+            //   Text('${formatPercentage.format(pastYearYield)} yield',
+            //       style: const TextStyle(fontSize: 14)),
+            // ]
           ]),
         ),
+
+        if (pastYearYield != null) ...[
+          ListTile(
+            // dense: true,
+            minTileHeight: 60,
+            // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
+            title: Wrap(children: [
+              const Text(
+                "Yield",
+                style: TextStyle(fontSize: 18.0),
+              ),
+              SizedBox(
+                height: 28,
+                child: IconButton(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(Icons.info_outline),
+                  onPressed: () {
+                    showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                              // context: context,
+                              title: Text(
+                                  '${incomeTransactions[0]["instrumentObj"].symbol} Yield'),
+                              content: Text(
+                                  'The yield is calculated based on the last distribution rate of ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price of the security, ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\nIt is annualized from its $dividendInterval distribution period.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ));
+                  },
+                ),
+              )
+            ]),
+            subtitle: Text("last distribution"),
+            trailing: Wrap(spacing: 8, children: [
+              Text(
+                formatPercentage.format(pastYearYield),
+                style: const TextStyle(fontSize: 20.0),
+                textAlign: TextAlign.right,
+              ),
+            ]),
+          ),
+        ],
 
         SizedBox(
             height: 300,
@@ -544,149 +654,227 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                         child: FilterChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Announced'), // Positions
-                          selected: transactionFilters.contains("pending"),
+                          label: const Text('Dividend'),
+                          selected: transactionFilters.contains("dividend"),
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
-                                transactionFilters.add("pending");
+                                transactionFilters.add("dividend");
                               } else {
                                 transactionFilters.removeWhere((String name) {
-                                  return name == "pending";
+                                  return name == "dividend";
                                 });
                               }
                             });
                           },
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Paid'),
-                          selected: transactionFilters.contains("paid"),
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                transactionFilters.add("paid");
-                              } else {
-                                transactionFilters.removeWhere((String name) {
-                                  return name == "paid";
-                                });
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: FilterChip(
-                          //avatar: const Icon(Icons.history_outlined),
-                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Reinvested'),
-                          selected: transactionFilters.contains("reinvested"),
-                          onSelected: (bool value) {
-                            setState(() {
-                              if (value) {
-                                transactionFilters.add("reinvested");
-                              } else {
-                                transactionFilters.removeWhere((String name) {
-                                  return name == "reinvested";
-                                });
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                      // Padding(
-                      //   padding: const EdgeInsets.all(4.0),
-                      //   child: FilterChip(
-                      //     //avatar: const Icon(Icons.history_outlined),
-                      //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      //     label: Text(DateTime.now().year.toString()),
-                      //     selected: transactionFilters
-                      //         .contains(DateTime.now().year.toString()),
-                      //     onSelected: (bool value) {
-                      //       setState(() {
-                      //         if (value) {
-                      //           transactionFilters
-                      //               .add(DateTime.now().year.toString());
-                      //         } else {
-                      //           transactionFilters.removeWhere((String name) {
-                      //             return name == DateTime.now().year.toString();
-                      //           });
-                      //         }
-                      //       });
-                      //     },
-                      //   ),
-                      // ),
-                      // Padding(
-                      //   padding: const EdgeInsets.all(4.0),
-                      //   child: FilterChip(
-                      //     //avatar: const Icon(Icons.history_outlined),
-                      //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      //     label: Text((DateTime.now().year - 1).toString()),
-                      //     selected: transactionFilters
-                      //         .contains((DateTime.now().year - 1).toString()),
-                      //     onSelected: (bool value) {
-                      //       setState(() {
-                      //         if (value) {
-                      //           transactionFilters
-                      //               .add((DateTime.now().year - 1).toString());
-                      //         } else {
-                      //           transactionFilters.removeWhere((String name) {
-                      //             return name ==
-                      //                 (DateTime.now().year - 1).toString();
-                      //           });
-                      //         }
-                      //       });
-                      //     },
-                      //   ),
-                      // ),
-                      // Padding(
-                      //   padding: const EdgeInsets.all(4.0),
-                      //   child: FilterChip(
-                      //     //avatar: const Icon(Icons.history_outlined),
-                      //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      //     label: Text((DateTime.now().year - 2).toString()),
-                      //     selected: transactionFilters
-                      //         .contains((DateTime.now().year - 2).toString()),
-                      //     onSelected: (bool value) {
-                      //       setState(() {
-                      //         if (value) {
-                      //           transactionFilters
-                      //               .add((DateTime.now().year - 2).toString());
-                      //         } else {
-                      //           transactionFilters.removeWhere((String name) {
-                      //             return name ==
-                      //                 (DateTime.now().year - 2).toString();
-                      //           });
-                      //         }
-                      //       });
-                      //     },
-                      //   ),
-                      // ),
-                      // Padding(
-                      //   padding: const EdgeInsets.all(4.0),
-                      //   child: FilterChip(
-                      //     //avatar: const Icon(Icons.history_outlined),
-                      //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                      //     label: Text(priorYears),
-                      //     selected: transactionFilters.contains(priorYears),
-                      //     onSelected: (bool value) {
-                      //       setState(() {
-                      //         if (value) {
-                      //           transactionFilters.add(priorYears);
-                      //         } else {
-                      //           transactionFilters.removeWhere((String name) {
-                      //             return name == priorYears;
-                      //           });
-                      //         }
-                      //       });
-                      //     },
-                      //   ),
-                      // ),
+                      AnimatedSwitcher(
+                        duration: Durations.short4,
+                        // transitionBuilder:
+                        //     (Widget child, Animation<double> animation) {
+                        //   return
+                        //       // SizeTransition(
+                        //       //     sizeFactor: animation, child: child);
+                        //       ScaleTransition(scale: animation, child: child);
+                        // },
+                        child: !transactionFilters.contains("dividend")
+                            ? null
+                            : Row(
+                                children: [
+                                  Divider(indent: 12),
+                                  Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: FilterChip(
+                                      //avatar: const Icon(Icons.history_outlined),
+                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                      label: const Text('Paid'),
+                                      selected:
+                                          transactionFilters.contains("paid"),
+                                      onSelected: (bool value) {
+                                        setState(() {
+                                          if (value) {
+                                            transactionFilters.add("paid");
+                                          } else {
+                                            transactionFilters
+                                                .removeWhere((String name) {
+                                              return name == "paid";
+                                            });
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: FilterChip(
+                                      //avatar: const Icon(Icons.history_outlined),
+                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                      label: const Text('Reinvested'),
+                                      selected: transactionFilters
+                                          .contains("reinvested"),
+                                      onSelected: (bool value) {
+                                        setState(() {
+                                          if (value) {
+                                            transactionFilters
+                                                .add("reinvested");
+                                          } else {
+                                            transactionFilters
+                                                .removeWhere((String name) {
+                                              return name == "reinvested";
+                                            });
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: FilterChip(
+                                      //avatar: const Icon(Icons.history_outlined),
+                                      //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                      label:
+                                          const Text('Announced'), // Positions
+                                      selected: transactionFilters
+                                          .contains("pending"),
+                                      onSelected: (bool value) {
+                                        setState(() {
+                                          if (value) {
+                                            transactionFilters.add("pending");
+                                          } else {
+                                            transactionFilters
+                                                .removeWhere((String name) {
+                                              return name == "pending";
+                                            });
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  Divider(indent: 12),
+                                  for (var dividendSymbol
+                                      in dividendSymbols) ...[
+                                    Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: ChoiceChip(
+                                        //avatar: const Icon(Icons.history_outlined),
+                                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                        label:
+                                            Text(dividendSymbol), // Positions
+                                        selected: transactionSymbolFilters
+                                            .contains(dividendSymbol),
+                                        onSelected: (bool value) {
+                                          setState(() {
+                                            if (value) {
+                                              transactionFilters
+                                                  .removeWhere((String name) {
+                                                return name == "interest";
+                                              });
+                                              transactionSymbolFilters.clear();
+                                              transactionSymbolFilters
+                                                  .add(dividendSymbol);
+                                            } else {
+                                              transactionSymbolFilters
+                                                  .removeWhere((String name) {
+                                                return name == dividendSymbol;
+                                              });
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ]
+                                ],
+                              ),
+                        // Padding(
+                        //   padding: const EdgeInsets.all(4.0),
+                        //   child: FilterChip(
+                        //     //avatar: const Icon(Icons.history_outlined),
+                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        //     label: Text(DateTime.now().year.toString()),
+                        //     selected: transactionFilters
+                        //         .contains(DateTime.now().year.toString()),
+                        //     onSelected: (bool value) {
+                        //       setState(() {
+                        //         if (value) {
+                        //           transactionFilters
+                        //               .add(DateTime.now().year.toString());
+                        //         } else {
+                        //           transactionFilters.removeWhere((String name) {
+                        //             return name == DateTime.now().year.toString();
+                        //           });
+                        //         }
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                        // Padding(
+                        //   padding: const EdgeInsets.all(4.0),
+                        //   child: FilterChip(
+                        //     //avatar: const Icon(Icons.history_outlined),
+                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        //     label: Text((DateTime.now().year - 1).toString()),
+                        //     selected: transactionFilters
+                        //         .contains((DateTime.now().year - 1).toString()),
+                        //     onSelected: (bool value) {
+                        //       setState(() {
+                        //         if (value) {
+                        //           transactionFilters
+                        //               .add((DateTime.now().year - 1).toString());
+                        //         } else {
+                        //           transactionFilters.removeWhere((String name) {
+                        //             return name ==
+                        //                 (DateTime.now().year - 1).toString();
+                        //           });
+                        //         }
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                        // Padding(
+                        //   padding: const EdgeInsets.all(4.0),
+                        //   child: FilterChip(
+                        //     //avatar: const Icon(Icons.history_outlined),
+                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        //     label: Text((DateTime.now().year - 2).toString()),
+                        //     selected: transactionFilters
+                        //         .contains((DateTime.now().year - 2).toString()),
+                        //     onSelected: (bool value) {
+                        //       setState(() {
+                        //         if (value) {
+                        //           transactionFilters
+                        //               .add((DateTime.now().year - 2).toString());
+                        //         } else {
+                        //           transactionFilters.removeWhere((String name) {
+                        //             return name ==
+                        //                 (DateTime.now().year - 2).toString();
+                        //           });
+                        //         }
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                        // Padding(
+                        //   padding: const EdgeInsets.all(4.0),
+                        //   child: FilterChip(
+                        //     //avatar: const Icon(Icons.history_outlined),
+                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                        //     label: Text(priorYears),
+                        //     selected: transactionFilters.contains(priorYears),
+                        //     onSelected: (bool value) {
+                        //       setState(() {
+                        //         if (value) {
+                        //           transactionFilters.add(priorYears);
+                        //         } else {
+                        //           transactionFilters.removeWhere((String name) {
+                        //             return name == priorYears;
+                        //           });
+                        //         }
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                      )
                     ],
                   );
                 },
@@ -749,12 +937,13 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       // )
                       title: Text(
                         "${transaction["instrumentObj"] != null ? "${transaction["instrumentObj"].symbol} " : ""}${double.parse(transaction!["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(transaction!["rate"])) : formatCurrency.format(double.parse(transaction!["rate"]))} ${transaction!["state"]}",
-                        style: const TextStyle(fontSize: 18.0),
+                        // style: const TextStyle(fontSize: 18.0),
                         //overflow: TextOverflow.visible
                       ), // ${formatNumber.format(double.parse(dividend!["position"]))}
                       subtitle: Text(
-                          "${formatNumber.format(double.parse(transaction!["position"]))} shares on ${formatDate.format(DateTime.parse(transaction!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                          style: const TextStyle(fontSize: 14)),
+                        "${formatNumber.format(double.parse(transaction!["position"]))} shares on ${formatDate.format(DateTime.parse(transaction!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                        // style: const TextStyle(fontSize: 14)
+                      ),
                       trailing: Wrap(spacing: 10.0, children: [
                         Column(children: [
                           // const Text("Actual", style: TextStyle(fontSize: 11)),
@@ -829,8 +1018,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                         //overflow: TextOverflow.visible
                       ), // ${formatNumber.format(double.parse(dividend!["position"]))}
                       subtitle: Text(
-                          "on ${formatDate.format(DateTime.parse(transaction!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                          style: const TextStyle(fontSize: 14)),
+                        "on ${formatDate.format(DateTime.parse(transaction!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                        // style: const TextStyle(fontSize: 14)
+                      ),
                       trailing: Wrap(spacing: 10.0, children: [
                         Column(children: [
                           // const Text("Actual", style: TextStyle(fontSize: 11)),
@@ -851,11 +1041,56 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             childCount: incomeTransactions.length,
           ),
         ),
+        // TODO: Introduce web banner
+        if (!kIsWeb) ...[
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          SliverToBoxAdapter(child: AdBannerWidget()),
+        ],
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        const SliverToBoxAdapter(child: DisclaimerWidget()),
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
       ],
       // const SliverToBoxAdapter(
       //     child: SizedBox(
       //   height: 25.0,
       // ))
     ]));
+  }
+
+  void navigateToFullPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => Material(
+                  child: CustomScrollView(slivers: [
+                SliverAppBar(
+                  title: Text("Income"),
+                  pinned: true,
+                ),
+                // SliverPersistentHeader(
+                //   pinned: true,
+                //   // floating: true,
+                //   delegate: PersistentHeader('test'),
+                // ),
+                IncomeTransactionsWidget(
+                  widget.user,
+                  widget.service,
+                  widget.dividendStore,
+                  widget.interestStore,
+                  widget.chartSelectionStore,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                )
+              ]))),
+    );
   }
 }

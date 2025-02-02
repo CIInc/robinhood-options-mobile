@@ -102,7 +102,17 @@ class _LoginWidgetState extends State<LoginWidget> {
     _streamEvent = PlaidLink.onEvent.listen(_onEvent);
     _streamExit = PlaidLink.onExit.listen(_onExit);
     _streamSuccess = PlaidLink.onSuccess.listen(_onSuccess);
-    _createLinkTokenConfiguration();
+    // Crashes on Android with the following error (https://play.google.com/console/u/1/developers/5732598047340940161/app/4973125863461919438/pre-launch-report/details?artifactId=4860025135667101215):
+    // Exception java.lang.ClassCastException: java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType
+    //   at retrofit2.HttpServiceMethod.parseAnnotations (HttpServiceMethod.java:46)
+    //   at retrofit2.ServiceMethod.parseAnnotations (ServiceMethod.java:39)
+    //   at retrofit2.Retrofit.loadServiceMethod (Retrofit.java:202)
+    //   at retrofit2.Retrofit$1.invoke (Retrofit.java:160)
+    //   at java.lang.reflect.Proxy.invoke (Proxy.java:1006)
+    //   at $Proxy2.a (Unknown Source)
+    //   at com.plaid.internal.z8$b.invokeSuspend (SourceFile:123)
+    //   at com.plaid.internal.z8$b.invoke (SourceFile:3)
+    // _createLinkTokenConfiguration();
 
     widget.analytics.logScreenView(screenName: 'Login');
   }
@@ -561,6 +571,9 @@ class _LoginWidgetState extends State<LoginWidget> {
     } else if (source == Source.plaid) {
       // var service = PlaidService();
       // service.login();
+      if (_configuration == null) {
+        _createLinkTokenConfiguration();
+      }
       PlaidLink.open();
     }
   }
@@ -650,14 +663,14 @@ class _LoginWidgetState extends State<LoginWidget> {
             'link_token'], // "link-sandbox-74cf082e-870b-461f-a37a-038cace0afee"
       );
 
-      PlaidLink.create(configuration: _configuration!);
+      await PlaidLink.create(configuration: _configuration!);
       // });
     } on FirebaseFunctionsException catch (e) {
       debugPrint(jsonEncode(e));
     } catch (e) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("${e}"))); // Login failed:
+        ..showSnackBar(SnackBar(content: Text("$e"))); // Login failed:
       // Do other things that might be thrown that I have overlooked
     }
   }

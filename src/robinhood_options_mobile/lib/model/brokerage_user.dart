@@ -12,6 +12,8 @@ import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
 final formatCurrency = NumberFormat.simpleCurrency();
+final formatPrecise4Currency = NumberFormat.simpleCurrency(decimalDigits: 4);
+final formatPrecise8Currency = NumberFormat.simpleCurrency(decimalDigits: 8);
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
@@ -369,7 +371,11 @@ class BrokerageUser {
       case DisplayValue.marketValue:
       case DisplayValue.todayReturn:
       case DisplayValue.totalReturn:
-        opTrailingText = formatCurrency.format(value);
+        opTrailingText = value.abs() < 0.00005
+            ? formatPrecise8Currency.format(value)
+            : (value.abs() < 0.005
+                ? formatPrecise4Currency.format(value)
+                : formatCurrency.format(value));
         break;
       case DisplayValue.todayReturnPercent:
       case DisplayValue.totalReturnPercent:

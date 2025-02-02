@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'dart:math' as math;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -10,8 +13,11 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 
 class InstrumentPositionsWidget extends StatelessWidget {
   const InstrumentPositionsWidget(
@@ -186,22 +192,7 @@ class InstrumentPositionsWidget extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.chevron_right),
                   onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => Material(
-                                    child: CustomScrollView(slivers: [
-                                  SliverAppBar(
-                                      title: Text("Stocks & ETFs"),
-                                      pinned: true),
-                                  InstrumentPositionsWidget(
-                                    user,
-                                    service,
-                                    filteredPositions,
-                                    analytics: analytics,
-                                    observer: observer,
-                                  )
-                                ]))));
+                    navigateToFullPage(context);
                   },
                 ),
               )
@@ -276,7 +267,24 @@ class InstrumentPositionsWidget extends StatelessWidget {
             // Or, uncomment the following line:
             childCount: filteredPositions.length,
           ),
-        )
+        ),
+        // TODO: Introduce web banner
+        if (!kIsWeb) ...[
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          SliverToBoxAdapter(child: AdBannerWidget()),
+        ],
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        const SliverToBoxAdapter(child: DisclaimerWidget()),
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
       ]
 
       // InstrumentPositionsWidget(
@@ -304,6 +312,53 @@ class InstrumentPositionsWidget extends StatelessWidget {
       //   height: 25.0,
       // ))
     ]));
+  }
+
+  void navigateToFullPage(BuildContext context) {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => Material(
+                    child: CustomScrollView(slivers: [
+                  SliverAppBar(
+                    title: Text("Stocks & ETFs"),
+                    pinned: true,
+                    actions: [
+                      IconButton(
+                          icon: Icon(Icons.more_vert),
+                          onPressed: () async {
+                            await showModalBottomSheet<void>(
+                                context: context,
+                                showDragHandle: true,
+                                //isScrollControlled: true,
+                                //useRootNavigator: true,
+                                //constraints: const BoxConstraints(maxHeight: 200),
+                                builder: (_) => MoreMenuBottomSheet(user,
+                                        analytics: analytics,
+                                        observer: observer,
+                                        showStockSettings: true,
+                                        chainSymbols: null,
+                                        positionSymbols: null,
+                                        cryptoSymbols: null,
+                                        optionSymbolFilters: null,
+                                        stockSymbolFilters: null,
+                                        cryptoFilters: null,
+                                        onSettingsChanged: (value) {
+                                      debugPrint(
+                                          "Settings changed ${jsonEncode(value)}");
+                                    }));
+                            // Navigator.pop(context);
+                          })
+                    ],
+                  ),
+                  InstrumentPositionsWidget(
+                    user,
+                    service,
+                    filteredPositions,
+                    analytics: analytics,
+                    observer: observer,
+                  )
+                ]))));
   }
 
   Widget _buildPositionRow(

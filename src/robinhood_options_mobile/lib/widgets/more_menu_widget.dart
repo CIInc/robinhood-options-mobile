@@ -13,6 +13,9 @@ class MoreMenuBottomSheet extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    this.showStockSettings = false,
+    this.showOptionsSettings = false,
+    this.showCryptoSettings = false,
     this.chainSymbols,
     this.positionSymbols,
     this.cryptoSymbols,
@@ -26,6 +29,11 @@ class MoreMenuBottomSheet extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final ValueChanged<dynamic> onSettingsChanged;
+
+  final bool showStockSettings;
+  final bool showOptionsSettings;
+  final bool showCryptoSettings;
+
   final List<String>? chainSymbols;
   final List<String>? positionSymbols;
   final List<String>? cryptoSymbols;
@@ -120,19 +128,21 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
           ),
         ),
-        SwitchListTile(
-          //leading: Icon(Icons.functions),
-          title: const Text("Position Details"),
-          subtitle: const Text("Displays P/L and Greeks."),
-          value: widget.user.showPositionDetails,
-          onChanged: (bool value) {
-            setState(() {
-              widget.user.showPositionDetails = value;
-            });
-            _onSettingsChanged();
-          },
-          secondary: const Icon(Icons.functions),
-        ),
+        if (widget.showStockSettings || widget.showOptionsSettings) ...[
+          SwitchListTile(
+            //leading: Icon(Icons.functions),
+            title: const Text("Position Details"),
+            subtitle: const Text("Displays P/L and Greeks."),
+            value: widget.user.showPositionDetails,
+            onChanged: (bool value) {
+              setState(() {
+                widget.user.showPositionDetails = value;
+              });
+              _onSettingsChanged();
+            },
+            secondary: const Icon(Icons.functions),
+          ),
+        ],
         // const Divider(
         //   height: 10,
         // ),
@@ -255,27 +265,29 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         // const Divider(
         //   height: 10,
         // ),
-        const ListTile(
-          // leading: Icon(Icons),
-          title: Text(
-            "Options View",
-            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+        if (widget.showOptionsSettings) ...[
+          const ListTile(
+            // leading: Icon(Icons),
+            title: Text(
+              "Options View",
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+            ),
           ),
-        ),
-        SwitchListTile(
-          //leading: Icon(Icons.functions),
-          title: const Text("Group by Stock"),
-          value: widget.user.optionsView == OptionsView.grouped,
-          onChanged: (bool value) {
-            setState(() {
-              widget.user.optionsView =
-                  value ? OptionsView.grouped : OptionsView.list;
-              //widget.user.showPositionDetails = value;
-            });
-            _onSettingsChanged();
-          },
-          secondary: const Icon(Icons.view_module),
-        ),
+          SwitchListTile(
+            //leading: Icon(Icons.functions),
+            title: const Text("Group by Stock"),
+            value: widget.user.optionsView == OptionsView.grouped,
+            onChanged: (bool value) {
+              setState(() {
+                widget.user.optionsView =
+                    value ? OptionsView.grouped : OptionsView.list;
+                //widget.user.showPositionDetails = value;
+              });
+              _onSettingsChanged();
+            },
+            secondary: const Icon(Icons.view_module),
+          ),
+        ],
         const ListTile(
           leading: Icon(Icons.sort),
           title: Text(
@@ -503,78 +515,80 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         // const Divider(
         //   height: 10,
         // ),
-        const ListTile(
-          leading: Icon(Icons.filter_list),
-          title: Text(
-            "Filters",
-          ),
-        ),
         //openClosedFilterWidget(bottomState),
-        const ListTile(
-          //leading: Icon(Icons.filter_list),
-          title: Text("Type"),
-        ),
-        optionTypeFilterWidget,
-        //optionTypeFilterWidget(bottomState),
-        if (widget.chainSymbols != null) ...[
+        if (widget.showOptionsSettings) ...[
+          const ListTile(
+            leading: Icon(Icons.filter_list),
+            title: Text(
+              "Filters",
+            ),
+          ),
           const ListTile(
             //leading: Icon(Icons.filter_list),
-            title: Text("Symbols"),
+            title: Text("Type"),
           ),
-          optionSymbolFilterWidget,
-          //optionSymbolFilterWidget(bottomState),
+          optionTypeFilterWidget,
+          //optionTypeFilterWidget(bottomState),
+          if (widget.chainSymbols != null) ...[
+            const ListTile(
+              //leading: Icon(Icons.filter_list),
+              title: Text("Symbols"),
+            ),
+            optionSymbolFilterWidget,
+            //optionSymbolFilterWidget(bottomState),
+          ]
         ],
-        const ListTile(
-          // leading: Icon(Icons),
-          title: Text(
-            "Stocks View",
-            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+        if (widget.showStockSettings) ...[
+          const ListTile(
+            // leading: Icon(Icons),
+            title: Text(
+              "Stock View",
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+            ),
           ),
-        ),
-        const ListTile(
-          leading: Icon(Icons.filter_list),
-          title: Text(
-            "Filters",
+          const ListTile(
+            leading: Icon(Icons.filter_list),
+            title: Text(
+              "Filters",
+            ),
           ),
-        ),
-        // const ListTile(
-        //   //leading: Icon(Icons.filter_list),
-        //   title: Text("Position Type"),
-        // ),
-        // positionTypeFilterWidget,
-        if (widget.positionSymbols != null) ...[
           // const ListTile(
           //   //leading: Icon(Icons.filter_list),
-          //   title: Text("Symbols"),
+          //   title: Text("Position Type"),
           // ),
-          stockOrderSymbolFilterWidget,
-          //stockOrderSymbolFilterWidget(bottomState),
+          // positionTypeFilterWidget,
+          if (widget.positionSymbols != null) ...[
+            // const ListTile(
+            //   //leading: Icon(Icons.filter_list),
+            //   title: Text("Symbols"),
+            // ),
+            stockOrderSymbolFilterWidget,
+            //stockOrderSymbolFilterWidget(bottomState),
+          ]
         ],
-        const ListTile(
-          // leading: Icon(Icons),
-          title: Text(
-            "Crypto View",
-            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+        if (widget.showCryptoSettings) ...[
+          const ListTile(
+            // leading: Icon(Icons),
+            title: Text(
+              "Crypto View",
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
+            ),
           ),
-        ),
-        const ListTile(
-          leading: Icon(Icons.filter_list),
-          title: Text(
-            "Filters",
+          const ListTile(
+            leading: Icon(Icons.filter_list),
+            title: Text(
+              "Filters",
+            ),
           ),
-        ),
-        if (widget.cryptoSymbols != null) ...[
-          // const ListTile(
-          //   title: Text("Symbols"),
-          // ),
-          cryptoFilterWidget,
-          //cryptoFilterWidget(bottomState),
+          if (widget.cryptoSymbols != null) ...[
+            // const ListTile(
+            //   title: Text("Symbols"),
+            // ),
+            cryptoFilterWidget,
+            //cryptoFilterWidget(bottomState),
+          ]
         ],
 
-        const Divider(
-          color: Colors.transparent,
-          height: 10,
-        ),
         if (widget.user.userName != null) ...[
           /*
               ListTile(
@@ -625,6 +639,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               ),
               */
         ] else ...[
+          const Divider(
+            color: Colors.transparent,
+            height: 10,
+          ),
           ListTile(
             leading: const Icon(Icons.login),
             title: const Text("Login"),
@@ -637,9 +655,9 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           )
         ],
 
-        const SizedBox(
-          height: 25.0,
-        )
+        // const SizedBox(
+        //   height: 25.0,
+        // )
       ],
     ));
   }

@@ -11,7 +11,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
-import 'dart:math' as math;
+// import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -22,7 +22,6 @@ import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
-import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals.dart';
@@ -182,9 +181,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     setState(() {
       _notification = state;
-      if (state == AppLifecycleState.resumed) {
-        _refresh();
-      }
+      debugPrint('AppLifecycleState: $state');
+      // if (state == AppLifecycleState.resumed) {
+      //   _refresh();
+      // }
     });
   }
 
@@ -345,11 +345,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 chartBoundsFilter,
                 chartDateSpanFilter);
 
-            futureDividends = widget.service.getDividends(
-              widget.user,
-              Provider.of<DividendStore>(context, listen: false),
-              Provider.of<InstrumentStore>(context, listen: false),
-            );
+            Future.delayed(Duration(seconds: 1), () {
+              if (mounted) {
+                futureDividends = widget.service.getDividends(
+                  widget.user,
+                  Provider.of<DividendStore>(context, listen: false),
+                  Provider.of<InstrumentStore>(context, listen: false),
+                );
+              }
+            });
             futureInterests = widget.service.getInterests(
               widget.user,
               Provider.of<InterestStore>(context, listen: false),
@@ -545,8 +549,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               )*/
               ));
             }),
-            Consumer<PortfolioHistoricalsStore>(
-                builder: (context, portfolioHistoricalsStore, child) {
+            Consumer<
+                PortfolioHistoricalsStore
+                // PortfolioStore,
+                // InstrumentPositionStore,
+                // OptionPositionStore,
+                // ForexHoldingStore
+                >(builder: (context,
+                portfolioHistoricalsStore,
+                // portfolioStore,
+                // instrumentPositionStore,
+                // optionPositionStore,
+                // forexHoldingStore,
+                child) {
               // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
               /*
                 if (portfolioHistoricals != null) {
@@ -607,6 +622,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
 
+              // close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+              // if (account != null) {
+              //   close = account.portfolioCash! +
+              //       instrumentPositionStore.equity +
+              //       optionPositionStore.equity +
+              //       forexHoldingStore.equity;
+              //   // updatedAt = portfolioStore.items[0].updatedAt!;
+              // }
+
               // This solution uses the portfolioStore but causes flickers on each refresh as the value keeps changing.
               // if (portfolioStore.items.isNotEmpty) {// && forexHoldingStore.items.isNotEmpty
               //   close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
@@ -620,7 +644,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               // Add latest portfolio value to historical to show current value on chart.
               // if (portfolioStore.items.isNotEmpty) {
               //   // debugPrint("equity ${portfolioStore.items[0].equity.toString()} forex ${forexHoldingStore.equity} close ${close.toString()}");
-              //   portfolioHistoricals!.addOrUpdate(EquityHistorical(lastHistorical.adjustedCloseEquity, close, lastHistorical.closeEquity, close, lastHistorical.closeMarketValue, close, portfolioStore.items[0].updatedAt, lastHistorical.closeEquity! - close, ''));//  DateTime.now()
+              //   portfolioHistoricals!.addOrUpdate(EquityHistorical(
+              //       lastHistorical.adjustedCloseEquity,
+              //       close,
+              //       lastHistorical.closeEquity,
+              //       close,
+              //       lastHistorical.closeMarketValue,
+              //       close,
+              //       portfolioStore.items[0].updatedAt,
+              //       lastHistorical.closeEquity! - close,
+              //       '')); //  DateTime.now()
+              //   lastHistorical = portfolioHistoricals!.equityHistoricals[
+              //       portfolioHistoricals!.equityHistoricals.length - 1];
+              //   close = lastHistorical.adjustedCloseEquity!;
               // }
 
               /*
@@ -741,7 +777,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ],
                   Column(children: [
                     SizedBox(
-                        height: 450, // 240,
+                        height: 460, // 240,
                         child: Padding(
                           padding:
                               const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
@@ -1273,30 +1309,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 // entryTextStyle: charts.TextStyleSpec(fontSize: 12)
               );
 
+              double portfolioValue = 0.0;
+              // double stockAndOptionsEquityPercent = 0.0;
+              double optionEquityPercent = 0.0;
+              double positionEquityPercent = 0.0;
+              double portfolioCash =
+                  account != null ? account.portfolioCash! : 0;
+              double cashPercent = 0.0;
+              double cryptoPercent = 0.0;
+              if (portfolioStore.items.isNotEmpty) {
+                portfolioValue = (portfolioStore.items[0].equity ?? 0) +
+                    forexHoldingStore.equity;
+                // stockAndOptionsEquityPercent =
+                //     portfolioStore.items[0].marketValue! / portfolioValue;
+                optionEquityPercent =
+                    optionPositionStore.equity / portfolioValue;
+                positionEquityPercent =
+                    stockPositionStore.equity / portfolioValue;
+                cashPercent = portfolioCash / portfolioValue;
+                cryptoPercent = forexHoldingStore.equity / portfolioValue;
+              }
+
               List<PieChartData> data = [];
               //if (portfolioStore.items.isNotEmpty) {
               //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
               //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
               data.add(PieChartData(
-                  'Options', // \n${formatCompactNumber.format(optionPositionStore.equity)}
-                  optionPositionStore.equity)); // / portfolioValue
+                  'Options ${formatPercentage.format(optionEquityPercent)}',
+                  optionPositionStore.equity));
               data.add(PieChartData(
-                  'Stocks', // \n${formatCompactNumber.format(stockPositionStore.equity)}
-                  stockPositionStore.equity)); // / portfolioValue
+                  'Stocks ${formatPercentage.format(positionEquityPercent)}',
+                  stockPositionStore.equity));
               data.add(PieChartData(
-                  'Crypto', // \n${formatCompactNumber.format(forexHoldingStore.equity)}
-                  forexHoldingStore.equity)); // / portfolioValue
-              double portfolioCash =
-                  account != null ? account.portfolioCash! : 0;
+                  'Crypto ${formatPercentage.format(cryptoPercent)}',
+                  forexHoldingStore.equity));
               data.add(PieChartData(
-                  'Cash', // \n${formatCompactNumber.format(portfolioCash)}
-                  portfolioCash)); // / portfolioValue
+                  'Cash ${formatPercentage.format(cashPercent)}',
+                  portfolioCash));
               //}
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
-              final maxSectors = 5;
-              final maxIndustries = 5;
+              final maxSectors = 6;
+              final maxIndustries = 6;
 
               List<PieChartData> diversificationSectorData = [];
               var groupedBySector = stockPositionStore.items.groupListsBy(
@@ -1411,167 +1466,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // ]),
                   ),
                   ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: 260), // 320
+                      constraints: BoxConstraints(maxHeight: 240), // 320
                       child:
-                          // ListView.builder(
+                          // ListView(
                           //     padding: const EdgeInsets.all(5.0),
                           //     scrollDirection: Axis.horizontal,
-                          //     itemCount: 3,
-                          //     itemBuilder: (context, index) {
-                          //       if (index == 0) {
-                          //         return PieChart(
-                          //           [
-                          //             charts.Series<PieChartData, String>(
-                          //               id: 'Portfolio Breakdown',
-                          //               colorFn: (_, index) => shades[index!],
-                          //               /*
-                          //                                     colorFn: (_, index) => charts.MaterialPalette.cyan
-                          //                                         .makeShades(4)[index!],
-                          //                                     colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                          //                                         Theme.of(context).colorScheme.primary),
-                          //                                     */
-                          //               domainFn: (PieChartData val, index) =>
-                          //                   val.label,
-                          //               measureFn: (PieChartData val, index) =>
-                          //                   val.value,
-                          //               // labelAccessorFn:
-                          //               //     (PieChartData val, _) => '',
-                          //               // labelAccessorFn: (PieChartData val,
-                          //               //         _) =>
-                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                          //               data: data,
-                          //             ),
-                          //           ],
-                          //           animate: false,
-                          //           renderer: charts.ArcRendererConfig(
-                          //               //arcWidth: 60,
-                          //               arcRendererDecorators: [
-                          //                 charts.ArcLabelDecorator(
-                          //                     // insideLabelStyleSpec:
-                          //                     //     charts.TextStyleSpec(fontSize: 14),
-                          //                     // labelPadding: 0,
-                          //                     outsideLabelStyleSpec:
-                          //                         charts.TextStyleSpec(
-                          //                             fontSize: 12,
-                          //                             color: axisLabelColor))
-                          //               ]),
-                          //           behaviors: [
-                          //             legendBehavior,
-                          //             // charts.ChartTitle('Allocation',
-                          //             //     titleStyleSpec: charts.TextStyleSpec(
-                          //             //         color: axisLabelColor),
-                          //             //     behaviorPosition:
-                          //             //         charts.BehaviorPosition.end)
-                          //             // charts.ChartTitle('Portfolio Allocation')
-                          //           ],
-                          //           onSelected: (_) {},
-                          //         );
-                          //       } else if (index == 1) {
-                          //         return PieChart(
-                          //           [
-                          //             charts.Series<PieChartData, String>(
-                          //               id: 'Diversification Sector',
-                          //               colorFn: (_, index) => charts.ColorUtil
-                          //                   .fromDartColor(Colors.accents[index! %
-                          //                       Colors.accents
-                          //                           .length]), // shades[index!],
-                          //               /*
-                          //                                   colorFn: (_, index) => charts.MaterialPalette.cyan
-                          //                                       .makeShades(4)[index!],
-                          //                                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                          //                                       Theme.of(context).colorScheme.primary),
-                          //                                   */
-                          //               domainFn: (PieChartData val, index) =>
-                          //                   val.label,
-                          //               measureFn: (PieChartData val, index) =>
-                          //                   val.value,
-                          //               labelAccessorFn: (PieChartData val, _) =>
-                          //                   '',
-                          //               // labelAccessorFn: (PieChartData val,
-                          //               //         _) =>
-                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                          //               data: diversificationSectorData,
-                          //             ),
-                          //           ],
-                          //           animate: false,
-                          //           renderer: charts.ArcRendererConfig(
-                          //               arcWidth: 14,
-                          //               arcRendererDecorators: [
-                          //                 charts.ArcLabelDecorator(
-                          //                     // insideLabelStyleSpec:
-                          //                     //     charts.TextStyleSpec(fontSize: 14),
-                          //                     // labelPadding: 0,
-                          //                     outsideLabelStyleSpec:
-                          //                         charts.TextStyleSpec(
-                          //                             fontSize: 12,
-                          //                             color: axisLabelColor))
-                          //               ]),
-                          //           onSelected: (_) {},
-                          //           behaviors: [
-                          //             legendBehavior,
-                          //             charts.ChartTitle('Sector',
-                          //                 titleStyleSpec: charts.TextStyleSpec(
-                          //                     color: axisLabelColor),
-                          //                 behaviorPosition:
-                          //                     charts.BehaviorPosition.end)
-                          //           ],
-                          //         );
-                          //       } else {
-                          //         return PieChart(
-                          //           [
-                          //             charts.Series<PieChartData, String>(
-                          //               id: 'Diversification Industry',
-                          //               colorFn: (_, index) => charts.ColorUtil
-                          //                   .fromDartColor(Colors.accents[index! %
-                          //                       Colors.accents
-                          //                           .length]), // shades[index!],
-                          //               /*
-                          //                                   colorFn: (_, index) => charts.MaterialPalette.cyan
-                          //                                       .makeShades(4)[index!],
-                          //                                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                          //                                       Theme.of(context).colorScheme.primary),
-                          //                                   */
-                          //               domainFn: (PieChartData val, index) =>
-                          //                   val.label.length > maxLabelChars
-                          //                       ? val.label.replaceRange(
-                          //                           maxLabelChars, val.label.length, '...')
-                          //                       : val.label,
-                          //               measureFn: (PieChartData val, index) =>
-                          //                   val.value,
-                          //               labelAccessorFn: (PieChartData val, _) =>
-                          //                   '',
-                          //               // labelAccessorFn: (PieChartData val,
-                          //               //         _) =>
-                          //               //     '${val.label}\n${formatCompactNumber.format(val.value)}',
-                          //               data: diversificationIndustryData,
-                          //             ),
-                          //           ],
-                          //           animate: false,
-                          //           renderer: charts.ArcRendererConfig(
-                          //               arcWidth: 14,
-                          //               arcRendererDecorators: [
-                          //                 charts.ArcLabelDecorator(
-                          //                     // insideLabelStyleSpec:
-                          //                     //     charts.TextStyleSpec(fontSize: 14),
-                          //                     // labelPadding: 0,
-                          //                     outsideLabelStyleSpec:
-                          //                         charts.TextStyleSpec(
-                          //                             fontSize: 12,
-                          //                             color: axisLabelColor))
-                          //               ]),
-                          //           behaviors: [
-                          //             legendBehavior,
-                          //             charts.ChartTitle('Industry',
-                          //                 titleStyleSpec: charts.TextStyleSpec(
-                          //                     color: axisLabelColor),
-                          //                 behaviorPosition:
-                          //                     charts.BehaviorPosition.end)
-                          //           ],
-                          //           onSelected: (_) {},
-                          //         );
-                          //       }
-                          //     })
+                          //     children: [
                           CarouselView(
+                              enableSplash: false,
                               // padding: const EdgeInsets.all(5.0),
                               scrollDirection: Axis.horizontal,
                               itemSnapping: true,
@@ -1586,21 +1488,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   charts.Series<PieChartData, String>(
                                     id: 'Portfolio Breakdown',
                                     colorFn: (_, index) => shades[index!],
-                                    /*
-                                                          colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                              .makeShades(4)[index!],
-                                                          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                              Theme.of(context).colorScheme.primary),
-                                                          */
                                     domainFn: (PieChartData val, index) =>
                                         val.label,
                                     measureFn: (PieChartData val, index) =>
                                         val.value,
                                     labelAccessorFn: (PieChartData val, _) =>
-                                        '',
-                                    // labelAccessorFn: (PieChartData val,
-                                    //         _) =>
-                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
                                     data: data,
                                   ),
                                 ],
@@ -1620,14 +1513,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 //     ]),
                                 behaviors: [
                                   legendBehavior,
-                                  // charts.ChartTitle('Allocation',
-                                  //     titleStyleSpec: charts.TextStyleSpec(
-                                  //         color: axisLabelColor),
-                                  //     behaviorPosition:
-                                  //         charts.BehaviorPosition.end)
-                                  // charts.ChartTitle('Portfolio Allocation')
+                                  charts.ChartTitle('Asset',
+                                      titleStyleSpec: charts.TextStyleSpec(
+                                          color: axisLabelColor),
+                                      behaviorPosition:
+                                          charts.BehaviorPosition.end),
+                                  charts.SelectNearest(),
+                                  charts.DomainHighlighter(),
+                                  charts.LinePointHighlighter(
+                                    symbolRenderer: TextSymbolRenderer(() =>
+                                        // widget.chartSelectionStore.selection != null
+                                        //     ? formatCurrency
+                                        //         .format(widget.chartSelectionStore.selection!.value)
+                                        //     :
+                                        ''),
+                                    // chartSelectionStore.selection
+                                    //     ?.map((s) => s.value.round().toString())
+                                    //     .join(' ') ??
+                                    // ''),
+                                    // seriesIds: [
+                                    //   dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
+                                    // ], // , 'Interest'
+                                    // drawFollowLinesAcrossChart: true,
+                                    // formatCompactCurrency
+                                    //     .format(chartSelection?.value)),
+                                    showHorizontalFollowLine: charts
+                                        .LinePointHighlighterFollowLineType
+                                        .none, //.nearest,
+                                    showVerticalFollowLine: charts
+                                        .LinePointHighlighterFollowLineType
+                                        .none, //.nearest,
+                                  )
                                 ],
-                                onSelected: (_) {},
+                                onSelected: (value) {
+                                  debugPrint(value.value.toString());
+                                },
                               ),
                               PieChart(
                                 [
@@ -1653,10 +1573,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     measureFn: (PieChartData val, index) =>
                                         val.value,
                                     labelAccessorFn: (PieChartData val, _) =>
-                                        '',
-                                    // labelAccessorFn: (PieChartData val,
-                                    //         _) =>
-                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
                                     data: diversificationSectorData,
                                   ),
                                 ],
@@ -1692,12 +1609,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                         .fromDartColor(Colors.accents[index! %
                                             Colors.accents
                                                 .length]), // shades[index!],
-                                    /*
-                                                        colorFn: (_, index) => charts.MaterialPalette.cyan
-                                                            .makeShades(4)[index!],
-                                                        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                                                            Theme.of(context).colorScheme.primary),
-                                                        */
                                     domainFn: (PieChartData val, index) =>
                                         val.label.length > maxLabelChars
                                             ? val.label.replaceRange(
@@ -1708,10 +1619,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     measureFn: (PieChartData val, index) =>
                                         val.value,
                                     labelAccessorFn: (PieChartData val, _) =>
-                                        '',
-                                    // labelAccessorFn: (PieChartData val,
-                                    //         _) =>
-                                    //     '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
                                     data: diversificationIndustryData,
                                   ),
                                 ],
@@ -2010,474 +1918,474 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             ])));
   }
 
-  Widget portfoliosWidget(List<Portfolio> portfolios) {
-    return SliverList(
-      // delegate: SliverChildListDelegate(widgets),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          if (portfolios.length > index) {
-            var accountSplit = portfolios[index].account.split("/");
-            return Card(
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              ListTile(
-                title: const Text("Account", style: TextStyle(fontSize: 14)),
-                trailing: Text(accountSplit[accountSplit.length - 2],
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Equity", style: TextStyle(fontSize: 14)),
-                trailing: Text(formatCurrency.format(portfolios[index].equity),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Extended Hours Equity",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    portfolios[index].extendedHoursEquity != null
-                        ? formatCurrency
-                            .format(portfolios[index].extendedHoursEquity)
-                        : "",
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Last Core Equity",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index].lastCoreEquity),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Last Core Portfolio Equity",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].lastCorePortfolioEquity),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Extended Hours Portfolio Equity",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    portfolios[index].extendedHoursPortfolioEquity != null
-                        ? formatCurrency.format(
-                            portfolios[index].extendedHoursPortfolioEquity)
-                        : "",
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Equity Previous Close",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].equityPreviousClose),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Adjusted Equity Previous Close",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].adjustedEquityPreviousClose),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Portfolio Equity Previous Close",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].portfolioEquityPreviousClose),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Adjusted Portfolio Equity Previous Close",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(
-                        portfolios[index].adjustedPortfolioEquityPreviousClose),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title:
-                    const Text("Market Value", style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index].marketValue),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Extended Hours Market Value",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    portfolios[index].extendedHoursMarketValue != null
-                        ? formatCurrency
-                            .format(portfolios[index].extendedHoursMarketValue)
-                        : "",
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Last Core Market Value",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].lastCoreMarketValue),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Excess Maintenance",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index].excessMaintenance),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Excess Maintenance With Uncleared Deposits",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index]
-                        .excessMaintenanceWithUnclearedDeposits),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title:
-                    const Text("Excess Margin", style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index].excessMargin),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Excess Margin With Uncleared Deposits",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(
-                        portfolios[index].excessMarginWithUnclearedDeposits),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Start Date", style: TextStyle(fontSize: 14)),
-                trailing: Text(formatDate.format(portfolios[index].startDate!),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Unwithdrawable Deposits",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].unwithdrawableDeposits),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Unwithdrawable Grants",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency
-                        .format(portfolios[index].unwithdrawableGrants),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              ListTile(
-                title: const Text("Withdrawable Amount",
-                    style: TextStyle(fontSize: 14)),
-                trailing: Text(
-                    formatCurrency.format(portfolios[index].withdrawableAmount),
-                    style: const TextStyle(fontSize: 16)),
-              ),
-              /*
-              ListTile(
-                title: const Text("Url", style: TextStyle(fontSize: 14)),
-                trailing: Text(portfolios[index].url,
-                    style: const TextStyle(fontSize: 14)),
-              ),
-              */
-            ]));
-          }
-          return null;
-          // To convert this infinite list to a list with three items,
-          // uncomment the following line:
-          // if (index > 3) return null;
-        },
-        // Or, uncomment the following line:
-        // childCount: widgets.length + 10,
-      ),
-    );
-  }
+  // Widget portfoliosWidget(List<Portfolio> portfolios) {
+  //   return SliverList(
+  //     // delegate: SliverChildListDelegate(widgets),
+  //     delegate: SliverChildBuilderDelegate(
+  //       (BuildContext context, int index) {
+  //         if (portfolios.length > index) {
+  //           var accountSplit = portfolios[index].account.split("/");
+  //           return Card(
+  //               child:
+  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //             ListTile(
+  //               title: const Text("Account", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(accountSplit[accountSplit.length - 2],
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Equity", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(formatCurrency.format(portfolios[index].equity),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Extended Hours Equity",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   portfolios[index].extendedHoursEquity != null
+  //                       ? formatCurrency
+  //                           .format(portfolios[index].extendedHoursEquity)
+  //                       : "",
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Last Core Equity",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index].lastCoreEquity),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Last Core Portfolio Equity",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].lastCorePortfolioEquity),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Extended Hours Portfolio Equity",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   portfolios[index].extendedHoursPortfolioEquity != null
+  //                       ? formatCurrency.format(
+  //                           portfolios[index].extendedHoursPortfolioEquity)
+  //                       : "",
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Equity Previous Close",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].equityPreviousClose),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Adjusted Equity Previous Close",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].adjustedEquityPreviousClose),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Portfolio Equity Previous Close",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].portfolioEquityPreviousClose),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Adjusted Portfolio Equity Previous Close",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(
+  //                       portfolios[index].adjustedPortfolioEquityPreviousClose),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title:
+  //                   const Text("Market Value", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index].marketValue),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Extended Hours Market Value",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   portfolios[index].extendedHoursMarketValue != null
+  //                       ? formatCurrency
+  //                           .format(portfolios[index].extendedHoursMarketValue)
+  //                       : "",
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Last Core Market Value",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].lastCoreMarketValue),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Excess Maintenance",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index].excessMaintenance),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Excess Maintenance With Uncleared Deposits",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index]
+  //                       .excessMaintenanceWithUnclearedDeposits),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title:
+  //                   const Text("Excess Margin", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index].excessMargin),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Excess Margin With Uncleared Deposits",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(
+  //                       portfolios[index].excessMarginWithUnclearedDeposits),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Start Date", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(formatDate.format(portfolios[index].startDate!),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Unwithdrawable Deposits",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].unwithdrawableDeposits),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Unwithdrawable Grants",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency
+  //                       .format(portfolios[index].unwithdrawableGrants),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             ListTile(
+  //               title: const Text("Withdrawable Amount",
+  //                   style: TextStyle(fontSize: 14)),
+  //               trailing: Text(
+  //                   formatCurrency.format(portfolios[index].withdrawableAmount),
+  //                   style: const TextStyle(fontSize: 16)),
+  //             ),
+  //             /*
+  //             ListTile(
+  //               title: const Text("Url", style: TextStyle(fontSize: 14)),
+  //               trailing: Text(portfolios[index].url,
+  //                   style: const TextStyle(fontSize: 14)),
+  //             ),
+  //             */
+  //           ]));
+  //         }
+  //         return null;
+  //         // To convert this infinite list to a list with three items,
+  //         // uncomment the following line:
+  //         // if (index > 3) return null;
+  //       },
+  //       // Or, uncomment the following line:
+  //       // childCount: widgets.length + 10,
+  //     ),
+  //   );
+  // }
 
-  Widget symbolWidgets(List<Widget> widgets) {
-    var n = 3; // 4;
-    if (widgets.length < 8) {
-      n = 1;
-    } else if (widgets.length < 14) {
-      n = 2;
-    } /* else if (widgets.length < 24) {
-      n = 3;
-    }*/
+  // Widget symbolWidgets(List<Widget> widgets) {
+  //   var n = 3; // 4;
+  //   if (widgets.length < 8) {
+  //     n = 1;
+  //   } else if (widgets.length < 14) {
+  //     n = 2;
+  //   } /* else if (widgets.length < 24) {
+  //     n = 3;
+  //   }*/
 
-    var m = (widgets.length / n).round();
-    var lists = List.generate(
-        n,
-        (i) => widgets.sublist(
-            m * i, (i + 1) * m <= widgets.length ? (i + 1) * m : null));
-    List<Widget> rows = []; //<Widget>[]
-    for (int i = 0; i < lists.length; i++) {
-      var list = lists[i];
-      rows.add(
-        SizedBox(
-            height: 56,
-            child: ListView.builder(
-              //physics: NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              padding: const EdgeInsets.all(4.0),
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                return Row(children: list);
-              },
-              itemCount: 1,
-            )),
-      );
-    }
+  //   var m = (widgets.length / n).round();
+  //   var lists = List.generate(
+  //       n,
+  //       (i) => widgets.sublist(
+  //           m * i, (i + 1) * m <= widgets.length ? (i + 1) * m : null));
+  //   List<Widget> rows = []; //<Widget>[]
+  //   for (int i = 0; i < lists.length; i++) {
+  //     var list = lists[i];
+  //     rows.add(
+  //       SizedBox(
+  //           height: 56,
+  //           child: ListView.builder(
+  //             //physics: NeverScrollableScrollPhysics(),
+  //             shrinkWrap: true,
+  //             padding: const EdgeInsets.all(4.0),
+  //             scrollDirection: Axis.horizontal,
+  //             itemBuilder: (context, index) {
+  //               return Row(children: list);
+  //             },
+  //             itemCount: 1,
+  //           )),
+  //     );
+  //   }
 
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, children: rows));
-  }
+  //   return SingleChildScrollView(
+  //       scrollDirection: Axis.horizontal,
+  //       child: Column(
+  //           crossAxisAlignment: CrossAxisAlignment.start, children: rows));
+  // }
 
-  Widget optionSymbolFilterWidget(
-      StateSetter bottomState, OptionPositionStore optionPositionStore) {
-    var widgets = optionSymbolFilterWidgets(
-            chainSymbols, optionPositionStore.items, bottomState)
-        .toList();
-    /*
-    if (widgets.length < 20) {
-      return Padding(
-          padding: const EdgeInsets.all(4.0),
-          child: Wrap(
-            children: widgets,
-          ));
-    }
-    */
-    return symbolWidgets(widgets);
-  }
+  // Widget optionSymbolFilterWidget(
+  //     StateSetter bottomState, OptionPositionStore optionPositionStore) {
+  //   var widgets = optionSymbolFilterWidgets(
+  //           chainSymbols, optionPositionStore.items, bottomState)
+  //       .toList();
+  //   /*
+  //   if (widgets.length < 20) {
+  //     return Padding(
+  //         padding: const EdgeInsets.all(4.0),
+  //         child: Wrap(
+  //           children: widgets,
+  //         ));
+  //   }
+  //   */
+  //   return symbolWidgets(widgets);
+  // }
 
-  Iterable<Widget> optionSymbolFilterWidgets(List<String> chainSymbols,
-      List<OptionAggregatePosition> options, StateSetter bottomState) sync* {
-    for (final String chainSymbol in chainSymbols) {
-      yield Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
-          label: Text(chainSymbol),
-          selected: optionSymbolFilters.contains(chainSymbol),
-          onSelected: (bool value) {
-            bottomState(() {
-              if (value) {
-                optionSymbolFilters.add(chainSymbol);
-              } else {
-                optionSymbolFilters.removeWhere((String name) {
-                  return name == chainSymbol;
-                });
-              }
-            });
-            setState(() {});
-            //Navigator.pop(context);
-          },
-        ),
-      );
-    }
-  }
+  // Iterable<Widget> optionSymbolFilterWidgets(List<String> chainSymbols,
+  //     List<OptionAggregatePosition> options, StateSetter bottomState) sync* {
+  //   for (final String chainSymbol in chainSymbols) {
+  //     yield Padding(
+  //       padding: const EdgeInsets.all(4.0),
+  //       child: FilterChip(
+  //         // avatar: CircleAvatar(child: Text(contractCount.toString())),
+  //         label: Text(chainSymbol),
+  //         selected: optionSymbolFilters.contains(chainSymbol),
+  //         onSelected: (bool value) {
+  //           bottomState(() {
+  //             if (value) {
+  //               optionSymbolFilters.add(chainSymbol);
+  //             } else {
+  //               optionSymbolFilters.removeWhere((String name) {
+  //                 return name == chainSymbol;
+  //               });
+  //             }
+  //           });
+  //           setState(() {});
+  //           //Navigator.pop(context);
+  //         },
+  //       ),
+  //     );
+  //   }
+  // }
 
-  Widget optionTypeFilterWidget(StateSetter bottomState) {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Long'), // Positions
-                    selected: positionFilters.contains("long"),
-                    onSelected: (bool value) {
-                      bottomState(() {
-                        if (value) {
-                          positionFilters.add("long");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "long";
-                          });
-                        }
-                      });
-                      setState(() {});
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Short'), // Positions
-                    selected: positionFilters.contains("short"),
-                    onSelected: (bool value) {
-                      bottomState(() {
-                        if (value) {
-                          positionFilters.add("short");
-                        } else {
-                          positionFilters.removeWhere((String name) {
-                            return name == "short";
-                          });
-                        }
-                      });
-                      setState(() {});
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Call'), // Options
-                    selected: optionFilters.contains("call"),
-                    onSelected: (bool value) {
-                      bottomState(() {
-                        if (value) {
-                          optionFilters.add("call");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "call";
-                          });
-                        }
-                      });
-                      setState(() {});
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: FilterChip(
-                    //avatar: const Icon(Icons.history_outlined),
-                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                    label: const Text('Put'), // Options
-                    selected: optionFilters.contains("put"),
-                    onSelected: (bool value) {
-                      bottomState(() {
-                        if (value) {
-                          optionFilters.add("put");
-                        } else {
-                          optionFilters.removeWhere((String name) {
-                            return name == "put";
-                          });
-                        }
-                      });
-                      setState(() {});
-                    },
-                  ),
-                )
-              ],
-            );
-          },
-          itemCount: 1,
-        ));
-  }
+  // Widget optionTypeFilterWidget(StateSetter bottomState) {
+  //   return SizedBox(
+  //       height: 56,
+  //       child: ListView.builder(
+  //         padding: const EdgeInsets.all(4.0),
+  //         scrollDirection: Axis.horizontal,
+  //         itemBuilder: (context, index) {
+  //           return Row(
+  //             children: [
+  //               Padding(
+  //                 padding: const EdgeInsets.all(4.0),
+  //                 child: FilterChip(
+  //                   //avatar: const Icon(Icons.history_outlined),
+  //                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                   label: const Text('Long'), // Positions
+  //                   selected: positionFilters.contains("long"),
+  //                   onSelected: (bool value) {
+  //                     bottomState(() {
+  //                       if (value) {
+  //                         positionFilters.add("long");
+  //                       } else {
+  //                         positionFilters.removeWhere((String name) {
+  //                           return name == "long";
+  //                         });
+  //                       }
+  //                     });
+  //                     setState(() {});
+  //                   },
+  //                 ),
+  //               ),
+  //               Padding(
+  //                 padding: const EdgeInsets.all(4.0),
+  //                 child: FilterChip(
+  //                   //avatar: const Icon(Icons.history_outlined),
+  //                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                   label: const Text('Short'), // Positions
+  //                   selected: positionFilters.contains("short"),
+  //                   onSelected: (bool value) {
+  //                     bottomState(() {
+  //                       if (value) {
+  //                         positionFilters.add("short");
+  //                       } else {
+  //                         positionFilters.removeWhere((String name) {
+  //                           return name == "short";
+  //                         });
+  //                       }
+  //                     });
+  //                     setState(() {});
+  //                   },
+  //                 ),
+  //               ),
+  //               Padding(
+  //                 padding: const EdgeInsets.all(4.0),
+  //                 child: FilterChip(
+  //                   //avatar: const Icon(Icons.history_outlined),
+  //                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                   label: const Text('Call'), // Options
+  //                   selected: optionFilters.contains("call"),
+  //                   onSelected: (bool value) {
+  //                     bottomState(() {
+  //                       if (value) {
+  //                         optionFilters.add("call");
+  //                       } else {
+  //                         optionFilters.removeWhere((String name) {
+  //                           return name == "call";
+  //                         });
+  //                       }
+  //                     });
+  //                     setState(() {});
+  //                   },
+  //                 ),
+  //               ),
+  //               Padding(
+  //                 padding: const EdgeInsets.all(4.0),
+  //                 child: FilterChip(
+  //                   //avatar: const Icon(Icons.history_outlined),
+  //                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                   label: const Text('Put'), // Options
+  //                   selected: optionFilters.contains("put"),
+  //                   onSelected: (bool value) {
+  //                     bottomState(() {
+  //                       if (value) {
+  //                         optionFilters.add("put");
+  //                       } else {
+  //                         optionFilters.removeWhere((String name) {
+  //                           return name == "put";
+  //                         });
+  //                       }
+  //                     });
+  //                     setState(() {});
+  //                   },
+  //                 ),
+  //               )
+  //             ],
+  //           );
+  //         },
+  //         itemCount: 1,
+  //       ));
+  // }
 
-  Widget positionTypeFilterWidget(StateSetter bottomState) {
-    return SizedBox(
-        height: 56,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(4.0),
-          scrollDirection: Axis.horizontal,
-          itemBuilder: (context, index) {
-            return Row(children: [
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: const Icon(Icons.new_releases_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Open'),
-                  selected: hasQuantityFilters[0],
-                  onSelected: (bool value) {
-                    bottomState(() {
-                      if (value) {
-                        hasQuantityFilters[0] = true;
-                      } else {
-                        hasQuantityFilters[0] = false;
-                      }
-                    });
-                    setState(() {});
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: FilterChip(
-                  //avatar: Container(),
-                  //avatar: const Icon(Icons.history_outlined),
-                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                  label: const Text('Closed'),
-                  selected: hasQuantityFilters[1],
-                  onSelected: (bool value) {
-                    bottomState(() {
-                      if (value) {
-                        hasQuantityFilters[1] = true;
-                      } else {
-                        hasQuantityFilters[1] = false;
-                      }
-                      // TODO: Refresh stock and option positions;
-                      //positionStoreStream = null;
-                      //optionPositionStoreStream = null;
-                    });
-                    setState(() {});
-                  },
-                ),
-              ),
-            ]);
-          },
-          itemCount: 1,
-        ));
-  }
+  // Widget positionTypeFilterWidget(StateSetter bottomState) {
+  //   return SizedBox(
+  //       height: 56,
+  //       child: ListView.builder(
+  //         padding: const EdgeInsets.all(4.0),
+  //         scrollDirection: Axis.horizontal,
+  //         itemBuilder: (context, index) {
+  //           return Row(children: [
+  //             Padding(
+  //               padding: const EdgeInsets.all(4.0),
+  //               child: FilterChip(
+  //                 //avatar: const Icon(Icons.new_releases_outlined),
+  //                 //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                 label: const Text('Open'),
+  //                 selected: hasQuantityFilters[0],
+  //                 onSelected: (bool value) {
+  //                   bottomState(() {
+  //                     if (value) {
+  //                       hasQuantityFilters[0] = true;
+  //                     } else {
+  //                       hasQuantityFilters[0] = false;
+  //                     }
+  //                   });
+  //                   setState(() {});
+  //                 },
+  //               ),
+  //             ),
+  //             Padding(
+  //               padding: const EdgeInsets.all(4.0),
+  //               child: FilterChip(
+  //                 //avatar: Container(),
+  //                 //avatar: const Icon(Icons.history_outlined),
+  //                 //avatar: CircleAvatar(child: Text(optionCount.toString())),
+  //                 label: const Text('Closed'),
+  //                 selected: hasQuantityFilters[1],
+  //                 onSelected: (bool value) {
+  //                   bottomState(() {
+  //                     if (value) {
+  //                       hasQuantityFilters[1] = true;
+  //                     } else {
+  //                       hasQuantityFilters[1] = false;
+  //                     }
+  //                     // TODO: Refresh stock and option positions;
+  //                     //positionStoreStream = null;
+  //                     //optionPositionStoreStream = null;
+  //                   });
+  //                   setState(() {});
+  //                 },
+  //               ),
+  //             ),
+  //           ]);
+  //         },
+  //         itemCount: 1,
+  //       ));
+  // }
 
-  Widget stockOrderSymbolFilterWidget(StateSetter bottomState) {
-    var widgets =
-        symbolFilterWidgets(positionSymbols, stockSymbolFilters, bottomState)
-            .toList();
-    return symbolWidgets(widgets);
-  }
+  // Widget stockOrderSymbolFilterWidget(StateSetter bottomState) {
+  //   var widgets =
+  //       symbolFilterWidgets(positionSymbols, stockSymbolFilters, bottomState)
+  //           .toList();
+  //   return symbolWidgets(widgets);
+  // }
 
-  Widget cryptoFilterWidget(StateSetter bottomState) {
-    var widgets =
-        symbolFilterWidgets(cryptoSymbols, cryptoFilters, bottomState).toList();
-    return symbolWidgets(widgets);
-  }
+  // Widget cryptoFilterWidget(StateSetter bottomState) {
+  //   var widgets =
+  //       symbolFilterWidgets(cryptoSymbols, cryptoFilters, bottomState).toList();
+  //   return symbolWidgets(widgets);
+  // }
 
-  Iterable<Widget> symbolFilterWidgets(List<String> symbols,
-      List<String> selectedSymbols, StateSetter bottomState) sync* {
-    for (final String chainSymbol in symbols) {
-      yield Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: FilterChip(
-          // avatar: CircleAvatar(child: Text(contractCount.toString())),
-          label: Text(chainSymbol),
-          selected: selectedSymbols.contains(chainSymbol),
-          onSelected: (bool value) {
-            bottomState(() {
-              if (value) {
-                selectedSymbols.add(chainSymbol);
-              } else {
-                selectedSymbols.removeWhere((String name) {
-                  return name == chainSymbol;
-                });
-              }
-            });
-            setState(() {});
-          },
-        ),
-      );
-    }
-  }
+  // Iterable<Widget> symbolFilterWidgets(List<String> symbols,
+  //     List<String> selectedSymbols, StateSetter bottomState) sync* {
+  //   for (final String chainSymbol in symbols) {
+  //     yield Padding(
+  //       padding: const EdgeInsets.all(4.0),
+  //       child: FilterChip(
+  //         // avatar: CircleAvatar(child: Text(contractCount.toString())),
+  //         label: Text(chainSymbol),
+  //         selected: selectedSymbols.contains(chainSymbol),
+  //         onSelected: (bool value) {
+  //           bottomState(() {
+  //             if (value) {
+  //               selectedSymbols.add(chainSymbol);
+  //             } else {
+  //               selectedSymbols.removeWhere((String name) {
+  //                 return name == chainSymbol;
+  //               });
+  //             }
+  //           });
+  //           setState(() {});
+  //         },
+  //       ),
+  //     );
+  //   }
+  // }
 
   SliverAppBar buildSliverAppBar(
       //List<Portfolio>? portfolios,
@@ -2512,7 +2420,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     ),*/
       // backgroundColor: Colors.green,
       // brightness: Brightness.light,
-      expandedHeight: 185.0, //240.0, //280.0,
+      // expandedHeight: 185.0, //240.0, //280.0,
       //collapsedHeight: 80.0,
       /*
                       bottom: PreferredSize(
@@ -2588,16 +2496,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //     ]),
       flexibleSpace: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints constraints) {
-        final settings = context
-            .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+        // // Disabled SliverAppBar effect for now
+        // final settings = context
+        //     .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
 
-        final deltaExtent = settings!.maxExtent - settings.minExtent;
-        final t =
-            (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
-                .clamp(0.0, 1.0);
-        final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-        const fadeEnd = 1.0;
-        final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+        // final deltaExtent = settings!.maxExtent - settings.minExtent;
+        // final t =
+        //     (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
+        //         .clamp(0.0, 1.0);
+        // final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+        // const fadeEnd = 1.0;
+        // final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
 
         //bool visible = settings == null || settings.currentExtent <= settings.minExtent;
 
@@ -2606,67 +2515,69 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //         Theme.of(context).colorScheme.primary),
         //     4);
         return FlexibleSpaceBar(
-            expandedTitleScale: 1.2,
-            // titlePadding:
-            //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-            //centerTitle: true,
-            //titlePadding: EdgeInsets.symmetric(horizontal: 5),
-            //titlePadding: EdgeInsets.all(5),
-            //background: const FlutterLogo(),
-            // background: const SizedBox(
-            //   width: double.infinity,
-            //   child:
-            //       FlutterLogo()
-            //   //Image.network(
-            //   //  Constants.flexibleSpaceBarBackground,
-            //   //  fit: BoxFit.cover,
-            //   //)
-            //   ,
-            // ),
-            // background: SizedBox(
-            //     height: 180,
-            //     width: 180,
-            //     child: Padding(
-            //       //padding: EdgeInsets.zero,
-            //       //padding: EdgeInsets.symmetric(horizontal: 12.0),
-            //       //padding: const EdgeInsets.all(10.0),
-            //       padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
-            //       child: PieChart(
-            //         [
-            //           charts.Series<PieChartData, String>(
-            //             id: 'Portfolio Breakdown',
-            //             //colorFn: (_, index) => shades[index!],
-            //             //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-            //             // colorFn: (_, index) => charts.MaterialPalette.cyan
-            //             //     .makeShades(4)[index!],
-            //             // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-            //             //     Theme.of(context).colorScheme.primary),
-            //             domainFn: (PieChartData val, index) => val.label,
-            //             measureFn: (PieChartData val, index) => val.value,
-            //             data: data,
-            //           ),
-            //         ],
-            //         animate: false,
-            //         renderer: charts.ArcRendererConfig(
-            //             //arcWidth: 60,
-            //             arcRendererDecorators: [
-            //               new charts.ArcLabelDecorator()
-            //             ]),
-            //         onSelected: (_) {},
-            //       ),
-            //     )),
-            title: Opacity(
-                //duration: Duration(milliseconds: 300),
-                opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                child: //Container()
-                    SingleChildScrollView(
-                        child: _buildExpandedSliverAppBarTitle(
-                            userInfo,
-                            portfolioStore.items,
-                            portfolioStore,
-                            optionPositionStore,
-                            stockPositionStore,
-                            forexHoldingStore))));
+          expandedTitleScale: 1.2,
+          // titlePadding:
+          //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+          //centerTitle: true,
+          //titlePadding: EdgeInsets.symmetric(horizontal: 5),
+          //background: const FlutterLogo(),
+          // background: const SizedBox(
+          //   width: double.infinity,
+          //   child:
+          //       FlutterLogo()
+          //   //Image.network(
+          //   //  Constants.flexibleSpaceBarBackground,
+          //   //  fit: BoxFit.cover,
+          //   //)
+          //   ,
+          // ),
+          // background: SizedBox(
+          //     height: 180,
+          //     width: 180,
+          //     child: Padding(
+          //       //padding: EdgeInsets.zero,
+          //       //padding: EdgeInsets.symmetric(horizontal: 12.0),
+          //       //padding: const EdgeInsets.all(10.0),
+          //       padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
+          //       child: PieChart(
+          //         [
+          //           charts.Series<PieChartData, String>(
+          //             id: 'Portfolio Breakdown',
+          //             //colorFn: (_, index) => shades[index!],
+          //             //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+          //             // colorFn: (_, index) => charts.MaterialPalette.cyan
+          //             //     .makeShades(4)[index!],
+          //             // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+          //             //     Theme.of(context).colorScheme.primary),
+          //             domainFn: (PieChartData val, index) => val.label,
+          //             measureFn: (PieChartData val, index) => val.value,
+          //             data: data,
+          //           ),
+          //         ],
+          //         animate: false,
+          //         renderer: charts.ArcRendererConfig(
+          //             //arcWidth: 60,
+          //             arcRendererDecorators: [
+          //               new charts.ArcLabelDecorator()
+          //             ]),
+          //         onSelected: (_) {},
+          //       ),
+          //     )),
+
+          // // Disabled SliverAppBar effect for now
+          // title: Opacity(
+          //     //duration: Duration(milliseconds: 300),
+          //     opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+          //     child: //Container()
+          //         SingleChildScrollView(
+          //             child: _buildExpandedSliverAppBarTitle(
+          //                 userInfo,
+          //                 portfolioStore.items,
+          //                 portfolioStore,
+          //                 optionPositionStore,
+          //                 stockPositionStore,
+          //                 forexHoldingStore)))
+        );
       }),
       actions: <Widget>[
         IconButton(
@@ -2728,253 +2639,253 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     return sliverAppBar;
   }
 
-  Widget _buildExpandedSliverAppBarTitle(
-      UserInfo? userInfo,
-      List<Portfolio> portfolios,
-      PortfolioStore portfolioStore,
-      OptionPositionStore optionPositionStore,
-      InstrumentPositionStore stockPositionStore,
-      ForexHoldingStore forexHoldingStore) {
-    const labelFontSize = 14.0;
-    const percentFontSize = 15.0;
-    const valueFontSize = 16.0;
-    const labelWidth = 75.0;
-    const percentWidth = 60.0;
-    const valueWidth = 100.0;
+  // Widget _buildExpandedSliverAppBarTitle(
+  //     UserInfo? userInfo,
+  //     List<Portfolio> portfolios,
+  //     PortfolioStore portfolioStore,
+  //     OptionPositionStore optionPositionStore,
+  //     InstrumentPositionStore stockPositionStore,
+  //     ForexHoldingStore forexHoldingStore) {
+  //   const labelFontSize = 14.0;
+  //   const percentFontSize = 15.0;
+  //   const valueFontSize = 16.0;
+  //   const labelWidth = 75.0;
+  //   const percentWidth = 60.0;
+  //   const valueWidth = 100.0;
 
-    double portfolioValue = 0.0;
-    // double stockAndOptionsEquityPercent = 0.0;
-    double optionEquityPercent = 0.0;
-    double positionEquityPercent = 0.0;
-    double portfolioCash = 0.0;
-    double cashPercent = 0.0;
-    double cryptoPercent = 0.0;
-    if (account != null) {
-      portfolioCash = account!.portfolioCash ?? 0;
-    }
-    if (portfolioStore.items.isNotEmpty) {
-      portfolioValue =
-          (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-      // stockAndOptionsEquityPercent =
-      //     portfolioStore.items[0].marketValue! / portfolioValue;
-      optionEquityPercent = optionPositionStore.equity / portfolioValue;
-      positionEquityPercent = stockPositionStore.equity / portfolioValue;
-      cashPercent = portfolioCash / portfolioValue;
-      cryptoPercent = forexHoldingStore.equity / portfolioValue;
-    }
-    /*
-    List<PieChartData> data = [];
-    if (portfolioStore.items.isNotEmpty) {
-      data.add(PieChartData(
-          'Options\n\$${formatCompactNumber.format(optionPositionStore.equity)}',
-          optionPositionStore.equity)); // / portfolioValue
-      data.add(PieChartData(
-          'Stocks\n\$${formatCompactNumber.format(stockPositionStore.equity)}',
-          stockPositionStore.equity)); // / portfolioValue
-      data.add(PieChartData(
-          'Crypto\n\$${formatCompactNumber.format(forexHoldingStore.equity)}',
-          forexHoldingStore.equity)); // / portfolioValue
-      double portfolioCash = account != null ? account!.portfolioCash! : 0;
-      data.add(PieChartData(
-          'Cash\n\$${formatCompactNumber.format(portfolioCash)}',
-          portfolioCash)); // / portfolioValue
-    }
-    data.sort((a, b) => b.value.compareTo(a.value));
-    */
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-          //mainAxisSize: MainAxisSize.min,
-          // crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                    width: labelWidth,
-                    child: Text(
-                      "Stocks",
-                      style: TextStyle(
-                          fontSize: labelFontSize,
-                          color: Theme.of(context).appBarTheme.foregroundColor),
-                    ),
-                  )
-                ]),
-                /*
-                Container(
-                  width: 3,
-                ),
-                */
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: percentWidth,
-                      child: Text(
-                          formatPercentage.format(positionEquityPercent),
-                          style: TextStyle(
-                              fontSize: percentFontSize,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: valueWidth,
-                    child: Text(
-                        formatCurrency.format(stockPositionStore.equity),
-                        // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
-                        style: TextStyle(
-                            fontSize: valueFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                        textAlign: TextAlign.right)),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                    width: labelWidth,
-                    child: Text(
-                      "Options",
-                      style: TextStyle(
-                          fontSize: labelFontSize,
-                          color: Theme.of(context).appBarTheme.foregroundColor),
-                    ),
-                  )
-                ]),
-                /*
-                Container(
-                  width: 3,
-                ),
-                */
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: percentWidth,
-                      child: Text(formatPercentage.format(optionEquityPercent),
-                          style: TextStyle(
-                              fontSize: percentFontSize,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                          // , color: Theme.of(context).textTheme.bodyMedium!.color
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: valueWidth,
-                    child: Text(
-                        formatCurrency.format(optionPositionStore.equity),
-                        style: TextStyle(
-                            fontSize: valueFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                        textAlign: TextAlign.right)),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: labelWidth,
-                      child: Text(
-                        "Crypto",
-                        style: TextStyle(
-                            fontSize: labelFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                      )),
-                ]),
-                /*
-                Container(
-                  width: 3,
-                ),
-                */
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: percentWidth,
-                      child: Text(formatPercentage.format(cryptoPercent),
-                          style: TextStyle(
-                              fontSize: percentFontSize,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: valueWidth,
-                    child: Text(formatCurrency.format(forexHoldingStore.equity),
-                        style: TextStyle(
-                            fontSize: valueFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                        textAlign: TextAlign.right)),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-                  SizedBox(
-                      width: labelWidth,
-                      child: Text(
-                        "Cash",
-                        style: TextStyle(
-                            fontSize: labelFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                      )),
-                ]),
-                /*
-                Container(
-                  width: 3,
-                ),
-                */
-                Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  SizedBox(
-                      width: percentWidth,
-                      child: Text(formatPercentage.format(cashPercent),
-                          style: TextStyle(
-                              fontSize: percentFontSize,
-                              color: Theme.of(context)
-                                  .appBarTheme
-                                  .foregroundColor),
-                          textAlign: TextAlign.right))
-                ]),
-                Container(
-                  width: 5,
-                ),
-                SizedBox(
-                    width: valueWidth,
-                    child: Text(formatCurrency.format(portfolioCash),
-                        style: TextStyle(
-                            fontSize: valueFontSize,
-                            color:
-                                Theme.of(context).appBarTheme.foregroundColor),
-                        textAlign: TextAlign.right)),
-              ],
-            ),
-          ]),
-    );
-  }
+  //   double portfolioValue = 0.0;
+  //   // double stockAndOptionsEquityPercent = 0.0;
+  //   double optionEquityPercent = 0.0;
+  //   double positionEquityPercent = 0.0;
+  //   double portfolioCash = 0.0;
+  //   double cashPercent = 0.0;
+  //   double cryptoPercent = 0.0;
+  //   if (account != null) {
+  //     portfolioCash = account!.portfolioCash ?? 0;
+  //   }
+  //   if (portfolioStore.items.isNotEmpty) {
+  //     portfolioValue =
+  //         (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+  //     // stockAndOptionsEquityPercent =
+  //     //     portfolioStore.items[0].marketValue! / portfolioValue;
+  //     optionEquityPercent = optionPositionStore.equity / portfolioValue;
+  //     positionEquityPercent = stockPositionStore.equity / portfolioValue;
+  //     cashPercent = portfolioCash / portfolioValue;
+  //     cryptoPercent = forexHoldingStore.equity / portfolioValue;
+  //   }
+  //   /*
+  //   List<PieChartData> data = [];
+  //   if (portfolioStore.items.isNotEmpty) {
+  //     data.add(PieChartData(
+  //         'Options\n\$${formatCompactNumber.format(optionPositionStore.equity)}',
+  //         optionPositionStore.equity)); // / portfolioValue
+  //     data.add(PieChartData(
+  //         'Stocks\n\$${formatCompactNumber.format(stockPositionStore.equity)}',
+  //         stockPositionStore.equity)); // / portfolioValue
+  //     data.add(PieChartData(
+  //         'Crypto\n\$${formatCompactNumber.format(forexHoldingStore.equity)}',
+  //         forexHoldingStore.equity)); // / portfolioValue
+  //     double portfolioCash = account != null ? account!.portfolioCash! : 0;
+  //     data.add(PieChartData(
+  //         'Cash\n\$${formatCompactNumber.format(portfolioCash)}',
+  //         portfolioCash)); // / portfolioValue
+  //   }
+  //   data.sort((a, b) => b.value.compareTo(a.value));
+  //   */
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(horizontal: 24.0),
+  //     child: Column(
+  //         //mainAxisSize: MainAxisSize.min,
+  //         // crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: <Widget>[
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.end,
+  //             crossAxisAlignment: CrossAxisAlignment.baseline,
+  //             textBaseline: TextBaseline.alphabetic,
+  //             children: [
+  //               Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+  //                 SizedBox(
+  //                   width: labelWidth,
+  //                   child: Text(
+  //                     "Stocks",
+  //                     style: TextStyle(
+  //                         fontSize: labelFontSize,
+  //                         color: Theme.of(context).appBarTheme.foregroundColor),
+  //                   ),
+  //                 )
+  //               ]),
+  //               /*
+  //               Container(
+  //                 width: 3,
+  //               ),
+  //               */
+  //               Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+  //                 SizedBox(
+  //                     width: percentWidth,
+  //                     child: Text(
+  //                         formatPercentage.format(positionEquityPercent),
+  //                         style: TextStyle(
+  //                             fontSize: percentFontSize,
+  //                             color: Theme.of(context)
+  //                                 .appBarTheme
+  //                                 .foregroundColor),
+  //                         textAlign: TextAlign.right))
+  //               ]),
+  //               Container(
+  //                 width: 5,
+  //               ),
+  //               SizedBox(
+  //                   width: valueWidth,
+  //                   child: Text(
+  //                       formatCurrency.format(stockPositionStore.equity),
+  //                       // formatCurrency.format(portfolioStore.items[0].marketValue! - optionPositionStore.equity),
+  //                       style: TextStyle(
+  //                           fontSize: valueFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                       textAlign: TextAlign.right)),
+  //             ],
+  //           ),
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.end,
+  //             crossAxisAlignment: CrossAxisAlignment.baseline,
+  //             textBaseline: TextBaseline.alphabetic,
+  //             children: [
+  //               Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+  //                 SizedBox(
+  //                   width: labelWidth,
+  //                   child: Text(
+  //                     "Options",
+  //                     style: TextStyle(
+  //                         fontSize: labelFontSize,
+  //                         color: Theme.of(context).appBarTheme.foregroundColor),
+  //                   ),
+  //                 )
+  //               ]),
+  //               /*
+  //               Container(
+  //                 width: 3,
+  //               ),
+  //               */
+  //               Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+  //                 SizedBox(
+  //                     width: percentWidth,
+  //                     child: Text(formatPercentage.format(optionEquityPercent),
+  //                         style: TextStyle(
+  //                             fontSize: percentFontSize,
+  //                             color: Theme.of(context)
+  //                                 .appBarTheme
+  //                                 .foregroundColor),
+  //                         // , color: Theme.of(context).textTheme.bodyMedium!.color
+  //                         textAlign: TextAlign.right))
+  //               ]),
+  //               Container(
+  //                 width: 5,
+  //               ),
+  //               SizedBox(
+  //                   width: valueWidth,
+  //                   child: Text(
+  //                       formatCurrency.format(optionPositionStore.equity),
+  //                       style: TextStyle(
+  //                           fontSize: valueFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                       textAlign: TextAlign.right)),
+  //             ],
+  //           ),
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.end,
+  //             crossAxisAlignment: CrossAxisAlignment.baseline,
+  //             textBaseline: TextBaseline.alphabetic,
+  //             children: [
+  //               Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+  //                 SizedBox(
+  //                     width: labelWidth,
+  //                     child: Text(
+  //                       "Crypto",
+  //                       style: TextStyle(
+  //                           fontSize: labelFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                     )),
+  //               ]),
+  //               /*
+  //               Container(
+  //                 width: 3,
+  //               ),
+  //               */
+  //               Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+  //                 SizedBox(
+  //                     width: percentWidth,
+  //                     child: Text(formatPercentage.format(cryptoPercent),
+  //                         style: TextStyle(
+  //                             fontSize: percentFontSize,
+  //                             color: Theme.of(context)
+  //                                 .appBarTheme
+  //                                 .foregroundColor),
+  //                         textAlign: TextAlign.right))
+  //               ]),
+  //               Container(
+  //                 width: 5,
+  //               ),
+  //               SizedBox(
+  //                   width: valueWidth,
+  //                   child: Text(formatCurrency.format(forexHoldingStore.equity),
+  //                       style: TextStyle(
+  //                           fontSize: valueFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                       textAlign: TextAlign.right)),
+  //             ],
+  //           ),
+  //           Row(
+  //             mainAxisAlignment: MainAxisAlignment.end,
+  //             crossAxisAlignment: CrossAxisAlignment.baseline,
+  //             textBaseline: TextBaseline.alphabetic,
+  //             children: [
+  //               Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+  //                 SizedBox(
+  //                     width: labelWidth,
+  //                     child: Text(
+  //                       "Cash",
+  //                       style: TextStyle(
+  //                           fontSize: labelFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                     )),
+  //               ]),
+  //               /*
+  //               Container(
+  //                 width: 3,
+  //               ),
+  //               */
+  //               Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+  //                 SizedBox(
+  //                     width: percentWidth,
+  //                     child: Text(formatPercentage.format(cashPercent),
+  //                         style: TextStyle(
+  //                             fontSize: percentFontSize,
+  //                             color: Theme.of(context)
+  //                                 .appBarTheme
+  //                                 .foregroundColor),
+  //                         textAlign: TextAlign.right))
+  //               ]),
+  //               Container(
+  //                 width: 5,
+  //               ),
+  //               SizedBox(
+  //                   width: valueWidth,
+  //                   child: Text(formatCurrency.format(portfolioCash),
+  //                       style: TextStyle(
+  //                           fontSize: valueFontSize,
+  //                           color:
+  //                               Theme.of(context).appBarTheme.foregroundColor),
+  //                       textAlign: TextAlign.right)),
+  //             ],
+  //           ),
+  //         ]),
+  //   );
+  // }
 
   void _startRefreshTimer() {
     // Start listening to clipboard

@@ -588,6 +588,9 @@ Response: {
     return portfolios;
   }
 
+  // TODO: Implement YTD portfolio historicals with
+  // https://bonfire.robinhood.com/portfolio/performance/1234567?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
+
   /*
   // Bounds options     [24_7, regular]
   // Interval options   [15second, 5minute, hour, day, week]

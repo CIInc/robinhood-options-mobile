@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
@@ -13,8 +14,11 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -286,24 +290,7 @@ class OptionPositionsWidget extends StatelessWidget {
                         padding: EdgeInsets.zero,
                         icon: Icon(Icons.chevron_right),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => Material(
-                                        child: CustomScrollView(slivers: [
-                                      SliverAppBar(
-                                        title: Text("Options"),
-                                        pinned: true,
-                                      ),
-                                      OptionPositionsWidget(
-                                        user,
-                                        service,
-                                        filteredOptionPositions,
-                                        analytics: analytics,
-                                        observer: observer,
-                                      )
-                                    ]))),
-                          );
+                          navigateToFullPage(context);
                         },
                       ),
                     )
@@ -378,10 +365,74 @@ class OptionPositionsWidget extends StatelessWidget {
                         excludeGroupRow:
                             false); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
                   }, childCount: sortedGroupedOptionAggregatePositions.length),
-                )
+                ),
+          // TODO: Introduce web banner
+          if (!kIsWeb) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            SliverToBoxAdapter(child: AdBannerWidget()),
+          ],
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          const SliverToBoxAdapter(child: DisclaimerWidget()),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
         ]
       ],
     ));
+  }
+
+  void navigateToFullPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => Material(
+                  child: CustomScrollView(slivers: [
+                SliverAppBar(
+                  title: Text("Options"),
+                  pinned: true,
+                  actions: [
+                    IconButton(
+                        icon: Icon(Icons.more_vert),
+                        onPressed: () async {
+                          await showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              //isScrollControlled: true,
+                              //useRootNavigator: true,
+                              //constraints: const BoxConstraints(maxHeight: 200),
+                              builder: (_) => MoreMenuBottomSheet(user,
+                                      analytics: analytics,
+                                      observer: observer,
+                                      showOptionsSettings: true,
+                                      chainSymbols: null,
+                                      positionSymbols: null,
+                                      cryptoSymbols: null,
+                                      optionSymbolFilters: null,
+                                      stockSymbolFilters: null,
+                                      cryptoFilters: null,
+                                      onSettingsChanged: (value) {
+                                    debugPrint("Settings changed");
+                                  }));
+                          // Navigator.pop(context);
+                        })
+                  ],
+                ),
+                OptionPositionsWidget(
+                  user,
+                  service,
+                  filteredOptionPositions,
+                  analytics: analytics,
+                  observer: observer,
+                )
+              ]))),
+    );
   }
 
   _calculateGreekAggregates(

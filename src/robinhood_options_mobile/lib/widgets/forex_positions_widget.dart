@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
@@ -11,8 +12,11 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -63,14 +67,22 @@ class ForexPositionsWidget extends StatelessWidget {
       }
     }
     barChartSeriesList.add(charts.Series<dynamic, String>(
-      id: BrokerageUser.displayValueText(user.displayValue!),
-      data: data,
-      colorFn: (_, __) =>
-          charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
-      domainFn: (var d, _) => d['domain'],
-      measureFn: (var d, _) => d['measure'],
-      labelAccessorFn: (d, _) => d['label'],
-    ));
+        id: BrokerageUser.displayValueText(user.displayValue!),
+        data: data,
+        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+            Theme.of(context).colorScheme.primary),
+        domainFn: (var d, _) => d['domain'],
+        measureFn: (var d, _) => d['measure'],
+        labelAccessorFn: (d, _) => d['label'],
+        insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+                color: charts.ColorUtil.fromDartColor(
+              Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).colorScheme.surface
+                  : Theme.of(context).colorScheme.inverseSurface,
+            )),
+        outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+            color: charts.ColorUtil.fromDartColor(
+                Theme.of(context).textTheme.labelSmall!.color!))));
     var brightness = MediaQuery.of(context).platformBrightness;
     var axisLabelColor = charts.MaterialPalette.gray.shade500;
     if (brightness == Brightness.light) {
@@ -189,22 +201,7 @@ class ForexPositionsWidget extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   icon: Icon(Icons.chevron_right),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => Material(
-                                  child: CustomScrollView(slivers: [
-                                SliverAppBar(
-                                    title: Text("Cryptos"), pinned: true),
-                                ForexPositionsWidget(
-                                  user,
-                                  service,
-                                  filteredHoldings,
-                                  analytics: analytics,
-                                  observer: observer,
-                                )
-                              ]))),
-                    );
+                    navigateToFullPage(context);
                   },
                 ),
               )
@@ -351,9 +348,10 @@ class ForexPositionsWidget extends StatelessWidget {
                       ),
                     ])))
       ])),
-      if (user.displayValue != DisplayValue.lastPrice &&
+      if (
+          // user.displayValue != DisplayValue.lastPrice &&
           barChartSeriesList.isNotEmpty &&
-          barChartSeriesList.first.data.isNotEmpty) ...[
+              barChartSeriesList.first.data.isNotEmpty) ...[
         SliverToBoxAdapter(
             child: SizedBox(
                 height: barChartSeriesList.first.data.length == 1
@@ -376,12 +374,76 @@ class ForexPositionsWidget extends StatelessWidget {
             childCount: filteredHoldings.length,
           ),
         ),
+        // TODO: Introduce web banner
+        if (!kIsWeb) ...[
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
+          SliverToBoxAdapter(child: AdBannerWidget()),
+        ],
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        const SliverToBoxAdapter(child: DisclaimerWidget()),
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
       ],
       // const SliverToBoxAdapter(
       //     child: SizedBox(
       //   height: 25.0,
       // ))
     ]));
+  }
+
+  void navigateToFullPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (context) => Material(
+                  child: CustomScrollView(slivers: [
+                SliverAppBar(
+                  title: Text("Crypto"),
+                  pinned: true,
+                  actions: [
+                    IconButton(
+                        icon: Icon(Icons.more_vert),
+                        onPressed: () async {
+                          await showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              //isScrollControlled: true,
+                              //useRootNavigator: true,
+                              //constraints: const BoxConstraints(maxHeight: 200),
+                              builder: (_) => MoreMenuBottomSheet(user,
+                                      analytics: analytics,
+                                      observer: observer,
+                                      showCryptoSettings: true,
+                                      chainSymbols: null,
+                                      positionSymbols: null,
+                                      cryptoSymbols: null,
+                                      optionSymbolFilters: null,
+                                      stockSymbolFilters: null,
+                                      cryptoFilters: null,
+                                      onSettingsChanged: (value) {
+                                    debugPrint("Settings changed");
+                                  }));
+                          // Navigator.pop(context);
+                        })
+                  ],
+                ),
+                ForexPositionsWidget(
+                  user,
+                  service,
+                  filteredHoldings,
+                  analytics: analytics,
+                  observer: observer,
+                )
+              ]))),
+    );
   }
 
   Widget _buildCryptoRow(
