@@ -54,11 +54,11 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
   @override
   Widget build(BuildContext context) {
     var brightness = MediaQuery.of(context).platformBrightness;
-    var rangeAnnotationColor = charts.MaterialPalette.gray.shade800;
+    var rangeAnnotationColor = charts.MaterialPalette.gray.shade900;
     var rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
     var axisLabelColor = charts.MaterialPalette.gray.shade200;
     if (brightness == Brightness.light) {
-      rangeAnnotationColor = charts.MaterialPalette.gray.shade200;
+      rangeAnnotationColor = charts.MaterialPalette.gray.shade100;
       rangeAnnotationLabelColor = charts.MaterialPalette.gray.shade500;
       axisLabelColor = charts.MaterialPalette.gray.shade800;
     }
@@ -135,7 +135,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
                 drawFollowLinesAcrossChart: false,
                 // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
                 symbolRenderer: TextSymbolRenderer(
-                    widget.getTextForTextSymbolRenderer ?? () => '')),
+                    widget.getTextForTextSymbolRenderer ?? () => '',
+                    marginBottom: 16)),
             charts.InitialSelection(selectedDataConfig: [
               // charts.SeriesDatumConfig<DateTime>(
               //     'Adjusted Equity',

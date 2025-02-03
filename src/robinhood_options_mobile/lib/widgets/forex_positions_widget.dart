@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -53,9 +54,15 @@ class ForexPositionsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var sortedFilteredHoldings = filteredHoldings.sortedBy<num>(
+        (i) => user.getCryptoDisplayValue(i, displayValue: user.sortOptions));
+    if (user.sortDirection == SortDirection.desc) {
+      sortedFilteredHoldings = sortedFilteredHoldings.reversed.toList();
+    }
+
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
-    for (var position in filteredHoldings) {
+    for (var position in sortedFilteredHoldings) {
       if (position.quoteObj != null) {
         double? value = user.getCryptoDisplayValue(position);
         String? trailingText = user.getDisplayText(value);
@@ -103,7 +110,7 @@ class ForexPositionsWidget extends StatelessWidget {
     if (user.displayValue == DisplayValue.todayReturnPercent ||
         user.displayValue == DisplayValue.totalReturnPercent) {
       var positionDisplayValues =
-          filteredHoldings.map((e) => user.getCryptoDisplayValue(e));
+          sortedFilteredHoldings.map((e) => user.getCryptoDisplayValue(e));
       var minimum = 0.0;
       var maximum = 0.0;
       if (positionDisplayValues.isNotEmpty) {
@@ -120,7 +127,6 @@ class ForexPositionsWidget extends StatelessWidget {
           maximum = 0;
         }
       }
-
       primaryMeasureAxis = charts.PercentAxisSpec(
           viewport: charts.NumericExtents(minimum, maximum),
           renderSpec: charts.GridlineRendererSpec(
@@ -138,7 +144,7 @@ class ForexPositionsWidget extends StatelessWidget {
         onSelected: (dynamic historical) {
       debugPrint(historical
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-      var holding = filteredHoldings.firstWhere(
+      var holding = sortedFilteredHoldings.firstWhere(
           (element) => element.currencyCode == historical['domain']);
       Navigator.push(
           context,
@@ -153,29 +159,32 @@ class ForexPositionsWidget extends StatelessWidget {
                   )));
     });
 
-    double? marketValue = user.getCryptoAggregateDisplayValue(filteredHoldings,
+    double? marketValue = user.getCryptoAggregateDisplayValue(
+        sortedFilteredHoldings,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = user.getDisplayText(marketValue!,
         displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = user.getCryptoAggregateDisplayValue(filteredHoldings,
+    double? totalReturn = user.getCryptoAggregateDisplayValue(
+        sortedFilteredHoldings,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = user.getDisplayText(totalReturn!,
         displayValue: DisplayValue.totalReturn);
 
     double? totalReturnPercent = user.getCryptoAggregateDisplayValue(
-        filteredHoldings,
+        sortedFilteredHoldings,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = user.getDisplayText(totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = user.getCryptoAggregateDisplayValue(filteredHoldings,
+    double? todayReturn = user.getCryptoAggregateDisplayValue(
+        sortedFilteredHoldings,
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = user.getDisplayText(todayReturn!,
         displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = user.getCryptoAggregateDisplayValue(
-        filteredHoldings,
+        sortedFilteredHoldings,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
@@ -208,7 +217,7 @@ class ForexPositionsWidget extends StatelessWidget {
             ]
           ]),
           subtitle: Text(
-              "${formatCompactNumber.format(filteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
+              "${formatCompactNumber.format(sortedFilteredHoldings.length)} cryptos"), // , ${formatCurrency.format(nummusEquity)} market value // of ${formatCompactNumber.format(nummusHoldings.length)}
           trailing: Wrap(spacing: 8, children: [
             Text(
               marketValueText,
@@ -368,10 +377,10 @@ class ForexPositionsWidget extends StatelessWidget {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildCryptoRow(context, filteredHoldings, index);
+              return _buildCryptoRow(context, sortedFilteredHoldings, index);
             },
             // Or, uncomment the following line:
-            childCount: filteredHoldings.length,
+            childCount: sortedFilteredHoldings.length,
           ),
         ),
         // TODO: Introduce web banner

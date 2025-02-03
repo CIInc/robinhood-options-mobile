@@ -626,6 +626,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           _onPageChanged(3);
                         },
                       ),
+                      ListTile(
+                        leading: const Icon(Icons.account_circle),
+                        title: const Text("Account"),
+                        selected: _pageIndex == 4,
+                        onTap: () {
+                          Navigator.pop(context); // close the drawer
+                          _onPageChanged(4);
+                        },
+                      ),
                     ],
                     // const Divider(
                     //   height: 10,

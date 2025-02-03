@@ -92,26 +92,36 @@ class MyApp extends StatelessWidget {
       // secondary: Color.fromRGBO(83, 109, 254, 0.7))
       ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.dark(
-              primary: Colors.purple, secondary: CupertinoColors.systemGrey
+              primary: Colors.purple, secondary: CupertinoColors.systemGrey3
               // CupertinoColors.systemMint
               // Colors.indigoAccent
               )
           : darkDynamic ?? const ColorScheme.dark();
       ThemeData lightTheme = ThemeData(
-          colorScheme: colorScheme
-          // , textTheme: Typography.blackCupertino);
-          ,
-          useMaterial3: true,
-          appBarTheme: AppBarTheme(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: Colors.white));
+        colorScheme: colorScheme,
+        // , textTheme: Typography.blackCupertino);
+        useMaterial3: true,
+        appBarTheme: AppBarTheme(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: Colors.white),
+        chipTheme: ChipThemeData(
+          side: BorderSide.none,
+          // shape: LinearBorder()
+          // StadiumBorder(side: BorderSide.none)
+        ),
+      );
       ThemeData darkTheme = ThemeData(
-          colorScheme: darkColorScheme
-          // , textTheme: Typography.whiteHelsinki,
-          ,
-          useMaterial3: true
-          // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
-          );
+        colorScheme: darkColorScheme
+        // , textTheme: Typography.whiteHelsinki,
+        ,
+        useMaterial3: true,
+        // , appBarTheme: AppBarTheme(backgroundColor: colorScheme.primary)
+        chipTheme: ChipThemeData(
+          side: BorderSide.none,
+          // shape: LinearBorder()
+          // StadiumBorder(side: BorderSide.none)
+        ),
+      );
       return MultiProvider(
           providers: [
             ChangeNotifierProvider(

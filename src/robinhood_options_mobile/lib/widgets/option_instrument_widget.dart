@@ -699,7 +699,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

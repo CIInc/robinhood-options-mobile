@@ -53,6 +53,10 @@ final formatCompactDateTimeWithMinute = DateFormat("MMM d yy hh:mm a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatCompactCurrency = NumberFormat.compactCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatPercentageOneDigit =
+    NumberFormat.decimalPercentPattern(decimalDigits: 1);
+final formatPercentageInteger =
+    NumberFormat.decimalPercentPattern(decimalDigits: 0);
 final formatCompactNumber = NumberFormat.compact();
 
 /*
@@ -1304,7 +1308,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 measureFormatter: (num? value) {
                   return value == null
                       ? '-'
-                      : formatCompactNumber.format(value);
+                      : '\$${formatCompactNumber.format(value)}';
                 },
                 // entryTextStyle: charts.TextStyleSpec(fontSize: 12)
               );
@@ -1335,23 +1339,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               //var portfolioValue = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
               //var stockAndOptionsEquityPercent = portfolioStore.items[0].marketValue! / portfolioValue;
               data.add(PieChartData(
-                  'Options ${formatPercentage.format(optionEquityPercent)}',
+                  'Options ${formatPercentageInteger.format(optionEquityPercent)}',
                   optionPositionStore.equity));
               data.add(PieChartData(
-                  'Stocks ${formatPercentage.format(positionEquityPercent)}',
+                  'Stocks ${formatPercentageInteger.format(positionEquityPercent)}',
                   stockPositionStore.equity));
               data.add(PieChartData(
-                  'Crypto ${formatPercentage.format(cryptoPercent)}',
+                  'Crypto ${formatPercentageInteger.format(cryptoPercent)}',
                   forexHoldingStore.equity));
               data.add(PieChartData(
-                  'Cash ${formatPercentage.format(cashPercent)}',
+                  'Cash ${formatPercentageInteger.format(cashPercent)}',
                   portfolioCash));
               //}
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
-              final maxSectors = 6;
-              final maxIndustries = 6;
+              final maxSectors = 5;
+              final maxIndustries = 5;
 
               List<PieChartData> diversificationSectorData = [];
               var groupedBySector = stockPositionStore.items.groupListsBy(
@@ -1423,7 +1427,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       .colorScheme
                       .primary), // .withOpacity(0.75)
                   4);
-              var total = data.map((e) => e.value).reduce((a, b) => a + b);
+              // var total = data.map((e) => e.value).reduce((a, b) => a + b);
 
               var brightness = MediaQuery.of(context).platformBrightness;
               var axisLabelColor = charts.MaterialPalette.gray.shade500;
@@ -1466,7 +1470,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // ]),
                   ),
                   ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: 240), // 320
+                      constraints: BoxConstraints(maxHeight: 175), // 320
                       child:
                           // ListView(
                           //     padding: const EdgeInsets.all(5.0),
@@ -1478,176 +1482,182 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               scrollDirection: Axis.horizontal,
                               itemSnapping: true,
                               itemExtent: double.infinity, // 360, //
-                              // shrinkExtent: 200,
+                              shrinkExtent: 245,
                               // controller: _carouselController,
                               onTap: (value) {},
                               children: [
-                            if (total > 0) ...[
-                              PieChart(
-                                [
-                                  charts.Series<PieChartData, String>(
-                                    id: 'Portfolio Breakdown',
-                                    colorFn: (_, index) => shades[index!],
-                                    domainFn: (PieChartData val, index) =>
-                                        val.label,
-                                    measureFn: (PieChartData val, index) =>
-                                        val.value,
-                                    labelAccessorFn: (PieChartData val, _) =>
-                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                    data: data,
-                                  ),
-                                ],
-                                animate: false,
-                                renderer: charts.ArcRendererConfig(),
-                                // renderer: charts.ArcRendererConfig(
-                                //     //arcWidth: 60,
-                                //     arcRendererDecorators: [
-                                //       charts.ArcLabelDecorator(
-                                //           // insideLabelStyleSpec:
-                                //           //     charts.TextStyleSpec(fontSize: 14),
-                                //           // labelPadding: 0,
-                                //           outsideLabelStyleSpec:
-                                //               charts.TextStyleSpec(
-                                //                   fontSize: 12,
-                                //                   color: axisLabelColor))
-                                //     ]),
-                                behaviors: [
-                                  legendBehavior,
-                                  charts.ChartTitle('Asset',
-                                      titleStyleSpec: charts.TextStyleSpec(
-                                          color: axisLabelColor),
-                                      behaviorPosition:
-                                          charts.BehaviorPosition.end),
-                                  charts.SelectNearest(),
-                                  charts.DomainHighlighter(),
-                                  charts.LinePointHighlighter(
-                                    symbolRenderer: TextSymbolRenderer(() =>
-                                        // widget.chartSelectionStore.selection != null
-                                        //     ? formatCurrency
-                                        //         .format(widget.chartSelectionStore.selection!.value)
-                                        //     :
-                                        ''),
-                                    // chartSelectionStore.selection
-                                    //     ?.map((s) => s.value.round().toString())
-                                    //     .join(' ') ??
-                                    // ''),
-                                    // seriesIds: [
-                                    //   dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
-                                    // ], // , 'Interest'
-                                    // drawFollowLinesAcrossChart: true,
-                                    // formatCompactCurrency
-                                    //     .format(chartSelection?.value)),
-                                    showHorizontalFollowLine: charts
-                                        .LinePointHighlighterFollowLineType
-                                        .none, //.nearest,
-                                    showVerticalFollowLine: charts
-                                        .LinePointHighlighterFollowLineType
-                                        .none, //.nearest,
-                                  )
-                                ],
-                                onSelected: (value) {
-                                  debugPrint(value.value.toString());
-                                },
-                              ),
-                              PieChart(
-                                [
-                                  charts.Series<PieChartData, String>(
-                                    id: 'Diversification Sector',
-                                    colorFn: (_, index) => charts.ColorUtil
-                                        .fromDartColor(Colors.accents[index! %
-                                            Colors.accents
-                                                .length]), // shades[index!],
-                                    /*
+                            //if (total > 0) ...[
+                            PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Portfolio Breakdown',
+                                  colorFn: (_, index) => shades[index!],
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  labelAccessorFn: (PieChartData val, _) =>
+                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                  data: data,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(),
+                              // renderer: charts.ArcRendererConfig(
+                              //     //arcWidth: 60,
+                              //     arcRendererDecorators: [
+                              //       charts.ArcLabelDecorator(
+                              //           // insideLabelStyleSpec:
+                              //           //     charts.TextStyleSpec(fontSize: 14),
+                              //           // labelPadding: 0,
+                              //           outsideLabelStyleSpec:
+                              //               charts.TextStyleSpec(
+                              //                   fontSize: 12,
+                              //                   color: axisLabelColor))
+                              //     ]),
+                              behaviors: [
+                                legendBehavior,
+                                charts.ChartTitle('Asset',
+                                    titleStyleSpec: charts.TextStyleSpec(
+                                        color: axisLabelColor),
+                                    behaviorPosition:
+                                        charts.BehaviorPosition.end),
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
+                                charts.LinePointHighlighter(
+                                  symbolRenderer: TextSymbolRenderer(() =>
+                                      // widget.chartSelectionStore.selection != null
+                                      //     ? formatCurrency
+                                      //         .format(widget.chartSelectionStore.selection!.value)
+                                      //     :
+                                      ''),
+                                  // chartSelectionStore.selection
+                                  //     ?.map((s) => s.value.round().toString())
+                                  //     .join(' ') ??
+                                  // ''),
+                                  // seriesIds: [
+                                  //   dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
+                                  // ], // , 'Interest'
+                                  // drawFollowLinesAcrossChart: true,
+                                  // formatCompactCurrency
+                                  //     .format(chartSelection?.value)),
+                                  showHorizontalFollowLine: charts
+                                      .LinePointHighlighterFollowLineType
+                                      .none, //.nearest,
+                                  showVerticalFollowLine: charts
+                                      .LinePointHighlighterFollowLineType
+                                      .none, //.nearest,
+                                )
+                              ],
+                              onSelected: (value) {
+                                debugPrint(value.value.toString());
+                              },
+                            ),
+                            PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Diversification Sector',
+                                  colorFn: (_, index) =>
+                                      charts.ColorUtil.fromDartColor(
+                                          Colors.accents[index! %
+                                              Colors.accents
+                                                  .length]), // shades[index!],
+                                  /*
                                                         colorFn: (_, index) => charts.MaterialPalette.cyan
                                                             .makeShades(4)[index!],
                                                         colorFn: (_, __) => charts.ColorUtil.fromDartColor(
                                                             Theme.of(context).colorScheme.primary),
                                                         */
-                                    domainFn: (PieChartData val, index) =>
-                                        val.label.length > maxLabelChars
-                                            ? val.label.replaceRange(
-                                                maxLabelChars,
-                                                val.label.length,
-                                                '...')
-                                            : val.label,
-                                    measureFn: (PieChartData val, index) =>
-                                        val.value,
-                                    labelAccessorFn: (PieChartData val, _) =>
-                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                    data: diversificationSectorData,
-                                  ),
-                                ],
-                                animate: false,
-                                renderer: charts.ArcRendererConfig(),
-                                // renderer: charts.ArcRendererConfig(
-                                //     arcWidth: 14,
-                                //     arcRendererDecorators: [
-                                //       charts.ArcLabelDecorator(
-                                //           // insideLabelStyleSpec:
-                                //           //     charts.TextStyleSpec(fontSize: 14),
-                                //           // labelPadding: 0,
-                                //           outsideLabelStyleSpec:
-                                //               charts.TextStyleSpec(
-                                //                   fontSize: 12,
-                                //                   color: axisLabelColor))
-                                //     ]),
-                                onSelected: (_) {},
-                                behaviors: [
-                                  legendBehavior,
-                                  charts.ChartTitle('Sector',
-                                      titleStyleSpec: charts.TextStyleSpec(
-                                          color: axisLabelColor),
-                                      behaviorPosition:
-                                          charts.BehaviorPosition.end)
-                                ],
-                              ),
-                              PieChart(
-                                [
-                                  charts.Series<PieChartData, String>(
-                                    id: 'Diversification Industry',
-                                    colorFn: (_, index) => charts.ColorUtil
-                                        .fromDartColor(Colors.accents[index! %
-                                            Colors.accents
-                                                .length]), // shades[index!],
-                                    domainFn: (PieChartData val, index) =>
-                                        val.label.length > maxLabelChars
-                                            ? val.label.replaceRange(
-                                                maxLabelChars,
-                                                val.label.length,
-                                                '...')
-                                            : val.label,
-                                    measureFn: (PieChartData val, index) =>
-                                        val.value,
-                                    labelAccessorFn: (PieChartData val, _) =>
-                                        '${val.label}\n${formatCompactNumber.format(val.value)}',
-                                    data: diversificationIndustryData,
-                                  ),
-                                ],
-                                animate: false,
-                                renderer: charts.ArcRendererConfig(),
-                                // renderer: charts.ArcRendererConfig(
-                                //     arcWidth: 14,
-                                //     arcRendererDecorators: [
-                                //       charts.ArcLabelDecorator(
-                                //           // insideLabelStyleSpec:
-                                //           //     charts.TextStyleSpec(fontSize: 14),
-                                //           // labelPadding: 0,
-                                //           outsideLabelStyleSpec:
-                                //               charts.TextStyleSpec(
-                                //                   fontSize: 12,
-                                //                   color: axisLabelColor))
-                                //     ]),
-                                behaviors: [
-                                  legendBehavior,
-                                  charts.ChartTitle('Industry',
-                                      titleStyleSpec: charts.TextStyleSpec(
-                                          color: axisLabelColor),
-                                      behaviorPosition:
-                                          charts.BehaviorPosition.end)
-                                ],
-                                onSelected: (_) {},
-                              )
-                            ],
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label.length > maxLabelChars
+                                          ? val.label.replaceRange(
+                                              maxLabelChars,
+                                              val.label.length,
+                                              '...')
+                                          : val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  labelAccessorFn: (PieChartData val, _) =>
+                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                  data: diversificationSectorData,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(),
+                              // renderer: charts.ArcRendererConfig(
+                              //     arcWidth: 14,
+                              //     arcRendererDecorators: [
+                              //       charts.ArcLabelDecorator(
+                              //           // insideLabelStyleSpec:
+                              //           //     charts.TextStyleSpec(fontSize: 14),
+                              //           // labelPadding: 0,
+                              //           outsideLabelStyleSpec:
+                              //               charts.TextStyleSpec(
+                              //                   fontSize: 12,
+                              //                   color: axisLabelColor))
+                              //     ]),
+                              onSelected: (_) {},
+                              behaviors: [
+                                legendBehavior,
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
+                                charts.ChartTitle('Sector',
+                                    titleStyleSpec: charts.TextStyleSpec(
+                                        color: axisLabelColor),
+                                    behaviorPosition:
+                                        charts.BehaviorPosition.end)
+                              ],
+                            ),
+                            PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Diversification Industry',
+                                  colorFn: (_, index) =>
+                                      charts.ColorUtil.fromDartColor(
+                                          Colors.accents[index! %
+                                              Colors.accents
+                                                  .length]), // shades[index!],
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label.length > maxLabelChars
+                                          ? val.label.replaceRange(
+                                              maxLabelChars,
+                                              val.label.length,
+                                              '...')
+                                          : val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  labelAccessorFn: (PieChartData val, _) =>
+                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                  data: diversificationIndustryData,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(),
+                              // renderer: charts.ArcRendererConfig(
+                              //     arcWidth: 14,
+                              //     arcRendererDecorators: [
+                              //       charts.ArcLabelDecorator(
+                              //           // insideLabelStyleSpec:
+                              //           //     charts.TextStyleSpec(fontSize: 14),
+                              //           // labelPadding: 0,
+                              //           outsideLabelStyleSpec:
+                              //               charts.TextStyleSpec(
+                              //                   fontSize: 12,
+                              //                   color: axisLabelColor))
+                              //     ]),
+                              behaviors: [
+                                legendBehavior,
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
+                                charts.ChartTitle('Industry',
+                                    titleStyleSpec: charts.TextStyleSpec(
+                                        color: axisLabelColor),
+                                    behaviorPosition:
+                                        charts.BehaviorPosition.end)
+                              ],
+                              onSelected: (_) {},
+                            )
+                            //],
                           ])),
                 ],
               ));
@@ -1683,8 +1693,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           stockSymbolFilters
                               .contains(element.instrumentObj!.symbol)))
                   // widget.user.displayValue == DisplayValue.totalReturnPercent ? : i.marketValue
-                  .sortedBy<num>((i) => widget.user.getPositionDisplayValue(i))
-                  .reversed
                   .toList();
 
               /*
@@ -1755,8 +1763,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         */
                         (cryptoFilters.isEmpty ||
                             cryptoFilters.contains(element.currencyCode)))
-                    .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
-                    .reversed
+                    // .sortedBy<num>((i) => widget.user.getCryptoDisplayValue(i))
+                    // .reversed
                     .toList();
 
                 return SliverToBoxAdapter(

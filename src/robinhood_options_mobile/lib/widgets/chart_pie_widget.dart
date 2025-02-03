@@ -70,15 +70,17 @@ class PieChart extends StatefulWidget {
 class PieChartState extends State<PieChart> {
   @override
   Widget build(BuildContext context) {
-    return charts.PieChart<String>(widget.seriesList,
-        defaultRenderer: widget.renderer,
-        animate: widget.animate,
-        selectionModels: [
-          charts.SelectionModelConfig(
-              type: charts.SelectionModelType.info,
-              changedListener: _onSelectionChanged)
-        ],
-        behaviors: widget.behaviors ?? []);
+    return widget.seriesList.isEmpty || widget.seriesList[0].data.isEmpty
+        ? Container()
+        : charts.PieChart<String>(widget.seriesList,
+            defaultRenderer: widget.renderer,
+            animate: widget.animate,
+            selectionModels: [
+              charts.SelectionModelConfig(
+                  type: charts.SelectionModelType.info,
+                  changedListener: _onSelectionChanged)
+            ],
+            behaviors: widget.behaviors ?? []);
   }
 
   _onSelectionChanged(charts.SelectionModel model) {

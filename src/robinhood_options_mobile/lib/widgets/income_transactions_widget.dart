@@ -260,6 +260,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       },
       seriesRendererConfig: charts.BarRendererConfig<DateTime>(
         groupingType: charts.BarGroupingType.stacked,
+        // Adds labels to each point in the series.
+        // barRendererDecorator: charts.BarLabelDecorator<DateTime>(),
       ),
       customSeriesRenderers: [
         charts.LineRendererConfig(

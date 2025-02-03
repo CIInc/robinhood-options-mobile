@@ -177,7 +177,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               Navigator.pop(context, 'dialog');
             }),
         RadioListTile<bool>(
-            title: const Text("Return Today"),
+            title: const Text("\$ Today"),
             value: widget.user.displayValue == DisplayValue.todayReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
@@ -188,7 +188,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               Navigator.pop(context, 'dialog');
             }),
         RadioListTile<bool>(
-            title: const Text("Return % Today"),
+            title: const Text("% Today"),
             value: widget.user.displayValue == DisplayValue.todayReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
@@ -199,7 +199,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               Navigator.pop(context, 'dialog');
             }),
         RadioListTile<bool>(
-            title: const Text("Total Return"),
+            title: const Text("\$ Total"),
             value: widget.user.displayValue == DisplayValue.totalReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
@@ -210,7 +210,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               Navigator.pop(context, 'dialog');
             }),
         RadioListTile<bool>(
-            title: const Text("Total Return %"),
+            title: const Text("% Total"),
             value: widget.user.displayValue == DisplayValue.totalReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
@@ -388,7 +388,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               : null,
         ),
         RadioListTile<bool>(
-          title: const Text("Return Today"),
+          title: const Text("\$ Today"),
           value: widget.user.sortOptions == DisplayValue.todayReturn,
           groupValue: true, //"refresh-setting"
           onChanged: (val) {
@@ -419,7 +419,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               : null,
         ),
         RadioListTile<bool>(
-          title: const Text("Return % Today"),
+          title: const Text("% Today"),
           value: widget.user.sortOptions == DisplayValue.todayReturnPercent,
           groupValue: true, //"refresh-setting"
           onChanged: (val) {
@@ -450,7 +450,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               : null,
         ),
         RadioListTile<bool>(
-          title: const Text("Total Return"),
+          title: const Text("\$ Total"),
           value: widget.user.sortOptions == DisplayValue.totalReturn,
           groupValue: true, //"refresh-setting"
           onChanged: (val) {
@@ -461,7 +461,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             _onSettingsChanged();
             Navigator.pop(context, 'dialog');
           },
-          secondary: widget.user.sortOptions == DisplayValue.todayReturn
+          secondary: widget.user.sortOptions == DisplayValue.totalReturn
               ? IconButton(
                   icon: Icon(widget.user.sortDirection == SortDirection.desc
                       ? Icons.south
@@ -481,7 +481,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
               : null,
         ),
         RadioListTile<bool>(
-          title: const Text("Total Return %"),
+          title: const Text("% Total"),
           value: widget.user.sortOptions == DisplayValue.totalReturnPercent,
           groupValue: true, //"refresh-setting"
           onChanged: (val) {

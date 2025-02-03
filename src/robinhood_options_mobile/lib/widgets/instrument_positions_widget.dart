@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'dart:math' as math;
@@ -41,9 +42,15 @@ class InstrumentPositionsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var sortedFilteredPositions = filteredPositions.sortedBy<num>(
+        (i) => user.getPositionDisplayValue(i, displayValue: user.sortOptions));
+    if (user.sortDirection == SortDirection.desc) {
+      sortedFilteredPositions = sortedFilteredPositions.reversed.toList();
+    }
+
     List<charts.Series<dynamic, String>> barChartSeriesList = [];
     var data = [];
-    for (var position in filteredPositions) {
+    for (var position in sortedFilteredPositions) {
       if (position.instrumentObj != null) {
         double? value = user.getPositionDisplayValue(position);
         String? trailingText = user.getDisplayText(value);
@@ -91,7 +98,7 @@ class InstrumentPositionsWidget extends StatelessWidget {
     if (user.displayValue == DisplayValue.todayReturnPercent ||
         user.displayValue == DisplayValue.totalReturnPercent) {
       var positionDisplayValues =
-          filteredPositions.map((e) => user.getPositionDisplayValue(e));
+          sortedFilteredPositions.map((e) => user.getPositionDisplayValue(e));
       var minimum = 0.0;
       var maximum = 0.0;
       if (positionDisplayValues.isNotEmpty) {
@@ -126,7 +133,7 @@ class InstrumentPositionsWidget extends StatelessWidget {
         onSelected: (dynamic historical) {
       debugPrint(historical
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
-      var position = filteredPositions.firstWhere(
+      var position = sortedFilteredPositions.firstWhere(
           (element) => element.instrumentObj!.symbol == historical['domain']);
       Navigator.push(
           context,
@@ -143,31 +150,31 @@ class InstrumentPositionsWidget extends StatelessWidget {
     });
 
     double? marketValue = user.getPositionAggregateDisplayValue(
-        filteredPositions,
+        sortedFilteredPositions,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = user.getDisplayText(marketValue!,
         displayValue: DisplayValue.marketValue);
 
     double? totalReturn = user.getPositionAggregateDisplayValue(
-        filteredPositions,
+        sortedFilteredPositions,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = user.getDisplayText(totalReturn!,
         displayValue: DisplayValue.totalReturn);
 
     double? totalReturnPercent = user.getPositionAggregateDisplayValue(
-        filteredPositions,
+        sortedFilteredPositions,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = user.getDisplayText(totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
     double? todayReturn = user.getPositionAggregateDisplayValue(
-        filteredPositions,
+        sortedFilteredPositions,
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = user.getDisplayText(todayReturn!,
         displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = user.getPositionAggregateDisplayValue(
-        filteredPositions,
+        sortedFilteredPositions,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = user.getDisplayText(todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
@@ -199,7 +206,7 @@ class InstrumentPositionsWidget extends StatelessWidget {
             ]
           ]),
           subtitle: Text(
-              "${formatCompactNumber.format(filteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
+              "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
           trailing: Wrap(spacing: 8, children: [
             Text(
               marketValueText,
@@ -262,10 +269,10 @@ class InstrumentPositionsWidget extends StatelessWidget {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildPositionRow(context, filteredPositions, index);
+              return _buildPositionRow(context, sortedFilteredPositions, index);
             },
             // Or, uncomment the following line:
-            childCount: filteredPositions.length,
+            childCount: sortedFilteredPositions.length,
           ),
         ),
         // TODO: Introduce web banner
@@ -286,31 +293,6 @@ class InstrumentPositionsWidget extends StatelessWidget {
           height: 25.0,
         )),
       ]
-
-      // InstrumentPositionsWidget(
-      //   context,
-      //   user,
-      //   service,
-      //   filteredPositions,
-      //   analytics: analytics,
-      //   observer: observer,
-      // ),
-
-      // SliverList(
-      //   // delegate: SliverChildListDelegate(widgets),
-      //   delegate: SliverChildBuilderDelegate(
-      //     (BuildContext context, int index) {
-      //       return _buildPositionRow(filteredPositions, index);
-      //     },
-      //     // Or, uncomment the following line:
-      //     childCount: filteredPositions.length,
-      //   ),
-      // ),
-
-      // const SliverToBoxAdapter(
-      //     child: SizedBox(
-      //   height: 25.0,
-      // ))
     ]));
   }
 

@@ -45,6 +45,8 @@ class OptionPositionsWidget extends StatelessWidget {
     //this.account,
     this.filteredOptionPositions, {
     this.showList = true,
+    this.showGroupHeader = true,
+    this.showFooter = true,
     super.key,
     required this.analytics,
     required this.observer,
@@ -55,6 +57,8 @@ class OptionPositionsWidget extends StatelessWidget {
   final BrokerageUser user;
   final IBrokerageService service;
   final bool showList;
+  final bool showGroupHeader;
+  final bool showFooter;
   //final Account account;
   final List<OptionAggregatePosition> filteredOptionPositions;
 
@@ -363,26 +367,28 @@ class OptionPositionsWidget extends StatelessWidget {
                         sortedGroupedOptionAggregatePositions.elementAt(index),
                         context,
                         excludeGroupRow:
-                            false); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
+                            !showGroupHeader); // Disabled this logic as it was not showing the option positions: sortedGroupedOptionAggregatePositions.length == 1
                   }, childCount: sortedGroupedOptionAggregatePositions.length),
                 ),
-          // TODO: Introduce web banner
-          if (!kIsWeb) ...[
+          if (showFooter) ...[
+            // TODO: Introduce web banner
+            if (!kIsWeb) ...[
+              const SliverToBoxAdapter(
+                  child: SizedBox(
+                height: 25.0,
+              )),
+              SliverToBoxAdapter(child: AdBannerWidget()),
+            ],
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 25.0,
             )),
-            SliverToBoxAdapter(child: AdBannerWidget()),
+            const SliverToBoxAdapter(child: DisclaimerWidget()),
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            ))
           ],
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
-          const SliverToBoxAdapter(child: DisclaimerWidget()),
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
-          )),
         ]
       ],
     ));
@@ -745,7 +751,7 @@ class OptionPositionsWidget extends StatelessWidget {
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               ...tiles,
               if (delta != null) ...[

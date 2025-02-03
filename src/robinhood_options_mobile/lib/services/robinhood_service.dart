@@ -894,11 +894,11 @@ Response: {
     var results = await pagedGet(user,
         "$endpoint/dividends/${instrumentId != null ? '?instrument_id=$instrumentId' : ''}");
     List<dynamic> list = [];
-    store.removeAll();
+    // store.removeAll();
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
       list.add(result);
-      store.add(result);
+      store.addOrUpdate(result);
     }
     list.sort((a, b) => DateTime.parse(b["record_date"]!)
         .compareTo(DateTime.parse(a["record_date"]!)));

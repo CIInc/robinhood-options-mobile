@@ -25,7 +25,7 @@ class InterestStore extends ChangeNotifier {
   }
 
   bool update(dynamic item) {
-    var index = _items.indexWhere((element) => element.id == item.id);
+    var index = _items.indexWhere((element) => element["id"] == item["id"]);
     if (index == -1) {
       return false;
     }

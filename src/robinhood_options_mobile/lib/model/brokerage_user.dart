@@ -349,7 +349,7 @@ class BrokerageUser {
         break;
       default:
     }
-    return value;
+    return value.isInfinite ? 0 : value;
   }
 
   Icon getDisplayIcon(double value, {double? size}) {

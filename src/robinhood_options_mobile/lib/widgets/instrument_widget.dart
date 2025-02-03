@@ -6,11 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
@@ -49,7 +51,7 @@ final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.#####");
+final formatNumber = NumberFormat("###,###,##0.#####");
 final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
@@ -817,97 +819,41 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                  const ListTile(
-                      title: Text("Stock Position",
-                          style: TextStyle(fontSize: 20))),
+                  ListTile(
+                      title: Text("Position", style: TextStyle(fontSize: 19)),
+                      subtitle: Text(
+                          '${formatNumber.format(position.quantity!)} shares'),
+                      trailing: Text(
+                          formatCurrency.format(position.marketValue),
+                          style: const TextStyle(fontSize: 21))),
+                  _buildDetailScrollRow(
+                      position, summaryValueFontSize, summaryLabelFontSize,
+                      iconSize: 27.0),
                   ListTile(
                     minTileHeight: 10,
-                    title: const Text("Quantity"),
-                    trailing: Text(
-                        // formatCompactNumber.format(position.quantity!),
-                        formatNumber.format(position.quantity!),
+                    title: const Text("Cost"),
+                    trailing: Text(formatCurrency.format(position.totalCost),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
                     minTileHeight: 10,
-                    title: const Text("Average Cost"),
+                    contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
+                    // title: const Text("Average Cost"),
                     trailing: Text(
                         formatCurrency.format(position.averageBuyPrice),
                         style: const TextStyle(fontSize: 18)),
                   ),
                   ListTile(
                     minTileHeight: 10,
-                    title: const Text("Total Cost"),
-                    trailing: Text(formatCurrency.format(position.totalCost),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Market Value"),
-                    trailing: Text(formatCurrency.format(position.marketValue),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                      minTileHeight: 10,
-                      title: const Text("Return"),
-                      trailing: Wrap(children: [
-                        position.trendingIcon,
-                        Container(
-                          width: 2,
-                        ),
-                        Text(formatCurrency.format(position.gainLoss), //.abs()
-                            style: const TextStyle(fontSize: 18)),
-                      ])
-
-                      /*
-          trailing: Text(formatCurrency.format(position!.gainLoss),
-              style: const TextStyle(fontSize: 18)),
-              */
-                      ),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Return %"),
-                    trailing: Text(
-                        formatPercentage.format(position.gainLossPercent),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                      minTileHeight: 10,
-                      title: const Text("Return Today"),
-                      trailing: Wrap(children: [
-                        position.trendingIconToday,
-                        Container(
-                          width: 2,
-                        ),
-                        Text(
-                            formatCurrency
-                                .format(position.gainLossToday), //.abs()
-                            style: const TextStyle(fontSize: 18)),
-                      ])
-
-                      /*
-          trailing: Text(formatCurrency.format(position!.gainLoss),
-              style: const TextStyle(fontSize: 18)),
-              */
-                      ),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Return Today %"),
-                    trailing: Text(
-                        formatPercentage.format(position.gainLossPercentToday),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                    minTileHeight: 10,
                     title: const Text("Created"),
                     trailing: Text(formatDate.format(position.createdAt!),
-                        style: const TextStyle(fontSize: 18)),
+                        style: const TextStyle(fontSize: 15)),
                   ),
                   ListTile(
                     minTileHeight: 10,
                     title: const Text("Updated"),
                     trailing: Text(formatDate.format(position.updatedAt!),
-                        style: const TextStyle(fontSize: 18)),
+                        style: const TextStyle(fontSize: 15)),
                   ),
                 ])));
           }),
@@ -945,12 +891,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   if (filteredOptionPositions.isNotEmpty) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
-                      height: 25.0,
+                      height: 8.0,
                     )),
                     OptionPositionsWidget(
                       widget.user,
                       widget.service,
                       filteredOptionPositions,
+                      showFooter: false,
+                      showGroupHeader: false,
                       analytics: widget.analytics,
                       observer: widget.observer,
                     )
@@ -960,14 +908,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           if (instrument.quoteObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             quoteWidget(instrument)
           ],
           if (instrument.fundamentalsObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             fundamentalsWidget(instrument)
           ],
@@ -975,14 +923,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.ratingsObj["summary"] != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildRatingsWidget(instrument)
           ],
           if (instrument.ratingsOverviewObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildRatingsOverviewWidget(instrument)
           ],
@@ -990,7 +938,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildEarningsWidget(instrument)
           ],
@@ -998,7 +946,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildDividendsWidget(instrument)
           ],
@@ -1006,7 +954,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.splitsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildSplitsWidget(instrument)
           ],
@@ -1014,21 +962,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               instrument.earningsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildNewsWidget(instrument)
           ],
           if (instrument.similarObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildSimilarWidget(instrument)
           ],
           if (instrument.listsObj != null) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
-              height: 25.0,
+              height: 8.0,
             )),
             _buildListsWidget(instrument)
           ],
@@ -1044,7 +992,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       slivers: [
                     const SliverToBoxAdapter(
                         child: SizedBox(
-                      height: 25.0,
+                      height: 8.0,
                     )),
                     positionOrdersWidget(instrument.positionOrders!)
                   ]));
@@ -1062,7 +1010,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       slivers: [
                     const SliverToBoxAdapter(
                         child: SizedBox(
-                      height: 25.0,
+                      height: 8.0,
                     )),
                     OptionOrdersWidget(
                       widget.user,
@@ -1080,7 +1028,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: SizedBox(
             height: 25.0,
           )),
-          const SliverToBoxAdapter(child: DisclaimerWidget())
+          const SliverToBoxAdapter(child: DisclaimerWidget()),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
         ]));
   }
 
@@ -1221,87 +1173,260 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     ));
   }
 
+  SingleChildScrollView _buildDetailScrollRow(
+      InstrumentPosition ops, double valueFontSize, double labelFontSize,
+      {double iconSize = 23.0}) {
+    List<Widget> tiles = [];
+
+    double? totalReturn = widget.user
+        .getPositionDisplayValue(ops, displayValue: DisplayValue.totalReturn);
+    String? totalReturnText = widget.user
+        .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
+
+    double? totalReturnPercent = widget.user.getPositionDisplayValue(ops,
+        displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.user.getDisplayText(
+        totalReturnPercent!,
+        displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = widget.user
+        .getPositionDisplayValue(ops, displayValue: DisplayValue.todayReturn);
+    String? todayReturnText = widget.user
+        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = widget.user.getPositionDisplayValue(ops,
+        displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.user.getDisplayText(
+        todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: iconSize);
+
+    tiles = [
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            todayIcon,
+            Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
+          ]),
+          /*
+                                    Text(todayReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          /*
+                                    Text(todayReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(todayReturnPercentText,
+              style: TextStyle(fontSize: valueFontSize)),
+          Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            totalIcon,
+            Text(totalReturnText, style: TextStyle(fontSize: valueFontSize))
+          ]),
+          /*
+                                    Text(totalReturnText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          /*
+                                    Text(totalReturnPercentText,
+                                        style: const TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                            */
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(totalReturnPercentText,
+              style: TextStyle(fontSize: valueFontSize)),
+
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      )
+    ];
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ...tiles,
+            ])));
+  }
+
+  SingleChildScrollView _buildQuoteScrollRow(
+      Instrument ops, double valueFontSize, double labelFontSize,
+      {double iconSize = 23.0}) {
+    List<Widget> tiles = [];
+
+    // double? totalReturn = 0;
+    // widget.user
+    //     .getPositionDisplayValue(ops, displayValue: DisplayValue.totalReturn);
+    // String? totalReturnText = '';
+    // widget.user
+    //     .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
+
+    // double? totalReturnPercent = 0;
+    // widget.user.getPositionDisplayValue(ops,
+    //     displayValue: DisplayValue.totalReturnPercent);
+    // String? totalReturnPercentText = widget.user.getDisplayText(
+    //     totalReturnPercent!,
+    //     displayValue: DisplayValue.totalReturnPercent);
+
+    double? todayReturn = ops.quoteObj?.changeToday;
+    String? todayReturnText = widget.user
+        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
+
+    double? todayReturnPercent = ops.quoteObj?.changePercentToday;
+    String? todayReturnPercentText = widget.user.getDisplayText(
+        todayReturnPercent!,
+        displayValue: DisplayValue.todayReturnPercent);
+
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
+    // Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: iconSize);
+
+    tiles = [
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            todayIcon,
+            Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
+          ]),
+          Text("Change Today", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(todayReturnPercentText,
+              style: TextStyle(fontSize: valueFontSize)),
+          Text("Change Today %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            // totalIcon,
+            Text(widget.user.getDisplayText(ops.quoteObj!.bidPrice!),
+                style: TextStyle(fontSize: valueFontSize))
+          ]),
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Bid x ${ops.quoteObj!.bidSize}",
+              style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            // totalIcon,
+            Text(widget.user.getDisplayText(ops.quoteObj!.askPrice!),
+                style: TextStyle(fontSize: valueFontSize))
+          ]),
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Ask x ${ops.quoteObj!.askSize}",
+              style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+    ];
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ...tiles,
+            ])));
+  }
+
   Widget quoteWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
+      SliverToBoxAdapter(
           child: Column(children: [
         ListTile(
           title: Text(
             "Quote",
             style: TextStyle(fontSize: 19.0),
           ),
-        )
+          subtitle: Text(
+              instrument.quoteObj!.lastExtendedHoursTradePrice != null
+                  ? 'Extended hours'
+                  : ''),
+          trailing: Text(
+              formatCurrency.format(
+                  instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                      instrument.quoteObj!.lastTradePrice),
+              style: const TextStyle(fontSize: 21)),
+        ),
+        _buildQuoteScrollRow(
+            instrument, summaryValueFontSize, summaryLabelFontSize,
+            iconSize: 27.0),
       ])),
       SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        ListTile(
-            minTileHeight: 10,
-            title: const Text("Last Trade Price"),
-            trailing: Wrap(spacing: 8, children: [
-              Icon(
-                  instrument.quoteObj!.changeToday > 0
-                      ? Icons.trending_up
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Icons.trending_down
-                          : Icons.trending_flat),
-                  color: (instrument.quoteObj!.changeToday > 0
-                      ? Colors.green
-                      : (instrument.quoteObj!.changeToday < 0
-                          ? Colors.red
-                          : Colors.grey))),
-              Text(
-                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 18.0),
-                textAlign: TextAlign.right,
-              ),
-            ])),
+        // ListTile(
+        //   minTileHeight: 10,
+        //   title: const Text("Bid/Ask"),
+        //   trailing: Text(
+        //       "${formatCurrency.format(instrument.quoteObj!.bidPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.bidSize)}",
+        //       style: const TextStyle(fontSize: 18)),
+        // ),
+        // ListTile(
+        //   minTileHeight: 10,
+        //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
+        //   // title: const Text("Ask"),
+        //   trailing: Text(
+        //       "${formatCurrency.format(instrument.quoteObj!.askPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+        //       style: const TextStyle(fontSize: 18)),
+        // ),
         ListTile(
           minTileHeight: 10,
-          title: const Text("Adjusted Previous Close"),
+          title: const Text("Previous Close"),
           trailing: Text(
               formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
               style: const TextStyle(fontSize: 18)),
         ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Change Today"),
-          trailing: Text(
-              formatCurrency.format(instrument.quoteObj!.changeToday),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Change Today %"),
-          trailing: Text(
-              formatPercentage.format(instrument.quoteObj!.changePercentToday),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Bid - Ask Price"),
-          trailing: Text(
-              "${formatCurrency.format(instrument.quoteObj!.bidPrice)} - ${formatCurrency.format(instrument.quoteObj!.askPrice)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Bid - Ask Size"),
-          trailing: Text(
-              "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Last Extended Hours Trade Price"),
-          trailing: Text(
-              instrument.quoteObj!.lastExtendedHoursTradePrice != null
-                  ? formatCurrency
-                      .format(instrument.quoteObj!.lastExtendedHoursTradePrice)
-                  : "",
-              style: const TextStyle(fontSize: 18)),
-        ),
+        // ListTile(
+        //   minTileHeight: 10,
+        //   title: const Text("Bid - Ask Size"),
+        //   trailing: Text(
+        //       "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
+        //       style: const TextStyle(fontSize: 18)),
+        // ),
         Container(
           height: 10,
         )
@@ -1327,7 +1452,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         /*
           ListTile(
               title:
-                  const Text("Fundamentals", style: TextStyle(fontSize: 20))),
+                  const Text("Fundamentals", style: TextStyle(fontSize: 19))),
                   */
         ListTile(
           minTileHeight: 10,
@@ -1405,24 +1530,45 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         ListTile(
           minTileHeight: 10,
           title: const Text("Sector"),
-          trailing: Text(instrument.fundamentalsObj!.sector,
-              style: const TextStyle(fontSize: 17)),
+          subtitle: Text(instrument.fundamentalsObj!.sector,
+              style: const TextStyle(fontSize: 16)),
         ),
         ListTile(
           minTileHeight: 10,
           title: const Text("Industry"),
-          trailing: Text(instrument.fundamentalsObj!.industry,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 17)),
+          subtitle: Text(instrument.fundamentalsObj!.industry,
+              style: const TextStyle(fontSize: 16)),
+          // trailing: Text(instrument.fundamentalsObj!.industry,
+          //     overflow: TextOverflow.ellipsis,
+          //     style: const TextStyle(fontSize: 16)),
+        ),
+        ListTile(
+          minTileHeight: 10,
+          title: const Text(
+            "Name",
+            style: TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
+          ),
+          subtitle: Text(instrument.name, style: const TextStyle(fontSize: 16)),
+        ),
+        ListTile(
+          minTileHeight: 10,
+          title: const Text(
+            "Description",
+            style: TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
+          ),
+          subtitle: Text(instrument.fundamentalsObj!.description,
+              style: const TextStyle(fontSize: 16)),
         ),
         if (instrument.fundamentalsObj!.headquartersCity.isNotEmpty ||
             instrument.fundamentalsObj!.headquartersState.isNotEmpty) ...[
           ListTile(
             minTileHeight: 10,
             title: const Text("Headquarters"),
-            trailing: Text(
+            subtitle: Text(
                 "${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}",
-                style: const TextStyle(fontSize: 17)),
+                style: const TextStyle(fontSize: 16)),
           ),
         ],
         if (instrument.fundamentalsObj!.ceo.isNotEmpty) ...[
@@ -1453,25 +1599,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 17)),
           ),
         ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text(
-            "Name",
-            style: TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(instrument.name, style: const TextStyle(fontSize: 16)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text(
-            "Description",
-            style: TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(instrument.fundamentalsObj!.description,
-              style: const TextStyle(fontSize: 16)),
-        ),
         Container(
           height: 10,
         )
@@ -1649,19 +1776,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
         // const SizedBox(height: 15),
-        ListTile(
-          minTileHeight: 10,
-          title: Text(
-            instrument.ratingsOverviewObj!["report_title"],
-            style: const TextStyle(fontSize: 18.0),
-            //overflow: TextOverflow.visible
-          ),
-          subtitle: Text(
-              instrument.ratingsOverviewObj!["report_updated_at"] != null
-                  ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
-                  : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
-              style: const TextStyle(fontSize: 14)),
-        ),
         if (instrument.ratingsOverviewObj!["fair_value"] != null) ...[
           ListTile(
             minTileHeight: 10,
@@ -1723,6 +1837,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   .replaceAll('_', ' ')
                   .capitalize(),
               style: const TextStyle(fontSize: 18)),
+        ),
+        ListTile(
+          minTileHeight: 10,
+          title: Text(
+            instrument.ratingsOverviewObj!["report_title"],
+            style: const TextStyle(fontSize: 18.0),
+            //overflow: TextOverflow.visible
+          ),
+          subtitle: Text(
+              instrument.ratingsOverviewObj!["report_updated_at"] != null
+                  ? "Updated ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_updated_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}"
+                  : "Published ${formatDate.format(DateTime.parse(instrument.ratingsOverviewObj!["report_published_at"]))} by ${instrument.ratingsOverviewObj!["source"].toString().capitalize()}",
+              style: const TextStyle(fontSize: 14)),
         ),
         Row(mainAxisAlignment: MainAxisAlignment.end, children: <Widget>[
           TextButton(
