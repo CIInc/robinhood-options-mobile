@@ -2455,7 +2455,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         onPressed: () {/* ... */},
       ),*/
       title: Text(
-        "Portfolio", // ${userInfo?.profileName} (${widget.service.name})
+        widget.title!, // ${userInfo?.profileName} (${widget.service.name})
         // style: const TextStyle(fontSize: 17.0)
       ),
       // Wrap(

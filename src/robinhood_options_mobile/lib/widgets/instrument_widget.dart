@@ -854,20 +854,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   _buildDetailScrollRow(
                       position, summaryValueFontSize, summaryLabelFontSize,
                       iconSize: 27.0),
-                  ListTile(
-                    minTileHeight: 10,
-                    title: const Text("Cost"),
-                    trailing: Text(formatCurrency.format(position.totalCost),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
-                  ListTile(
-                    minTileHeight: 10,
-                    contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
-                    // title: const Text("Average Cost"),
-                    trailing: Text(
-                        formatCurrency.format(position.averageBuyPrice),
-                        style: const TextStyle(fontSize: 18)),
-                  ),
+                  // ListTile(
+                  //   minTileHeight: 10,
+                  //   title: const Text("Cost"),
+                  //   trailing: Text(formatCurrency.format(position.totalCost),
+                  //       style: const TextStyle(fontSize: 18)),
+                  // ),
+                  // ListTile(
+                  //   minTileHeight: 10,
+                  //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
+                  //   // title: const Text("Average Cost"),
+                  //   trailing: Text(
+                  //       formatCurrency.format(position.averageBuyPrice),
+                  //       style: const TextStyle(fontSize: 18)),
+                  // ),
                   ListTile(
                     minTileHeight: 10,
                     title: const Text("Created"),
@@ -1293,6 +1293,30 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           //Container(height: 5),
           //const Text("Δ", style: TextStyle(fontSize: 15.0)),
           Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(widget.user.getDisplayText(ops.totalCost),
+              style: TextStyle(fontSize: valueFontSize)),
+
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Cost", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Text(widget.user.getDisplayText(ops.averageBuyPrice!),
+              style: TextStyle(fontSize: valueFontSize)),
+
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Cost per share", style: TextStyle(fontSize: labelFontSize)),
         ]),
       )
     ];
@@ -2032,7 +2056,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           showChips: false,
           showList: true,
           showFooter: false,
-          showValue: true,
+          showYield: true,
           analytics: widget.analytics,
           observer: widget.observer),
       // const SliverToBoxAdapter(

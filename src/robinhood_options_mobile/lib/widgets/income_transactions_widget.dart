@@ -51,7 +51,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
     this.showList = true,
     this.showFooter = true,
     this.showChips = true,
-    this.showValue = true,
+    this.showYield = true,
     super.key,
     required this.analytics,
     required this.observer,
@@ -69,7 +69,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final bool showList;
   final bool showFooter;
   final bool showChips;
-  final bool showValue;
+  final bool showYield;
 
   @override
   State<IncomeTransactionsWidget> createState() =>
@@ -236,7 +236,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         (groupedDividendsData.isNotEmpty
             ? groupedDividendsData.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0);
-    double? pastYearYield;
+    double? yield;
+    double? yieldOnCost;
     double? marketValue;
     double? gainLoss;
     double? profitAndLoss;
@@ -253,26 +254,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       }
       instrument = transaction["instrumentObj"] as Instrument?;
       if (instrument != null && instrument.quoteObj != null) {
-        pastYearYield =
-            // totalDividends / double.parse(transaction!["position"])
-            double.parse(transaction!["rate"]) /
-                instrument.quoteObj!.lastTradePrice!;
-        var currDate = DateTime.parse(transaction["payable_date"]);
-        if (prevTransaction != null) {
-          var prevDate = DateTime.parse(prevTransaction["payable_date"]);
-          const errorMargin = 2;
-          if (currDate.difference(prevDate).inDays <= 7 + errorMargin) {
-            pastYearYield = pastYearYield * 52;
-            dividendInterval = 'weekly';
-          } else if (currDate.difference(prevDate).inDays <= 31 + errorMargin) {
-            pastYearYield = pastYearYield * 12;
-            dividendInterval = 'monthly';
-          } else if (currDate.difference(prevDate).inDays <=
-              31 * 3 + errorMargin) {
-            pastYearYield = pastYearYield * 4;
-            dividendInterval = 'quarterly';
-          }
-        }
         position = widget.instrumentPositionStore.items
             .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
         if (position != null) {
@@ -281,6 +262,31 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           profitAndLoss = position.gainLoss + totalIncome;
           adjustedCost =
               (position.totalCost - totalIncome) / position.quantity!;
+        }
+        yield =
+            // totalDividends / double.parse(transaction!["position"])
+            double.parse(transaction!["rate"]) /
+                instrument.quoteObj!.lastTradePrice!;
+        yieldOnCost =
+            double.parse(transaction!["rate"]) / position!.averageBuyPrice!;
+        var currDate = DateTime.parse(transaction["payable_date"]);
+        if (prevTransaction != null) {
+          var prevDate = DateTime.parse(prevTransaction["payable_date"]);
+          const errorMargin = 2;
+          if (currDate.difference(prevDate).inDays <= 7 + errorMargin) {
+            yield = yield * 52;
+            yieldOnCost = yieldOnCost * 52;
+            dividendInterval = 'weekly';
+          } else if (currDate.difference(prevDate).inDays <= 31 + errorMargin) {
+            yield = yield * 12;
+            yieldOnCost = yieldOnCost * 12;
+            dividendInterval = 'monthly';
+          } else if (currDate.difference(prevDate).inDays <=
+              31 * 3 + errorMargin) {
+            yield = yield * 4;
+            yieldOnCost = yieldOnCost * 4;
+            dividendInterval = 'quarterly';
+          }
         }
       }
     }
@@ -511,104 +517,162 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             // ]
           ]),
         ),
-        if (pastYearYield != null) ...[
-          ListTile(
+        if (incomeTransactions.isNotEmpty &&
+            transactionSymbolFilters.isNotEmpty &&
+            widget.showYield) ...[
+          ExpansionTile(
+            shape: const Border(),
             // dense: true,
+            // controlAffinity: ListTileControlAffinity.leading,
             minTileHeight: 60,
             // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
             title: Wrap(children: [
               const Text(
-                "Yield",
+                "Dividend Yield",
                 style: TextStyle(fontSize: 18.0),
               ),
-              SizedBox(
-                height: 28,
-                child: IconButton(
-                  iconSize: 18,
-                  padding: EdgeInsets.zero,
-                  icon: Icon(Icons.info_outline),
-                  onPressed: () {
-                    showDialog<String>(
-                        context: context,
-                        builder: (BuildContext context) => AlertDialog(
-                              // context: context,
-                              title: Text(
-                                  '${incomeTransactions[0]["instrumentObj"].symbol} Yield'),
-                              content: Text(
-                                  'The yield is calculated based on the last distribution rate of ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price of the security, ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\nIt is annualized from its $dividendInterval distribution period.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: const Text('OK'),
-                                ),
-                              ],
-                            ));
-                  },
-                ),
-              )
             ]),
             subtitle: Text(
                 "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-            trailing: Wrap(spacing: 8, children: [
-              Text(
-                formatPercentage.format(pastYearYield),
-                style: const TextStyle(fontSize: 20.0),
-                textAlign: TextAlign.right,
-              ),
-            ]),
-          ),
-        ],
-        if (marketValue != null && widget.showValue) ...[
-          ListTile(
-            title: Wrap(children: [
-              const Text(
-                "Adjusted P/L",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            ]),
-            subtitle: Text(
-                '${instrument!.symbol} ${widget.user.getDisplayText(marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
-            trailing: Wrap(spacing: 8, children: [
-              // Text(
-              //   formatCurrency.format(marketValue),
-              //   style: const TextStyle(fontSize: 21.0),
-              //   textAlign: TextAlign.right,
-              // ),
-              Text(
-                formatCurrency.format(profitAndLoss),
-                style: const TextStyle(fontSize: 21.0),
-                textAlign: TextAlign.right,
-              ),
-              // if (pastYearYield != null) ...[
-              //   Text('${formatPercentage.format(pastYearYield)} yield',
-              //       style: const TextStyle(fontSize: 14)),
-              // ]
-            ]),
-          ),
-        ],
-        if (adjustedCost != null && widget.showValue) ...[
-          ListTile(
-            title: Wrap(children: [
-              const Text(
-                "Adjusted Cost Basis",
-                style: TextStyle(fontSize: 19.0),
-              ),
-            ]),
-            subtitle: Text(
-                'average per share ${widget.user.getDisplayText(position!.averageBuyPrice!)}'),
-            trailing: Wrap(spacing: 8, children: [
-              Text(
-                formatCurrency.format(adjustedCost),
-                style: const TextStyle(fontSize: 21.0),
-                textAlign: TextAlign.right,
-              ),
-              // if (pastYearYield != null) ...[
-              //   Text('${formatPercentage.format(pastYearYield)} yield',
-              //       style: const TextStyle(fontSize: 14)),
-              // ]
-            ]),
+            // subtitle: Text("Yield, P/L & Cost basis"),
+            // trailing: Wrap(spacing: 8, children: [
+            //   Text(
+            //     formatPercentage.format(yield),
+            //     style: const TextStyle(fontSize: 20.0),
+            //     textAlign: TextAlign.right,
+            //   ),
+            // ]),
+            children: [
+              if (yield != null) ...[
+                ListTile(
+                  shape: const Border(),
+                  // dense: true,
+                  // controlAffinity: ListTileControlAffinity.leading,
+                  minTileHeight: 60,
+                  // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
+                  title: Wrap(children: [
+                    const Text(
+                      "Yield",
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(
+                      height: 28,
+                      child: IconButton(
+                        iconSize: 18,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.info_outline),
+                        onPressed: () {
+                          showDialog<String>(
+                              context: context,
+                              builder: (BuildContext context) => AlertDialog(
+                                    // context: context,
+                                    title: Text('Dividend Yield'),
+                                    content: Text(
+                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income to the underlying profit or loss value.\n\nAdjusted cost basis is calculated by subtracting the dividend income from the total cost and dividing by the number of shares.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ));
+                        },
+                      ),
+                    )
+                  ]),
+                  // subtitle: Text(
+                  //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+                  trailing: Wrap(spacing: 8, children: [
+                    Text(
+                      formatPercentage.format(yield),
+                      style: const TextStyle(fontSize: 20.0),
+                      textAlign: TextAlign.right,
+                    ),
+                  ]),
+                )
+              ],
+              if (yieldOnCost != null) ...[
+                ListTile(
+                  // dense: true,
+                  minTileHeight: 60,
+                  // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
+                  title: Wrap(children: [
+                    const Text(
+                      "Yield on cost",
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                  ]),
+                  // subtitle: Text(
+                  //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+                  trailing: Wrap(spacing: 8, children: [
+                    Text(
+                      formatPercentage.format(yieldOnCost),
+                      style: const TextStyle(fontSize: 20.0),
+                      textAlign: TextAlign.right,
+                    ),
+                  ]),
+                ),
+              ],
+              if (marketValue != null) ...[
+                ListTile(
+                  title: Wrap(children: [
+                    const Text(
+                      "Adjusted P/L",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                  ]),
+                  subtitle: Text(
+                      '${instrument!.symbol} ${widget.user.getDisplayText(marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
+                  trailing: Wrap(spacing: 8, children: [
+                    // Text(
+                    //   formatCurrency.format(marketValue),
+                    //   style: const TextStyle(fontSize: 21.0),
+                    //   textAlign: TextAlign.right,
+                    // ),
+                    if (profitAndLoss! != 0) ...[
+                      // widget.user.getDisplayIcon(profitAndLoss)
+                      Icon(profitAndLoss > 0 ? Icons.arrow_upward : Icons.south,
+                          color: profitAndLoss > 0 ? Colors.green : Colors.red,
+                          size: 26),
+                    ],
+                    Text(
+                      formatCurrency.format(profitAndLoss),
+                      style: const TextStyle(fontSize: 20.0),
+                      textAlign: TextAlign.right,
+                    ),
+                    // if (pastYearYield != null) ...[
+                    //   Text('${formatPercentage.format(pastYearYield)} yield',
+                    //       style: const TextStyle(fontSize: 14)),
+                    // ]
+                  ]),
+                ),
+              ],
+              if (adjustedCost != null) ...[
+                ListTile(
+                  title: Wrap(children: [
+                    const Text(
+                      "Adjusted cost basis",
+                      style: TextStyle(fontSize: 19.0),
+                    ),
+                  ]),
+                  subtitle: Text(
+                      'average per share ${widget.user.getDisplayText(position!.averageBuyPrice!)}'),
+                  trailing: Wrap(spacing: 8, children: [
+                    Text(
+                      formatCurrency.format(adjustedCost),
+                      style: const TextStyle(fontSize: 20.0),
+                      textAlign: TextAlign.right,
+                    ),
+                    // if (pastYearYield != null) ...[
+                    //   Text('${formatPercentage.format(pastYearYield)} yield',
+                    //       style: const TextStyle(fontSize: 14)),
+                    // ]
+                  ]),
+                ),
+              ],
+            ],
           ),
         ],
 
