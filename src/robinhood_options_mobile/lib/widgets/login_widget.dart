@@ -280,8 +280,9 @@ class _LoginWidgetState extends State<LoginWidget> {
             constraints: BoxConstraints(maxHeight: 80),
             child: CarouselView(
               scrollDirection: Axis.horizontal,
+              enableSplash: false,
               itemSnapping: true,
-              itemExtent: 155, // double.infinity, // 360, //
+              itemExtent: 185, //155, // double.infinity, // 360, //
               onTap: (value) {
                 debugPrint(value.toString());
                 setState(() {

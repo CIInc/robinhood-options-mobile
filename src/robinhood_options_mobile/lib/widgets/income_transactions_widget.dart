@@ -7,10 +7,14 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -21,6 +25,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatMonthDate = DateFormat("yMMM");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
@@ -39,9 +44,14 @@ class IncomeTransactionsWidget extends StatefulWidget {
     this.service,
     //this.account,
     this.dividendStore,
-    this.interestStore,
+    this.instrumentPositionStore,
     this.chartSelectionStore, {
+    this.interestStore,
+    this.transactionSymbolFilters = const <String>[],
     this.showList = true,
+    this.showFooter = true,
+    this.showChips = true,
+    this.showValue = true,
     super.key,
     required this.analytics,
     required this.observer,
@@ -52,9 +62,14 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final BrokerageUser user;
   final IBrokerageService service;
   final DividendStore dividendStore;
-  final InterestStore interestStore;
+  final InterestStore? interestStore;
+  final InstrumentPositionStore instrumentPositionStore;
+  final List<String> transactionSymbolFilters;
   final ChartSelectionStore chartSelectionStore;
   final bool showList;
+  final bool showFooter;
+  final bool showChips;
+  final bool showValue;
 
   @override
   State<IncomeTransactionsWidget> createState() =>
@@ -73,7 +88,13 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     // (DateTime.now().year - 2).toString(),
     // '<= ${(DateTime.now().year - 3).toString()}'
   ];
-  List<String> transactionSymbolFilters = <String>[];
+  List<String> transactionSymbolFilters = [];
+
+  @override
+  void initState() {
+    super.initState();
+    transactionSymbolFilters.addAll(widget.transactionSymbolFilters);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -121,22 +142,23 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             //     DateTime.parse(e["payable_date"]).year >= priorTolastYear)
             )
         .toList();
-    var interestItems = widget.interestStore.items
-        .where((e) =>
-            e["state"] != "voided"
-            //  &&
-            // (transactionFilters.contains(thisYear.toString()) ||
-            //     DateTime.parse(e["pay_date"]).year != thisYear) &&
-            // (transactionFilters.contains(lastYear.toString()) ||
-            //     DateTime.parse(e["pay_date"]).year != lastYear) &&
-            // (transactionFilters.contains(priorTolastYear.toString()) ||
-            //     DateTime.parse(e["pay_date"]).year != priorTolastYear) &&
-            // (transactionFilters.contains(priorYears.toString()) ||
-            //     DateTime.parse(e["pay_date"]).year >= priorTolastYear)
-            &&
-            (transactionFilters
-                .contains("interest"))) // || e["reason"] != "interest_payment"
-        .toList();
+    var interestItems = widget.interestStore?.items
+            .where((e) =>
+                e["state"] != "voided"
+                //  &&
+                // (transactionFilters.contains(thisYear.toString()) ||
+                //     DateTime.parse(e["pay_date"]).year != thisYear) &&
+                // (transactionFilters.contains(lastYear.toString()) ||
+                //     DateTime.parse(e["pay_date"]).year != lastYear) &&
+                // (transactionFilters.contains(priorTolastYear.toString()) ||
+                //     DateTime.parse(e["pay_date"]).year != priorTolastYear) &&
+                // (transactionFilters.contains(priorYears.toString()) ||
+                //     DateTime.parse(e["pay_date"]).year >= priorTolastYear)
+                &&
+                (transactionFilters.contains(
+                    "interest"))) // || e["reason"] != "interest_payment"
+            .toList() ??
+        [];
 
     var incomeTransactions = (dividendItems + interestItems)
         .sortedBy<DateTime>((e) => e["payable_date"] != null
@@ -160,7 +182,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         })
         .entries
         .toList();
-    final groupedInterests = interestItems
+    final Map<DateTime, List> groupedInterests = interestItems
         // .where((d) =>
         //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
         .groupListsBy((element) {
@@ -189,6 +211,80 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             (sums, element) => sums
               ..add(MapEntry(element.key,
                   element.value + (sums.isEmpty ? 0 : sums.last.value))));
+
+    var pastYearDividends = groupedDividendsData.take(12).toList() +
+        groupedInterestsData.take(12).toList();
+    // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
+    //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
+    // var pastMonthDividends = groupedDividendsData.take(1).toList() +
+    //     groupedInterestsData.take(1).toList();
+    // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
+    //     .where(
+    //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
+    var pastYearTotalIncome =
+        (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
+                pastYearDividends.isNotEmpty
+            ? pastYearDividends
+                .where((e) => e.key.isAfter(
+                    DateTime(DateTime.now().year - 1, DateTime.now().month, 1)))
+                .map((e) => e.value)
+                .reduce((a, b) => a + b)
+            : 0.0;
+    var totalIncome = (groupedInterestsData.isNotEmpty
+            ? groupedInterestsData.map((e) => e.value).reduce((a, b) => a + b)
+            : 0.0) +
+        (groupedDividendsData.isNotEmpty
+            ? groupedDividendsData.map((e) => e.value).reduce((a, b) => a + b)
+            : 0.0);
+    double? pastYearYield;
+    double? marketValue;
+    double? gainLoss;
+    double? profitAndLoss;
+    double? adjustedCost;
+    Instrument? instrument;
+    InstrumentPosition? position;
+    String dividendInterval = '';
+    if (incomeTransactions.isNotEmpty && transactionSymbolFilters.isNotEmpty) {
+      var transaction = incomeTransactions[0]; //.firstWhereOrNull((e) =>
+      // e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null);
+      Map<String, dynamic>? prevTransaction;
+      if (incomeTransactions.length > 1) {
+        prevTransaction = incomeTransactions[1]; //.firstWhereOrNull((e) =>
+      }
+      instrument = transaction["instrumentObj"] as Instrument?;
+      if (instrument != null && instrument.quoteObj != null) {
+        pastYearYield =
+            // totalDividends / double.parse(transaction!["position"])
+            double.parse(transaction!["rate"]) /
+                instrument.quoteObj!.lastTradePrice!;
+        var currDate = DateTime.parse(transaction["payable_date"]);
+        if (prevTransaction != null) {
+          var prevDate = DateTime.parse(prevTransaction["payable_date"]);
+          const errorMargin = 2;
+          if (currDate.difference(prevDate).inDays <= 7 + errorMargin) {
+            pastYearYield = pastYearYield * 52;
+            dividendInterval = 'weekly';
+          } else if (currDate.difference(prevDate).inDays <= 31 + errorMargin) {
+            pastYearYield = pastYearYield * 12;
+            dividendInterval = 'monthly';
+          } else if (currDate.difference(prevDate).inDays <=
+              31 * 3 + errorMargin) {
+            pastYearYield = pastYearYield * 4;
+            dividendInterval = 'quarterly';
+          }
+        }
+        position = widget.instrumentPositionStore.items
+            .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
+        if (position != null) {
+          marketValue = position.marketValue;
+          gainLoss = position.gainLoss;
+          profitAndLoss = position.gainLoss + totalIncome;
+          adjustedCost =
+              (position.totalCost - totalIncome) / position.quantity!;
+        }
+      }
+    }
+
     var brightness = MediaQuery.of(context).platformBrightness;
     var axisLabelColor = charts.MaterialPalette.gray.shade200;
     if (brightness == Brightness.light) {
@@ -201,28 +297,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
 
     var incomeChart = TimeSeriesChart(
       [
-        if (groupedDividendsData.isNotEmpty) ...[
-          charts.Series<dynamic, DateTime>(
-              id: 'Dividend',
-              //charts.MaterialPalette.blue.shadeDefault,
-              colorFn: (_, __) => shades[0],
-              // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
-              domainFn: (dynamic domain, _) =>
-                  (domain as MapEntry<DateTime, double>).key,
-              // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
-              measureFn: (dynamic measure, index) =>
-                  (measure as MapEntry<DateTime, double>).value,
-              labelAccessorFn: (datum, index) => formatCurrency
-                  .format((datum as MapEntry<DateTime, double>).value),
-              data: groupedDividendsData // dividends!,
-              ),
-        ],
-        if (groupedInterestsData.isNotEmpty) ...[
-          charts.Series<dynamic, DateTime>(
-            id: 'Interest',
+        // if (groupedDividendsData.isNotEmpty) ...[
+        charts.Series<dynamic, DateTime>(
+            id: 'Dividend',
             //charts.MaterialPalette.blue.shadeDefault,
-            colorFn: (_, __) => shades[1],
-            //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+            colorFn: (_, __) => shades[0],
             // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
             domainFn: (dynamic domain, _) =>
                 (domain as MapEntry<DateTime, double>).key,
@@ -231,9 +310,26 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 (measure as MapEntry<DateTime, double>).value,
             labelAccessorFn: (datum, index) => formatCurrency
                 .format((datum as MapEntry<DateTime, double>).value),
-            data: groupedInterestsData,
-          ),
-        ],
+            data: groupedDividendsData // dividends!,
+            ),
+        // ],
+        // if (groupedInterestsData.isNotEmpty) ...[
+        charts.Series<dynamic, DateTime>(
+          id: 'Interest',
+          //charts.MaterialPalette.blue.shadeDefault,
+          colorFn: (_, __) => shades[1],
+          //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
+          // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
+          domainFn: (dynamic domain, _) =>
+              (domain as MapEntry<DateTime, double>).key,
+          // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
+          measureFn: (dynamic measure, index) =>
+              (measure as MapEntry<DateTime, double>).value,
+          labelAccessorFn: (datum, index) => formatCurrency
+              .format((datum as MapEntry<DateTime, double>).value),
+          data: groupedInterestsData,
+        ),
+        // ],
         charts.Series<dynamic, DateTime>(
           id: 'Cumulative',
           //charts.MaterialPalette.blue.shadeDefault,
@@ -270,8 +366,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       ],
       // hiddenSeries: ['Cumulative'],
       behaviors: [
-        // charts.SelectNearest(
-        //     eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
+        charts.SelectNearest(
+            eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
         // charts.DomainHighlighter(),
         // TODO: Doesn't work all the time, the legend repositions itself.
         // if (!widget.showList) ...[
@@ -285,11 +381,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         // dynamically.
         charts.PanAndZoomBehavior(),
         charts.LinePointHighlighter(
-          symbolRenderer: TextSymbolRenderer(() =>
-              widget.chartSelectionStore.selection != null
-                  ? formatCurrency
-                      .format(widget.chartSelectionStore.selection!.value)
-                  : ''),
+          symbolRenderer: TextSymbolRenderer(() => widget
+                      .chartSelectionStore.selection !=
+                  null
+              ? '${formatMonthDate.format(widget.chartSelectionStore.selection!.key)}\n${formatCurrency.format(widget.chartSelectionStore.selection!.value)}'
+              : ''),
           // chartSelectionStore.selection
           //     ?.map((s) => s.value.round().toString())
           //     .join(' ') ??
@@ -315,11 +411,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           viewport: charts.DateTimeExtents(
-              start:
-                  // DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
-                  DateTime.now().subtract(Duration(days: 365)),
-              end:
-                  DateTime.now().add(Duration(days: 30 - DateTime.now().day)))),
+              start: DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
+              // DateTime.now().subtract(Duration(days: 365)),
+              end: DateTime.now())),
+      // .add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
           // showAxisLine: true,
           // renderSpec: charts.GridlineRendererSpec(),
@@ -357,58 +452,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           tickProviderSpec:
               charts.BasicNumericTickProviderSpec(desiredTickCount: 6)),
     );
-    var pastYearDividends = groupedDividendsData.take(12).toList() +
-        groupedInterestsData.take(12).toList();
-    // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
-    //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
-    // var pastMonthDividends = groupedDividendsData.take(1).toList() +
-    //     groupedInterestsData.take(1).toList();
-    // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
-    //     .where(
-    //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
-    var pastYearTotalIncome =
-        (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
-                pastYearDividends.isNotEmpty
-            ? pastYearDividends.map((e) => e.value).reduce((a, b) => a + b)
-            : 0.0;
-    double? pastYearYield;
-    String dividendInterval = '';
-    if (incomeTransactions.isNotEmpty && transactionSymbolFilters.isNotEmpty) {
-      var transaction = incomeTransactions[0]; //.firstWhereOrNull((e) =>
-      // e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null);
-      Map<String, dynamic>? prevTransaction;
-      if (incomeTransactions.length > 1) {
-        prevTransaction = incomeTransactions[1]; //.firstWhereOrNull((e) =>
-      }
-      var instrument = transaction["instrumentObj"];
-      if (instrument != null && instrument.quoteObj != null) {
-        pastYearYield =
-            // totalDividends / double.parse(transaction!["position"])
-            double.parse(transaction!["rate"]) /
-                instrument.quoteObj.lastTradePrice;
-        var currDate = DateTime.parse(transaction["payable_date"]);
-        if (prevTransaction != null) {
-          var prevDate = DateTime.parse(prevTransaction["payable_date"]);
-          if (currDate.difference(prevDate).inDays <= 8) {
-            pastYearYield = pastYearYield * 52;
-            dividendInterval = 'weekly';
-          } else if (currDate.difference(prevDate).inDays <= 31) {
-            pastYearYield = pastYearYield * 12;
-            dividendInterval = 'monthly';
-          } else if (currDate.difference(prevDate).inDays <= 31 * 3) {
-            pastYearYield = pastYearYield * 4;
-            dividendInterval = 'quarterly';
-          }
-        }
-      }
-    }
 
-    if (widget.dividendStore.items.isEmpty ||
-        widget.interestStore.items.isEmpty) {
+    if (widget.dividendStore.items.isEmpty &&
+        widget.interestStore != null &&
+        widget.interestStore!.items.isEmpty) {
       return SliverToBoxAdapter(
           child: ListTile(
-        title: const Text(
-          "Income",
+        title: Text(
+          "${widget.interestStore == null ? 'Dividend ' : ''}Income",
           style: TextStyle(fontSize: 19.0),
         ),
         subtitle: const Text("last 12 months"),
@@ -428,7 +479,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           child: Column(children: [
         ListTile(
           title: Wrap(children: [
-            const Text(
+            Text(
               "Income",
               style: TextStyle(fontSize: 19.0),
             ),
@@ -446,10 +497,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               )
             ]
           ]),
-          subtitle: Text("last 12 months"),
+          subtitle: Text(
+              "last 12 months ${widget.user.getDisplayText(pastYearTotalIncome)}"),
           trailing: Wrap(spacing: 8, children: [
             Text(
-              formatCurrency.format(pastYearTotalIncome),
+              formatCurrency.format(totalIncome),
               style: const TextStyle(fontSize: 21.0),
               textAlign: TextAlign.right,
             ),
@@ -459,7 +511,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             // ]
           ]),
         ),
-
         if (pastYearYield != null) ...[
           ListTile(
             // dense: true,
@@ -498,13 +549,65 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 ),
               )
             ]),
-            subtitle: Text("last distribution"),
+            subtitle: Text(
+                "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
             trailing: Wrap(spacing: 8, children: [
               Text(
                 formatPercentage.format(pastYearYield),
                 style: const TextStyle(fontSize: 20.0),
                 textAlign: TextAlign.right,
               ),
+            ]),
+          ),
+        ],
+        if (marketValue != null && widget.showValue) ...[
+          ListTile(
+            title: Wrap(children: [
+              const Text(
+                "Adjusted P/L",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            ]),
+            subtitle: Text(
+                '${instrument!.symbol} ${widget.user.getDisplayText(marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
+            trailing: Wrap(spacing: 8, children: [
+              // Text(
+              //   formatCurrency.format(marketValue),
+              //   style: const TextStyle(fontSize: 21.0),
+              //   textAlign: TextAlign.right,
+              // ),
+              Text(
+                formatCurrency.format(profitAndLoss),
+                style: const TextStyle(fontSize: 21.0),
+                textAlign: TextAlign.right,
+              ),
+              // if (pastYearYield != null) ...[
+              //   Text('${formatPercentage.format(pastYearYield)} yield',
+              //       style: const TextStyle(fontSize: 14)),
+              // ]
+            ]),
+          ),
+        ],
+        if (adjustedCost != null && widget.showValue) ...[
+          ListTile(
+            title: Wrap(children: [
+              const Text(
+                "Adjusted Cost Basis",
+                style: TextStyle(fontSize: 19.0),
+              ),
+            ]),
+            subtitle: Text(
+                'average per share ${widget.user.getDisplayText(position!.averageBuyPrice!)}'),
+            trailing: Wrap(spacing: 8, children: [
+              Text(
+                formatCurrency.format(adjustedCost),
+                style: const TextStyle(fontSize: 21.0),
+                textAlign: TextAlign.right,
+              ),
+              // if (pastYearYield != null) ...[
+              //   Text('${formatPercentage.format(pastYearYield)} yield',
+              //       style: const TextStyle(fontSize: 14)),
+              // ]
             ]),
           ),
         ],
@@ -615,7 +718,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         //               ])))
         // ])),
       ])),
-      if (widget.showList) ...[
+      if (widget.showChips) ...[
         // SliverPersistentHeader(
         //   pinned: true,
         //   // floating: true,
@@ -776,6 +879,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               transactionSymbolFilters
                                                   .add(dividendSymbol);
                                             } else {
+                                              transactionFilters
+                                                  .add("interest");
                                               transactionSymbolFilters
                                                   .removeWhere((String name) {
                                                 return name == dividendSymbol;
@@ -883,6 +988,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 itemCount: 1,
               )),
         ),
+      ],
+      if (widget.showList) ...[
         SliverList(
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
@@ -1043,6 +1150,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             childCount: incomeTransactions.length,
           ),
         ),
+      ],
+      if (widget.showFooter) ...[
         // TODO: Introduce web banner
         if (!kIsWeb) ...[
           const SliverToBoxAdapter(
@@ -1060,7 +1169,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             child: SizedBox(
           height: 25.0,
         )),
-      ],
+      ]
       // const SliverToBoxAdapter(
       //     child: SizedBox(
       //   height: 25.0,
@@ -1087,8 +1196,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   widget.user,
                   widget.service,
                   widget.dividendStore,
-                  widget.interestStore,
+                  widget.instrumentPositionStore,
                   widget.chartSelectionStore,
+                  interestStore: widget.interestStore,
                   analytics: widget.analytics,
                   observer: widget.observer,
                 )

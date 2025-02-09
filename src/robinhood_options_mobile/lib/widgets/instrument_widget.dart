@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
@@ -20,9 +22,12 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.dart';
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
@@ -78,6 +83,8 @@ class InstrumentWidget extends StatefulWidget {
 }
 
 class _InstrumentWidgetState extends State<InstrumentWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   Future<Quote?>? futureQuote;
   Future<Fundamentals?>? futureFundamentals;
   Future<InstrumentHistoricals>? futureHistoricals;
@@ -245,7 +252,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           List<dynamic> data = snapshot.data as List<dynamic>;
-          instrument.quoteObj = data.isNotEmpty ? data[0] : null;
+          if (instrument.quoteObj != null) {
+            Quote? newQuote = data.isNotEmpty ? data[0] : null;
+            if (instrument.quoteObj!.updatedAt!
+                .isBefore(newQuote!.updatedAt!)) {
+              instrument.quoteObj = newQuote;
+              _firestoreService.upsertInstrument(instrument);
+              debugPrint(
+                  'InstrumentWidget: Stored instrument into Firestore ${instrument.symbol}');
+            }
+          } else {
+            instrument.quoteObj = data.isNotEmpty ? data[0] : null;
+          }
           instrument.fundamentalsObj = data.length > 1 ? data[1] : null;
           instrument.newsObj = data.length > 2 ? data[2] : null;
           instrument.listsObj = data.length > 3 ? data[3] : null;
@@ -807,6 +825,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
             return SliverToBoxAdapter(child: Container());
           }),
+          if (instrument.quoteObj != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+            quoteWidget(instrument)
+          ],
           Consumer<InstrumentPositionStore>(
               builder: (context, stockPositionStore, child) {
             var position = stockPositionStore.items
@@ -905,12 +930,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ]
                 ]));
           }),
-          if (instrument.quoteObj != null) ...[
+          if (instrument.dividendsObj != null &&
+              instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,
             )),
-            quoteWidget(instrument)
+            _buildDividendsWidget(instrument)
           ],
           if (instrument.fundamentalsObj != null) ...[
             const SliverToBoxAdapter(
@@ -941,14 +967,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               height: 8.0,
             )),
             _buildEarningsWidget(instrument)
-          ],
-          if (instrument.dividendsObj != null &&
-              instrument.dividendsObj!.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 8.0,
-            )),
-            _buildDividendsWidget(instrument)
           ],
           if (instrument.splitsObj != null &&
               instrument.splitsObj!.isNotEmpty) ...[
@@ -1024,6 +1042,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             }
             return SliverToBoxAdapter(child: Container());
           }),
+          // TODO: Introduce web banner
+          if (!kIsWeb) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 25.0,
+            )),
+            SliverToBoxAdapter(child: AdBannerWidget()),
+          ],
           const SliverToBoxAdapter(
               child: SizedBox(
             height: 25.0,
@@ -1181,23 +1207,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     double? totalReturn = widget.user
         .getPositionDisplayValue(ops, displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
-        .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
+        .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
     double? totalReturnPercent = widget.user.getPositionDisplayValue(ops,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
-        totalReturnPercent!,
+        totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
     double? todayReturn = widget.user
         .getPositionDisplayValue(ops, displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
-        .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
+        .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
     double? todayReturnPercent = widget.user.getPositionDisplayValue(ops,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
-        todayReturnPercent!,
+        todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
     Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
@@ -1361,6 +1387,22 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: TextStyle(fontSize: labelFontSize)),
         ]),
       ),
+      Padding(
+        padding:
+            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
+        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          Wrap(spacing: 8, children: [
+            // totalIcon,
+            Text(
+                widget.user
+                    .getDisplayText(ops.quoteObj!.adjustedPreviousClose!),
+                style: TextStyle(fontSize: valueFontSize))
+          ]),
+          //Container(height: 5),
+          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+          Text("Previous Close", style: TextStyle(fontSize: labelFontSize)),
+        ]),
+      ),
     ];
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1413,13 +1455,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         //       "${formatCurrency.format(instrument.quoteObj!.askPrice)} x ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
         //       style: const TextStyle(fontSize: 18)),
         // ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Previous Close"),
-          trailing: Text(
-              formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
-              style: const TextStyle(fontSize: 18)),
-        ),
+        // ListTile(
+        //   minTileHeight: 10,
+        //   title: const Text("Previous Close"),
+        //   trailing: Text(
+        //       formatCurrency.format(instrument.quoteObj!.adjustedPreviousClose),
+        //       style: const TextStyle(fontSize: 18)),
+        // ),
         // ListTile(
         //   minTileHeight: 10,
         //   title: const Text("Bid - Ask Size"),
@@ -1427,9 +1469,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         //       "${formatCompactNumber.format(instrument.quoteObj!.bidSize)} - ${formatCompactNumber.format(instrument.quoteObj!.askSize)}",
         //       style: const TextStyle(fontSize: 18)),
         // ),
-        Container(
-          height: 10,
-        )
+        // Container(
+        //   height: 10,
+        // )
       ])))
     ]));
   }
@@ -1980,37 +2022,50 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Widget _buildDividendsWidget(Instrument instrument) {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
-      const SliverToBoxAdapter(
-          child: Column(children: [
-        ListTile(
-          title: Text(
-            "Dividends",
-            style: TextStyle(fontSize: 19.0),
-          ),
-        )
-      ])),
-      SliverToBoxAdapter(
-          child: Card(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        for (var dividend in instrument.dividendsObj!) ...[
-          ListTile(
-              title: Text(
-                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                style: const TextStyle(fontSize: 18.0),
-                //overflow: TextOverflow.visible
-              ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-              subtitle: Text(
-                  "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                  style: const TextStyle(fontSize: 14)),
-              trailing: Wrap(spacing: 10.0, children: [
-                Column(children: [
-                  // const Text("Actual", style: TextStyle(fontSize: 11)),
-                  Text(formatCurrency.format(double.parse(dividend!["amount"])),
-                      style: const TextStyle(fontSize: 18))
-                ])
-              ])),
-        ],
-      ])))
+      IncomeTransactionsWidget(
+          widget.user,
+          widget.service,
+          Provider.of<DividendStore>(context, listen: false),
+          Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<ChartSelectionStore>(context, listen: false),
+          transactionSymbolFilters: [instrument.symbol],
+          showChips: false,
+          showList: true,
+          showFooter: false,
+          showValue: true,
+          analytics: widget.analytics,
+          observer: widget.observer),
+      // const SliverToBoxAdapter(
+      //     child: Column(children: [
+      //   ListTile(
+      //     title: Text(
+      //       "Dividends",
+      //       style: TextStyle(fontSize: 19.0),
+      //     ),
+      //   )
+      // ])),
+      // SliverToBoxAdapter(
+      //     child: Card(
+      //         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      //   for (var dividend in instrument.dividendsObj!) ...[
+      //     ListTile(
+      //         title: Text(
+      //           "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+      //           style: const TextStyle(fontSize: 18.0),
+      //           //overflow: TextOverflow.visible
+      //         ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+      //         subtitle: Text(
+      //             "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+      //             style: const TextStyle(fontSize: 14)),
+      //         trailing: Wrap(spacing: 10.0, children: [
+      //           Column(children: [
+      //             // const Text("Actual", style: TextStyle(fontSize: 11)),
+      //             Text(formatCurrency.format(double.parse(dividend!["amount"])),
+      //                 style: const TextStyle(fontSize: 18))
+      //           ])
+      //         ])),
+      //   ],
+      // ])))
     ]));
   }
 

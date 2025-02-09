@@ -50,4 +50,20 @@ class InstrumentHistoricals {
         instrument = json['instrument'],
         instrumentId = json['InstrumentID'],
         historicals = InstrumentHistorical.fromJsonArray(json['historicals']);
+
+  Map<String, dynamic> toJson() => {
+        'quote': quote,
+        'symbol': symbol,
+        'interval': interval,
+        'span': span,
+        'bounds': bounds,
+        'previous_close_price': previousClosePrice,
+        'previous_close_time': previousCloseTime?.toIso8601String(),
+        'open_price': openPrice,
+        'open_time': openTime?.toIso8601String(),
+        'instrument': instrument,
+        'InstrumentID': instrumentId,
+        'historicals': historicals.map((e) => e.toJson()).toList()
+        //InstrumentHistorical.toJsonArray(historicals),
+      };
 }

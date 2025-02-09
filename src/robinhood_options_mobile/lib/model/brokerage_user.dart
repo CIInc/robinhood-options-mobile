@@ -371,9 +371,9 @@ class BrokerageUser {
       case DisplayValue.marketValue:
       case DisplayValue.todayReturn:
       case DisplayValue.totalReturn:
-        opTrailingText = value.abs() < 0.00005
+        opTrailingText = value.abs() != 0.0 && value.abs() < 0.00005
             ? formatPrecise8Currency.format(value)
-            : (value.abs() < 0.005
+            : (value.abs() != 0.0 && value.abs() < 0.005
                 ? formatPrecise4Currency.format(value)
                 : formatCurrency.format(value));
         break;

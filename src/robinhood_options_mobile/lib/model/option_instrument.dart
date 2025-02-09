@@ -7,6 +7,11 @@ class MinTicks {
   final double? belowTick;
   final double? cutoffPrice;
   const MinTicks(this.aboveTick, this.belowTick, this.cutoffPrice);
+  Map<String, dynamic> toJson() => {
+        'above_tick': aboveTick,
+        'below_tick': belowTick,
+        'cutoff_price': cutoffPrice
+      };
 }
 
 //@immutable

@@ -28,6 +28,17 @@ class InstrumentHistorical {
         session = json['session'],
         interpolated = json['interpolated'];
 
+  Map<String, dynamic> toJson() => {
+        'begins_at': beginsAt?.toIso8601String(),
+        'open_price': openPrice,
+        'close_price': closePrice,
+        'high_price': highPrice,
+        'low_price': lowPrice,
+        'volume': volume,
+        'session': session,
+        'interpolated': interpolated
+      };
+
   static List<InstrumentHistorical> fromJsonArray(dynamic json) {
     List<InstrumentHistorical> list = [];
     for (int i = 0; i < json.length; i++) {

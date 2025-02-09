@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
@@ -37,6 +38,10 @@ import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 //import 'package:material_color_utilities/material_color_utilities.dart';
 
+/// Requires that a Firestore emulator is running locally.
+/// See https://firebase.flutter.dev/docs/firestore/usage#emulator-usage
+bool shouldUseFirestoreEmulator = false;
+
 void main() async {
   // Needed for Firebase
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +50,13 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+  if (shouldUseFirestoreEmulator) {
+    FirebaseFirestore.instance.useFirestoreEmulator('localhost', 8080);
+  }
 
   // AdMob - web not supported
   if (!kIsWeb) {
@@ -81,7 +93,7 @@ class MyApp extends StatelessWidget {
       // Platform.isAndroid
       ColorScheme colorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.light(
-              primary: Colors.purple,
+              primary: Colors.indigo,
               secondary:
                   // CupertinoColors.systemMint
                   CupertinoColors.systemGrey4
@@ -92,7 +104,7 @@ class MyApp extends StatelessWidget {
       // secondary: Color.fromRGBO(83, 109, 254, 0.7))
       ColorScheme darkColorScheme = defaultTargetPlatform == TargetPlatform.iOS
           ? const ColorScheme.dark(
-              primary: Colors.purple, secondary: CupertinoColors.systemGrey3
+              primary: Colors.indigo, secondary: CupertinoColors.systemGrey3
               // CupertinoColors.systemMint
               // Colors.indigoAccent
               )

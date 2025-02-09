@@ -349,15 +349,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 chartBoundsFilter,
                 chartDateSpanFilter);
 
-            Future.delayed(Duration(seconds: 1), () {
-              if (mounted) {
-                futureDividends = widget.service.getDividends(
-                  widget.user,
-                  Provider.of<DividendStore>(context, listen: false),
-                  Provider.of<InstrumentStore>(context, listen: false),
-                );
-              }
-            });
+            // Future.delayed(Duration(seconds: 1), () {
+            //   if (mounted) {
+            futureDividends = widget.service.getDividends(
+              widget.user,
+              Provider.of<DividendStore>(context, listen: false),
+              Provider.of<InstrumentStore>(context, listen: false),
+            );
+            //   }
+            // });
             futureInterests = widget.service.getInterests(
               widget.user,
               Provider.of<InterestStore>(context, listen: false),
@@ -1663,12 +1663,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               ));
             }),
 
-            Consumer3<DividendStore, InterestStore, ChartSelectionStore>(
+            Consumer4<DividendStore, InterestStore, InstrumentPositionStore,
+                    ChartSelectionStore>(
                 builder: (context, dividendStore, interestStore,
-                    chartSelectionStore, child) {
+                    instrumentPositionStore, chartSelectionStore, child) {
               return IncomeTransactionsWidget(widget.user, widget.service,
-                  dividendStore, interestStore, chartSelectionStore,
+                  dividendStore, instrumentPositionStore, chartSelectionStore,
+                  interestStore: interestStore,
+                  showChips: false,
                   showList: false,
+                  showFooter: false,
                   analytics: widget.analytics,
                   observer: widget.observer);
             }),
@@ -2451,7 +2455,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         onPressed: () {/* ... */},
       ),*/
       title: Text(
-        "${userInfo?.profileName} (${widget.service.name})",
+        "Portfolio", // ${userInfo?.profileName} (${widget.service.name})
         // style: const TextStyle(fontSize: 17.0)
       ),
       // Wrap(

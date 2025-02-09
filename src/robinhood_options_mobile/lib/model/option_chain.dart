@@ -78,4 +78,13 @@ class OptionChain {
             double.tryParse(json['min_ticks']['above_tick']),
             double.tryParse(json['min_ticks']['below_tick']),
             double.tryParse(json['min_ticks']['cutoff_price']));
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'symbol': symbol,
+        'can_open_position': canOpenPosition,
+        'cash_component': cashComponent,
+        'expiration_dates': expirationDates.map((e) => e.toIso8601String()),
+        'trade_value_multiplier': tradeValueMultiplier,
+        'min_ticks': minTicks.toJson()
+      };
 }

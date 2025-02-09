@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -60,6 +61,8 @@ class RobinhoodService implements IBrokerageService {
   String clientId = 'c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS';
   @override
   String redirectUrl = '';
+
+  final FirestoreService _firestoreService = FirestoreService();
 
   final robinHoodNummusEndpoint = Uri.parse('https://nummus.robinhood.com');
   final robinHoodSearchEndpoint = Uri.parse('https://bonfire.robinhood.com');
@@ -629,35 +632,6 @@ Response: {
   POSITIONS
   */
 
-  /*
-  static Future<List<Position>> getPositions(RobinhoodUser user,
-      {bool withQuantity = true}) async {
-    var results = await RobinhoodService.pagedGet(
-        user, "$endpoint/positions/");
-    List<Position> positions = [];
-    for (var i = 0; i < results.length; i++) {
-      var result = results[i];
-      var op = Position.fromJson(result);
-      if ((withQuantity && op.quantity! > 0) ||
-          (!withQuantity && op.quantity == 0)) {
-        positions.add(op);
-      }
-    }
-
-    for (var i = 0; i < positions.length; i++) {
-      var instrumentObj = await getInstrument(user, positions[i].instrument);
-
-      //var quoteObj = await downloadQuote(user, instrumentObj);
-      var quoteObj = await getQuote(user, instrumentObj.symbol);
-      instrumentObj.quoteObj = quoteObj;
-
-      positions[i].instrumentObj = instrumentObj;
-    }
-
-    return positions;
-  }
-  */
-
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
       BrokerageUser user,
@@ -695,61 +669,58 @@ Response: {
       quoteStore.removeAll();
       var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
       for (var quoteObj in quoteObjs) {
+        // Update Position
         var position = store.items.firstWhere(
             (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-        position.instrumentObj!.quoteObj = quoteObj;
-        store.update(position);
+        if (position.instrumentObj!.quoteObj == null ||
+            position.instrumentObj!.quoteObj!.updatedAt!
+                .isBefore(quoteObj.updatedAt!)) {
+          position.instrumentObj!.quoteObj = quoteObj;
+          store.update(position);
+          // Update Instrument
+          instrumentStore.update(position.instrumentObj!);
+          _firestoreService.upsertInstrument(position.instrumentObj!);
+          debugPrint(
+              'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+        }
       }
     }
     return store;
   }
 
-  Stream<InstrumentPositionStore> streamStockPositionStore(
-      BrokerageUser user,
-      InstrumentPositionStore store,
-      InstrumentStore instrumentStore,
-      QuoteStore quoteStore,
-      {bool nonzero = true}) async* {
-    var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
-    //debugPrint(results);
-    await for (final results in pageStream) {
-      for (var i = 0; i < results.length; i++) {
-        var result = results[i];
-        var op = InstrumentPosition.fromJson(result);
-
-        //if ((withQuantity && op.quantity! > 0) ||
-        //    (!withQuantity && op.quantity == 0)) {
-        store.add(op);
-        yield store;
-        /*
-        var instrumentObj = await getInstrument(user, op.instrument);
-        //var quoteObj = await downloadQuote(user, instrumentObj);
-        op.instrumentObj = instrumentObj;
-        yield positions;
-
-        var quoteObj = await getQuote(user, instrumentObj.symbol);
-        op.instrumentObj!.quoteObj = quoteObj;
-        yield positions;
-        */
-      }
-      var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-      var instrumentObjs =
-          await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-      for (var instrumentObj in instrumentObjs) {
-        var position = store.items
-            .firstWhere((element) => element.instrumentId == instrumentObj.id);
-        position.instrumentObj = instrumentObj;
-      }
-      var symbols = store.items.map((e) => e.instrumentObj!.symbol).toList();
-      var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-      for (var quoteObj in quoteObjs) {
-        var position = store.items.firstWhere(
-            (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-        position.instrumentObj!.quoteObj = quoteObj;
-      }
-    }
-    yield store;
-  }
+  // Stream<InstrumentPositionStore> streamStockPositionStore(
+  //     BrokerageUser user,
+  //     InstrumentPositionStore store,
+  //     InstrumentStore instrumentStore,
+  //     QuoteStore quoteStore,
+  //     {bool nonzero = true}) async* {
+  //   var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
+  //   //debugPrint(results);
+  //   await for (final results in pageStream) {
+  //     for (var i = 0; i < results.length; i++) {
+  //       var result = results[i];
+  //       var op = InstrumentPosition.fromJson(result);
+  //       store.add(op);
+  //       yield store;
+  //     }
+  //     var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+  //     var instrumentObjs =
+  //         await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+  //     for (var instrumentObj in instrumentObjs) {
+  //       var position = store.items
+  //           .firstWhere((element) => element.instrumentId == instrumentObj.id);
+  //       position.instrumentObj = instrumentObj;
+  //     }
+  //     var symbols = store.items.map((e) => e.instrumentObj!.symbol).toList();
+  //     var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+  //     for (var quoteObj in quoteObjs) {
+  //       var position = store.items.firstWhere(
+  //           (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+  //       position.instrumentObj!.quoteObj = quoteObj;
+  //     }
+  //   }
+  //   yield store;
+  // }
 
   @override
   Future<List<InstrumentPosition>> refreshPositionQuote(BrokerageUser user,
@@ -779,9 +750,16 @@ Response: {
       for (var quoteObj in quoteObjs) {
         var position = store.items.firstWhere(
             (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-        position.instrumentObj!.quoteObj = quoteObj;
-        // Update store
-        store.update(position);
+        if (position.instrumentObj!.quoteObj == null ||
+            position.instrumentObj!.quoteObj!.updatedAt!
+                .isBefore(quoteObj.updatedAt!)) {
+          position.instrumentObj!.quoteObj = quoteObj;
+          // Update store
+          store.update(position);
+          _firestoreService.upsertInstrument(position.instrumentObj!);
+          debugPrint(
+              'RobinhoodService.refreshPositionQuote: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+        }
       }
     }
     return ops;
@@ -1073,23 +1051,59 @@ Response: {
   @override
   Future<Instrument> getInstrument(
       BrokerageUser user, InstrumentStore store, String instrumentUrl) async {
-    var cached = store.items.where((element) => element.url == instrumentUrl);
+    // var cached =
+    //     await FirestoreService().searchInstruments(url: instrumentUrl).first;
+    var cached =
+        store.items.where((element) => element.url == instrumentUrl).toList();
     if (cached.isNotEmpty) {
-      debugPrint('Returned instrument from cache $instrumentUrl');
+      debugPrint(
+          'getInstrument: Returned instrument from cache $instrumentUrl');
+      return Future.value(cached.first);
+    }
+
+    var cachedFirestore =
+        await FirestoreService().getInstrument(url: instrumentUrl);
+    if (cachedFirestore != null) {
+      cached.add(cachedFirestore);
+      store.add(cachedFirestore);
+    }
+    if (cached.isNotEmpty) {
+      debugPrint(
+          'getInstrumentBySymbol: Returned instrument from Firestore cache $instrumentUrl');
       return Future.value(cached.first);
     }
     var resultJson = await getJson(user, instrumentUrl);
     var i = Instrument.fromJson(resultJson);
-    store.add(i);
+    // Using addOrUpdate for concurrency reasons.
+    store.addOrUpdate(i);
+    // Don't add the instrument without a FundamentalObj (or QuoteObj).
+    // await _firestoreService.upsertInstrument(i);
+    // debugPrint(
+    //     'getInstrument: Stored instrument into Firestore $symbol');
     return i;
   }
 
   @override
   Future<Instrument?> getInstrumentBySymbol(
       BrokerageUser user, InstrumentStore store, String symbol) async {
-    var cached = store.items.where((element) => element.symbol == symbol);
+    var cached =
+        store.items.where((element) => element.symbol == symbol).toList();
     if (cached.isNotEmpty) {
-      debugPrint('Returned instrument from cache $symbol');
+      debugPrint(
+          'getInstrumentBySymbol: Returned instrument from cache $symbol');
+      return Future.value(cached.first);
+    }
+
+    var cachedFirestore =
+        await FirestoreService().getInstrument(symbol: symbol);
+    if (cachedFirestore != null) {
+      cached.add(cachedFirestore);
+      store.add(cachedFirestore);
+    }
+
+    if (cached.isNotEmpty) {
+      debugPrint(
+          'getInstrumentBySymbol: Returned instrument from Firestore cache $symbol');
       return Future.value(cached.first);
     }
 
@@ -1098,7 +1112,12 @@ Response: {
         "$endpoint/instruments/?active_instruments_only=false&symbol=$symbol");
     if (resultJson["results"].length > 0) {
       var i = Instrument.fromJson(resultJson["results"][0]);
-      store.add(i);
+      // Using addOrUpdate for concurrency reasons.
+      store.addOrUpdate(i);
+      // Don't add the instrument without a FundamentalObj (or QuoteObj).
+      // await _firestoreService.upsertInstrument(i);
+      // debugPrint(
+      //     'getInstrumentBySymbol: Stored instrument into Firestore $symbol');
       return i;
     } else {
       return Future.value(null);
@@ -1113,16 +1132,27 @@ Response: {
     }
     var cached =
         store.items.where((element) => ids.contains(element.id)).toList();
+    var remainingIds = ids.where((i) => !cached.any((e) => e.id == i)).toList();
 
-    if (cached.isNotEmpty && ids.length == cached.length) {
-      debugPrint('Returned instruments from cache ${ids.join(",")}');
+    if (remainingIds.isEmpty) {
+      debugPrint(
+          'getInstrumentsByIds: Returned instruments from local cache ${ids.join(",")}');
       return Future.value(cached);
     }
+    var cachedFirestore =
+        await FirestoreService().searchInstruments(ids: remainingIds).first;
+    cached.addAll(cachedFirestore);
+    for (var item in cachedFirestore) {
+      store.add(item);
+    }
+    remainingIds =
+        remainingIds.where((i) => !cached.any((e) => e.id == i)).toList();
 
-    var nonCached = ids
-        .where((element) => !cached.any((cached) => cached.id == element))
-        .toSet()
-        .toList();
+    if (remainingIds.isEmpty) {
+      debugPrint(
+          'getInstrumentsByIds: Returned instruments from Firestore cache ${remainingIds.join(",")}');
+      return Future.value(cached);
+    }
 
     List<Instrument> list = cached.toList();
     /*
@@ -1138,12 +1168,12 @@ Response: {
     }
     */
 
-    var len = nonCached.length;
     var size = 15; //17;
     List<List<dynamic>> chunks = [];
-    for (var i = 0; i < len; i += size) {
-      var end = (i + size < len) ? i + size : len;
-      chunks.add(nonCached.sublist(i, end));
+    for (var i = 0; i < remainingIds.length; i += size) {
+      var end =
+          (i + size < remainingIds.length) ? i + size : remainingIds.length;
+      chunks.add(remainingIds.sublist(i, end));
     }
     for (var chunk in chunks) {
       List<Fundamentals> fundamentals =
@@ -1170,7 +1200,10 @@ Response: {
           }
 
           list.add(instrument);
-          store.add(instrument);
+          store.addOrUpdate(instrument);
+          await _firestoreService.upsertInstrument(instrument);
+          debugPrint(
+              'getInstrumentsByIds: Stored instrument into Firestore ${instrument.symbol}');
         }
       }
     }

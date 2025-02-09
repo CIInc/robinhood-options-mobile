@@ -101,7 +101,8 @@ class Quote {
         hasTraded = true,
         lastTradePriceSource = json['quote']['lastMICId'] ?? '',
         updatedAt = DateTime.fromMillisecondsSinceEpoch(
-            json['quote']['quoteTime'] as int),
+            json['quote']['quoteTime'] as int,
+            isUtc: true),
         // TODO
         instrument = '', // json['instrument'],
         // TODO

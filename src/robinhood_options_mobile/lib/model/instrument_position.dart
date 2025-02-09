@@ -168,7 +168,8 @@ class InstrumentPosition {
             null,
             false,
             false,
-            false);
+            false,
+            dateCreated: DateTime.now());
 
   InstrumentPosition.fromPlaidJson(dynamic json)
       : url = '', // json['url'],
@@ -226,7 +227,8 @@ class InstrumentPosition {
             null,
             false,
             false,
-            false);
+            false,
+            dateCreated: DateTime.now());
 
   String get instrumentId {
     var splits = instrument.split("/");
