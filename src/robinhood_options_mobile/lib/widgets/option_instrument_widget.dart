@@ -263,7 +263,14 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           //    charts.StaticNumericTickProviderSpec(widget.staticNumericTicks!),
           //viewport: charts.NumericExtents(0, widget.staticNumericTicks![widget.staticNumericTicks!.length - 1].value + 1)
         ),
-        customRendererId: 'customTargetLine',
+        customSeriesRenderers: [
+          charts.BarTargetLineRendererConfig<String>(
+              //overDrawOuterPx: 10,
+              //overDrawPx: 10,
+              strokeWidthPx: 5,
+              customRendererId: 'customTargetLine',
+              groupingType: charts.BarGroupingType.grouped)
+        ],
         onSelected: (_) {});
     return RefreshIndicator(
         onRefresh: _pullRefresh,

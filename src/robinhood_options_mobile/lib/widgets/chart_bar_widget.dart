@@ -9,10 +9,12 @@ class BarChart extends StatefulWidget {
   final bool animate;
   final bool vertical;
   final charts.BarGroupingType? barGroupingType;
-  final String? customRendererId;
   final charts.BarRendererConfig<String>? renderer;
+  final List<charts.SeriesRendererConfig<String>>? customSeriesRenderers;
+  final List<charts.ChartBehavior<String>>? behaviors;
   final charts.AxisSpec<dynamic>? domainAxis;
   final charts.NumericAxisSpec? primaryMeasureAxis;
+  final charts.NumericAxisSpec? secondaryMeasureAxis;
   //final List<charts.TickSpec<num>>? staticNumericTicks;
   final List<String>? hiddenSeries;
   final void Function(dynamic) onSelected;
@@ -23,9 +25,11 @@ class BarChart extends StatefulWidget {
       this.vertical = false,
       this.barGroupingType = charts.BarGroupingType.grouped,
       this.renderer,
+      this.customSeriesRenderers,
+      this.behaviors,
       this.domainAxis,
       this.primaryMeasureAxis,
-      this.customRendererId,
+      this.secondaryMeasureAxis,
       required this.onSelected,
       //this.staticNumericTicks,
       this.hiddenSeries});
@@ -47,36 +51,29 @@ class BarChartState extends State<BarChart> {
       barGroupingType: widget.barGroupingType,
       //barRendererDecorator: charts.BarLabelDecorator<String>(),
       primaryMeasureAxis: widget.primaryMeasureAxis,
+      secondaryMeasureAxis: widget.secondaryMeasureAxis,
       domainAxis: widget.domainAxis,
-      customSeriesRenderers: [
-        if (widget.customRendererId != null) ...[
-          charts.BarTargetLineRendererConfig<String>(
-              //overDrawOuterPx: 10,
-              //overDrawPx: 10,
-              strokeWidthPx: 5,
-              customRendererId: widget.customRendererId,
-              groupingType: charts.BarGroupingType.grouped)
-        ]
-      ],
+      customSeriesRenderers: widget.customSeriesRenderers ?? [],
       selectionModels: [
         charts.SelectionModelConfig(
             type: charts.SelectionModelType.info,
             changedListener: _onSelectionChanged)
       ],
-      // behaviors: [
-      // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
-      // charts.LinePointHighlighter(
-      //     showHorizontalFollowLine:
-      //         charts.LinePointHighlighterFollowLineType.none,
-      //     showVerticalFollowLine:
-      //         charts.LinePointHighlighterFollowLineType.nearest,
-      //     dashPattern: const []),
-      //charts.InitialSelection(selectedDataConfig: [
-      //  charts.SeriesDatumConfig<DateTime>(
-      //      'Adjusted Equity', widget.closeDate)
-      //]),
-      // charts.SeriesLegend(),
-      // ],
+      behaviors: widget.behaviors ??
+          [
+            // charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tap),
+            // charts.LinePointHighlighter(
+            //     showHorizontalFollowLine:
+            //         charts.LinePointHighlighterFollowLineType.none,
+            //     showVerticalFollowLine:
+            //         charts.LinePointHighlighterFollowLineType.nearest,
+            //     dashPattern: const []),
+            //charts.InitialSelection(selectedDataConfig: [
+            //  charts.SeriesDatumConfig<DateTime>(
+            //      'Adjusted Equity', widget.closeDate)
+            //]),
+            // charts.SeriesLegend(),
+          ],
     );
   }
 

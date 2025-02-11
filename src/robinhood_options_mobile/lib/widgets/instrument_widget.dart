@@ -447,24 +447,23 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             //   ),
             // ],
           ),
-          if (done == false) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 3, //150.0,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Center(
-                      child: LinearProgressIndicator(
-                          //value: controller.value,
-                          //semanticsLabel: 'Linear progress indicator',
-                          ) //CircularProgressIndicator(),
-                      )),
-            ))
-          ],
           SliverToBoxAdapter(
               child: Align(
                   alignment: Alignment.center,
-                  child: buildOverview(instrument))),
+                  child: Stack(children: [
+                    if (done == false) ...[
+                      SizedBox(
+                        height: 3, //150.0,
+                        child: Center(
+                            child: LinearProgressIndicator(
+                                //value: controller.value,
+                                //semanticsLabel: 'Linear progress indicator',
+                                ) //CircularProgressIndicator(),
+                            ),
+                      ),
+                    ],
+                    buildOverview(instrument)
+                  ]))),
           Consumer<InstrumentHistoricalsStore>(builder: //, QuoteStore
               (context, instrumentHistoricalsStore, child) {
             //, quoteStore
@@ -488,6 +487,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     element.interval == 'day');
             if (rsi != null) {
               debugPrint(rsi.historicals.first.closePrice!.toString());
+              debugPrint(rsi.historicals.last.closePrice!.toString());
             }
 
             if (instrument.instrumentHistoricalsObj != null &&
@@ -536,7 +536,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         false));
               }
               */
-              List<charts.Series<dynamic, DateTime>> seriesList = [
+              List<charts.Series<InstrumentHistorical, DateTime>> seriesList = [
                 charts.Series<InstrumentHistorical, DateTime>(
                   id: 'Open',
                   colorFn: (_, __) => charts.ColorUtil.fromDartColor(
@@ -585,14 +585,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   data: instrument.instrumentHistoricalsObj!.historicals,
                 ),
               ];
-              chart = TimeSeriesChart(
-                seriesList,
-                open: open,
-                close: close,
-                hiddenSeries: const ["Close", "Volume", "Low", "High"],
-                onSelected: _onChartSelection,
-                zeroBound: false,
-              );
+              var extents = charts.NumericExtents.fromValues(
+                  seriesList[0].data.map((e) => e.openPrice!));
+              extents = charts.NumericExtents(
+                  extents.min - (extents.width * 0.1),
+                  extents.max + (extents.width * 0.1));
+              //extents.min - (extents.min * 0.01), extents.max * 1.01);
+              chart = TimeSeriesChart(seriesList,
+                  open: open,
+                  close: close,
+                  hiddenSeries: const ["Close", "Volume", "Low", "High"],
+                  onSelected: _onChartSelection,
+                  zeroBound: false,
+                  viewport: extents);
 
               /*
               slivers.add(const SliverToBoxAdapter(
@@ -1299,7 +1304,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         padding:
             const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(widget.user.getDisplayText(ops.totalCost),
+          Text(
+              widget.user.getDisplayText(ops.totalCost,
+                  displayValue: DisplayValue.totalCost),
               style: TextStyle(fontSize: valueFontSize)),
 
           //Container(height: 5),
@@ -1311,7 +1318,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         padding:
             const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(widget.user.getDisplayText(ops.averageBuyPrice!),
+          Text(
+              widget.user.getDisplayText(ops.averageBuyPrice!,
+                  displayValue: DisplayValue.lastPrice),
               style: TextStyle(fontSize: valueFontSize)),
 
           //Container(height: 5),
@@ -1387,7 +1396,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
           Wrap(spacing: 8, children: [
             // totalIcon,
-            Text(widget.user.getDisplayText(ops.quoteObj!.bidPrice!),
+            Text(
+                widget.user.getDisplayText(ops.quoteObj!.bidPrice!,
+                    displayValue: DisplayValue.lastPrice),
                 style: TextStyle(fontSize: valueFontSize))
           ]),
           //Container(height: 5),
@@ -1402,7 +1413,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
           Wrap(spacing: 8, children: [
             // totalIcon,
-            Text(widget.user.getDisplayText(ops.quoteObj!.askPrice!),
+            Text(
+                widget.user.getDisplayText(ops.quoteObj!.askPrice!,
+                    displayValue: DisplayValue.lastPrice),
                 style: TextStyle(fontSize: valueFontSize))
           ]),
           //Container(height: 5),
@@ -1418,8 +1431,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Wrap(spacing: 8, children: [
             // totalIcon,
             Text(
-                widget.user
-                    .getDisplayText(ops.quoteObj!.adjustedPreviousClose!),
+                widget.user.getDisplayText(ops.quoteObj!.adjustedPreviousClose!,
+                    displayValue: DisplayValue.lastPrice),
                 style: TextStyle(fontSize: valueFontSize))
           ]),
           //Container(height: 5),

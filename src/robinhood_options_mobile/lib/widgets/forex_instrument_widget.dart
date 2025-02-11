@@ -274,25 +274,24 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
           ));
         })));
 
-    if (done == false) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 3, //150.0,
-        child: Align(
-            alignment: Alignment.center,
-            child: Center(
-                child: LinearProgressIndicator(
-                    //value: controller.value,
-                    //semanticsLabel: 'Linear progress indicator',
-                    ) //CircularProgressIndicator(),
-                )),
-      )));
-    }
-
     slivers.add(
       SliverToBoxAdapter(
           child: Align(
-              alignment: Alignment.center, child: buildOverview(holding))),
+              alignment: Alignment.center,
+              child: Stack(children: [
+                if (done == false) ...[
+                  SizedBox(
+                    height: 3, //150.0,
+                    child: Center(
+                        child: LinearProgressIndicator(
+                            //value: controller.value,
+                            //semanticsLabel: 'Linear progress indicator',
+                            ) //CircularProgressIndicator(),
+                        ),
+                  ),
+                ],
+                buildOverview(holding)
+              ]))),
     );
 
     if (holding.historicalsObj != null) {

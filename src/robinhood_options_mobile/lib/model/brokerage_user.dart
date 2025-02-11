@@ -99,6 +99,8 @@ class BrokerageUser {
         return 'Last Price';
       case DisplayValue.marketValue:
         return 'Market Value';
+      case DisplayValue.totalCost:
+        return 'Total Cost';
       case DisplayValue.todayReturn:
         return 'Return Today';
       case DisplayValue.todayReturnPercent:
@@ -121,6 +123,8 @@ class BrokerageUser {
         return DisplayValue.lastPrice;
       case 'DisplayValue.marketValue':
         return DisplayValue.marketValue;
+      case 'DisplayValue.totalCost':
+        return DisplayValue.totalCost;
       case 'DisplayValue.todayReturn':
         return DisplayValue.todayReturn;
       case 'DisplayValue.todayReturnPercent':
@@ -157,6 +161,11 @@ class BrokerageUser {
                     ? e.marketValue
                     : e.marketValue)
                     */
+            .reduce((a, b) => a + b);
+        break;
+      case DisplayValue.totalCost:
+        value = ops
+            .map((OptionAggregatePosition e) => e.totalCost)
             .reduce((a, b) => a + b);
         break;
       case DisplayValue.todayReturn:
@@ -214,6 +223,11 @@ class BrokerageUser {
             .map((InstrumentPosition e) => e.marketValue)
             .reduce((a, b) => a + b);
         break;
+      case DisplayValue.totalCost:
+        value = ops
+            .map((InstrumentPosition e) => e.totalCost)
+            .reduce((a, b) => a + b);
+        break;
       case DisplayValue.todayReturn:
         value = ops
             .map((InstrumentPosition e) => e.gainLossToday)
@@ -268,6 +282,10 @@ class BrokerageUser {
         value =
             ops.map((ForexHolding e) => e.marketValue).reduce((a, b) => a + b);
         break;
+      case DisplayValue.totalCost:
+        value =
+            ops.map((ForexHolding e) => e.totalCost).reduce((a, b) => a + b);
+        break;
       case DisplayValue.todayReturn:
         value = ops
             .map((ForexHolding e) => e.gainLossToday)
@@ -309,6 +327,9 @@ class BrokerageUser {
       case DisplayValue.marketValue:
         value = op.marketValue;
         break;
+      case DisplayValue.totalCost:
+        value = op.totalCost;
+        break;
       case DisplayValue.todayReturn:
         value = op.gainLossToday;
         break;
@@ -334,6 +355,9 @@ class BrokerageUser {
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
+        break;
+      case DisplayValue.totalCost:
+        value = op.totalCost;
         break;
       case DisplayValue.todayReturn:
         value = op.gainLossToday;
@@ -369,6 +393,7 @@ class BrokerageUser {
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:
       case DisplayValue.marketValue:
+      case DisplayValue.totalCost:
       case DisplayValue.todayReturn:
       case DisplayValue.totalReturn:
         opTrailingText = value.abs() != 0.0 && value.abs() < 0.00005
@@ -398,6 +423,9 @@ class BrokerageUser {
         break;
       case DisplayValue.marketValue:
         value = op.marketValue;
+        break;
+      case DisplayValue.totalCost:
+        value = op.totalCost;
         break;
       case DisplayValue.todayReturn:
         value = op.changeToday;

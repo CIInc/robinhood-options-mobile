@@ -18,6 +18,7 @@ class TimeSeriesChart extends StatefulWidget {
   final List<String>? hiddenSeries;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
   final List<charts.SeriesRendererConfig<DateTime>>? customSeriesRenderers;
+  final charts.NumericExtents? viewport;
   final bool zeroBound;
   final bool dataIsInWholeNumbers;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
@@ -41,6 +42,7 @@ class TimeSeriesChart extends StatefulWidget {
       this.domainAxis,
       this.primaryMeasureAxis,
       this.secondaryMeasureAxis,
+      this.viewport,
       this.zeroBound = true,
       this.dataIsInWholeNumbers = true});
 
@@ -75,15 +77,20 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       animate: widget.animate,
       primaryMeasureAxis: widget.primaryMeasureAxis ??
           charts.NumericAxisSpec(
-              //showAxisLine: true,
-              //renderSpec: charts.GridlineRendererSpec(),
-              renderSpec: charts.SmallTickRendererSpec(
-                  labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-              //renderSpec: charts.NoneRenderSpec(),
-              tickProviderSpec: charts.BasicNumericTickProviderSpec(
-                  zeroBound: widget.zeroBound,
-                  dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
-                  desiredMinTickCount: 6)),
+            viewport: widget.viewport,
+            //showAxisLine: true,
+            //renderSpec: charts.GridlineRendererSpec(),
+            renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            //renderSpec: charts.NoneRenderSpec(),
+            tickProviderSpec: charts.BasicNumericTickProviderSpec(
+                zeroBound: widget.zeroBound,
+                dataIsInWholeNumbers: widget.dataIsInWholeNumbers,
+                desiredMinTickCount: 6),
+            tickFormatterSpec:
+                charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                    NumberFormat.compactSimpleCurrency()),
+          ),
       secondaryMeasureAxis: widget.secondaryMeasureAxis,
       domainAxis: widget.domainAxis ??
           charts.DateTimeAxisSpec(

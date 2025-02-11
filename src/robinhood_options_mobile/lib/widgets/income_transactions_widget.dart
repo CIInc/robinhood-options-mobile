@@ -422,41 +422,49 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               end: DateTime.now())),
       // .add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
-          // showAxisLine: true,
-          // renderSpec: charts.GridlineRendererSpec(),
-          // TODO: Figure out why autoViewport is not working for pending or interest data, they require explicit setting of viewport which is different than the auto.
-          viewport: groupedDividendsData.isEmpty && groupedInterestsData.isEmpty
-              ? null
-              :
-              // transactionFilters.contains('pending') ||
-              //         (!transactionFilters.contains('dividend') &&
-              //             transactionFilters.contains('interest'))
-              //     ?
-              // charts.NumericExtents.fromValues((groupedInterestsData +
-              //         groupedDividendsData +
-              //         [MapEntry<DateTime, double>(DateTime.now(), 0.0)])
-              //     .map((e) => e.value))
-              charts.NumericExtents(
-                  0,
-                  (groupedDividendsData + groupedInterestsData)
-                          .map((e) => e.value)
-                          .max *
-                      1.1), // : null,
-          // measureAxisNumericExtents = charts.NumericExtents(
-          //     measureAxisNumericExtents.min, measureAxisNumericExtents.max * 1.1);
-          //.NumericExtents(0, 500),
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          //renderSpec: charts.NoneRenderSpec(),
-          tickProviderSpec: charts.BasicNumericTickProviderSpec(
-              // zeroBound: true,
-              // dataIsInWholeNumbers: true,
-              desiredTickCount: 6)),
+        // showAxisLine: true,
+        // renderSpec: charts.GridlineRendererSpec(),
+        // TODO: Figure out why autoViewport is not working for pending or interest data, they require explicit setting of viewport which is different than the auto.
+        viewport: groupedDividendsData.isEmpty && groupedInterestsData.isEmpty
+            ? null
+            :
+            // transactionFilters.contains('pending') ||
+            //         (!transactionFilters.contains('dividend') &&
+            //             transactionFilters.contains('interest'))
+            //     ?
+            // charts.NumericExtents.fromValues((groupedInterestsData +
+            //         groupedDividendsData +
+            //         [MapEntry<DateTime, double>(DateTime.now(), 0.0)])
+            //     .map((e) => e.value))
+            charts.NumericExtents(
+                0,
+                (groupedDividendsData + groupedInterestsData)
+                        .map((e) => e.value)
+                        .max *
+                    1.1), // : null,
+        // measureAxisNumericExtents = charts.NumericExtents(
+        //     measureAxisNumericExtents.min, measureAxisNumericExtents.max * 1.1);
+        //.NumericExtents(0, 500),
+        renderSpec: charts.SmallTickRendererSpec(
+            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+        //renderSpec: charts.NoneRenderSpec(),
+        tickProviderSpec: charts.BasicNumericTickProviderSpec(
+            // zeroBound: true,
+            // dataIsInWholeNumbers: true,
+            desiredTickCount: 6),
+        tickFormatterSpec:
+            charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                NumberFormat.compactSimpleCurrency()),
+      ),
       secondaryMeasureAxis: charts.NumericAxisSpec(
-          renderSpec: charts.SmallTickRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          tickProviderSpec:
-              charts.BasicNumericTickProviderSpec(desiredTickCount: 6)),
+        renderSpec: charts.SmallTickRendererSpec(
+            labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+        // tickProviderSpec:
+        //     charts.BasicNumericTickProviderSpec(desiredTickCount: 6),
+        tickFormatterSpec:
+            charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                NumberFormat.compactSimpleCurrency()),
+      ),
     );
 
     if (widget.dividendStore.items.isEmpty &&
@@ -504,7 +512,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             ]
           ]),
           subtitle: Text(
-              "last 12 months ${widget.user.getDisplayText(pastYearTotalIncome)}"),
+              "last 12 months ${widget.user.getDisplayText(pastYearTotalIncome, displayValue: DisplayValue.totalReturn)}"),
           trailing: Wrap(spacing: 8, children: [
             Text(
               formatCurrency.format(totalIncome),
@@ -532,8 +540,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 style: TextStyle(fontSize: 18.0),
               ),
             ]),
-            subtitle: Text(
-                "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+            subtitle: Text("${formatPercentage.format(yield)}"),
+            // subtitle: Text(
+            //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
             // subtitle: Text("Yield, P/L & Cost basis"),
             // trailing: Wrap(spacing: 8, children: [
             //   Text(
@@ -568,7 +577,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     // context: context,
                                     title: Text('Dividend Yield'),
                                     content: Text(
-                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income to the underlying profit or loss value.\n\nAdjusted cost basis is calculated by subtracting the dividend income from the total cost and dividing by the number of shares.'),
+                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
                                     actions: [
                                       TextButton(
                                         onPressed: () {
@@ -582,6 +591,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       ),
                     )
                   ]),
+                  subtitle: Text(
+                      "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
                   // subtitle: Text(
                   //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
                   trailing: Wrap(spacing: 8, children: [
@@ -604,8 +615,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       style: TextStyle(fontSize: 18.0),
                     ),
                   ]),
-                  // subtitle: Text(
-                  //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+                  subtitle: Text(
+                      "average per share ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
                   trailing: Wrap(spacing: 8, children: [
                     Text(
                       formatPercentage.format(yieldOnCost),
@@ -624,7 +635,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                     ),
                   ]),
                   subtitle: Text(
-                      '${instrument!.symbol} ${widget.user.getDisplayText(marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
+                      '${instrument!.symbol} ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
                   trailing: Wrap(spacing: 8, children: [
                     // Text(
                     //   formatCurrency.format(marketValue),
@@ -657,8 +668,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                       style: TextStyle(fontSize: 19.0),
                     ),
                   ]),
-                  subtitle: Text(
-                      'average per share ${widget.user.getDisplayText(position!.averageBuyPrice!)}'),
+                  subtitle: Text(// •
+                      '${instrument!.symbol} ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
                   trailing: Wrap(spacing: 8, children: [
                     Text(
                       formatCurrency.format(adjustedCost),

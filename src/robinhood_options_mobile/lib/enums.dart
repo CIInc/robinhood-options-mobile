@@ -10,6 +10,7 @@ enum OptionsView { grouped, list }
 
 enum DisplayValue {
   expirationDate,
+  totalCost,
   marketValue,
   lastPrice,
   todayReturnPercent,
