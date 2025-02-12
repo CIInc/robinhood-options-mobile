@@ -169,6 +169,7 @@ class InstrumentPosition {
             false,
             false,
             false,
+            null,
             dateCreated: DateTime.now());
 
   InstrumentPosition.fromPlaidJson(dynamic json)
@@ -228,6 +229,7 @@ class InstrumentPosition {
             false,
             false,
             false,
+            null,
             dateCreated: DateTime.now());
 
   String get instrumentId {

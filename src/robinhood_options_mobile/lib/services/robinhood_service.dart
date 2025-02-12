@@ -1442,6 +1442,173 @@ Response: {
     // return obj;
   }
 
+/*
+{
+    "instrument_id": "a41498ae-5e79-4305-8c55-35f0104114a9",
+    "symbol": "YMAG",
+    "is_inverse": false,
+    "is_leveraged": false,
+    "is_volatility_linked": false,
+    "is_crypto_futures": false,
+    "aum": "359745994.000000",
+    "sec_yield": "56.750000",
+    "gross_expense_ratio": "1.280000",
+    "documents": {
+        "prospectus": "https://viewer.saytechnologies.com/cusips/88636J642"
+    },
+    "quarter_end_date": "2024-12-31",
+    "quarter_end_performance": {
+        "market": {
+            "1Y": null,
+            "3Y": null,
+            "5Y": null,
+            "10Y": null,
+            "since_inception": "35.432770"
+        },
+        "nav": {
+            "1Y": null,
+            "3Y": null,
+            "5Y": null,
+            "10Y": null,
+            "since_inception": "35.263800"
+        }
+    },
+    "month_end_date": "2025-01-31",
+    "month_end_performance": {
+        "market": {
+            "1Y": "39.912460",
+            "3Y": null,
+            "5Y": null,
+            "10Y": null,
+            "since_inception": "36.007020"
+        },
+        "nav": {
+            "1Y": "39.548460",
+            "3Y": null,
+            "5Y": null,
+            "10Y": null,
+            "since_inception": "35.603960"
+        }
+    },
+    "inception_date": "2024-01-29",
+    "index_tracked": null,
+    "category": "Large Blend",
+    "total_holdings": 9,
+    "is_actively_managed": true,
+    "broad_category_group": "equity",
+    "sectors_portfolio_date": "2025-02-06",
+    "sectors": [],
+    "holdings_portfolio_date": "2025-02-06",
+    "holdings": [
+        {
+            "name": "YieldMax META Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "15.71",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax AAPL Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "15.43",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax AMZN Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "15.20",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax GOOGL Option Income Stgy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "13.97",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax MSFT Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "13.88",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax TSLA Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "12.81",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "YieldMax NVDA Option Income Strategy ETF",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "12.77",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        },
+        {
+            "name": "First American Government Obligs X",
+            "instrument_id": null,
+            "symbol": null,
+            "weight": "0.96",
+            "sector": "Uncategorized",
+            "description": "",
+            "color": {
+                "light": "bg3",
+                "dark": "fg3"
+            }
+        }
+    ],
+    "show_holdings_visualization": false
+}
+*/
+  // @override
+  Future<dynamic> getEtpDetails(
+      BrokerageUser user, Instrument instrumentObj) async {
+    var url =
+        "$robinHoodSearchEndpoint/instruments/${instrumentObj.id}/etp-details/"; // ?ids=${Uri.encodeComponent(instruments.join(","))}
+    var resultJson = await getJson(user, url);
+    return resultJson;
+  }
+
   @override
   Future<List<dynamic>> getSplits(
       BrokerageUser user, Instrument instrumentObj) async {
@@ -2011,12 +2178,15 @@ Response: {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
+        if (optionPosition.optionInstrument!.optionMarketData == null ||
+            optionPosition.optionInstrument!.optionMarketData!.updatedAt!
+                .isBefore(optionMarketDatum.updatedAt!)) {
+          optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
+          optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
 
-        optionPosition.optionInstrument!.optionMarketData = optionMarketDatum;
-        optionInstrumentStore.addOrUpdate(optionPosition.optionInstrument!);
-
-        // Update store
-        optionPositionStore.update(optionPosition);
+          // Update store
+          optionPositionStore.update(optionPosition);
+        }
       }
     }
 
@@ -2200,8 +2370,11 @@ Response: {
       for (var quoteObj in quoteObjs) {
         var forex = forexHolding
             .firstWhere((element) => element.quoteObj!.id == quoteObj.id);
-        forex.quoteObj = quoteObj;
-        store.update(forex);
+        if (forex.quoteObj == null ||
+            forex.quoteObj!.updatedAt!.isBefore(quoteObj.updatedAt!)) {
+          forex.quoteObj = quoteObj;
+          store.update(forex);
+        }
       }
     }
     return forexHolding;

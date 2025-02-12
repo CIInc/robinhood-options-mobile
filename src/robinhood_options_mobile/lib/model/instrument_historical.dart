@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class InstrumentHistorical {
   final DateTime? beginsAt;
   final double? openPrice;
@@ -19,7 +21,9 @@ class InstrumentHistorical {
       this.interpolated);
 
   InstrumentHistorical.fromJson(dynamic json)
-      : beginsAt = DateTime.tryParse(json['begins_at']),
+      : beginsAt = json['begins_at'] is Timestamp
+            ? (json['begins_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['begins_at']),
         openPrice = double.tryParse(json['open_price']),
         closePrice = double.tryParse(json['close_price']),
         highPrice = double.tryParse(json['high_price']),
@@ -29,7 +33,7 @@ class InstrumentHistorical {
         interpolated = json['interpolated'];
 
   Map<String, dynamic> toJson() => {
-        'begins_at': beginsAt?.toIso8601String(),
+        'begins_at': beginsAt, //?.toIso8601String(),
         'open_price': openPrice,
         'close_price': closePrice,
         'high_price': highPrice,

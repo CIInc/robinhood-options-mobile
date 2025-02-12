@@ -1,6 +1,8 @@
 //import 'package:flutter/material.dart';
 
 //@immutable
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals.dart';
@@ -81,7 +83,7 @@ class Instrument {
   final double? dayTradeRatio;
   final DateTime? listDate;
   final double? minTickSize;
-  final String type;
+  final String type; // stock | etp
   final String? tradeableChainId;
   final String rhsTradability;
   final String fractionalTradability;
@@ -118,6 +120,7 @@ class Instrument {
   List<OptionOrder>? optionOrders;
   List<OptionEvent>? optionEvents;
   String? logoUrl;
+  dynamic etpDetails;
 
   Instrument(
       this.id,
@@ -155,6 +158,7 @@ class Instrument {
       this.isSpac,
       this.isTest,
       this.ipoAccessSupportsDsp,
+      this.etpDetails,
       {required this.dateCreated,
       this.dateUpdated});
 
@@ -185,7 +189,9 @@ class Instrument {
         dayTradeRatio = json['day_trade_ratio'] is double
             ? json['day_trade_ratio']
             : double.tryParse(json['day_trade_ratio']),
-        listDate = DateTime.tryParse(json['list_date']),
+        listDate = json['list_date'] is Timestamp
+            ? (json['list_date'] as Timestamp).toDate()
+            : DateTime.tryParse(json['list_date']),
         minTickSize = json['min_tick_size'] == null
             ? null
             : double.tryParse(json['min_tick_size']),
@@ -199,7 +205,9 @@ class Instrument {
         ipoAccessStatus = json['ipo_access_status'],
         ipoAccessCobDeadline = json['ipo_access_cob_deadline'] == null
             ? null
-            : DateTime.tryParse(json['ipo_access_cob_deadline']),
+            : json['ipo_access_cob_deadline'] is Timestamp
+                ? (json['ipo_access_cob_deadline'] as Timestamp).toDate()
+                : DateTime.tryParse(json['ipo_access_cob_deadline']),
         ipoAllocatedPrice = json['ipo_allocated_price'] == null
             ? null
             : double.tryParse(json['ipo_allocated_price']),
@@ -207,7 +215,9 @@ class Instrument {
         ipoCustomersRequested = json['ipo_customers_requested'],
         ipoDate = json['ipo_date'] == null
             ? null
-            : DateTime.tryParse(json['ipo_date']),
+            : json['ipo_date'] is Timestamp
+                ? (json['ipo_date'] as Timestamp).toDate()
+                : DateTime.tryParse(json['ipo_date']),
         ipoS1Url = json['ipo_s1_url'],
         ipoRoadshowUrl = json['ipo_roadshow_url'],
         isSpac = json['is_spac'],
@@ -218,7 +228,11 @@ class Instrument {
             : (json['date_created'] as Timestamp).toDate(),
         dateUpdated = json['date_updated'] != null
             ? (json['date_updated'] as Timestamp).toDate()
-            : null;
+            : null,
+        etpDetails = json['etp_details'];
+  // json['etp_details'] != null
+  //     ? jsonDecode(json['etp_details'])
+  //     : null;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -238,7 +252,7 @@ class Instrument {
         'maintenance_ratio': maintenanceRatio,
         'country': country,
         'day_trade_ratio': dayTradeRatio,
-        'list_date': listDate?.toIso8601String(),
+        'list_date': listDate, // ?.toIso8601String(),
         'min_tick_size': minTickSize,
         'type': type,
         'tradable_chain_id': tradeableChainId,
@@ -246,11 +260,11 @@ class Instrument {
         'fractional_tradability': fractionalTradability,
         'default_collar_fraction': defaultCollarFraction,
         'ipo_access_status': ipoAccessStatus,
-        'ipo_access_cob_deadline': ipoAccessCobDeadline?.toIso8601String(),
+        'ipo_access_cob_deadline': ipoAccessCobDeadline, //?.toIso8601String(),
         'ipo_allocated_price': ipoAllocatedPrice,
         'ipo_customers_received': ipoCustomersReceived,
         'ipo_customers_requested': ipoCustomersRequested,
-        'ipo_date': ipoDate?.toIso8601String(),
+        'ipo_date': ipoDate, //?.toIso8601String(),
         'ipo_s1_url': ipoS1Url,
         'ipo_roadshow_url': ipoRoadshowUrl,
         'is_spac': isSpac,
@@ -263,18 +277,23 @@ class Instrument {
         'fundamentalsObj': fundamentalsObj?.toJson(),
         'instrumentHistoricalsObj': instrumentHistoricalsObj?.toJson(),
         'optionChainObj': optionChainObj?.toJson(),
-        'newsObj': newsObj,
-        'listsObj': listsObj,
-        'dividendsObj': dividendsObj,
-        'ratingsObj': ratingsObj,
-        'ratingsOverviewObj': ratingsOverviewObj,
-        'earningsObj': earningsObj,
-        'similarObj': similarObj,
-        'splitsObj': splitsObj,
+        // 'newsObj': newsObj,
+        // 'listsObj': listsObj,
+        // 'dividendsObj': dividendsObj,
+        // 'ratingsObj': ratingsObj,
+        // 'ratingsOverviewObj': ratingsOverviewObj,
+        // 'earningsObj': earningsObj,
+        // 'similarObj': similarObj,
+        // 'splitsObj': splitsObj,
+
         // 'optionPositions': optionPositions?.map((e) => e.toJson()).toList(),
         // 'positionOrders': positionOrders?.map((e) => e.toJson()).toList(),
         // 'optionOrders': optionOrders?.map((e) => e.toJson()).toList(),
         // 'optionEvents': optionEvents?.map((e) => e.toJson()).toList(),
         'logoUrl': logoUrl,
+        'etp_details': etpDetails
+        // etpDetails != null
+        //     ? Map<String, dynamic>.from(etpDetails as Map)
+        //     : null //?.toJson()
       };
 }

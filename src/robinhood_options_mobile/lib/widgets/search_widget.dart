@@ -89,8 +89,8 @@ class _SearchWidgetState extends State<SearchWidget>
     futureLosers ??= widget.service.getMovers(widget.user, direction: "down");
     futureListMovers ??=
         widget.service.getListMovers(widget.user, instrumentStore!);
-    futureListMostPopular ??=
-        widget.service.getListMostPopular(widget.user, instrumentStore!);
+    // futureListMostPopular ??=
+    //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
     return FutureBuilder(
@@ -99,7 +99,7 @@ class _SearchWidgetState extends State<SearchWidget>
           futureMovers as Future,
           futureLosers as Future,
           futureListMovers as Future,
-          futureListMostPopular as Future,
+          // futureListMostPopular as Future,
         ]),
         builder: (context, AsyncSnapshot<List<dynamic>> snapshot) {
           if (snapshot.hasData) {
@@ -111,14 +111,14 @@ class _SearchWidgetState extends State<SearchWidget>
                 data.length > 2 ? data[2] as List<MidlandMoversItem> : null;
             var listMovers =
                 data.length > 3 ? data[3] as List<Instrument> : null;
-            var listMostPopular =
-                data.length > 4 ? data[4] as List<Instrument> : null;
+            // var listMostPopular =
+            //     data.length > 4 ? data[4] as List<Instrument> : null;
             return _buildPage(
                 search: search,
                 movers: movers,
                 losers: losers,
                 listMovers: listMovers,
-                listMostPopular: listMostPopular,
+                listMostPopular: null, //listMostPopular,
                 done: snapshot.connectionState == ConnectionState.done);
           } else if (snapshot.hasError) {
             debugPrint("${snapshot.error}");
@@ -222,7 +222,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 120.0,
+                                maxCrossAxisExtent: 125.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
                                 childAspectRatio: 1.25,
@@ -525,7 +525,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       style: const TextStyle(fontSize: 16.0)),
                   Text(data["item"]["simple_name"] ?? data["item"]["name"],
                       style: const TextStyle(fontSize: 12.0),
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis)
                 ]),
                 onTap: () {

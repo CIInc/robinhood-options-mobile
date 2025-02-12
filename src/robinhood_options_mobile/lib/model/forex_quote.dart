@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 /*
@@ -31,9 +32,19 @@ class ForexQuote {
   final String symbol;
   final String id;
   final double? volume;
+  final DateTime? updatedAt;
 
-  const ForexQuote(this.askPrice, this.bidPrice, this.markPrice, this.highPrice,
-      this.lowPrice, this.openPrice, this.symbol, this.id, this.volume);
+  const ForexQuote(
+      this.askPrice,
+      this.bidPrice,
+      this.markPrice,
+      this.highPrice,
+      this.lowPrice,
+      this.openPrice,
+      this.symbol,
+      this.id,
+      this.volume,
+      this.updatedAt);
 
   ForexQuote.fromJson(dynamic json)
       : askPrice = double.tryParse(json['ask_price']),
@@ -44,7 +55,10 @@ class ForexQuote {
         openPrice = double.tryParse(json['open_price']),
         symbol = json['symbol'],
         id = json['id'],
-        volume = double.tryParse(json['volume']);
+        volume = double.tryParse(json['volume']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['updated_at']);
 
   Map<String, dynamic> toJson() => {
         'ask_price': askPrice,
@@ -55,7 +69,8 @@ class ForexQuote {
         'open_price': openPrice,
         'symbol': symbol,
         'id': id,
-        'volume': volume
+        'volume': volume,
+        'updated_at': updatedAt, //?.toIso8601String(),
       };
 
   double get changeToday {

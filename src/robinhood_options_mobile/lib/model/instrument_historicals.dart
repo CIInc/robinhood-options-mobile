@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 
 class InstrumentHistoricals {
@@ -39,13 +40,17 @@ class InstrumentHistoricals {
             ? double.tryParse(json['previous_close_price'])
             : null,
         previousCloseTime = json['previous_close_time'] != null
-            ? DateTime.tryParse(json['previous_close_time'])
+            ? (json['previous_close_time'] is Timestamp
+                ? (json['previous_close_time'] as Timestamp).toDate()
+                : DateTime.tryParse(json['previous_close_time']))
             : null,
         openPrice = json['open_price'] != null
             ? double.tryParse(json['open_price'])
             : null,
         openTime = json['open_time'] != null
-            ? DateTime.tryParse(json['open_time'])
+            ? (json['open_time'] is Timestamp
+                ? (json['open_time'] as Timestamp).toDate()
+                : DateTime.tryParse(json['open_time']))
             : null,
         instrument = json['instrument'],
         instrumentId = json['InstrumentID'],
@@ -58,9 +63,9 @@ class InstrumentHistoricals {
         'span': span,
         'bounds': bounds,
         'previous_close_price': previousClosePrice,
-        'previous_close_time': previousCloseTime?.toIso8601String(),
+        'previous_close_time': previousCloseTime, //?.toIso8601String(),
         'open_price': openPrice,
-        'open_time': openTime?.toIso8601String(),
+        'open_time': openTime, //?.toIso8601String(),
         'instrument': instrument,
         'InstrumentID': instrumentId,
         'historicals': historicals.map((e) => e.toJson()).toList()

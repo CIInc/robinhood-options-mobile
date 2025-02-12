@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 /*
@@ -70,13 +71,17 @@ class Quote {
         previousClose = double.tryParse(json['previous_close']),
         adjustedPreviousClose =
             double.tryParse(json['adjusted_previous_close']),
-        previousCloseDate = DateTime.tryParse(json['previous_close_date']),
+        previousCloseDate = json['previous_close_date'] is Timestamp
+            ? (json['previous_close_date'] as Timestamp).toDate()
+            : DateTime.tryParse(json['previous_close_date']),
         symbol = json['symbol'],
         tradingHalted =
             json['trading_halted'].toString().toLowerCase() == 'true',
         hasTraded = json['has_traded'].toString().toLowerCase() == 'true',
         lastTradePriceSource = json['last_trade_price_source'],
-        updatedAt = DateTime.tryParse(json['updated_at']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['updated_at']),
         instrument = json['instrument'],
         instrumentId = json['instrument_id'];
 
@@ -117,12 +122,12 @@ class Quote {
         'last_extended_hours_trade_price': lastExtendedHoursTradePrice,
         'previous_close': previousClose,
         'adjusted_previous_close': adjustedPreviousClose,
-        'previous_close_date': previousCloseDate!.toIso8601String(),
+        'previous_close_date': previousCloseDate, //!.toIso8601String(),
         'symbol': symbol,
         'trading_halted': tradingHalted,
         'has_traded': hasTraded,
         'last_trade_price_source': lastTradePriceSource,
-        'updated_at': updatedAt!.toIso8601String(),
+        'updated_at': updatedAt, //!.toIso8601String(),
         'instrument': instrument,
         'instrument_id': instrumentId,
       };

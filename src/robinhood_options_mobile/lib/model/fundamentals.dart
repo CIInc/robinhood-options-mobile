@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 @immutable
@@ -29,7 +32,7 @@ class Fundamentals {
   final int? numEmployees;
   final int? yearFounded;
 
-  const Fundamentals(
+  Fundamentals(
       this.open,
       this.high,
       this.low,
@@ -77,7 +80,9 @@ class Fundamentals {
                 ? json['volume']
                 : double.tryParse(json['volume']))
             : null,
-        marketDate = DateTime.tryParse(json['market_date']),
+        marketDate = json['market_date'] is Timestamp
+            ? (json['market_date'] as Timestamp).toDate()
+            : DateTime.tryParse(json['market_date']),
         averageVolume2Weeks = json['average_volume_2_weeks'] != null
             ? (json['average_volume_2_weeks'] is double
                 ? json['average_volume_2_weeks']
@@ -144,7 +149,7 @@ class Fundamentals {
         'high': high,
         'low': low,
         'volume': volume,
-        'market_date': marketDate?.toIso8601String(),
+        'market_date': marketDate, //?.toIso8601String(),
         'average_volume_2_weeks': averageVolume2Weeks,
         'average_volume_30_days': averageVolume30Days,
         'average_volume': averageVolume,

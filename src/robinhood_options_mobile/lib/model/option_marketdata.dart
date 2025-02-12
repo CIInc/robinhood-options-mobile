@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 /*
@@ -69,6 +70,7 @@ class OptionMarketData {
   final double? highFillRateSellPrice;
   final double? lowFillRateBuyPrice;
   final double? lowFillRateSellPrice;
+  final DateTime? updatedAt;
 
   const OptionMarketData(
       this.adjustedMarkPrice,
@@ -101,7 +103,8 @@ class OptionMarketData {
       this.highFillRateBuyPrice,
       this.highFillRateSellPrice,
       this.lowFillRateBuyPrice,
-      this.lowFillRateSellPrice);
+      this.lowFillRateSellPrice,
+      this.updatedAt);
 
   OptionMarketData.fromJson(dynamic json)
       : adjustedMarkPrice = double.tryParse(json['adjusted_mark_price']),
@@ -152,9 +155,49 @@ class OptionMarketData {
             : null,
         lowFillRateSellPrice = json['low_fill_rate_sell_price'] != null
             ? double.tryParse(json['low_fill_rate_sell_price'])
-            : null;
+            : null,
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['updated_at']);
 
-/*
+  Map<String, dynamic> toJson() {
+    return {
+      'adjusted_mark_price': adjustedMarkPrice,
+      'ask_price': askPrice,
+      'ask_size': askSize,
+      'bid_price': bidPrice,
+      'bid_size': bidSize,
+      'break_even_price': breakEvenPrice,
+      'high_price': highPrice,
+      'instrument': instrument,
+      'instrument_id': instrumentId,
+      'last_trade_price': lastTradePrice,
+      'last_trade_size': lastTradeSize,
+      'low_price': lowPrice,
+      'mark_price': markPrice,
+      'open_interest': openInterest,
+      'previous_close_date': previousCloseDate, //?.toIso8601String(),
+      'previous_close_price': previousClosePrice,
+      'volume': volume,
+      'symbol': symbol,
+      'occ_symbol': occSymbol,
+      'chance_of_profit_long': chanceOfProfitLong,
+      'chance_of_profit_short': chanceOfProfitShort,
+      'delta': delta,
+      'gamma': gamma,
+      'implied_volatility': impliedVolatility,
+      'rho': rho,
+      'theta': theta,
+      'vega': vega,
+      'high_fill_rate_buy_price': highFillRateBuyPrice,
+      'high_fill_rate_sell_price': highFillRateSellPrice,
+      'low_fill_rate_buy_price': lowFillRateBuyPrice,
+      'low_fill_rate_sell_price': lowFillRateSellPrice,
+      'updated_at': updatedAt, //?.toIso8601String(),
+    };
+  }
+
+  /*
 {"putCall":"CALL","symbol":"AMAT  241115C00210000","description":"AMAT 11/15/2024 210.00 C",
 "exchangeName":"OPR","bid":1.72,"ask":1.9,"last":1.88,"mark":1.81,"bidSize":22,
 "askSize":61,"bidAskSize":"22X61","lastSize":0,"highPrice":2.25,"lowPrice":1.8,
@@ -202,7 +245,8 @@ class OptionMarketData {
         highFillRateBuyPrice = null, // TODO
         highFillRateSellPrice = null, // TODO
         lowFillRateBuyPrice = null, // TODO
-        lowFillRateSellPrice = null; // TODO
+        lowFillRateSellPrice = null, // TODO
+        updatedAt = DateTime.now();
 
   double get changeToday {
     return previousClosePrice != null

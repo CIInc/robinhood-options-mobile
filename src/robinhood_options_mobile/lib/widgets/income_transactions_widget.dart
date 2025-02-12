@@ -540,7 +540,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 style: TextStyle(fontSize: 18.0),
               ),
             ]),
-            subtitle: Text("${formatPercentage.format(yield)}"),
+            subtitle:
+                yield != null ? Text(formatPercentage.format(yield)) : null,
             // subtitle: Text(
             //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
             // subtitle: Text("Yield, P/L & Cost basis"),

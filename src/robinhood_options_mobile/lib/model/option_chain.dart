@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
 
 /*
@@ -69,7 +70,8 @@ class OptionChain {
             ? double.tryParse(json['cash_component'])
             : null,
         expirationDates = json['expiration_dates']
-            .map<DateTime>((e) => DateTime.parse(e))
+            .map<DateTime>(
+                (e) => e is Timestamp ? (e).toDate() : DateTime.parse(e))
             .toList(),
         tradeValueMultiplier = json['trade_value_multiplier'] != null
             ? double.tryParse(json['trade_value_multiplier'])
@@ -83,7 +85,7 @@ class OptionChain {
         'symbol': symbol,
         'can_open_position': canOpenPosition,
         'cash_component': cashComponent,
-        'expiration_dates': expirationDates.map((e) => e.toIso8601String()),
+        'expiration_dates': expirationDates.map((e) => e), // .toIso8601String()
         'trade_value_multiplier': tradeValueMultiplier,
         'min_ticks': minTicks.toJson()
       };
