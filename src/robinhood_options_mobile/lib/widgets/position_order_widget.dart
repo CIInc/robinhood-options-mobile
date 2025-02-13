@@ -314,7 +314,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                             ? Colors.red
                             : Colors.grey))),
                 Text(
-                  formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                  formatCurrency.format(
+                      instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                          instrument.quoteObj!.lastTradePrice),
                   style: const TextStyle(fontSize: 18.0),
                   textAlign: TextAlign.right,
                 ),

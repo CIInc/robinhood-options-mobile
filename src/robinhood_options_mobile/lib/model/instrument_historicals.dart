@@ -37,7 +37,9 @@ class InstrumentHistoricals {
         span = json['span'],
         bounds = json['bounds'],
         previousClosePrice = json['previous_close_price'] != null
-            ? double.tryParse(json['previous_close_price'])
+            ? json['previous_close_price'] is double
+                ? json['previous_close_price']
+                : double.tryParse(json['previous_close_price'])
             : null,
         previousCloseTime = json['previous_close_time'] != null
             ? (json['previous_close_time'] is Timestamp
@@ -45,7 +47,9 @@ class InstrumentHistoricals {
                 : DateTime.tryParse(json['previous_close_time']))
             : null,
         openPrice = json['open_price'] != null
-            ? double.tryParse(json['open_price'])
+            ? json['open_price'] is double
+                ? json['open_price']
+                : double.tryParse(json['open_price'])
             : null,
         openTime = json['open_time'] != null
             ? (json['open_time'] is Timestamp

@@ -274,7 +274,8 @@ class InstrumentPosition {
 
   double get gainLossToday {
     return instrumentObj != null && instrumentObj!.quoteObj != null
-        ? (instrumentObj!.quoteObj!.lastTradePrice! -
+        ? ((instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrumentObj!.quoteObj!.lastTradePrice!) -
                 instrumentObj!.quoteObj!.adjustedPreviousClose!) *
             quantity!
         : 0;

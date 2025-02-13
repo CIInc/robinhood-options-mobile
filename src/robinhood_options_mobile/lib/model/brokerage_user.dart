@@ -138,7 +138,8 @@ class BrokerageUser {
     }
   }
 
-  double? getAggregateDisplayValue(List<OptionAggregatePosition> ops,
+  double? getDisplayValueOptionAggregatePosition(
+      List<OptionAggregatePosition> ops,
       {DisplayValue? displayValue}) {
     double value = 0;
     if (ops.isEmpty) {
@@ -201,7 +202,7 @@ class BrokerageUser {
     return value;
   }
 
-  double? getPositionAggregateDisplayValue(List<InstrumentPosition> ops,
+  double? getDisplayValueInstrumentPositions(List<InstrumentPosition> ops,
       {DisplayValue? displayValue}) {
     double value = 0;
     if (ops.isEmpty) {
@@ -261,7 +262,7 @@ class BrokerageUser {
     return value;
   }
 
-  double? getCryptoAggregateDisplayValue(List<ForexHolding> ops,
+  double? getDisplayValueForexHoldings(List<ForexHolding> ops,
       {DisplayValue? displayValue}) {
     double value = 0;
     if (ops.isEmpty) {
@@ -314,7 +315,7 @@ class BrokerageUser {
     return value;
   }
 
-  double getPositionDisplayValue(InstrumentPosition op,
+  double getDisplayValueInstrumentPosition(InstrumentPosition op,
       {DisplayValue? displayValue}) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
@@ -347,7 +348,8 @@ class BrokerageUser {
     return value;
   }
 
-  double getCryptoDisplayValue(ForexHolding op, {DisplayValue? displayValue}) {
+  double getDisplayValueForexHolding(ForexHolding op,
+      {DisplayValue? displayValue}) {
     double value = 0;
     switch (displayValue ?? this.displayValue) {
       case DisplayValue.lastPrice:

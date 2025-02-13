@@ -59,18 +59,29 @@ class Quote {
       this.instrumentId);
 
   Quote.fromJson(dynamic json)
-      : askPrice = double.tryParse(json['ask_price']),
+      : askPrice = json['ask_price'] is double
+            ? json['ask_price']
+            : double.tryParse(json['ask_price']),
         askSize = json['ask_size'],
-        bidPrice = double.tryParse(json['bid_price']),
+        bidPrice = json['bid_price'] is double
+            ? json['bid_price']
+            : double.tryParse(json['bid_price']),
         bidSize = json['bid_size'],
-        lastTradePrice = double.tryParse(json['last_trade_price']),
+        lastTradePrice = json['last_trade_price'] is double
+            ? json['last_trade_price']
+            : double.tryParse(json['last_trade_price']),
         lastExtendedHoursTradePrice =
             json['last_extended_hours_trade_price'] != null
-                ? double.tryParse(json['last_extended_hours_trade_price'])
+                ? (json['last_extended_hours_trade_price'] is double
+                    ? json['last_extended_hours_trade_price']
+                    : double.tryParse(json['last_extended_hours_trade_price']))
                 : null,
-        previousClose = double.tryParse(json['previous_close']),
-        adjustedPreviousClose =
-            double.tryParse(json['adjusted_previous_close']),
+        previousClose = json['previous_close'] is double
+            ? json['previous_close']
+            : double.tryParse(json['previous_close']),
+        adjustedPreviousClose = json['adjusted_previous_close'] is double
+            ? json['adjusted_previous_close']
+            : double.tryParse(json['adjusted_previous_close']),
         previousCloseDate = json['previous_close_date'] is Timestamp
             ? (json['previous_close_date'] as Timestamp).toDate()
             : DateTime.tryParse(json['previous_close_date']),
@@ -133,18 +144,19 @@ class Quote {
       };
 
   double get changeToday {
-    return lastTradePrice! - adjustedPreviousClose!;
+    return (lastExtendedHoursTradePrice ?? lastTradePrice!) -
+        adjustedPreviousClose!;
   }
 
-  double get extendedHoursChangeToday {
-    return lastExtendedHoursTradePrice! - adjustedPreviousClose!;
-  }
+  // double get extendedHoursChangeToday {
+  //   return lastExtendedHoursTradePrice! - adjustedPreviousClose!;
+  // }
 
   double get changePercentToday {
     return changeToday / adjustedPreviousClose!;
   }
 
-  double get extendedHoursChangePercentToday {
-    return extendedHoursChangeToday / adjustedPreviousClose!;
-  }
+  // double get extendedHoursChangePercentToday {
+  //   return extendedHoursChangeToday / adjustedPreviousClose!;
+  // }
 }

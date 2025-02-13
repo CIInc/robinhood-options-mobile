@@ -106,7 +106,7 @@ class ForexHolding {
   }
   /*
   double get gainLossToday {
-    return instrumentObj!.quoteObj!.lastTradePrice! -
+    return (instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? instrumentObj!.quoteObj!.lastTradePrice!) -
         instrumentObj!.quoteObj!.adjustedPreviousClose!;
   }
 

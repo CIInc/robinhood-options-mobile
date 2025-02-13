@@ -266,7 +266,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         yield =
             // totalDividends / double.parse(transaction!["position"])
             double.parse(transaction!["rate"]) /
-                instrument.quoteObj!.lastTradePrice!;
+                (instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                    instrument.quoteObj!.lastTradePrice!);
         yieldOnCost =
             double.parse(transaction!["rate"]) / position!.averageBuyPrice!;
         var currDate = DateTime.parse(transaction["payable_date"]);
@@ -578,7 +579,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     // context: context,
                                     title: Text('Dividend Yield'),
                                     content: Text(
-                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
+                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
                                     actions: [
                                       TextButton(
                                         onPressed: () {
@@ -670,7 +671,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                     ),
                   ]),
                   subtitle: Text(// •
-                      '${instrument!.symbol} ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
+                      '${instrument!.symbol} ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
                   trailing: Wrap(spacing: 8, children: [
                     Text(
                       formatCurrency.format(adjustedCost),

@@ -61,8 +61,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
   @override
   Widget build(BuildContext context) {
     var sortedFilteredHoldings = widget.filteredHoldings.sortedBy<num>((i) =>
-        widget.user
-            .getCryptoDisplayValue(i, displayValue: widget.user.sortOptions));
+        widget.user.getDisplayValueForexHolding(i,
+            displayValue: widget.user.sortOptions));
     if (widget.user.sortDirection == SortDirection.desc) {
       sortedFilteredHoldings = sortedFilteredHoldings.reversed.toList();
     }
@@ -71,12 +71,12 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     var data = [];
     for (var position in sortedFilteredHoldings) {
       if (position.quoteObj != null) {
-        double? value = widget.user.getCryptoDisplayValue(position);
+        double? value = widget.user.getDisplayValueForexHolding(position);
         String? trailingText = widget.user.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
         if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getCryptoDisplayValue(position,
+          secondaryValue = widget.user.getDisplayValueForexHolding(position,
               displayValue: DisplayValue.totalCost);
           secondaryLabel = widget.user.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
@@ -166,7 +166,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
         widget.user.displayValue == DisplayValue.totalReturnPercent) {
       var positionDisplayValues = sortedFilteredHoldings
-          .map((e) => widget.user.getCryptoDisplayValue(e));
+          .map((e) => widget.user.getDisplayValueForexHolding(e));
       var minimum = 0.0;
       var maximum = 0.0;
       if (positionDisplayValues.isNotEmpty) {
@@ -213,6 +213,10 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         ], onSelected: (dynamic historical) {
       debugPrint(historical
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
+      // TODO: This setState is not desirable but is needed to reset the selection
+      // or the bar will not be clickable until deselected or another selection is made.
+      // Find a better way to do this
+      setState(() {});
       var holding = sortedFilteredHoldings.firstWhere(
           (element) => element.currencyCode == historical['domain']);
       Navigator.push(
@@ -228,32 +232,32 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   )));
     });
 
-    double? marketValue = widget.user.getCryptoAggregateDisplayValue(
+    double? marketValue = widget.user.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = widget.user
         .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = widget.user.getCryptoAggregateDisplayValue(
+    double? totalReturn = widget.user.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getCryptoAggregateDisplayValue(
+    double? totalReturnPercent = widget.user.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getCryptoAggregateDisplayValue(
+    double? todayReturn = widget.user.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getCryptoAggregateDisplayValue(
+    double? todayReturnPercent = widget.user.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
@@ -506,7 +510,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             child: SizedBox(
                 height: barChartSeriesList.first.data.length == 1
                     ? 75
-                    : barChartSeriesList.first.data.length * 25 + 75,
+                    : barChartSeriesList.first.data.length * 25 + 80,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                       10.0, 0, 10, 10), //EdgeInsets.zero
@@ -598,31 +602,33 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
 
   Widget _buildCryptoRow(
       BuildContext context, List<ForexHolding> holdings, int index) {
-    double value = widget.user.getCryptoDisplayValue(holdings[index]);
+    double value = widget.user.getDisplayValueForexHolding(holdings[index]);
     String trailingText = widget.user.getDisplayText(value);
     Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
         : widget.user.getDisplayIcon(value);
 
-    double? totalReturn = widget.user.getCryptoDisplayValue(holdings[index],
+    double? totalReturn = widget.user.getDisplayValueForexHolding(
+        holdings[index],
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getCryptoDisplayValue(
+    double? totalReturnPercent = widget.user.getDisplayValueForexHolding(
         holdings[index],
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getCryptoDisplayValue(holdings[index],
+    double? todayReturn = widget.user.getDisplayValueForexHolding(
+        holdings[index],
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getCryptoDisplayValue(
+    double? todayReturnPercent = widget.user.getDisplayValueForexHolding(
         holdings[index],
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(

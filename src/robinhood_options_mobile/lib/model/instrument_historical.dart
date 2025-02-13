@@ -24,10 +24,18 @@ class InstrumentHistorical {
       : beginsAt = json['begins_at'] is Timestamp
             ? (json['begins_at'] as Timestamp).toDate()
             : DateTime.tryParse(json['begins_at']),
-        openPrice = double.tryParse(json['open_price']),
-        closePrice = double.tryParse(json['close_price']),
-        highPrice = double.tryParse(json['high_price']),
-        lowPrice = double.tryParse(json['low_price']),
+        openPrice = json['open_price'] is double
+            ? json['open_price']
+            : double.tryParse(json['open_price']),
+        closePrice = json['close_price'] is double
+            ? json['close_price']
+            : double.tryParse(json['close_price']),
+        highPrice = json['high_price'] is double
+            ? json['high_price']
+            : double.tryParse(json['high_price']),
+        lowPrice = json['low_price'] is double
+            ? json['low_price']
+            : double.tryParse(json['low_price']),
         volume = json['volume'] ?? 0,
         session = json['session'],
         interpolated = json['interpolated'];

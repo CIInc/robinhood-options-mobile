@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -32,7 +30,7 @@ class Fundamentals {
   final int? numEmployees;
   final int? yearFounded;
 
-  Fundamentals(
+  const Fundamentals(
       this.open,
       this.high,
       this.low,

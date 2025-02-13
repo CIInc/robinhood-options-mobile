@@ -55,6 +55,7 @@ final formatCompactDate = DateFormat("MMMd");
 final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatCurrency = NumberFormat.simpleCurrency();
+final formatCompactCurrency = NumberFormat.compactSimpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 final formatNumber = NumberFormat("###,###,##0.#####");
 final formatCompactNumber = NumberFormat.compact();
@@ -100,6 +101,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Future<List<InstrumentOrder>>? futureInstrumentOrders;
   Future<List<OptionOrder>>? futureOptionOrders;
   Future<List<OptionEvent>>? futureOptionEvents;
+  Future<dynamic>? futureEtp;
 
   //charts.TimeSeriesChart? chart;
   TimeSeriesChart? chart;
@@ -178,6 +180,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         RobinhoodService.logoUrls.containsKey(widget.instrument.symbol)) {
       widget.instrument.logoUrl =
           RobinhoodService.logoUrls[widget.instrument.symbol];
+      _firestoreService.upsertInstrument(widget.instrument);
     }
 
     if (instrument.quoteObj == null) {
@@ -231,6 +234,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         chartDateSpanFilter: ChartDateSpan.month,
         chartInterval: 'day');
 
+    if (instrument.type == 'etp' && widget.service is RobinhoodService) {
+      futureEtp ??=
+          (widget.service as RobinhoodService).getEtpDetails(user, instrument);
+    }
+
     return Scaffold(
         body: FutureBuilder(
       future: Future.wait([
@@ -248,18 +256,18 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureSimilar as Future,
         futureSplits as Future,
         futureRsiHistoricals as Future,
+        if (futureEtp != null) ...[futureEtp as Future]
       ]),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
+          bool updateInstrument = false;
           List<dynamic> data = snapshot.data as List<dynamic>;
           if (instrument.quoteObj != null) {
             Quote? newQuote = data.isNotEmpty ? data[0] : null;
             if (instrument.quoteObj!.updatedAt!
                 .isBefore(newQuote!.updatedAt!)) {
               instrument.quoteObj = newQuote;
-              _firestoreService.upsertInstrument(instrument);
-              debugPrint(
-                  'InstrumentWidget: Stored instrument into Firestore ${instrument.symbol}');
+              updateInstrument = true;
             }
           } else {
             instrument.quoteObj = data.isNotEmpty ? data[0] : null;
@@ -276,7 +284,35 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           instrument.earningsObj = data.length > 10 ? data[10] : null;
           instrument.similarObj = data.length > 11 ? data[11] : null;
           instrument.splitsObj = data.length > 12 ? data[12] : null;
-
+          instrument.instrumentHistoricalsObj =
+              data.length > 12 ? data[13] : null;
+          // Conditionally persist to Firestore if the data has changed.
+          if (instrument.etpDetails != null) {
+            //// TODO: Figure out why the first 2 solutions don't work
+            //// instead going to compare date properties.
+            // if (DeepCollectionEquality.unordered().equals(instrument.etpDetails, data[14])) {
+            // if (jsonMapEquals(instrument.etpDetails, data[14])) {
+            //// Doesn't work because json ordering is different between Firebase and Robinhood API
+            // if (jsonEncode(instrument.etpDetails) != jsonEncode(data[14])) {
+            if (instrument.etpDetails['quarter_end_date'] !=
+                    data[14]['quarter_end_date'] ||
+                instrument.etpDetails['month_end_date'] !=
+                    data[14]['month_end_date'] ||
+                instrument.etpDetails['sectors_portfolio_date'] !=
+                    data[14]['sectors_portfolio_date'] ||
+                instrument.etpDetails['holdings_portfolio_date'] !=
+                    data[14]['holdings_portfolio_date']) {
+              updateInstrument = true;
+            }
+          } else {
+            updateInstrument = true;
+          }
+          instrument.etpDetails = data.length > 14 ? data[14] : null;
+          if (updateInstrument) {
+            _firestoreService.upsertInstrument(instrument);
+            debugPrint(
+                'InstrumentWidget: Stored instrument into Firestore ${instrument.symbol}');
+          }
           positionOrdersBalance = instrument.positionOrders != null &&
                   instrument.positionOrders!.isNotEmpty
               ? instrument.positionOrders!
@@ -356,96 +392,111 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
         child: CustomScrollView(slivers: [
-          SliverAppBar(
-            title: Consumer<QuoteStore>(builder: (context, quoteStore, child) {
-              return headerTitle(instrument, quoteStore);
-            }),
-            //expandedHeight: 160,
-            expandedHeight: 240, // 280.0,
-            floating: false,
-            pinned: true,
-            snap: false,
-            flexibleSpace: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints constraints) {
-              //var top = constraints.biggest.height;
-              //debugPrint(top.toString());
-              //debugPrint(kToolbarHeight.toString());
+          SliverLayoutBuilder(
+            builder: (BuildContext context, constraints) {
+              const expandedHeight = 180.0;
+              final scrolled =
+                  math.min(expandedHeight, constraints.scrollOffset) /
+                      expandedHeight;
+              final t = (1 - scrolled).clamp(0.0, 1.0);
+              final opacity = 1.0 - Interval(0, 1).transform(t);
+              // debugPrint("transform: $t scrolled: $scrolled");
+              return SliverAppBar(
+                title:
+                    Consumer<QuoteStore>(builder: (context, quoteStore, child) {
+                  return Opacity(
+                      opacity: opacity,
+                      child: headerTitle(instrument, quoteStore));
+                }),
+                expandedHeight: 240, // 280.0,
+                floating: false,
+                pinned: true,
+                snap: false,
+                flexibleSpace: LayoutBuilder(builder:
+                    (BuildContext context, BoxConstraints constraints) {
+                  //var top = constraints.biggest.height;
+                  //debugPrint(top.toString());
+                  //debugPrint(kToolbarHeight.toString());
 
-              final settings = context.dependOnInheritedWidgetOfExactType<
-                  FlexibleSpaceBarSettings>();
-              final deltaExtent = settings!.maxExtent - settings.minExtent;
-              final t = (1.0 -
-                      (settings.currentExtent - settings.minExtent) /
-                          deltaExtent)
-                  .clamp(0.0, 1.0);
-              final fadeStart =
-                  math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-              const fadeEnd = 1.0;
-              final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-              return FlexibleSpaceBar(
-                  //titlePadding:
-                  //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-                  //background: const FlutterLogo(),
-                  background: Hero(
-                      tag: widget.heroTag != null
-                          ? '${widget.heroTag}'
-                          : 'logo_${instrument.symbol}',
-                      child: SizedBox(
-                          //width: double.infinity,
-                          child: instrument.logoUrl != null
-                              ? Image.network(
-                                  instrument.logoUrl!,
-                                  fit: BoxFit.none,
-                                  errorBuilder: (BuildContext context,
-                                      Object exception,
-                                      StackTrace? stackTrace) {
-                                    debugPrint(
-                                        'Error with ${instrument.symbol} ${instrument.logoUrl}');
-                                    RobinhoodService.removeLogo(instrument);
-                                    return Container(); // Text(instrument.symbol);
-                                  },
-                                )
-                              : Container() //const FlutterLogo()
-                          /*Image.network(
+                  final settings = context.dependOnInheritedWidgetOfExactType<
+                      FlexibleSpaceBarSettings>();
+                  final deltaExtent = settings!.maxExtent - settings.minExtent;
+                  final t = (1.0 -
+                          (settings.currentExtent - settings.minExtent) /
+                              deltaExtent)
+                      .clamp(0.0, 1.0);
+                  final fadeStart =
+                      math.max(0.0, 1.0 - kToolbarHeight * 2 / deltaExtent);
+                  const fadeEnd = 1.0;
+                  final opacity =
+                      1.0 - Interval(fadeStart, fadeEnd).transform(t);
+                  return FlexibleSpaceBar(
+                      //titlePadding:
+                      //    const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+                      //background: const FlutterLogo(),
+                      background: Hero(
+                          tag: widget.heroTag != null
+                              ? '${widget.heroTag}'
+                              : 'logo_${instrument.symbol}',
+                          child: SizedBox(
+                              //width: double.infinity,
+                              child: instrument.logoUrl != null
+                                  ? Image.network(
+                                      instrument.logoUrl!,
+                                      fit: BoxFit.none,
+                                      errorBuilder: (BuildContext context,
+                                          Object exception,
+                                          StackTrace? stackTrace) {
+                                        debugPrint(
+                                            'Error with ${instrument.symbol} ${instrument.logoUrl}');
+                                        RobinhoodService.removeLogo(instrument);
+                                        return Container(); // Text(instrument.symbol);
+                                      },
+                                    )
+                                  : Container() //const FlutterLogo()
+                              /*Image.network(
                         Constants.flexibleSpaceBarBackground,
                         fit: BoxFit.cover,
                       ),*/
-                          )),
-                  title: Opacity(
-                    //duration: Duration(milliseconds: 300),
-                    opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-                    child: SingleChildScrollView(
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: headerWidgets.toList())),
-                    /*
+                              )),
+                      title: Opacity(
+                        //duration: Duration(milliseconds: 300),
+                        opacity:
+                            opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+                        child: SingleChildScrollView(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: headerWidgets.toList())),
+                        /*
           ListTile(
             title: Text('${instrument.simpleName}'),
             subtitle: Text(instrument.name),
           )*/
-                  ));
-            }),
-            // actions: <Widget>[
-            //   IconButton(
-            //     icon: const Icon(Icons.more_vert),
-            //     // icon: const Icon(Icons.settings),
-            //     onPressed: () {
-            //       showModalBottomSheet<void>(
-            //         context: context,
-            //        showDragHandle: true,
-            //         //isScrollControlled: true,
-            //         //useRootNavigator: true,
-            //         //constraints: const BoxConstraints(maxHeight: 200),
-            //         builder: (_) => MoreMenuBottomSheet(
-            //           widget.user,
-            //           onSettingsChanged: _handleSettingsChanged,
-            //           analytics: widget.analytics,
-            //           observer: widget.observer,
-            //         ),
-            //       );
-            //     },
-            //   ),
-            // ],
+                      ));
+                }),
+                // actions: <Widget>[
+                //   IconButton(
+                //     icon: const Icon(Icons.more_vert),
+                //     // icon: const Icon(Icons.settings),
+                //     onPressed: () {
+                //       showModalBottomSheet<void>(
+                //         context: context,
+                //        showDragHandle: true,
+                //         //isScrollControlled: true,
+                //         //useRootNavigator: true,
+                //         //constraints: const BoxConstraints(maxHeight: 200),
+                //         builder: (_) => MoreMenuBottomSheet(
+                //           widget.user,
+                //           onSettingsChanged: _handleSettingsChanged,
+                //           analytics: widget.analytics,
+                //           observer: widget.observer,
+                //         ),
+                //       );
+                //     },
+                //   ),
+                // ],
+              );
+            },
           ),
           SliverToBoxAdapter(
               child: Align(
@@ -477,18 +528,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     //&& element.interval == element.interval
                     );
 
-            var rsi = instrumentHistoricalsStore.items.firstWhereOrNull(
-                (element) =>
-                    element.symbol == instrument.symbol &&
-                    element.span ==
-                        convertChartSpanFilter(ChartDateSpan.month) &&
-                    element.bounds ==
-                        convertChartBoundsFilter(chartBoundsFilter) &&
-                    element.interval == 'day');
-            if (rsi != null) {
-              debugPrint(rsi.historicals.first.closePrice!.toString());
-              debugPrint(rsi.historicals.last.closePrice!.toString());
-            }
+            // TODO: The close of the last period should be added to the chart series data.
+            // var rsi = instrumentHistoricalsStore.items.firstWhereOrNull(
+            //     (element) =>
+            //         element.symbol == instrument.symbol &&
+            //         element.span ==
+            //             convertChartSpanFilter(ChartDateSpan.month) &&
+            //         element.bounds ==
+            //             convertChartBoundsFilter(chartBoundsFilter) &&
+            //         element.interval == 'day');
+            // if (rsi != null) {
+            //   debugPrint(rsi.historicals.first.closePrice!.toString());
+            //   debugPrint(rsi.historicals.last.closePrice!.toString());
+            // }
 
             if (instrument.instrumentHistoricalsObj != null &&
                 instrument.instrumentHistoricalsObj!.historicals.isNotEmpty) {
@@ -527,10 +579,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     .add(InstrumentHistorical(
                         //DateTime.now(),
                         quoteObj.updatedAt,
-                        quoteObj.lastTradePrice,
-                        quoteObj.lastTradePrice,
-                        quoteObj.lastTradePrice,
-                        quoteObj.lastTradePrice,
+                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
+                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
+                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
+                        quoteObj.lastExtendedHoursTradePrice ?? quoteObj.lastTradePrice,
                         0,
                         '',
                         false));
@@ -835,7 +887,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 child: SizedBox(
               height: 8.0,
             )),
-            quoteWidget(instrument)
+            Consumer<InstrumentPositionStore>(
+                builder: (context, stockPositionStore, child) {
+              return quoteWidget(instrument);
+            })
           ],
           Consumer<InstrumentPositionStore>(
               builder: (context, stockPositionStore, child) {
@@ -1209,23 +1264,25 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       {double iconSize = 23.0}) {
     List<Widget> tiles = [];
 
-    double? totalReturn = widget.user
-        .getPositionDisplayValue(ops, displayValue: DisplayValue.totalReturn);
+    double? totalReturn = widget.user.getDisplayValueInstrumentPosition(ops,
+        displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getPositionDisplayValue(ops,
+    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPosition(
+        ops,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user
-        .getPositionDisplayValue(ops, displayValue: DisplayValue.todayReturn);
+    double? todayReturn = widget.user.getDisplayValueInstrumentPosition(ops,
+        displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getPositionDisplayValue(ops,
+    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPosition(
+        ops,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
         todayReturnPercent,
@@ -1606,6 +1663,162 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   : "-",
               style: const TextStyle(fontSize: 18)),
         ),
+        ListTile(
+          minTileHeight: 10,
+          title: const Text("Type"),
+          trailing: Text(
+              instrument.type == "stock"
+                  ? "Stock"
+                  : (instrument.type == "etp"
+                      ? "Exchange Traded Product"
+                      : instrument.type),
+              style: const TextStyle(fontSize: 16)),
+        ),
+        if (instrument.type == "etp" && instrument.etpDetails != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Inception"),
+            trailing: Text(
+                formatDate.format(
+                    DateTime.parse(instrument.etpDetails["inception_date"])),
+                style: const TextStyle(fontSize: 16)),
+          ),
+          if (instrument.etpDetails["is_inverse"] ||
+              instrument.etpDetails["is_leveraged"] ||
+              instrument.etpDetails["is_volatility_linked"] ||
+              instrument.etpDetails["is_crypto_futures"] ||
+              instrument.etpDetails["is_actively_managed"]) ...[
+            ListTile(
+              minTileHeight: 10,
+              title: const Text("Characteristics"),
+              trailing: Text(
+                  "${instrument.etpDetails["is_inverse"] ? "Inverse" : ""} ${instrument.etpDetails["is_leveraged"] ? "Leveraged" : ""} ${instrument.etpDetails["is_volatility_linked"] ? "Volatility linked" : ""} ${instrument.etpDetails["is_crypto_futures"] ? "Crypto futures" : ""} ${instrument.etpDetails["is_actively_managed"] ? "Actively managed" : ""}",
+                  style: const TextStyle(fontSize: 16)),
+            ),
+          ],
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Category"),
+            trailing: Text(instrument.etpDetails["category"],
+                style: const TextStyle(fontSize: 16)),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: Wrap(
+              children: [
+                const Text("Holdings"),
+                SizedBox(
+                  height: 24,
+                  child: IconButton(
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    icon: Icon(Icons.info_outline),
+                    onPressed: () {
+                      // var holdings = instrument.etpDetails["holdings"]
+                      //     .map((h) => "${h["name"]} ${h["weight"]}%")
+                      //     .toList();
+                      showDialog<String>(
+                          context: context,
+                          builder: (BuildContext context) => AlertDialog(
+                                // context: context,
+                                title: Text('${instrument.symbol} Holdings'),
+                                content: Table(
+                                  border: TableBorder.all(),
+                                  columnWidths: {
+                                    0: FlexColumnWidth(4),
+                                    1: FlexColumnWidth(1)
+                                  },
+                                  children: [
+                                    for (var holding in instrument
+                                        .etpDetails["holdings"]) ...[
+                                      TableRow(children: [
+                                        SelectableText(holding["name"]),
+                                        SelectableText(holding["weight"]),
+                                      ])
+                                    ]
+                                  ],
+                                ),
+                                // SelectableText(holdings.join("\n")),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ));
+                    },
+                  ),
+                ),
+              ],
+            ),
+            trailing: Wrap(children: [
+              Text(formatNumber.format(instrument.etpDetails["total_holdings"]),
+                  style: const TextStyle(fontSize: 18)),
+            ]),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Assets under Management"),
+            trailing: Text(
+                formatCompactCurrency
+                    .format(double.parse(instrument.etpDetails["aum"])),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Gross Expense Ratio"),
+            trailing: Text(
+                formatPercentage.format(double.tryParse(
+                        instrument.etpDetails["gross_expense_ratio"])! /
+                    100),
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("SEC Yield"),
+            trailing: Text(
+                instrument.etpDetails["sec_yield"] != null
+                    ? formatPercentage.format(
+                        double.tryParse(instrument.etpDetails["sec_yield"])! /
+                            100)
+                    : "-",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Month Performance"),
+            subtitle:
+                Text("1 year to ${instrument.etpDetails["month_end_date"]}"),
+            trailing: Text(
+                instrument.etpDetails["month_end_performance"]["market"]
+                            ["1Y"] !=
+                        null
+                    ? formatPercentage.format(double.tryParse(
+                            instrument.etpDetails["month_end_performance"]
+                                ["market"]["1Y"])! /
+                        100)
+                    : "-",
+                style: const TextStyle(fontSize: 18)),
+          ),
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Quarter Performance"),
+            subtitle: Text(
+                "Since inception to ${instrument.etpDetails["quarter_end_date"]}"),
+            trailing: Text(
+                instrument.etpDetails["quarter_end_performance"]["market"]
+                            ["since_inception"] !=
+                        null
+                    ? formatPercentage.format(double.tryParse(
+                            instrument.etpDetails["quarter_end_performance"]
+                                ["market"]["since_inception"])! /
+                        100)
+                    : "-",
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
         ListTile(
           minTileHeight: 10,
           title: const Text("Sector"),
@@ -2274,10 +2487,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           widget.user,
                           Provider.of<InstrumentStore>(context, listen: false),
                           [instrument.similarObj![index]["instrument_id"]]);
-                  similarInstruments[0].logoUrl = instrument.similarObj![index]
-                          ["logo_url"]
-                      .toString()
-                      .replaceAll("https:////", "https://");
+                  if (instrument.similarObj![index]["logo_url"] != null &&
+                      instrument.similarObj![index]["logo_url"] !=
+                          similarInstruments[0].logoUrl) {
+                    similarInstruments[0].logoUrl = instrument
+                        .similarObj![index]["logo_url"]
+                        .toString()
+                        .replaceAll("https:////", "https://");
+                    _firestoreService.upsertInstrument(similarInstruments[0]);
+                  }
                   if (context.mounted) {
                     Navigator.push(
                         context,
@@ -2911,7 +3129,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 */
             if (quoteObj != null) ...[
               Wrap(spacing: 10, children: [
-                Text(formatCurrency.format(quoteObj.lastTradePrice),
+                Text(
+                    formatCurrency.format(
+                        quoteObj.lastExtendedHoursTradePrice ??
+                            quoteObj.lastTradePrice),
                     //style: const TextStyle(fontSize: 15.0)
                     style: const TextStyle(
                         fontSize: 16.0)), // , color: Colors.white70

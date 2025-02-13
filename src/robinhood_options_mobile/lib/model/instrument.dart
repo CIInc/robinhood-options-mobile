@@ -1,7 +1,6 @@
 //import 'package:flutter/material.dart';
 
 //@immutable
-import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/fundamentals.dart';
@@ -167,9 +166,6 @@ class Instrument {
         url = json['url'],
         quote = json['quote'],
         fundamentals = json['fundamentals'],
-        fundamentalsObj = json['fundamentalsObj'] != null
-            ? Fundamentals.fromJson(json['fundamentalsObj'])
-            : null,
         splits = json['splits'],
         state = json['state'],
         market = json['market'],
@@ -229,6 +225,18 @@ class Instrument {
         dateUpdated = json['date_updated'] != null
             ? (json['date_updated'] as Timestamp).toDate()
             : null,
+        quoteObj =
+            json['quoteObj'] != null ? Quote.fromJson(json['quoteObj']) : null,
+        fundamentalsObj = json['fundamentalsObj'] != null
+            ? Fundamentals.fromJson(json['fundamentalsObj'])
+            : null,
+        instrumentHistoricalsObj = json['instrumentHistoricalsObj'] != null
+            ? InstrumentHistoricals.fromJson(json['instrumentHistoricalsObj'])
+            : null,
+        optionChainObj = json['optionChainObj'] != null
+            ? OptionChain.fromJson(json['optionChainObj'])
+            : null,
+        logoUrl = json["logo_url"],
         etpDetails = json['etp_details'];
   // json['etp_details'] != null
   //     ? jsonDecode(json['etp_details'])
@@ -290,7 +298,7 @@ class Instrument {
         // 'positionOrders': positionOrders?.map((e) => e.toJson()).toList(),
         // 'optionOrders': optionOrders?.map((e) => e.toJson()).toList(),
         // 'optionEvents': optionEvents?.map((e) => e.toJson()).toList(),
-        'logoUrl': logoUrl,
+        'logo_url': logoUrl,
         'etp_details': etpDetails
         // etpDetails != null
         //     ? Map<String, dynamic>.from(etpDetails as Map)

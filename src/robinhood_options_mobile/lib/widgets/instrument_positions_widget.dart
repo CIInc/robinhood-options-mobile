@@ -51,8 +51,8 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   @override
   Widget build(BuildContext context) {
     var sortedFilteredPositions = widget.filteredPositions.sortedBy<num>((i) =>
-        widget.user
-            .getPositionDisplayValue(i, displayValue: widget.user.sortOptions));
+        widget.user.getDisplayValueInstrumentPosition(i,
+            displayValue: widget.user.sortOptions));
     if (widget.user.sortDirection == SortDirection.desc) {
       sortedFilteredPositions = sortedFilteredPositions.reversed.toList();
     }
@@ -61,12 +61,13 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     var data = [];
     for (var position in sortedFilteredPositions) {
       if (position.instrumentObj != null) {
-        double? value = widget.user.getPositionDisplayValue(position);
+        double? value = widget.user.getDisplayValueInstrumentPosition(position);
         String? valueLabel = widget.user.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
         if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getPositionDisplayValue(position,
+          secondaryValue = widget.user.getDisplayValueInstrumentPosition(
+              position,
               displayValue: DisplayValue.totalCost);
           secondaryLabel = widget.user.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
@@ -163,7 +164,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
         widget.user.displayValue == DisplayValue.totalReturnPercent) {
       var positionDisplayValues = sortedFilteredPositions
-          .map((e) => widget.user.getPositionDisplayValue(e));
+          .map((e) => widget.user.getDisplayValueInstrumentPosition(e));
       var minimum = 0.0;
       var maximum = 0.0;
       if (positionDisplayValues.isNotEmpty) {
@@ -214,6 +215,10 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
       var position = sortedFilteredPositions.firstWhere(
           (element) => element.instrumentObj!.symbol == historical['domain']);
+      // TODO: This setState is not desirable but is needed to reset the selection
+      // or the bar will not be clickable until deselected or another selection is made.
+      // Find a better way to do this
+      setState(() {});
       Navigator.push(
           context,
           MaterialPageRoute(
@@ -228,32 +233,32 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   )));
     });
 
-    double? marketValue = widget.user.getPositionAggregateDisplayValue(
+    double? marketValue = widget.user.getDisplayValueInstrumentPositions(
         sortedFilteredPositions,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = widget.user
         .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = widget.user.getPositionAggregateDisplayValue(
+    double? totalReturn = widget.user.getDisplayValueInstrumentPositions(
         sortedFilteredPositions,
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getPositionAggregateDisplayValue(
+    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPositions(
         sortedFilteredPositions,
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getPositionAggregateDisplayValue(
+    double? todayReturn = widget.user.getDisplayValueInstrumentPositions(
         sortedFilteredPositions,
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getPositionAggregateDisplayValue(
+    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPositions(
         sortedFilteredPositions,
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
@@ -355,7 +360,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             child: SizedBox(
                 height: barChartSeriesList.first.data.length == 1
                     ? 75
-                    : barChartSeriesList.first.data.length * 25 + 75,
+                    : barChartSeriesList.first.data.length * 25 + 80,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                       10.0, 0, 10, 10), //EdgeInsets.zero
@@ -445,31 +450,34 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       BuildContext context, List<InstrumentPosition> positions, int index) {
     var instrument = positions[index].instrumentObj;
 
-    double value = widget.user.getPositionDisplayValue(positions[index]);
+    double value =
+        widget.user.getDisplayValueInstrumentPosition(positions[index]);
     String trailingText = widget.user.getDisplayText(value);
     Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
         : widget.user.getDisplayIcon(value);
 
-    double? totalReturn = widget.user.getPositionDisplayValue(positions[index],
+    double? totalReturn = widget.user.getDisplayValueInstrumentPosition(
+        positions[index],
         displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getPositionDisplayValue(
+    double? totalReturnPercent = widget.user.getDisplayValueInstrumentPosition(
         positions[index],
         displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getPositionDisplayValue(positions[index],
+    double? todayReturn = widget.user.getDisplayValueInstrumentPosition(
+        positions[index],
         displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getPositionDisplayValue(
+    double? todayReturnPercent = widget.user.getDisplayValueInstrumentPosition(
         positions[index],
         displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(

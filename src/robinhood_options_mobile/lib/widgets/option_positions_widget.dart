@@ -82,14 +82,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     List<dynamic> sortedGroupedOptionAggregatePositions =
         groupedOptionAggregatePositions.values.sortedBy<num>((i) => widget.user
-            .getAggregateDisplayValue(i,
+            .getDisplayValueOptionAggregatePosition(i,
                 displayValue: widget.user.sortOptions)!);
     if (widget.user.sortDirection == SortDirection.desc) {
       sortedGroupedOptionAggregatePositions =
           sortedGroupedOptionAggregatePositions.reversed.toList();
     }
 
-    double? marketValue = widget.user.getAggregateDisplayValue(
+    double? marketValue = widget.user.getDisplayValueOptionAggregatePosition(
         widget.filteredOptionPositions,
         displayValue: DisplayValue.marketValue);
     String? marketValueText = widget.user
@@ -155,14 +155,24 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         }
       }
       barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: BrokerageUser.displayValueText(widget.user.displayValue!),
-        colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-            Theme.of(context).colorScheme.primary),
-        data: data,
-        domainFn: (var d, _) => d['domain'],
-        measureFn: (var d, _) => d['measure'],
-        labelAccessorFn: (d, _) => d['label'],
-      ));
+          id: BrokerageUser.displayValueText(widget.user.displayValue!),
+          colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+              Theme.of(context).colorScheme.primary),
+          data: data,
+          domainFn: (var d, _) => d['domain'],
+          measureFn: (var d, _) => d['measure'],
+          labelAccessorFn: (d, _) => d['label'],
+          insideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+              fontSize: 14,
+              color: charts.ColorUtil.fromDartColor(
+                brightness == Brightness.light
+                    ? Theme.of(context).colorScheme.surface
+                    : Theme.of(context).colorScheme.inverseSurface,
+              )),
+          outsideLabelStyleAccessorFn: (datum, index) => charts.TextStyleSpec(
+              fontSize: 14,
+              color: charts.ColorUtil.fromDartColor(
+                  Theme.of(context).textTheme.labelSmall!.color!))));
       List<OptionAggregatePosition> oaps =
           groupedOptionAggregatePositions.values.first;
       Iterable<double> positionDisplayValues =
@@ -181,7 +191,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       }
     } else if (groupedOptionAggregatePositions.length > 1) {
       for (var position in sortedGroupedOptionAggregatePositions) {
-        double? value = widget.user.getAggregateDisplayValue(position);
+        double? value =
+            widget.user.getDisplayValueOptionAggregatePosition(position);
         String? trailingText;
         double? secondaryValue;
         String? secondaryLabel;
@@ -189,7 +200,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
           trailingText = widget.user.getDisplayText(value);
         }
         if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getAggregateDisplayValue(position,
+          secondaryValue = widget.user.getDisplayValueOptionAggregatePosition(
+              position,
               displayValue: DisplayValue.totalCost);
           secondaryLabel = widget.user.getDisplayText(secondaryValue!,
               displayValue: DisplayValue.totalCost);
@@ -259,8 +271,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         barChartSeriesList.add(seriesData);
       }
 
-      var positionDisplayValues = groupedOptionAggregatePositions.values
-          .map((e) => widget.user.getAggregateDisplayValue(e) ?? 0);
+      var positionDisplayValues = groupedOptionAggregatePositions.values.map(
+          (e) => widget.user.getDisplayValueOptionAggregatePosition(e) ?? 0);
       minimum = positionDisplayValues.reduce(math.min);
       if (minimum < 0) {
         minimum -= 0.05;
@@ -331,6 +343,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         ], onSelected: (dynamic historical) {
       debugPrint(historical
           .toString()); // {domain: QS, measure: -74.00000000000003, label: -$74.00}
+      // TODO: This setState is not desirable but is needed to reset the selection
+      // or the bar will not be clickable until deselected or another selection is made.
+      // Find a better way to do this
+      setState(() {});
       if (groupedOptionAggregatePositions.length == 1) {
         var op = widget.filteredOptionPositions.firstWhere((element) =>
             historical['domain'] ==
@@ -441,7 +457,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       barChartSeriesList.first.data.isNotEmpty) ...[
                 SizedBox(
                     height: barChartSeriesList.first.data.length * 25 +
-                        75, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
+                        80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(
                           10.0, 0, 10, 10), //EdgeInsets.zero
@@ -768,24 +784,28 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         displayValue: DisplayValue.marketValue);
         */
 
-    double? totalReturn = widget.user
-        .getAggregateDisplayValue(ops, displayValue: DisplayValue.totalReturn);
+    double? totalReturn = widget.user.getDisplayValueOptionAggregatePosition(
+        ops,
+        displayValue: DisplayValue.totalReturn);
     String? totalReturnText = widget.user
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getAggregateDisplayValue(ops,
-        displayValue: DisplayValue.totalReturnPercent);
+    double? totalReturnPercent = widget.user
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.totalReturnPercent);
     String? totalReturnPercentText = widget.user.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user
-        .getAggregateDisplayValue(ops, displayValue: DisplayValue.todayReturn);
+    double? todayReturn = widget.user.getDisplayValueOptionAggregatePosition(
+        ops,
+        displayValue: DisplayValue.todayReturn);
     String? todayReturnText = widget.user
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getAggregateDisplayValue(ops,
-        displayValue: DisplayValue.todayReturnPercent);
+    double? todayReturnPercent = widget.user
+        .getDisplayValueOptionAggregatePosition(ops,
+            displayValue: DisplayValue.todayReturnPercent);
     String? todayReturnPercentText = widget.user.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
@@ -1043,7 +1063,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     List<Widget> cards = [];
 
-    double? value = widget.user.getAggregateDisplayValue(ops);
+    double? value = widget.user.getDisplayValueOptionAggregatePosition(ops);
     String? trailingText;
     Icon? icon;
     if (value != null) {

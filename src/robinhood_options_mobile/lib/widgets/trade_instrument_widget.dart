@@ -113,7 +113,9 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             }
           },
         ));
-    priceCtl.text = widget.instrument!.quoteObj!.lastTradePrice.toString();
+    priceCtl.text = (widget.instrument!.quoteObj!.lastExtendedHoursTradePrice ??
+            widget.instrument!.quoteObj!.lastTradePrice)
+        .toString();
     return Scaffold(
         appBar: AppBar(
           title: Wrap(

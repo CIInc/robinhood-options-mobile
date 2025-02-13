@@ -153,106 +153,6 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                             color:
                                 Theme.of(context).appBarTheme.foregroundColor))
                   ]),
-              /*
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "Strategy",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text(
-                              "${optionOrder.openingStrategy} ${optionOrder.type}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "Contracts",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text(
-                              "${optionOrder.direction == "debit" ? "+" : "-"}${formatCompactNumber.format(optionOrder.quantity)}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Container(
-                        width: 10,
-                      ),
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: const [
-                            SizedBox(
-                              width: 70,
-                              child: Text(
-                                "State",
-                                style: TextStyle(fontSize: 10.0),
-                              ),
-                            )
-                          ]),
-                      Container(
-                        width: 5,
-                      ),
-                      SizedBox(
-                          width: 115,
-                          child: Text("${optionOrder.state}",
-                              style: const TextStyle(fontSize: 12.0),
-                              textAlign: TextAlign.right)),
-                      Container(
-                        width: 10,
-                      ),
-                    ],
-                  ),
-                  */
             ]))),
         pinned: true,
         /*
@@ -526,7 +426,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                           ? Colors.red
                           : Colors.grey))),
               Text(
-                formatCurrency.format(instrument.quoteObj!.lastTradePrice),
+                formatCurrency.format(
+                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                        instrument.quoteObj!.lastTradePrice),
                 style: const TextStyle(fontSize: 18.0),
                 textAlign: TextAlign.right,
               ),
