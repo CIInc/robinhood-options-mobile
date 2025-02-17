@@ -1,5 +1,5 @@
 extension EnumExtensions<T extends Enum> on T {
-  String getValue() {
+  String enumValue() {
     return toString().split('.').last;
   }
 }
@@ -7,7 +7,7 @@ extension EnumExtensions<T extends Enum> on T {
 extension StringExtensions<T extends Enum> on String {
   T parseEnum(List<T> values, T defaultValue) {
     final Map<String, T> statusMap = {
-      for (var status in values) status.getValue(): status
+      for (var status in values) status.enumValue(): status
     };
 
     if (statusMap.containsKey(this)) {

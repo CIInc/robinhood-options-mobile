@@ -136,7 +136,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     //var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Login"),
+          title: const Text("Link Brokerage Account"),
         ),
         body: FutureBuilder(
             future: authenticationResponse,

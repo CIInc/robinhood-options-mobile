@@ -82,10 +82,7 @@ Navigate to the project directory and run the flutter command.
 **Debugging Notes**
 - For error `Exception: Error running pod install`, run the following commands:
     ```bash
-    rm -rf ./ios/Pods
-    rm ./ios/Podfile.lock
-    flutter clean
-    flutter pub get
+    rm -rf ./ios/Pods;rm ./ios/Podfile.lock;flutter clean;flutter pub get
     flutter build ios
     # or flutter run
     ```
@@ -152,6 +149,24 @@ npm run lint -- --fix
 ```
 
 _You can do this automatically in VS Code by installing the eslint plugin._
+
+### Manage Firebase Auth Claims
+
+#### Change a user role to admin
+
+- Download Service Account private key from [https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk](https://console.firebase.google.com/project/realizealpha/settings/serviceaccounts/adminsdk)
+- Open `src/firebase-admin.js` Node.js file.
+    - Change the path of the downloaded file at the following line: `var serviceAccount = require("/Users/aymericgrassart/Downloads/realizealpha-firebase-adminsdk-uzw9z-7a694c5249.json");`
+    - Change the id of the user that you want to add the role to at the following line.
+        ```js
+        admin.credential.setCustomUserClaims('exKIqutDIgWmPs6FDXEWMHJYdam1', {
+            role: 'admin'
+        });
+        ```
+- Save and execute the Node.js script from the src folder.
+    ```bash
+    node firebase-admin.js
+    ```
 
 ## Publish
 

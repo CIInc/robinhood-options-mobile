@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
@@ -10,11 +11,13 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/logo_provider.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -42,14 +45,22 @@ import 'package:dynamic_color/dynamic_color.dart';
 /// See https://firebase.flutter.dev/docs/firestore/usage#emulator-usage
 bool shouldUseFirestoreEmulator = false;
 
+late final FirebaseApp app;
+late final FirebaseAuth auth;
+late UserRole userRole;
+
 void main() async {
   // Needed for Firebase
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase
-  await Firebase.initializeApp(
+  app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  auth = FirebaseAuth.instanceFor(app: app);
+  final authUtil = AuthUtil(auth);
+  userRole = await authUtil.userRole();
 
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
@@ -209,28 +220,24 @@ class MyApp extends StatelessWidget {
             theme: lightTheme,
             darkTheme: darkTheme,
             themeMode: ThemeMode.system,
-            /*
-            theme: ThemeData(
-              // This is the theme of your application.
-              //
-              // Try running your application with "flutter run". You'll see the
-              // application has a blue toolbar. Then, without quitting the app, try
-              // changing the primarySwatch below to Colors.green and then invoke
-              // "hot reload" (press "r" in the console where you ran "flutter run",
-              // or simply save your changes to "hot reload" in a Flutter IDE).
-              // Notice that the counter didn't reset back to zero; the application
-              // is not restarted.
-              primarySwatch: Colors.blue,
-            ), */
-            // home: OptionPositionsWidget()
             routes: {
               '/': (context) => NavigationStatefulWidget(
                   analytics: analytics, observer: observer),
+              // '/link': (context) => NavigationStatefulWidget(
+              //     analytics: analytics, observer: observer)
               /*
                   '/login-callback': (context) => SearchWidget(
                       new RobinhoodUser(null, null, null, null), null,
                       analytics: analytics, observer: observer)
                       */
+            },
+            onGenerateRoute: (settings) {
+              return null;
+              // final args = settings.arguments as Map<String, String>;
+              // /link?deep_link_id=https://realizealpha.firebaseapp.com/__/auth/callback?authType=verifyApp&recaptchaToken=03AFcWeA6KyGiTs1n0lQt0PyNjrOMK4qGOpSem0xif1zvWh1V4XkRqs9UKYJGHhm6_ohUE-5pHaEK-oQwSNKI72Efm8z9iXWEfOwCQriqEjZnahocnY34Et8--N6UK2z7Xhfje3yxHX7rYjXtcXkn7ROX-Z1vAmRuHdzEhqYN-4bG097MiGSZ5-mcmw0EtG-MTPjEytk3SCLENZ-xPaLGqRUpFUFYlCbE34wlCwK1S4xBOnAEwYv_i1Z1xAc3JvUdZGv_y4EnSLc7eHVNxES5RvSvIeV6DcdwYGMhVF2zgO0Tg348G5kFl5I2G1PInAdrS017RQlTbbVluA9uFc4llASHCxS63yf8i4oXF3XZUFrHOUeXEr4fyeJbprfHPXCaOEf_lpvNjcSRY0-SG6veDIYRdlDqL6mPB5phMoDBqqGa3xoGkQ6EgE45fugWFCzO3yQrG76Wel9Rg9NJXCqa9D3VwQ58doD7HUby2uNJzWh4gxtlX540CyVpzn-FftkB_gphIzep-NNd8MGnvEmKVkMY6_LRPolpf_usvglOsI5zLhtm8ToT-pQcpfKTCcePhZxj8uNVmTW5sdCUDHRbyqjDamavpZCfEQfTtEvmedt3cpjICv0ylJHruSo2CWrU7ZNvzH6eIYsE88Emkn_W0rxtI9ZqqfZvslYOu50P9TCCY1opWLIZIeLq65AmEcAwXwgxNqZS1PEr0LXNr8H-srNOg3-D1NadlF8i_QqwHilsZeBrdFE3WqFHqgjuf_PlgbLKLKar4gTgq9ZO5hMuGgK5iVDidcl97SXPb5-ar1BslBDEkx1NTLcYOfiUP3vgmlvsIwewP3-0yYf6ia3ub8bsMmdBt--N6cTW_LI0rgESX_Q-msVZBpiM97Lmo9tHNbvXgM_KRnRDjhUvEsyYvtE5gS7N77lPqwMzDvHWlIYOrXcPTFdRBqbfw1gpx7VjQJkWN8qZ2jKnx&eventId=WELJGKPZAM
+              // return MaterialPageRoute(
+              //     builder: (context) => NavigationStatefulWidget(
+              //         analytics: analytics, observer: observer));
             },
             //home: NavigationStatefulWidget(analytics: analytics, observer: observer),
           ));

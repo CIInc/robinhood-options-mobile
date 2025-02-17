@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
@@ -32,6 +33,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
@@ -48,17 +50,6 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatExpirationDate = DateFormat('yyyy-MM-dd');
-final formatCompactDate = DateFormat("MMMd");
-final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
-final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatCompactCurrency = NumberFormat.compactSimpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("###,###,##0.#####");
-final formatCompactNumber = NumberFormat.compact();
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -474,6 +465,31 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           )*/
                       ));
                 }),
+                actions: [
+                  IconButton(
+                      icon: auth.currentUser != null
+                          ? (auth.currentUser!.photoURL == null
+                              ? const Icon(Icons.account_circle)
+                              : CircleAvatar(
+                                  maxRadius: 12,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      auth.currentUser!.photoURL!
+                                      //  ?? Constants .placeholderImage, // No longer used
+                                      )))
+                          : const Icon(Icons.login),
+                      onPressed: () async {
+                        var response = await showProfile(
+                            context,
+                            auth,
+                            _firestoreService,
+                            widget.analytics,
+                            widget.observer,
+                            widget.user);
+                        if (response != null) {
+                          setState(() {});
+                        }
+                      }),
+                ],
                 // actions: <Widget>[
                 //   IconButton(
                 //     icon: const Icon(Icons.more_vert),

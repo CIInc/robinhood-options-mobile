@@ -36,7 +36,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 
 abstract class IBrokerageService {
@@ -176,7 +176,7 @@ abstract class IBrokerageService {
 
   Future<List<MidlandMoversItem>> getMovers(BrokerageUser user,
       {String direction = "up"});
-  Future<List<Instrument>> getListMovers(
+  Future<List<Instrument>> getTopMovers(
       BrokerageUser user, InstrumentStore instrumentStore);
   Future<List<Instrument>> getListMostPopular(
       BrokerageUser user, InstrumentStore instrumentStore);

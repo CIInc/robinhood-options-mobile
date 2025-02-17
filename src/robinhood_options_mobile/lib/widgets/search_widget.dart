@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -5,15 +6,18 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -39,6 +43,8 @@ class SearchWidget extends StatefulWidget {
 
 class _SearchWidgetState extends State<SearchWidget>
     with AutomaticKeepAliveClientMixin<SearchWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   String? query;
   TextEditingController? searchCtl;
   Future<dynamic>? futureSearch;
@@ -88,7 +94,7 @@ class _SearchWidgetState extends State<SearchWidget>
     futureMovers ??= widget.service.getMovers(widget.user, direction: "up");
     futureLosers ??= widget.service.getMovers(widget.user, direction: "down");
     futureListMovers ??=
-        widget.service.getListMovers(widget.user, instrumentStore!);
+        widget.service.getTopMovers(widget.user, instrumentStore!);
     // futureListMostPopular ??=
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
@@ -153,31 +159,55 @@ class _SearchWidgetState extends State<SearchWidget>
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   SliverAppBar(
-                    title: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                        child: TextField(
-                            controller: searchCtl,
-                            decoration: InputDecoration(
-                              hintText: 'Search by name or symbol',
-                              hintStyle: TextStyle(
+                      title: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                          child: TextField(
+                              controller: searchCtl,
+                              decoration: InputDecoration(
+                                hintText: 'Search by name or symbol',
+                                hintStyle: TextStyle(
+                                    fontSize: 18, color: Colors.grey.shade200
+                                    //fontStyle: FontStyle.italic,
+                                    ),
+                              ),
+                              style: TextStyle(
                                   fontSize: 18, color: Colors.grey.shade200
                                   //fontStyle: FontStyle.italic,
                                   ),
-                            ),
-                            style: TextStyle(
-                                fontSize: 18, color: Colors.grey.shade200
-                                //fontStyle: FontStyle.italic,
-                                ),
-                            onChanged: (text) {
-                              widget.analytics.logSearch(searchTerm: text);
-                              setState(() {
-                                futureSearch =
-                                    widget.service.search(widget.user, text);
-                              });
-                            })),
-                    //expandedHeight: 80.0,
-                    pinned: true,
-                  ),
+                              onChanged: (text) {
+                                widget.analytics.logSearch(searchTerm: text);
+                                setState(() {
+                                  futureSearch =
+                                      widget.service.search(widget.user, text);
+                                });
+                              })),
+                      //expandedHeight: 80.0,
+                      pinned: true,
+                      actions: [
+                        IconButton(
+                            icon: auth.currentUser != null
+                                ? (auth.currentUser!.photoURL == null
+                                    ? const Icon(Icons.account_circle)
+                                    : CircleAvatar(
+                                        maxRadius: 12,
+                                        backgroundImage: CachedNetworkImageProvider(
+                                            auth.currentUser!.photoURL!
+                                            //  ?? Constants .placeholderImage, // No longer used
+                                            )))
+                                : const Icon(Icons.login),
+                            onPressed: () async {
+                              var response = await showProfile(
+                                  context,
+                                  auth,
+                                  _firestoreService,
+                                  widget.analytics,
+                                  widget.observer,
+                                  widget.user);
+                              if (response != null) {
+                                setState(() {});
+                              }
+                            })
+                      ]),
                   if (done == false) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(

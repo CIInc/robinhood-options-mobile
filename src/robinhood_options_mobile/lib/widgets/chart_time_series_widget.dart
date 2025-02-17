@@ -7,8 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/src/text_style.dart' as style;
 import 'package:community_charts_flutter/src/text_element.dart' as element;
-
-final formatCurrency = NumberFormat.simpleCurrency();
+import 'package:robinhood_options_mobile/constants.dart';
 
 class TimeSeriesChart extends StatefulWidget {
   final List<charts.Series<dynamic, DateTime>> seriesList;

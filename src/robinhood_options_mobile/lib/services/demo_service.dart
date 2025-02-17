@@ -40,7 +40,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -858,7 +858,7 @@ class DemoService implements IBrokerageService {
   }
 
   @override
-  Future<List<Instrument>> getListMovers(
+  Future<List<Instrument>> getTopMovers(
       BrokerageUser user, InstrumentStore instrumentStore) async {
     dynamic json = jsonDecode(
         '{"canonical_examples":"","description":"","instruments":["https://api.robinhood.com/instruments/214ad08e-eac2-41d4-96f8-42f101654fcf/","https://api.robinhood.com/instruments/ca70b754-521f-465b-844c-8713a89442ae/","https://api.robinhood.com/instruments/91d2d5f4-c1f2-440a-a7c3-668c8aee598a/","https://api.robinhood.com/instruments/e271c5f9-cb24-4416-a9f3-890b41a8df22/","https://api.robinhood.com/instruments/b9e199d2-89a6-4165-b5ef-6683b9b9c362/","https://api.robinhood.com/instruments/d6f633b7-5e04-4be5-b890-ca299cd02b01/","https://api.robinhood.com/instruments/fe5048ee-a0ba-412c-87ea-0245a6c467b4/","https://api.robinhood.com/instruments/a9f3bc04-461b-4d1b-8b05-bead1fb884f5/","https://api.robinhood.com/instruments/12774641-3092-4ddd-8772-8b8e560662b7/","https://api.robinhood.com/instruments/55da1c15-28c0-47f4-ada6-e0fcb3f9cc9e/","https://api.robinhood.com/instruments/488f56bc-2114-42e7-8ce9-a9d96eaa42bb/","https://api.robinhood.com/instruments/7ce47dd7-8882-4568-a402-e7d419e6f14f/","https://api.robinhood.com/instruments/75dbe30d-3e01-42ac-b8cf-d7f41424647f/","https://api.robinhood.com/instruments/ef881176-5b87-400e-844c-e17d6743aad9/","https://api.robinhood.com/instruments/035b0a57-3ec1-4c92-bc85-35bd1d39f891/","https://api.robinhood.com/instruments/247cb361-f4db-4e5c-a106-ebe4f53b4a40/","https://api.robinhood.com/instruments/d557c71f-d688-4e00-94ee-91d3976bf1bc/","https://api.robinhood.com/instruments/25b81cfa-fe38-4f55-85b1-7b8e971fbedd/","https://api.robinhood.com/instruments/aa05aaee-cb28-4c85-902c-0366d20d35f8/","https://api.robinhood.com/instruments/bec86110-df56-4c8c-bfdc-08e0a01decaa/"],"name":"Top Movers","slug":"top-movers","membership_count":20}');

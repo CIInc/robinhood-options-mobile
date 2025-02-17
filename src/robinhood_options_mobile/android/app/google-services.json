@@ -12,7 +12,20 @@
           "package_name": "com.cidevelop.robinhood_options_mobile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "409452439863-mv2c3i1q6igoo9o7tr11k6c9ktufcr3b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cidevelop.robinhood_options_mobile",
+            "certificate_hash": "8e31ac7f8abaab11ade7853d35f4bebd9ee518ba"
+          }
+        },
+        {
+          "client_id": "409452439863-tdgrupu6hbncnppfkovb6jqq2a1idumi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBmSSNNKbDh7uvlOhlfW__xuiuZi0vkLqw"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "409452439863-tdgrupu6hbncnppfkovb6jqq2a1idumi.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "409452439863-00j7akbam2a150maathv8rug365dmjk2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.cidevelop.robinhoodOptionsMobile"
+              }
+            }
+          ]
         }
       }
     }

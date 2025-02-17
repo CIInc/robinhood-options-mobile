@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +12,10 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -21,17 +24,8 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.####");
-final formatCompactNumber = NumberFormat.compact();
-
-const greekValueFontSize = 16.0;
-const greekLabelFontSize = 10.0;
-const greekEgdeInset = 10.0;
 
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
@@ -68,6 +62,8 @@ class OptionPositionsWidget extends StatefulWidget {
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     var groupedOptionAggregatePositions = {};
@@ -365,16 +361,28 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       } else {
         var op = widget.filteredOptionPositions
             .firstWhere((element) => element.symbol == historical['domain']);
-        Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => InstrumentWidget(
-                      widget.user,
-                      widget.service,
-                      op.instrumentObj!,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                    )));
+        if (op.instrumentObj != null) {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(
+                        widget.user,
+                        widget.service,
+                        op.instrumentObj!,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                      )));
+        } else {
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                    "${op.symbol} ${formatExpirationDate.format(op.optionInstrument!.expirationDate!)} ${op.legs[0].optionType} option is not available."),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+        }
       }
     });
 
@@ -530,6 +538,19 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   pinned: true,
                   actions: [
                     IconButton(
+                        icon: auth.currentUser != null
+                            ? CircleAvatar(
+                                maxRadius: 15, // 12,
+                                backgroundImage: CachedNetworkImageProvider(
+                                  auth.currentUser!.photoURL ??
+                                      Constants.placeholderImage,
+                                ))
+                            : const Icon(Icons.login),
+                        onPressed: () {
+                          showProfile(context, auth, _firestoreService,
+                              widget.analytics, widget.observer, widget.user);
+                        }),
+                    IconButton(
                         icon: Icon(Icons.more_vert),
                         onPressed: () async {
                           await showModalBottomSheet<void>(
@@ -671,7 +692,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             widget.user.displayValue == DisplayValue.lastPrice ||
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value);
+        : widget.user.getDisplayIcon(value, size: 31);
 
     return Card(
         child: Column(
@@ -1072,7 +1093,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               widget.user.displayValue == DisplayValue.lastPrice ||
               widget.user.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value);
+          : widget.user.getDisplayIcon(value, size: 31);
     }
 
     double? deltaAvg,
@@ -1206,7 +1227,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               widget.user.displayValue == DisplayValue.lastPrice ||
               widget.user.displayValue == DisplayValue.marketValue)
           ? null
-          : widget.user.getDisplayIcon(value);
+          : widget.user.getDisplayIcon(value, size: 31);
 
       cards.add(
           //Card(child:

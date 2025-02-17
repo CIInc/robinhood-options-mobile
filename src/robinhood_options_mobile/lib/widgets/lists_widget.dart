@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -5,16 +6,19 @@ import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 enum SortType { alphabetical, change }
 
@@ -42,6 +46,8 @@ class ListsWidget extends StatefulWidget {
 
 class _ListsWidgetState extends State<ListsWidget>
     with AutomaticKeepAliveClientMixin<ListsWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   Stream<List<Watchlist>>? watchlistStream;
   List<Watchlist>? watchlists;
   SortType? _sortType = SortType.alphabetical;
@@ -255,6 +261,29 @@ class _ListsWidgetState extends State<ListsWidget>
               )
             ]),
         actions: [
+          IconButton(
+              icon: auth.currentUser != null
+                  ? (auth.currentUser!.photoURL == null
+                      ? const Icon(Icons.account_circle)
+                      : CircleAvatar(
+                          maxRadius: 12,
+                          backgroundImage: CachedNetworkImageProvider(
+                              auth.currentUser!.photoURL!
+                              //  ?? Constants .placeholderImage, // No longer used
+                              )))
+                  : const Icon(Icons.login),
+              onPressed: () async {
+                var response = await showProfile(
+                    context,
+                    auth,
+                    _firestoreService,
+                    widget.analytics,
+                    widget.observer,
+                    widget.user);
+                if (response != null) {
+                  setState(() {});
+                }
+              }),
           IconButton(
               icon: const Icon(Icons.sort),
               onPressed: () {

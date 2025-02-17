@@ -1,17 +1,11 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
-import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
-
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatCompactDate = DateFormat("MMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatCompactNumber = NumberFormat.compact();
 
 class OptionOrdersWidget extends StatefulWidget {
   const OptionOrdersWidget(

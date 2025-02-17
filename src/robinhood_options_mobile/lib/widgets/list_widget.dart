@@ -1,8 +1,8 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
@@ -16,9 +16,6 @@ import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
-
-final formatCompactNumber = NumberFormat.compact();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListWidget extends StatefulWidget {
   const ListWidget(

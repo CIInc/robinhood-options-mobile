@@ -1,5 +1,4 @@
-import 'dart:convert';
-
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -11,8 +10,10 @@ import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -21,6 +22,7 @@ import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -48,6 +50,8 @@ class InstrumentPositionsWidget extends StatefulWidget {
 }
 
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     var sortedFilteredPositions = widget.filteredPositions.sortedBy<num>((i) =>
@@ -272,6 +276,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
       SliverToBoxAdapter(
           child: Column(children: [
         ListTile(
+          // leading: Icon(Icons.payment),
           title: Wrap(children: [
             const Text(
               "Stocks & ETFs",
@@ -410,6 +415,19 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                     pinned: true,
                     actions: [
                       IconButton(
+                          icon: auth.currentUser != null
+                              ? CircleAvatar(
+                                  maxRadius: 15, // 12,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                    auth.currentUser!.photoURL ??
+                                        Constants.placeholderImage,
+                                  ))
+                              : const Icon(Icons.login),
+                          onPressed: () {
+                            showProfile(context, auth, _firestoreService,
+                                widget.analytics, widget.observer, widget.user);
+                          }),
+                      IconButton(
                           icon: Icon(Icons.more_vert),
                           onPressed: () async {
                             await showModalBottomSheet<void>(
@@ -429,8 +447,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                                         stockSymbolFilters: null,
                                         cryptoFilters: null,
                                         onSettingsChanged: (value) {
+                                      // debugPrint(
+                                      //     "Settings changed ${jsonEncode(value)}");
                                       debugPrint(
-                                          "Settings changed ${jsonEncode(value)}");
+                                          "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
+                                      setState(() {});
                                     }));
                             // Navigator.pop(context);
                           })
@@ -456,7 +477,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value);
+        : widget.user.getDisplayIcon(value, size: 31);
 
     double? totalReturn = widget.user.getDisplayValueInstrumentPosition(
         positions[index],

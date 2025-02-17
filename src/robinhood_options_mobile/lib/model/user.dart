@@ -1,54 +1,81 @@
-class UserInfo {
-  // Robinhood
-  final String url;
-  final String id;
-  final String idInfo;
-  final String username;
-  final String? email;
-  final String? firstName;
-  final String? lastName;
-  final String? locality;
-  final String? profileName;
-  final DateTime? createdAt;
-  // TD Ameritrade
-  final DateTime? lastLoginTime;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/device.dart';
 
-  UserInfo(
-      {required this.url,
-      required this.id,
-      required this.idInfo,
-      required this.username,
+class User {
+  String? name;
+  String? nameLower;
+  String? email;
+  String? phoneNumber;
+  String? photoUrl;
+  String? providerId;
+  String? location;
+  UserRole role;
+  List<Device> devices;
+  DateTime dateCreated;
+  DateTime? dateUpdated;
+  List<BrokerageUser> brokerageUsers = [];
+
+  User(
+      {this.name,
+      this.nameLower,
       this.email,
-      this.firstName,
-      this.lastName,
-      this.locality,
-      this.profileName,
-      this.createdAt,
-      this.lastLoginTime});
+      this.phoneNumber,
+      this.photoUrl,
+      this.providerId,
+      this.location,
+      this.role = UserRole.user,
+      required this.devices,
+      required this.dateCreated,
+      this.dateUpdated,
+      required this.brokerageUsers});
 
-  UserInfo.fromJson(dynamic json)
-      : url = json['url'],
-        id = json['id'],
-        idInfo = json['id_info'],
-        username = json['username'],
-        email = json['email'],
-        firstName = json['first_name'],
-        lastName = json['last_name'],
-        locality = json['origin']['locality'],
-        profileName = json['profile_name'],
-        createdAt = DateTime.tryParse(json['created_at']),
-        lastLoginTime = null;
+  User.fromJson(Map<String, Object?> json)
+      : this(
+            name: json['name'] as String?,
+            nameLower: json['nameLower'] as String?,
+            email: json['email'] as String?,
+            phoneNumber: json['phoneNumber'] as String?,
+            photoUrl: json['photoUrl'] as String?,
+            providerId: json['providerId'] as String?,
+            location: json['location'] as String?,
+            role: (json['role'] != null ? json['role'] as String : '')
+                .parseEnum(UserRole.values, UserRole.user) as UserRole,
+            devices: json.keys.contains('devices')
+                ? Device.fromJsonArray(json['devices'])
+                : [],
+            dateCreated: (json['dateCreated'] as Timestamp).toDate(),
+            dateUpdated: json['dateUpdated'] != null
+                ? (json['dateUpdated'] as Timestamp).toDate()
+                : null,
+            brokerageUsers: json['brokerageUsers'] != null
+                ? BrokerageUser.fromJsonArray(json['brokerageUsers'])
+                : []);
 
-  UserInfo.fromSchwab(dynamic json)
-      : url = '',
-        id = json['accounts'][0]['accountNumber'],
-        idInfo = '',
-        username = json['accounts'][0]['nickName'],
-        email = '',
-        firstName = '',
-        lastName = '',
-        locality = null,
-        profileName = json['accounts'][0]['nickName'],
-        createdAt = null,
-        lastLoginTime = null; // DateTime.tryParse(json['lastLoginTime']);
+  Map<String, Object?> toJson() {
+    return {
+      'name': name,
+      'nameLower': nameLower,
+      'email': email,
+      'phoneNumber': phoneNumber,
+      'photoUrl': photoUrl,
+      'providerId': providerId,
+      'location': location,
+      'role': role.enumValue(),
+      'devices': devices.map((e) => e.toJson()).toList(),
+      'dateCreated': dateCreated,
+      'dateUpdated': dateUpdated,
+      'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList()
+    };
+  }
+
+  static List<User> fromJsonArray(dynamic json) {
+    List<User> list = [];
+    for (int i = 0; i < json.length; i++) {
+      list.add(User.fromJson(json[i]));
+    }
+    return list;
+  }
 }

@@ -11,6 +11,7 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart';
 // import 'dart:math' as math;
 
 import 'package:robinhood_options_mobile/model/account.dart';
@@ -32,7 +33,8 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
@@ -43,6 +45,7 @@ import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
@@ -423,25 +426,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       child: CustomScrollView(
           // physics: ClampingScrollPhysics(),
           slivers: [
-            Consumer4<PortfolioStore, InstrumentPositionStore,
-                OptionPositionStore, ForexHoldingStore>(
-              builder: (context, portfolioStore, stockPositionStore,
-                  optionPositionStore, forexHoldingStore, child) {
-                return buildSliverAppBar(
-                    //portfolios,
-                    widget.userInfo,
-                    account,
-                    portfolioStore,
-                    stockPositionStore,
-                    optionPositionStore,
-                    forexHoldingStore);
-                /*
-                return SliverToBoxAdapter(
-                    child: ShrinkWrappingViewport(
-                        offset: ViewportOffset.zero(), slivers: []));
-                        */
+            ExpandedSliverAppBar(
+              title: Text(widget.title!),
+              auth: auth,
+              firestoreService: FirestoreService(),
+              automaticallyImplyLeading: true,
+              onChange: () {
+                setState(() {});
               },
+              analytics: widget.analytics,
+              observer: widget.observer,
+              user: widget.user,
             ),
+
+            // Consumer4<PortfolioStore, InstrumentPositionStore,
+            //     OptionPositionStore, ForexHoldingStore>(
+            //   builder: (context, portfolioStore, stockPositionStore,
+            //       optionPositionStore, forexHoldingStore, child) {
+            //     return buildSliverAppBar(
+            //         //portfolios,
+            //         widget.userInfo,
+            //         account,
+            //         portfolioStore,
+            //         stockPositionStore,
+            //         optionPositionStore,
+            //         forexHoldingStore);
+            //     /*
+            //     return SliverToBoxAdapter(
+            //         child: ShrinkWrappingViewport(
+            //             offset: ViewportOffset.zero(), slivers: []));
+            //             */
+            //   },
+            // ),
             //userWidget(userInfo)
             if (welcomeWidget != null) ...[
               const SliverToBoxAdapter(
@@ -472,6 +488,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
               return SliverToBoxAdapter(
                   child: ListTile(
+                // leading: Icon(Icons.account_balance),
                 title: const Text(
                   "Portfolio",
                   style: TextStyle(fontSize: 19.0),
@@ -810,7 +827,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           changePercentInPeriod,
                           displayValue: DisplayValue.totalReturnPercent);
                       Icon todayIcon = widget.user
-                          .getDisplayIcon(changeInPeriod, size: 27.0);
+                          .getDisplayIcon(changeInPeriod, size: 26.0);
 
                       //return Text(value.selection!.beginsAt.toString());
                       return SizedBox(
@@ -1818,117 +1835,117 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     );
   }
 
-  SingleChildScrollView buildDetailScrollView(
-      Icon todayIcon,
-      String todayReturnText,
-      String todayReturnPercentText,
-      Icon totalIcon,
-      String totalReturnText,
-      String totalReturnPercentText) {
-    return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              /*
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Text(marketValueText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                            //Container(height: 5),
-                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                            const Text("Market Value",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    */
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Wrap(spacing: 8, children: [
-                    todayIcon,
-                    Text(todayReturnText,
-                        style: const TextStyle(fontSize: summaryValueFontSize))
-                  ]),
-                  /*
-                                          Text(todayReturnText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
-                                                      */
-                  /*
-                                  Text(todayReturnPercentText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize)),
-                                          */
-                  const Text("Return Today",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(todayReturnPercentText,
-                      style: const TextStyle(fontSize: summaryValueFontSize)),
-                  const Text("Return Today %",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Wrap(spacing: 8, children: [
-                    totalIcon,
-                    Text(totalReturnText,
-                        style: const TextStyle(fontSize: summaryValueFontSize))
-                  ]),
-                  /*
-                                          Text(totalReturnText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
-                                                      */
-                  /*
-                                  Text(totalReturnPercentText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize)),
-                                          */
-                  //Container(height: 5),
-                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                  const Text("Total Return",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(totalReturnPercentText,
-                      style: const TextStyle(fontSize: summaryValueFontSize)),
+  // SingleChildScrollView buildDetailScrollView(
+  //     Icon todayIcon,
+  //     String todayReturnText,
+  //     String todayReturnPercentText,
+  //     Icon totalIcon,
+  //     String totalReturnText,
+  //     String totalReturnPercentText) {
+  //   return SingleChildScrollView(
+  //       scrollDirection: Axis.horizontal,
+  //       child: Padding(
+  //           padding: const EdgeInsets.symmetric(horizontal: 5),
+  //           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  //             /*
+  //                                   Padding(
+  //                                     padding: const EdgeInsets.all(
+  //                                         summaryEgdeInset), //.symmetric(horizontal: 6),
+  //                                     child: Column(
+  //                                         mainAxisSize: MainAxisSize.min,
+  //                                         children: <Widget>[
+  //                                           Text(marketValueText,
+  //                                               style: const TextStyle(
+  //                                                   fontSize:
+  //                                                       summaryValueFontSize)),
+  //                                           //Container(height: 5),
+  //                                           //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+  //                                           const Text("Market Value",
+  //                                               style: TextStyle(
+  //                                                   fontSize:
+  //                                                       summaryLabelFontSize)),
+  //                                         ]),
+  //                                   ),
+  //                                   */
+  //             Padding(
+  //               padding: const EdgeInsets.all(
+  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
+  //               child:
+  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //                 Wrap(spacing: 8, children: [
+  //                   todayIcon,
+  //                   Text(todayReturnText,
+  //                       style: const TextStyle(fontSize: summaryValueFontSize))
+  //                 ]),
+  //                 /*
+  //                                         Text(todayReturnText,
+  //                                             style: const TextStyle(
+  //                                                 fontSize:
+  //                                                     summaryValueFontSize)),
+  //                                                     */
+  //                 /*
+  //                                 Text(todayReturnPercentText,
+  //                                     style: const TextStyle(
+  //                                         fontSize: summaryValueFontSize)),
+  //                                         */
+  //                 const Text("Return Today",
+  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
+  //               ]),
+  //             ),
+  //             Padding(
+  //               padding: const EdgeInsets.all(
+  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
+  //               child:
+  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //                 Text(todayReturnPercentText,
+  //                     style: const TextStyle(fontSize: summaryValueFontSize)),
+  //                 const Text("Return Today %",
+  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
+  //               ]),
+  //             ),
+  //             Padding(
+  //               padding: const EdgeInsets.all(
+  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
+  //               child:
+  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //                 Wrap(spacing: 8, children: [
+  //                   totalIcon,
+  //                   Text(totalReturnText,
+  //                       style: const TextStyle(fontSize: summaryValueFontSize))
+  //                 ]),
+  //                 /*
+  //                                         Text(totalReturnText,
+  //                                             style: const TextStyle(
+  //                                                 fontSize:
+  //                                                     summaryValueFontSize)),
+  //                                                     */
+  //                 /*
+  //                                 Text(totalReturnPercentText,
+  //                                     style: const TextStyle(
+  //                                         fontSize: summaryValueFontSize)),
+  //                                         */
+  //                 //Container(height: 5),
+  //                 //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+  //                 const Text("Total Return",
+  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
+  //               ]),
+  //             ),
+  //             Padding(
+  //               padding: const EdgeInsets.all(
+  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
+  //               child:
+  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+  //                 Text(totalReturnPercentText,
+  //                     style: const TextStyle(fontSize: summaryValueFontSize)),
 
-                  //Container(height: 5),
-                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                  const Text("Total Return %",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
-              ),
-            ])));
-  }
+  //                 //Container(height: 5),
+  //                 //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+  //                 const Text("Total Return %",
+  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
+  //               ]),
+  //             ),
+  //           ])));
+  // }
 
   SliverAppBar buildSliverAppBar(
       //List<Portfolio>? portfolios,

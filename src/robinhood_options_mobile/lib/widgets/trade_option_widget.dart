@@ -1,7 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument.dart';
@@ -9,10 +9,6 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
-
-final formatDate = DateFormat("yMMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class TradeOptionWidget extends StatefulWidget {
   const TradeOptionWidget(this.user, this.service,

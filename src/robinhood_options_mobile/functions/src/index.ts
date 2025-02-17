@@ -9,7 +9,13 @@
 
 // import {onRequest} from "firebase-functions/v2/https";
 // import * as logger from "firebase-functions/logger";
-import * as plaidFunctions from "./plaid";
+import { initializeApp } from "firebase-admin/app";
+
+initializeApp();
+
+import * as plaidfunc from "./plaid";
+import * as authfunc from "./auth";
+import * as messagingfunc from "./messaging";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -19,10 +25,12 @@ import * as plaidFunctions from "./plaid";
 //   response.send("Hello from Firebase!");
 // });
 
-export const createPlaidLinkToken = plaidFunctions.createPlaidLinkToken;
+export const createPlaidLinkToken = plaidfunc.createPlaidLinkToken;
 export const exchangePublicTokenForAccessToken =
-  plaidFunctions.exchangePublicTokenForAccessToken;
+  plaidfunc.exchangePublicTokenForAccessToken;
 export const getInvestmentsHoldings =
-  plaidFunctions.getInvestmentsHoldings;
+  plaidfunc.getInvestmentsHoldings;
 export const getInvestmentsTransactions =
-  plaidFunctions.getInvestmentsTransactions;
+  plaidfunc.getInvestmentsTransactions;
+export const changeUserRole = authfunc.changeUserRole;
+export const sendEachForMulticast = messagingfunc.sendEachForMulticast;

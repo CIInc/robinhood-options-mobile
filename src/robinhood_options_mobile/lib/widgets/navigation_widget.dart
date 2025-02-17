@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -15,7 +16,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -27,9 +28,11 @@ import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
-import 'package:robinhood_options_mobile/widgets/user_widget.dart';
+import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:app_links/app_links.dart';
+import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -134,7 +137,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             label: 'Login',
             child: ElevatedButton.icon(
               label: const Text(
-                "Login",
+                "Link brokerage account",
                 style: TextStyle(fontSize: 20.0),
               ),
               icon: const Icon(Icons.login),
@@ -164,6 +167,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     linkStreamSubscription = appLinks.uriLinkStream.listen((Uri? link) async {
       // Parse the link and warn the user, if it is not correct
       debugPrint('newLink:$link');
+
+      // Ignore Firebase auth phone number login with SMS code flow that redirects the app to this url:
+      // app-1-409452439863-ios-379ee6f6ee12a33e4152b2://firebaseauth/link?deep_link_id=https%3A%2F%2Frealizealpha.firebaseapp.com%2F__%2Fauth%2Fcallback%3FauthType%3DverifyApp%26recaptchaToken%3D03AFcWeA7YE8lhvy1JVIuA2_sxx9mrdLrChIKtdTKI5xlZScaUKxNV8p9pK08BK5vqkFkzQYVrMLtjfxu0JWN5NxHKImCtO-6cPwzpXCRbRW2-hwQZghBzDxEIyz5XvtGPw6-MivosGq1wH3VTGgmnrzrnLf1Def3MpjY8PGIcqJVFVbwbXkX5JztLMKIHn_-UWwkMR4FYtMS6xi9aYnhHkCLJ9B9SXlRNFI9voyXZtb8_G8sceA5saO9Q5rG1r5071NpLvHl39vwx3cjxa0TbrY0agwkDBlQrtr6TflusoKDgyNq9Gc_a1Xh-ogcLb1V9tHpeKeB-TDHENeH0mXX6I_UFXSF5-8Svx_FB2UjVquvZXzQBbY87jZsbzL2g-ZJ9KF4ychYAQ3iMiG5BYGJyRiT6MDOa4oSRi3UO00fxFYnjKfTzu1fHivZfFsXMtKmtHpgTrf0raFKYu1lIBZPRAXNXhSA0qn1e6s3KoWzeqr9D71ADW_clUt7MgyLdkuQr7bcvHy0HPvno_b1o5xz7MTly-PrIAPYONKM3JsFoG0y4UVSGLPHPDdqgnJfwDpqKkPkWOemB1vst7uHKsN-7SdaJef43O_f2UnP3SbeoFvnhpJEzVaOpDB0WIqU2WdKXoIIhY647rUrbybJvVPrLLe2xjENDFNXDZnSluj3qt59zOPSemwoPup7_8g2APCFX7gqY2IJjIFmAew3pgufhpJy_ZDHPKYI9ksvhIZmvXbwjWZwkxSD2wQ7p-NqL_KaIx3uMyKSowqDB4pxKGSpT13ovBrIMitfY_erF9kF1zyGZl5QDlTBBO6xMd1guoGFG4CieYY2V-uHXWVC1ZnmJkFGkXtK9ikGuQ7TmvnFenRP59Ut-X-FvcEvjdUCEj2ZtTihOomND4HuZJl4bCKVmCYUPZt6WFc8ZSUdwIXwmUcQnmjmDSOVrc_GJCuxiE8ow6TQ3c4-GfgPv%26eventId%3DYREIQYUAKK
+      if (link != null && link.host == 'firebaseauth') {
+        return;
+      }
 
       String code = link!.queryParameters['code'].toString();
       debugPrint('code:$code');
@@ -355,7 +364,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             observer: widget.observer,
             navigatorKey: navigatorKeys[3]),
       ],
-      UserWidget(userStore.currentUser!, userInfo!,
+      UserInfoWidget(userStore.currentUser!, userInfo!,
           accounts?.first, //accounts != null ? accounts!.first : null,
           analytics: widget.analytics,
           observer: widget.observer,
@@ -463,7 +472,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 : '',
           )),
           title: Text(
-              '${user.userName != null ? user.userName! : ''} (${user.source.getValue().capitalize()})'),
+              '${user.userName != null ? user.userName! : ''} (${user.source.enumValue().capitalize()})'),
           //selected: userInfo!.profileName == userInfo!.profileName,
           onTap: () async {
             drawerProvider.toggleDrawer();
@@ -635,6 +644,34 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           _onPageChanged(4);
                         },
                       ),
+                      ListTile(
+                        leading: const Icon(Icons.settings),
+                        title: const Text("Settings"),
+                        selected: false,
+                        onTap: () {
+                          Navigator.pop(context); // close the drawer
+                          showModalBottomSheet<void>(
+                              context: context,
+                              showDragHandle: true,
+                              //isScrollControlled: true,
+                              //useRootNavigator: true,
+                              //constraints: const BoxConstraints(maxHeight: 200),
+                              builder: (_) => MoreMenuBottomSheet(
+                                  userStore.currentUser!,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  showStockSettings: true,
+                                  showOptionsSettings: true,
+                                  showCryptoSettings: true,
+                                  chainSymbols: null,
+                                  positionSymbols: null,
+                                  cryptoSymbols: null,
+                                  optionSymbolFilters: null,
+                                  stockSymbolFilters: null,
+                                  cryptoFilters: null,
+                                  onSettingsChanged: (dynamic settings) {}));
+                        },
+                      ),
                     ],
                     // const Divider(
                     //   height: 10,
@@ -677,6 +714,30 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         _logout(userStore);
                       },
                     ),
+                    if (userRole == UserRole.admin) ...[
+                      const Divider(
+                        height: 10,
+                      ),
+                      ListTile(
+                          leading: const Icon(Icons.person_search),
+                          title: const Text("Users"),
+                          //selected: false,
+                          onTap: () {
+                            Navigator.pop(context); // close the drawer
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (BuildContext context) =>
+                                        UsersWidget(auth,
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                            brokerageUser:
+                                                userStore.currentUser!)));
+                          }),
+                      // const Divider(
+                      //   height: 10,
+                      // ),
+                    ],
                   ])
                 ],
         ),

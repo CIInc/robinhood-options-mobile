@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
@@ -7,8 +8,10 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
@@ -16,21 +19,15 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
-
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatMonthDate = DateFormat("yMMM");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.##");
-final formatCompactNumber = NumberFormat.compact();
 
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
@@ -77,6 +74,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
 }
 
 class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
   List<String> transactionFilters = <String>[
     'interest',
     'dividend',
@@ -262,31 +260,33 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           profitAndLoss = position.gainLoss + totalIncome;
           adjustedCost =
               (position.totalCost - totalIncome) / position.quantity!;
+          yieldOnCost =
+              double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
         yield =
             // totalDividends / double.parse(transaction!["position"])
             double.parse(transaction!["rate"]) /
                 (instrument.quoteObj!.lastExtendedHoursTradePrice ??
                     instrument.quoteObj!.lastTradePrice!);
-        yieldOnCost =
-            double.parse(transaction!["rate"]) / position!.averageBuyPrice!;
         var currDate = DateTime.parse(transaction["payable_date"]);
         if (prevTransaction != null) {
           var prevDate = DateTime.parse(prevTransaction["payable_date"]);
           const errorMargin = 2;
+          int multiplier = 1;
           if (currDate.difference(prevDate).inDays <= 7 + errorMargin) {
-            yield = yield * 52;
-            yieldOnCost = yieldOnCost * 52;
+            multiplier = 52;
             dividendInterval = 'weekly';
           } else if (currDate.difference(prevDate).inDays <= 31 + errorMargin) {
-            yield = yield * 12;
-            yieldOnCost = yieldOnCost * 12;
+            multiplier = 12;
             dividendInterval = 'monthly';
           } else if (currDate.difference(prevDate).inDays <=
               31 * 3 + errorMargin) {
-            yield = yield * 4;
-            yieldOnCost = yieldOnCost * 4;
+            multiplier = 4;
             dividendInterval = 'quarterly';
+          }
+          yield = yield * multiplier;
+          if (yieldOnCost != null) {
+            yieldOnCost = yieldOnCost * multiplier;
           }
         }
       }
@@ -493,6 +493,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       SliverToBoxAdapter(
           child: Column(children: [
         ListTile(
+          // leading: Icon(Icons.payments),
           title: Wrap(children: [
             Text(
               "Income",
@@ -646,9 +647,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                     // ),
                     if (profitAndLoss! != 0) ...[
                       // widget.user.getDisplayIcon(profitAndLoss)
-                      Icon(profitAndLoss > 0 ? Icons.arrow_upward : Icons.south,
+                      Icon(
+                          profitAndLoss > 0
+                              ? Icons.arrow_drop_up
+                              : Icons.arrow_drop_down,
                           color: profitAndLoss > 0 ? Colors.green : Colors.red,
-                          size: 26),
+                          size: 28),
                     ],
                     Text(
                       formatCurrency.format(profitAndLoss),
@@ -1260,10 +1264,21 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       MaterialPageRoute(
           builder: (context) => Material(
                   child: CustomScrollView(slivers: [
-                SliverAppBar(
-                  title: Text("Income"),
-                  pinned: true,
-                ),
+                SliverAppBar(title: Text("Income"), pinned: true, actions: [
+                  IconButton(
+                      icon: auth.currentUser != null
+                          ? CircleAvatar(
+                              maxRadius: 15, // 12,
+                              backgroundImage: CachedNetworkImageProvider(
+                                auth.currentUser!.photoURL ??
+                                    Constants.placeholderImage,
+                              ))
+                          : const Icon(Icons.login),
+                      onPressed: () {
+                        showProfile(context, auth, _firestoreService,
+                            widget.analytics, widget.observer, widget.user);
+                      })
+                ]),
                 // SliverPersistentHeader(
                 //   pinned: true,
                 //   // floating: true,

@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -10,13 +11,16 @@ import 'package:intl/intl.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:robinhood_options_mobile/model/option_event.dart';
@@ -71,6 +75,8 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage>
     with AutomaticKeepAliveClientMixin<HistoryPage> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   Stream<List<InstrumentOrder>>? positionOrderStream;
   List<InstrumentOrder>? positionOrders;
   List<InstrumentOrder>? filteredPositionOrders;
@@ -479,6 +485,29 @@ class _HistoryPageState extends State<HistoryPage>
                         const TextStyle(fontSize: 16.0, color: Colors.white70)),
               ]),
           actions: [
+            IconButton(
+                icon: auth.currentUser != null
+                    ? (auth.currentUser!.photoURL == null
+                        ? const Icon(Icons.account_circle)
+                        : CircleAvatar(
+                            maxRadius: 12,
+                            backgroundImage: CachedNetworkImageProvider(
+                                auth.currentUser!.photoURL!
+                                //  ?? Constants .placeholderImage, // No longer used
+                                )))
+                    : const Icon(Icons.login),
+                onPressed: () async {
+                  var response = await showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.user);
+                  if (response != null) {
+                    setState(() {});
+                  }
+                }),
             IconButton(
                 icon: const Icon(Icons.more_vert_sharp),
                 onPressed: () {

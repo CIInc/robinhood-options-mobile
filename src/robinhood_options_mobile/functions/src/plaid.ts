@@ -1,14 +1,11 @@
 // import * as functions from 'firebase-functions';
 import * as https from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
 // import * as plaid from 'plaid';
 
 import {
   Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode,
 } from "plaid";
-
-admin.initializeApp();
 
 // const sandboxConfiguration = new Configuration({
 //   basePath: PlaidEnvironments.sandbox,

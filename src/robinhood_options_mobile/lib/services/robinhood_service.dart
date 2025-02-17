@@ -44,7 +44,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 
@@ -987,7 +987,7 @@ Response: {
   // https://api.robinhood.com/midlands/tags/tag/top-movers/
   // {"canonical_examples":"","description":"","instruments":["https://api.robinhood.com/instruments/98bf9407-f2f2-4eb7-b2b7-07c811cc384a/","https://api.robinhood.com/instruments/94c5ec10-9f48-42bf-a396-3927ed0463b0/","https://api.robinhood.com/instruments/3d280b06-b393-4d07-94de-89c1f0617ce1/","https://api.robinhood.com/instruments/45650848-0d8d-4704-8656-a99e83eb4a6a/","https://api.robinhood.com/instruments/f604bdef-f96c-4ae8-a7b3-cd1c38c270db/","https://api.robinhood.com/instruments/7df1fd83-653c-4b92-a5ce-9e108aab7f9e/","https://api.robinhood.com/instruments/f917d25c-9191-42d5-ae3f-dc449123336e/","https://api.robinhood.com/instruments/54e96481-1912-4b9a-ac2c-3aee5e7e7709/","https://api.robinhood.com/instruments/214ad08e-eac2-41d4-96f8-42f101654fcf/","https://api.robinhood.com/instruments/847998ca-67ec-4054-934e-e54067f1e404/","https://api.robinhood.com/instruments/552aedf0-af4b-4693-8825-cbee56a685bc/","https://api.robinhood.com/instruments/964fef8b-7677-4b3f-84aa-6c1ab1ac90ec/","https://api.robinhood.com/instruments/39474cfd-82f3-432b-87db-e65b9603c946/","https://api.robinhood.com/instruments/035b0a57-3ec1-4c92-bc85-35bd1d39f891/","https://api.robinhood.com/instruments/feaa53b3-8033-4d72-93ec-4fed9e35a62d/","https://api.robinhood.com/instruments/75cb568b-9c30-48d6-9b67-aef53dae1249/","https://api.robinhood.com/instruments/18d7b0a9-5a13-4dad-8f77-54b85f01bd7f/","https://api.robinhood.com/instruments/3fb03605-fcb7-44ab-aebb-429ca7f1c474/","https://api.robinhood.com/instruments/89eec724-e25d-4852-860f-146b25995d65/","https://api.robinhood.com/instruments/3669946d-1833-4fe9-b6b4-0b74c90020e1/"],"name":"Top Movers","slug":"top-movers","membership_count":20}
   @override
-  Future<List<Instrument>> getListMovers(
+  Future<List<Instrument>> getTopMovers(
       BrokerageUser user, InstrumentStore instrumentStore) async {
     var resultJson =
         await getJson(user, "$endpoint/midlands/tags/tag/top-movers/");
@@ -1057,7 +1057,7 @@ Response: {
         store.items.where((element) => element.url == instrumentUrl).toList();
     if (cached.isNotEmpty) {
       debugPrint(
-          'getInstrument: Returned instrument from cache $instrumentUrl');
+          'getInstrument: Returned instrument from local cache $instrumentUrl');
       return Future.value(cached.first);
     }
 
@@ -1090,7 +1090,7 @@ Response: {
         store.items.where((element) => element.symbol == symbol).toList();
     if (cached.isNotEmpty) {
       debugPrint(
-          'getInstrumentBySymbol: Returned instrument from cache $symbol');
+          'getInstrumentBySymbol: Returned instrument from local cache $symbol');
       return Future.value(cached.first);
     }
 
@@ -1201,9 +1201,6 @@ Response: {
 
           list.add(instrument);
           store.addOrUpdate(instrument);
-          await _firestoreService.upsertInstrument(instrument);
-          debugPrint(
-              'getInstrumentsByIds: Stored instrument into Firestore ${instrument.symbol}');
         }
       }
     }
@@ -2139,8 +2136,10 @@ Response: {
     List<OptionMarketData> list = [];
     for (var i = 0; i < resultJson['results'].length; i++) {
       var result = resultJson['results'][i];
-      var op = OptionMarketData.fromJson(result);
-      list.add(op);
+      if (result != null) {
+        var op = OptionMarketData.fromJson(result);
+        list.add(op);
+      }
     }
     return list;
   }

@@ -1,3 +1,26 @@
+import 'package:intl/intl.dart';
+
+final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
+final formatCompactDate = DateFormat("MMMd");
+final formatShortDate = DateFormat("MMMM d, y");
+final formatMediumDate = DateFormat("EEE MMMM d, y"); // hh:mm:ss a
+// final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
+final formatLongDate = DateFormat("EEEE MMMM d, y"); // hh:mm:ss a
+// final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
+final formatLongDateTime = DateFormat("EEEE MMMM d, y h:mm:ss a");
+final formatExpirationDate = DateFormat('yyyy-MM-dd');
+final formatMonthDate = DateFormat("yMMM");
+final formatCurrency = NumberFormat.simpleCurrency();
+final formatCompactCurrency = NumberFormat.compactSimpleCurrency();
+final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
+final formatPrecise4Currency = NumberFormat.simpleCurrency(decimalDigits: 4);
+final formatPrecise8Currency = NumberFormat.simpleCurrency(decimalDigits: 8);
+final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatNumber = NumberFormat("###,###,##0.#####");
+// final formatNumber = NumberFormat("0.####");
+// final formatNumber = NumberFormat("0.##");
+final formatCompactNumber = NumberFormat.compact();
+
 class Constants {
   // App constants
   static const String appTitle = 'RealizeAlpha';
@@ -10,6 +33,10 @@ class Constants {
   static const flexibleSpaceBarBackground =
       'https://source.unsplash.com/featured/?stocks'; //,markets,invest,crypto
   //'https://source.unsplash.com/daily?code';
+
+  /// Displayed as a profile image if the user doesn't have one.
+  static const placeholderImage =
+      'https://upload.wikimedia.org/wikipedia/commons/c/cd/Portrait_Placeholder_Square.png';
 
   // Admob Ads
   static const String testAdUnit = 'ca-app-pub-3940256099942544/2934735716';
@@ -29,3 +56,8 @@ const totalValueFontSize = 23.0;
 const summaryValueFontSize = 18.0;
 const summaryLabelFontSize = 9.0;
 const summaryEgdeInset = 10.0;
+
+// OptionPositionsWidget
+const greekValueFontSize = 16.0;
+const greekLabelFontSize = 10.0;
+const greekEgdeInset = 10.0;

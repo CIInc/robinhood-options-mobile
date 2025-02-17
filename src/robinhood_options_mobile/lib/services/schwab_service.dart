@@ -43,7 +43,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
@@ -932,7 +932,7 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   }
 
   @override
-  Future<List<Instrument>> getListMovers(
+  Future<List<Instrument>> getTopMovers(
       BrokerageUser user, InstrumentStore instrumentStore) {
     // TODO: implement getListMovers
     // throw UnimplementedError();

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
@@ -10,8 +11,10 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -19,6 +22,7 @@ import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
@@ -58,6 +62,8 @@ class ForexPositionsWidget extends StatefulWidget {
 }
 
 class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   @override
   Widget build(BuildContext context) {
     var sortedFilteredHoldings = widget.filteredHoldings.sortedBy<num>((i) =>
@@ -264,14 +270,15 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn);
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
           child: Column(children: [
         ListTile(
+          // leading: Icon(Icons.currency_bitcoin),
           title: Wrap(children: [
             const Text(
               "Crypto",
@@ -564,6 +571,19 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   pinned: true,
                   actions: [
                     IconButton(
+                        icon: auth.currentUser != null
+                            ? CircleAvatar(
+                                maxRadius: 15, // 12,
+                                backgroundImage: CachedNetworkImageProvider(
+                                  auth.currentUser!.photoURL ??
+                                      Constants.placeholderImage,
+                                ))
+                            : const Icon(Icons.login),
+                        onPressed: () {
+                          showProfile(context, auth, _firestoreService,
+                              widget.analytics, widget.observer, widget.user);
+                        }),
+                    IconButton(
                         icon: Icon(Icons.more_vert),
                         onPressed: () async {
                           await showModalBottomSheet<void>(
@@ -607,7 +627,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
             widget.user.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value);
+        : widget.user.getDisplayIcon(value, size: 31);
 
     double? totalReturn = widget.user.getDisplayValueForexHolding(
         holdings[index],
@@ -635,8 +655,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
+    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 26.0);
+    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 26.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[

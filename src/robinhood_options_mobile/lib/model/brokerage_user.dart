@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:oauth2/oauth2.dart' as oauth2;
 import 'package:oauth2/oauth2.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -10,11 +10,6 @@ import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
-
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPrecise4Currency = NumberFormat.simpleCurrency(decimalDigits: 4);
-final formatPrecise8Currency = NumberFormat.simpleCurrency(decimalDigits: 8);
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 //@immutable
 class BrokerageUser {
@@ -378,11 +373,13 @@ class BrokerageUser {
     return value.isInfinite ? 0 : value;
   }
 
-  Icon getDisplayIcon(double value, {double? size}) {
+  Icon getDisplayIcon(double value, {double? size = 26.0}) {
     var icon = Icon(
       value > 0
-          ? Icons.trending_up
-          : (value < 0 ? Icons.trending_down : Icons.trending_flat),
+          ? Icons.arrow_drop_up // Icons.trending_up
+          : (value < 0
+              ? Icons.arrow_drop_down
+              : Icons.trending_flat), // Icons.trending_down
       color:
           (value > 0 ? Colors.green : (value < 0 ? Colors.red : Colors.grey)),
       size: size,

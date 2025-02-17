@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.7.10+28
+version: 0.8.0+29
 
 environment:
 #  sdk: '>=3.0.0-85.0.dev <4.0.0'
@@ -25,8 +25,28 @@ dependencies:
   flutter:
     sdk: flutter
 
-  firebase_analytics: ^11.4.1
+  # Used by all Firebase services
   firebase_core: ^3.10.1
+  # Analyze usage with Firebase/Google Analytics
+  firebase_analytics: ^11.4.1
+  # Plaid functions
+  cloud_functions: ^5.3.1
+  # Database
+  cloud_firestore: ^5.6.2
+  # Authentication with Federated Identity Provider (Google)
+  firebase_auth: ^5.4.2
+  flutter_facebook_auth: ^7.0.1
+  flutter_signin_button: ^2.0.0
+  google_sign_in: ^6.1.0
+  google_sign_in_dartio: ^0.3.0
+  # Used by Firebase auth for TOTP code.
+  barcode_widget: ^2.0.4
+  # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications
+  firebase_messaging: ^15.2.2  
+  # Device Info, model, etc. 
+  device_info_plus: ^10.1.2
+  # App Version
+  package_info_plus: ^8.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -63,10 +83,10 @@ dependencies:
   # uni_links: ^0.5.1
   app_links: ^6.3.3  
   plaid_flutter: ^4.2.0
-  cloud_functions: ^5.3.1
-  cloud_firestore: ^5.6.2
   # Used for StreamGroup.merge of batched approach to deal with Firestore where(in) limit of 30.
   async: ^2.11.0
+  # Used to cache user image in SliverAppBar 
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -93,9 +113,9 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+   - assets/images/icon.png
+   - assets/images/iconold.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

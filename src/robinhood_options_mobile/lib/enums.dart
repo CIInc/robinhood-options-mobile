@@ -1,3 +1,5 @@
+enum UserRole { user, admin }
+
 enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
