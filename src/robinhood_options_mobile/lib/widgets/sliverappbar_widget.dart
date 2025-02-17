@@ -39,8 +39,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
         builder: (context, snapshot) {
           return SliverAppBar(
               floating: true,
+              snap: true,
               pinned: false,
-              snap: false,
               // leading: IconButton(
               //     icon: const Icon(Icons.menu_outlined), onPressed: () async {}),
               title: title,

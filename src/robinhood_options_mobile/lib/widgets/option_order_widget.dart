@@ -126,6 +126,9 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${optionOrder.symbol} \$${optionOrder.optionInstrument!.strikePrice} ${optionOrder.strategy.split('_').first} ${optionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 160.0,
+        floating: true,
+        snap: true,
+        pinned: false,
         flexibleSpace: FlexibleSpaceBar(
             title: SingleChildScrollView(
                 child: Column(
@@ -154,7 +157,6 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
                                 Theme.of(context).appBarTheme.foregroundColor))
                   ]),
             ]))),
-        pinned: true,
         /*
         actions: <Widget>[
           IconButton(

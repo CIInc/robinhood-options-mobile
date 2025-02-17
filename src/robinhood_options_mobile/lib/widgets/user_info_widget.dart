@@ -82,9 +82,9 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
         // physics: ClampingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            floating: false,
-            pinned: true,
-            snap: false,
+            floating: true,
+            snap: true,
+            pinned: false,
             title: Text('Manage Accounts', style: TextStyle(fontSize: 20.0)),
             actions: [
               IconButton(

@@ -401,8 +401,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 }),
                 expandedHeight: 240, // 280.0,
                 floating: false,
-                pinned: true,
                 snap: false,
+                pinned: true,
                 flexibleSpace: LayoutBuilder(builder:
                     (BuildContext context, BoxConstraints constraints) {
                   //var top = constraints.biggest.height;

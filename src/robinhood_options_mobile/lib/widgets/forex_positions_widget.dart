@@ -568,7 +568,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   child: CustomScrollView(slivers: [
                 SliverAppBar(
                   title: Text("Crypto"),
-                  pinned: true,
+                  floating: true,
+                  snap: true,
+                  pinned: false,
                   actions: [
                     IconButton(
                         icon: auth.currentUser != null

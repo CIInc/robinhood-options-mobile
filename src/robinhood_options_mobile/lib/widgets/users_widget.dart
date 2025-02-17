@@ -58,9 +58,9 @@ class _UsersWidgetState extends State<UsersWidget> {
             backgroundColor: Theme.of(context).colorScheme.surface,
             body: CustomScrollView(slivers: [
               SliverAppBar(
-                  floating: false,
-                  pinned: true,
-                  snap: false,
+                  floating: true,
+                  snap: true,
+                  pinned: false,
                   centerTitle: false,
                   title: const Text('Users'),
                   actions: [

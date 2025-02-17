@@ -468,9 +468,9 @@ class _HistoryPageState extends State<HistoryPage>
       onRefresh: _pullRefresh,
       child: CustomScrollView(slivers: [
         SliverAppBar(
-          //floating: false,
-          pinned: true,
-          //snap: false,
+          floating: true,
+          snap: true,
+          pinned: false,
           title: Wrap(
               crossAxisAlignment: WrapCrossAlignment.end,
               //runAlignment: WrapAlignment.end,

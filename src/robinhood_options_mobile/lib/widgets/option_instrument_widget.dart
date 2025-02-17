@@ -1564,8 +1564,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         ),
         expandedHeight: optionPosition != null ? 240 : 160,
         floating: false,
-        pinned: true,
         snap: false,
+        pinned: true,
         flexibleSpace: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
           //var top = constraints.biggest.height;

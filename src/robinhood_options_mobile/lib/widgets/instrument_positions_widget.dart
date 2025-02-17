@@ -412,7 +412,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                     child: CustomScrollView(slivers: [
                   SliverAppBar(
                     title: Text("Stocks & ETFs"),
-                    pinned: true,
+                    floating: true,
+                    snap: true,
+                    pinned: false,
                     actions: [
                       IconButton(
                           icon: auth.currentUser != null

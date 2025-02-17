@@ -10,9 +10,9 @@ class InitialWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(slivers: [
       const SliverAppBar(
-        floating: false,
-        pinned: true,
-        snap: false,
+        floating: true,
+        snap: true,
+        pinned: false,
         title: Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             //runAlignment: WrapAlignment.end,

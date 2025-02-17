@@ -1987,9 +1987,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         child: Icon(Icons.linear_scale, size: 60.0),
                         preferredSize: Size.fromHeight(50.0))
                         */
-      floating: false,
-      pinned: true,
-      snap: false,
+      floating: true,
+      snap: true,
+      pinned: false,
       /*
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(0),

@@ -111,6 +111,9 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
       SliverAppBar(
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 120.0,
+        floating: true,
+        snap: true,
+        pinned: false,
         flexibleSpace: FlexibleSpaceBar(
           title: SingleChildScrollView(
               child: Wrap(
@@ -147,7 +150,6 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
           // centerTitle: false,
           // expandedTitleScale: 1.25,
         ),
-        pinned: true,
       ),
       if (positionOrder.instrumentObj != null) ...[
         SliverToBoxAdapter(

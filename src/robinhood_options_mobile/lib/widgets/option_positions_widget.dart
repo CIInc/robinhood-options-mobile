@@ -535,7 +535,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   child: CustomScrollView(slivers: [
                 SliverAppBar(
                   title: Text("Options"),
-                  pinned: true,
+                  floating: true,
+                  snap: true,
+                  pinned: false,
                   actions: [
                     IconButton(
                         icon: auth.currentUser != null

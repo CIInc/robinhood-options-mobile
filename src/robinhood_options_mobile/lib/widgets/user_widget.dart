@@ -106,9 +106,9 @@ class _UserWidgetState extends State<UserWidget> {
                     body: CustomScrollView(slivers: [
                       if (!widget.isProfileView) ...[
                         SliverAppBar(
-                            floating: false,
-                            pinned: true,
-                            snap: false,
+                            floating: true,
+                            snap: true,
+                            pinned: false,
                             centerTitle: false,
                             title: const Text('User'),
                             actions: [

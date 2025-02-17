@@ -244,9 +244,9 @@ class _ListsWidgetState extends State<ListsWidget>
         body: */
         CustomScrollView(slivers: [
       SliverAppBar(
-        floating: false,
-        pinned: true,
-        snap: false,
+        floating: true,
+        snap: true,
+        pinned: false,
         title: Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             //runAlignment: WrapAlignment.end,

@@ -1264,21 +1264,26 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       MaterialPageRoute(
           builder: (context) => Material(
                   child: CustomScrollView(slivers: [
-                SliverAppBar(title: Text("Income"), pinned: true, actions: [
-                  IconButton(
-                      icon: auth.currentUser != null
-                          ? CircleAvatar(
-                              maxRadius: 15, // 12,
-                              backgroundImage: CachedNetworkImageProvider(
-                                auth.currentUser!.photoURL ??
-                                    Constants.placeholderImage,
-                              ))
-                          : const Icon(Icons.login),
-                      onPressed: () {
-                        showProfile(context, auth, _firestoreService,
-                            widget.analytics, widget.observer, widget.user);
-                      })
-                ]),
+                SliverAppBar(
+                    title: Text("Income"),
+                    floating: true,
+                    snap: true,
+                    stretch: false,
+                    actions: [
+                      IconButton(
+                          icon: auth.currentUser != null
+                              ? CircleAvatar(
+                                  maxRadius: 15, // 12,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                    auth.currentUser!.photoURL ??
+                                        Constants.placeholderImage,
+                                  ))
+                              : const Icon(Icons.login),
+                          onPressed: () {
+                            showProfile(context, auth, _firestoreService,
+                                widget.analytics, widget.observer, widget.user);
+                          })
+                    ]),
                 // SliverPersistentHeader(
                 //   pinned: true,
                 //   // floating: true,
