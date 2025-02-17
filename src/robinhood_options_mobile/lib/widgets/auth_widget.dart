@@ -244,6 +244,7 @@ class _AuthGateState extends State<AuthGate> {
                                 labelText: 'Phone number',
                                 border: OutlineInputBorder(),
                               ),
+                              keyboardType: TextInputType.phone,
                               validator: (value) =>
                                   value != null && value.isNotEmpty
                                       ? null
