@@ -75,13 +75,16 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               displayValue: DisplayValue.totalCost);
           secondaryLabel = widget.user.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
+          // // Uncomment to enable secondary values for today and total return measures.
           // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
-          //   secondaryValue = widget.user.getPositionDisplayValue(position,
+          //   secondaryValue = widget.user.getDisplayValueInstrumentPosition(
+          //       position,
           //       displayValue: DisplayValue.totalReturnPercent);
           //   secondaryLabel = widget.user.getDisplayText(secondaryValue,
           //       displayValue: DisplayValue.totalReturnPercent);
           // } else if (widget.user.displayValue == DisplayValue.todayReturn) {
-          //   secondaryValue = widget.user.getPositionDisplayValue(position,
+          //   secondaryValue = widget.user.getDisplayValueInstrumentPosition(
+          //       position,
           //       displayValue: DisplayValue.todayReturnPercent);
           //   secondaryLabel = widget.user.getDisplayText(secondaryValue,
           //       displayValue: DisplayValue.todayReturnPercent);
@@ -102,8 +105,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     barChartSeriesList.add(charts.Series<dynamic, String>(
         id: BrokerageUser.displayValueText(widget.user.displayValue!),
         data: data,
-        colorFn: (_, __) => shades[
-            0], //charts.ColorUtil.fromDartColor(of(context).colorScheme.primary),
+        // colorFn: (_, __) => shades[
+        //     0], //charts.ColorUtil.fromDartColor(of(context).colorScheme.primary),
+        seriesColor: shades[0],
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['measure'],
         labelAccessorFn: (d, _) => d['label'],
@@ -123,18 +127,24 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           ? BrokerageUser.displayValueText(DisplayValue.totalCost)
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
-      colorFn: (_, __) => shades[1],
+      // colorFn: (_, __) => shades[1],
+      seriesColor: shades[1],
       //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
       domainFn: (var d, _) => d['domain'],
       measureFn: (var d, _) => d['secondaryMeasure'],
       labelAccessorFn: (d, _) => d['secondaryLabel'],
       data: data,
-    )..setAttribute(charts.rendererIdKey, 'customLine');
-    // if (widget.user.displayValue == DisplayValue.totalReturn ||
-    //     widget.user.displayValue == DisplayValue.todayReturn) {
-    //   seriesData.setAttribute(
-    //       charts.measureAxisIdKey, 'secondaryMeasureAxisId');
+    );
+    // ..setAttribute(charts.rendererIdKey, 'customLine');
+    // if (widget.user.displayValue != DisplayValue.totalReturn &&
+    //     widget.user.displayValue != DisplayValue.todayReturn) {
+    seriesData.setAttribute(charts.rendererIdKey, 'customLine');
     // }
+    if (widget.user.displayValue == DisplayValue.totalReturn ||
+        widget.user.displayValue == DisplayValue.todayReturn) {
+      seriesData.setAttribute(
+          charts.measureAxisIdKey, 'secondaryMeasureAxisId');
+    }
     if (seriesData.data.isNotEmpty &&
         seriesData.data[0]['secondaryMeasure'] != null) {
       barChartSeriesList.add(seriesData);
@@ -144,33 +154,61 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     if (brightness == Brightness.light) {
       axisLabelColor = charts.MaterialPalette.gray.shade700;
     }
-    var primaryMeasureAxis = charts.NumericAxisSpec(
-      //showAxisLine: true,
-      //renderSpec: charts.GridlineRendererSpec(),
-      renderSpec: charts.GridlineRendererSpec(
-          labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-      //renderSpec: charts.NoneRenderSpec(),
-      tickFormatterSpec: charts.BasicNumericTickFormatterSpec.fromNumberFormat(
-          NumberFormat.compactSimpleCurrency()),
-      //tickProviderSpec:
-      //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
-      //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
-    );
-    var secondaryMeasureAxis =
-        widget.user.displayValue == DisplayValue.totalReturn ||
-                widget.user.displayValue == DisplayValue.todayReturn
-            ? charts.PercentAxisSpec(
-                renderSpec: charts.SmallTickRendererSpec(
-                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-                tickProviderSpec: charts.BasicNumericTickProviderSpec())
-            : null; // zeroBound: true, desiredTickCount: 6
+    var minimum = 0.0;
+    var maximum = 0.0;
+    // if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
+    //     widget.user.displayValue == DisplayValue.totalReturnPercent) {
+    //   var positionDisplayValues = sortedFilteredPositions
+    //       .map((e) => widget.user.getDisplayValueInstrumentPosition(e));
+    //   if (positionDisplayValues.isNotEmpty) {
+    //     minimum = positionDisplayValues.reduce(math.min);
+    //     if (minimum < 0) {
+    //       minimum -= 0.05;
+    //     } else if (minimum > 0) {
+    //       minimum = 0;
+    //     }
+    //     maximum = positionDisplayValues.reduce(math.max);
+    //     if (maximum > 0) {
+    //       maximum += 0.05;
+    //     } else if (maximum < 0) {
+    //       maximum = 0;
+    //     }
+    //   }
+    // }
+    var extents = charts.NumericExtents.fromValues(sortedFilteredPositions
+        .map((e) => widget.user.getDisplayValueInstrumentPosition(e)));
+    extents = charts.NumericExtents(extents.min - (extents.width * 0.1),
+        extents.max + (extents.width * 0.1));
 
-    if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-        widget.user.displayValue == DisplayValue.totalReturnPercent) {
-      var positionDisplayValues = sortedFilteredPositions
-          .map((e) => widget.user.getDisplayValueInstrumentPosition(e));
-      var minimum = 0.0;
-      var maximum = 0.0;
+    var primaryMeasureAxis =
+        widget.user.displayValue == DisplayValue.todayReturnPercent ||
+                widget.user.displayValue == DisplayValue.totalReturnPercent
+            ? charts.PercentAxisSpec(
+                viewport: extents, // charts.NumericExtents(minimum, maximum),
+                renderSpec: charts.GridlineRendererSpec(
+                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)))
+            : charts.NumericAxisSpec(
+                //showAxisLine: true,
+                //renderSpec: charts.GridlineRendererSpec(),
+                renderSpec: charts.GridlineRendererSpec(
+                    labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+                //renderSpec: charts.NoneRenderSpec(),
+                tickFormatterSpec:
+                    charts.BasicNumericTickFormatterSpec.fromNumberFormat(
+                        NumberFormat.compactSimpleCurrency()),
+                //tickProviderSpec:
+                //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
+                //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
+              );
+    if (widget.user.displayValue == DisplayValue.todayReturn ||
+        widget.user.displayValue == DisplayValue.totalReturn) {
+      var positionDisplayValues = sortedFilteredPositions.map((e) => widget.user
+          .getDisplayValueInstrumentPosition(e,
+              displayValue: widget.user.displayValue == DisplayValue.todayReturn
+                  ? DisplayValue.todayReturnPercent
+                  : (widget.user.displayValue == DisplayValue.totalReturn
+                      ? DisplayValue.totalReturnPercent
+                      : null)));
       if (positionDisplayValues.isNotEmpty) {
         minimum = positionDisplayValues.reduce(math.min);
         if (minimum < 0) {
@@ -185,28 +223,65 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           maximum = 0;
         }
       }
-
-      primaryMeasureAxis = charts.PercentAxisSpec(
-          viewport: charts.NumericExtents(minimum, maximum),
-          renderSpec: charts.GridlineRendererSpec(
-              labelStyle: charts.TextStyleSpec(color: axisLabelColor)));
     }
+    var secondaryExtents = charts.NumericExtents.fromValues(
+        sortedFilteredPositions.map((e) => widget.user
+            .getDisplayValueInstrumentPosition(e,
+                displayValue:
+                    widget.user.displayValue == DisplayValue.todayReturn
+                        ? DisplayValue.todayReturnPercent
+                        : (widget.user.displayValue == DisplayValue.totalReturn
+                            ? DisplayValue.totalReturnPercent
+                            : null))));
+    secondaryExtents = charts.NumericExtents(
+        secondaryExtents.min - (secondaryExtents.width * 0.1),
+        secondaryExtents.max + (secondaryExtents.width * 0.1));
+
+    var secondaryMeasureAxis = widget.user.displayValue ==
+                DisplayValue.totalReturn ||
+            widget.user.displayValue == DisplayValue.todayReturn
+        ? charts.PercentAxisSpec(
+            viewport: (widget.user.displayValue == DisplayValue.todayReturn ||
+                    widget.user.displayValue == DisplayValue.totalReturn)
+                ? secondaryExtents // charts.NumericExtents(minimum, maximum)
+                : null,
+            renderSpec: charts.SmallTickRendererSpec(
+                labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
+            tickProviderSpec: charts
+                // .BasicNumericTickProviderSpec())
+                .NumericEndPointsTickProviderSpec())
+        : null; // zeroBound: true, desiredTickCount: 6
+
     var positionChart = BarChart(barChartSeriesList,
         renderer: charts.BarRendererConfig(
+            groupingType: charts.BarGroupingType.stacked,
             barRendererDecorator: charts.BarLabelDecorator<String>(),
             cornerStrategy: const charts.ConstCornerStrategy(10)),
         primaryMeasureAxis: primaryMeasureAxis,
-        secondaryMeasureAxis: secondaryMeasureAxis,
+        secondaryMeasureAxis:
+            barChartSeriesList.length > 1 ? secondaryMeasureAxis : null,
         customSeriesRenderers: [
+          // charts.ArcRendererConfig(customRendererId: 'customLine'),
+          // charts.BarLaneRendererConfig(
+          //   customRendererId: 'customLine',
+          // ),
+          // charts.BarRendererConfig(
+          //     customRendererId: 'customLine',
+          //     groupingType: charts.BarGroupingType.grouped)
+
+          /// Always keep possible customSeriesRenderers to prevent exception
+          /// when switching between a chart with and without a secondary axis.
+          // if (barChartSeriesList.length > 1) ...[
           charts.BarTargetLineRendererConfig<String>(
               //overDrawOuterPx: 10,
               //overDrawPx: 10,
               // strokeWidthPx: 4,
               customRendererId: 'customLine',
               groupingType: charts.BarGroupingType.grouped)
-          // charts.LineRendererConfig(
-          //     // ID used to link series to this renderer.
-          //     customRendererId: 'customLine')
+          // ]
+          // charts.LineRendererConfig(customRendererId: 'customLine'),
+          // charts.PointRendererConfig(customRendererId: 'customLine')
+          // charts.SymbolAnnotationRendererConfig(customRendererId: 'customLine')
         ],
         barGroupingType: null,
         domainAxis: charts.OrdinalAxisSpec(
