@@ -19,7 +19,8 @@ admin.initializeApp({
 
 // Add users doc ids
 var adminUsers = [
-    'B9Md1AXbK3OFoZxTZqhhpY7a3ik1', // Aymeric phone
+    'B9Md1AXbK3OFoZxTZqhhpY7a3ik1', // Aymeric's phone
+    'LUNvWnggPjYHtfzekOOQyJyLZNl2', // Tom's phone
     // 'ztBe7nDtmWTX57hRfcq3kmci49H3', // aymeric@grassart.com
     // 'fsp4dF9K32MJi4rQurb35g4uEm32', // tthavee@gmail.com
     // 'hfllSwUirfg2SzGuGO1f7ERDdaM2', // jtran29@gmail.com

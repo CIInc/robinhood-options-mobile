@@ -8,7 +8,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 
 ### Latest Release
 
-- [RealizeAlpha | Apple App Store](https://testflight.apple.com/join/jed18uz8): TestFlight only, production release coming soon.
+- [RealizeAlpha | Apple App Store](https://testflight.apple.com/join/ARmsGSN8): TestFlight only, production release coming soon.
 - [RealizeAlpha | Google Play Store](https://play.google.com/apps/internaltest/4701722902176245187): Internal testing only, production release coming soon.
 
 <!--
