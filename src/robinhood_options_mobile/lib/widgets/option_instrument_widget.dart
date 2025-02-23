@@ -365,7 +365,8 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               var seriesList = [
                 charts.Series<InstrumentHistorical, DateTime>(
                   id: 'Open',
-                  colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                      Theme.of(context).colorScheme.primary),
                   domainFn: (InstrumentHistorical history, _) =>
                       history.beginsAt!,
                   measureFn: (InstrumentHistorical history, _) =>
@@ -405,6 +406,10 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               extents = charts.NumericExtents(
                   extents.min - (extents.width * 0.1),
                   extents.max + (extents.width * 0.1));
+              var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
+                  context,
+                  listen: false);
+
               TimeSeriesChart historicalChart = TimeSeriesChart(
                 seriesList,
                 open: optionInstrumentHistoricalsObj.historicals[0].openPrice!,
@@ -412,28 +417,42 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                     .historicals[
                         optionInstrumentHistoricalsObj.historicals.length - 1]
                     .closePrice!,
-                hiddenSeries: const ["Close", "Low", "High"],
+                seriesLegend: charts.SeriesLegend(
+                  horizontalFirst: true,
+                  position: charts.BehaviorPosition.top,
+                  defaultHiddenSeries: const ["Close", "Low", "High"],
+                  // To show value on legend upon selection
+                  showMeasures: true,
+                  measureFormatter: (measure) =>
+                      measure != null ? formatCurrency.format(measure) : '',
+                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                ),
                 zeroBound: false,
-                onSelected: (dynamic historical) {
-                  var provider =
-                      Provider.of<InstrumentHistoricalsSelectionStore>(context,
-                          listen: false);
-                  provider.selectionChanged(historical);
-                  /*
-                if (selection != historical) {
-                  setState(() {
-                    selection = historical;
-                  });
-                }
-                */
+                onSelected: (charts.SelectionModel<DateTime>? historical) {
+                  provider
+                      .selectionChanged(historical?.selectedDatum.first.datum);
                 },
-                viewport: extents,
+                symbolRenderer: TextSymbolRenderer(() {
+                  return provider.selection != null
+                      // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
+                      ? formatCompactDateTimeWithHour
+                          .format(provider.selection!.beginsAt!.toLocal())
+                      : '0';
+                }, marginBottom: 16),
+                // viewport: extents,
               );
               //}
 
               return SliverToBoxAdapter(
                   child: Column(
                 children: [
+                  SizedBox(
+                      height: 340, // 240,
+                      child: Padding(
+                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.all(10.0),
+                        child: historicalChart,
+                      )),
                   Consumer<InstrumentHistoricalsSelectionStore>(
                       builder: (context, value, child) {
                     selection = value.selection;
@@ -495,19 +514,12 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               ],
                             ),
                             Text(
-                                '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                                '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                                 style:
                                     TextStyle(fontSize: 10, color: textColor)),
                           ],
                         )));
                   }),
-                  SizedBox(
-                      height: 240,
-                      child: Padding(
-                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        padding: const EdgeInsets.all(10.0),
-                        child: historicalChart,
-                      )),
                   SizedBox(
                       height: 56,
                       child: ListView.builder(
@@ -1187,7 +1199,9 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                 minTileHeight: 10,
                 title: const Text("Last Trade"),
                 trailing: Text(
-                    "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}",
+                    optionInstrument.optionMarketData!.lastTradePrice != null
+                        ? "${formatCurrency.format(optionInstrument.optionMarketData!.lastTradePrice)} x ${formatCompactNumber.format(optionInstrument.optionMarketData!.lastTradeSize)}"
+                        : '-',
                     style: const TextStyle(fontSize: 18)),
               ),
               ListTile(
@@ -2097,7 +2111,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       children: <Widget>[
         ListTile(
           // leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
+          title: Text('${instrument.simpleName ?? instrument.symbol}'),
           subtitle: Text(instrument.name),
           trailing: Wrap(
             spacing: 8,

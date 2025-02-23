@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
@@ -16,14 +17,6 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/model/instrument_historical.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
-
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
-final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
-final formatCompactDate = DateFormat("MMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatCompactNumber = NumberFormat.compact();
 
 class ForexInstrumentWidget extends StatefulWidget {
   const ForexInstrumentWidget(
@@ -225,7 +218,16 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         chart = TimeSeriesChart(seriesList,
             open: open,
             close: close,
-            hiddenSeries: const ["Close", "Volume", "Low", "High"],
+            seriesLegend: charts.SeriesLegend(
+              horizontalFirst: true,
+              position: charts.BehaviorPosition.top,
+              defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
+              // To show value on legend upon selection
+              showMeasures: true,
+              measureFormatter: (measure) =>
+                  measure != null ? formatCurrency.format(measure) : '',
+              // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+            ),
             zeroBound: false,
             dataIsInWholeNumbers: open > 2,
             onSelected: _onChartSelection);

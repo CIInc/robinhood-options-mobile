@@ -2,9 +2,12 @@ import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
+// final formatCompactDate = DateFormat("MMM d yy");
+final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");
+final formatCompactDateTimeWithMinute = DateFormat("MMM d yy hh:mm a");
 final formatShortDate = DateFormat("MMMM d, y");
 final formatMediumDate = DateFormat("EEE MMMM d, y"); // hh:mm:ss a
-// final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
+final formatMediumDateTime = DateFormat("EEE MMM d, y hh:mm:ss a");
 final formatLongDate = DateFormat("EEEE MMMM d, y"); // hh:mm:ss a
 // final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
 final formatLongDateTime = DateFormat("EEEE MMMM d, y h:mm:ss a");
@@ -12,10 +15,15 @@ final formatExpirationDate = DateFormat('yyyy-MM-dd');
 final formatMonthDate = DateFormat("yMMM");
 final formatCurrency = NumberFormat.simpleCurrency();
 final formatCompactCurrency = NumberFormat.compactSimpleCurrency();
+// final formatCompactCurrency = NumberFormat.compactCurrency();
 final formatPreciseCurrency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPrecise4Currency = NumberFormat.simpleCurrency(decimalDigits: 4);
 final formatPrecise8Currency = NumberFormat.simpleCurrency(decimalDigits: 8);
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
+final formatPercentageOneDigit =
+    NumberFormat.decimalPercentPattern(decimalDigits: 1);
+final formatPercentageInteger =
+    NumberFormat.decimalPercentPattern(decimalDigits: 0);
 final formatNumber = NumberFormat("###,###,##0.#####");
 // final formatNumber = NumberFormat("0.####");
 // final formatNumber = NumberFormat("0.##");

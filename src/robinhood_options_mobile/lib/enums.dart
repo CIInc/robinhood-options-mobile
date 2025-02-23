@@ -4,7 +4,7 @@ enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
 
-enum ChartDateSpan { hour, day, week, month, month_3, year, year_5, all }
+enum ChartDateSpan { hour, day, week, month, month_3, ytd, year, year_5, all }
 
 enum Bounds { regular, t24_7, trading }
 
@@ -63,6 +63,9 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
     case ChartDateSpan.month_3:
       span = "3month";
       break;
+    case ChartDateSpan.ytd:
+      span = "year";
+      break;
     case ChartDateSpan.year:
       span = "year";
       break;
@@ -103,6 +106,10 @@ List<String> convertChartSpanFilterWithInterval(
     case ChartDateSpan.month_3:
       interval = "day";
       span = "3month";
+      break;
+    case ChartDateSpan.ytd:
+      interval = "day";
+      span = "ytd";
       break;
     case ChartDateSpan.year:
       interval = "day";

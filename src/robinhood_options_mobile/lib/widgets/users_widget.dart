@@ -4,7 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -65,13 +65,15 @@ class _UsersWidgetState extends State<UsersWidget> {
                   title: const Text('Users'),
                   actions: [
                     IconButton(
-                        icon: widget.auth.currentUser != null
-                            ? CircleAvatar(
-                                maxRadius: 15, // 12,
-                                backgroundImage: CachedNetworkImageProvider(
-                                  widget.auth.currentUser!.photoURL ??
-                                      Constants.placeholderImage,
-                                ))
+                        icon: auth.currentUser != null
+                            ? (auth.currentUser!.photoURL == null
+                                ? const Icon(Icons.account_circle)
+                                : CircleAvatar(
+                                    maxRadius: 12,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        auth.currentUser!.photoURL!
+                                        //  ?? Constants .placeholderImage, // No longer used
+                                        )))
                             : const Icon(Icons.login),
                         onPressed: () {
                           showProfile(

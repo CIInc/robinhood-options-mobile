@@ -7,6 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:community_charts_flutter/src/text_style.dart' as style;
 import 'package:community_charts_flutter/src/text_element.dart' as element;
+import 'package:community_charts_common/community_charts_common.dart' as common
+    show
+        // ChartBehavior,
+        // SelectNearest,
+        SelectionMode
+    // SelectionModelType,
+    // SelectionTrigger
+    ;
 import 'package:robinhood_options_mobile/constants.dart';
 
 class TimeSeriesChart extends StatefulWidget {
@@ -14,30 +22,34 @@ class TimeSeriesChart extends StatefulWidget {
   final bool animate;
   final double? open;
   final double? close;
-  final List<String>? hiddenSeries;
   final charts.SeriesRendererConfig<DateTime>? seriesRendererConfig;
   final List<charts.SeriesRendererConfig<DateTime>>? customSeriesRenderers;
   final charts.NumericExtents? viewport;
   final bool zeroBound;
   final bool dataIsInWholeNumbers;
+  final common.SelectionMode selectionMode;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
+  final charts.ChartBehavior<DateTime>? seriesLegend;
   final charts.AxisSpec<dynamic>? domainAxis;
   final charts.NumericAxisSpec? primaryMeasureAxis;
   final charts.NumericAxisSpec? secondaryMeasureAxis;
-  final String Function()? getTextForTextSymbolRenderer;
-  final void Function(dynamic) onSelected;
+  final charts.CircleSymbolRenderer? symbolRenderer;
+  // final String Function()? getTextForTextSymbolRenderer;
+  final void Function(charts.SelectionModel<DateTime>?) onSelected;
 
   const TimeSeriesChart(this.seriesList,
       {super.key,
       this.animate = true,
       required this.onSelected,
-      this.getTextForTextSymbolRenderer,
+      this.symbolRenderer,
+      // this.getTextForTextSymbolRenderer,
       this.open,
       this.close,
-      this.hiddenSeries,
       this.seriesRendererConfig,
       this.customSeriesRenderers,
+      this.selectionMode = common.SelectionMode.selectOverlapping,
       this.behaviors,
+      this.seriesLegend,
       this.domainAxis,
       this.primaryMeasureAxis,
       this.secondaryMeasureAxis,
@@ -105,14 +117,14 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
       selectionModels: [
         charts.SelectionModelConfig(
             type: charts.SelectionModelType.info,
-            changedListener: (charts.SelectionModel model) {
+            changedListener: (charts.SelectionModel<DateTime> model) {
               if (model.hasDatumSelection) {
                 // var selected = model
                 //     .selectedDatum[0].datum; //  as MapEntry<DateTime, double>
-                var selected = model.selectedDatum
-                    .map((s) => s.datum); //  as MapEntry<DateTime, double>
-                // .toList();
-                widget.onSelected(selected.first);
+                // var selected = model.selectedDatum
+                //     .map((s) => s.datum); //  as MapEntry<DateTime, double>
+                // widget.onSelected(selected.first);
+                widget.onSelected(model);
               } else {
                 widget.onSelected(null);
               }
@@ -129,32 +141,29 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             onChangeCallback: _onSliderChange),
             */
             charts.SelectNearest(
-                eventTrigger: charts.SelectionTrigger.tapAndDrag), // pressHold
+                eventTrigger: charts.SelectionTrigger.tapAndDrag,
+                selectionMode: widget.selectionMode), // pressHold
             charts.LinePointHighlighter(
-                showHorizontalFollowLine:
-                    charts.LinePointHighlighterFollowLineType.all, // .none
+                // showHorizontalFollowLine:
+                //     charts.LinePointHighlighterFollowLineType.all, // .none
                 showVerticalFollowLine:
                     charts.LinePointHighlighterFollowLineType.all,
                 dashPattern: const [1], // const [10],
                 defaultRadiusPx: 3,
                 // radiusPaddingPx: 6,
-                drawFollowLinesAcrossChart: false,
+                // drawFollowLinesAcrossChart: false,
                 // symbolRenderer: TextSymbolRenderer(() => 'rtest')),
-                symbolRenderer: TextSymbolRenderer(
-                    widget.getTextForTextSymbolRenderer ?? () => '',
-                    marginBottom: 16)),
+                symbolRenderer: widget.symbolRenderer),
+            // symbolRenderer: widget.getTextForTextSymbolRenderer != null
+            // ? TextSymbolRenderer(widget.getTextForTextSymbolRenderer!, marginBottom: 16)
+            //     : null),
             charts.InitialSelection(selectedDataConfig: [
               // charts.SeriesDatumConfig<DateTime>(
               //     'Adjusted Equity',
               //     (widget.seriesList.first.data.last as EquityHistorical)
               //         .beginsAt!)
             ]),
-            if (widget.hiddenSeries != null) ...[
-              charts.SeriesLegend(
-                position: charts.BehaviorPosition.top,
-                defaultHiddenSeries: widget.hiddenSeries,
-              ),
-            ],
+            if (widget.seriesLegend != null) ...[widget.seriesLegend!],
             if (widget.open != null && widget.close != null) ...[
               charts.RangeAnnotation([
                 charts.RangeAnnotationSegment(
@@ -207,11 +216,14 @@ typedef GetText = String Function();
 
 class TextSymbolRenderer extends charts.CircleSymbolRenderer {
   TextSymbolRenderer(this.getText,
-      {this.marginBottom = 8, this.padding = const EdgeInsets.all(8)});
+      {this.marginBottom = 8,
+      this.padding = const EdgeInsets.all(8),
+      this.placeAbovePoint = false});
 
   final GetText getText;
   final double marginBottom;
   final EdgeInsets padding;
+  final bool placeAbovePoint;
 
   @override
   void paint(charts.ChartCanvas canvas, Rectangle<num> bounds,
@@ -229,7 +241,7 @@ class TextSymbolRenderer extends charts.CircleSymbolRenderer {
 
     style.TextStyle textStyle = style.TextStyle();
     textStyle.color = charts.Color.black;
-    textStyle.fontSize = 15;
+    textStyle.fontSize = 14;
 
     element.TextElement textElement =
         element.TextElement(getText.call(), style: textStyle);
@@ -237,10 +249,13 @@ class TextSymbolRenderer extends charts.CircleSymbolRenderer {
     double height = textElement.measurement.verticalSliceWidth;
 
     double centerX = bounds.left + bounds.width / 2;
-    double centerY = bounds.top +
-        bounds.height / 2 -
-        marginBottom -
-        (padding.top + padding.bottom);
+    double centerY = marginBottom + padding.bottom;
+    if (placeAbovePoint) {
+      centerY = bounds.top +
+          bounds.height / 2 -
+          marginBottom -
+          (padding.top + padding.bottom);
+    }
 
     canvas.drawRRect(
       Rectangle(

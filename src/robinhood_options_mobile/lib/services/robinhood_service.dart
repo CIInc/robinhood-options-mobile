@@ -1411,18 +1411,28 @@ Response: {
       List<String> instruments, InstrumentStore store) async {
     // https://api.robinhood.com/fundamentals/
     // https://api.robinhood.com/marketdata/fundamentals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?include_inactive=true
-    var url =
-        "$endpoint/fundamentals/?ids=${Uri.encodeComponent(instruments.join(","))}";
-    var resultJson = await getJson(user, url);
 
+    var len = instruments.length;
+    var size = 50;
+    List<List<dynamic>> chunks = [];
+    for (var i = 0; i < len; i += size) {
+      var end = (i + size < len) ? i + size : len;
+      chunks.add(instruments.sublist(i, end));
+    }
     List<Fundamentals> list = [];
-    for (var i = 0; i < resultJson['results'].length; i++) {
-      var result = resultJson['results'][i];
-      if (result != null) {
-        var op = Fundamentals.fromJson(result);
-        list.add(op);
+    for (var chunk in chunks) {
+      var url =
+          "$endpoint/fundamentals/?ids=${Uri.encodeComponent(chunk.join(","))}";
+      var resultJson = await getJson(user, url);
 
-        // store.addOrUpdate(op);
+      for (var i = 0; i < resultJson['results'].length; i++) {
+        var result = resultJson['results'][i];
+        if (result != null) {
+          var op = Fundamentals.fromJson(result);
+          list.add(op);
+
+          // store.addOrUpdate(op);
+        }
       }
     }
     return list;
@@ -2711,6 +2721,21 @@ WATCHLIST
     return list;
   }
 
+  Future<dynamic> getMarketIndices(
+      {String keys = "sp_500,nasdaq", required BrokerageUser user}) async {
+    // https://bonfire.robinhood.com/market_indices?keys=nasdaq
+    // https://bonfire.robinhood.com/market_indices?keys=sp_500
+    var url = "$robinHoodSearchEndpoint/market_indices?keys=$keys";
+    var entryJson = await getJson(user, url);
+    return entryJson;
+    // List<dynamic> list = [];
+    // for (var i = 0; i < entryJson['results'].length; i++) {
+    //   var item = entryJson['results'][i];
+    //   list.add(item);
+    // }
+    // return list;
+  }
+
   /* COMMON */
   // SocketException (SocketException: Failed host lookup: 'loadbalancer-brokeback.nginx.service.robinhood' (OS Error: No address associated with hostname, errno = 7))
   static Future<dynamic> getJson(BrokerageUser user, String url) async {
@@ -2820,16 +2845,101 @@ def wiretransfers_url():
     return('https://api.robinhood.com/wire/transfers')
 */
 
-// TODO: https://bonfire.robinhood.com/market_indices?keys=nasdaq
-
-// TODO: https://bonfire.robinhood.com/market_indices?keys=sp_500
-
 /*
 
 # Markets
 
 // https://api.robinhood.com/markets/
-// {"next":null,"previous":null,"results":[{"url":"https:\/\/api.robinhood.com\/markets\/IEXG\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/IEXG\/hours\/2023-02-09\/","mic":"IEXG","operating_mic":"IEXG","acronym":"IEX","name":"IEX Market","city":"New York","country":"US - United States of America","timezone":"US\/Eastern","website":"www.iextrading.com"},{"url":"https:\/\/api.robinhood.com\/markets\/OTCM\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/OTCM\/hours\/2023-02-09\/","mic":"OTCM","operating_mic":"OTCM","acronym":"OTCM","name":"Otc Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.otcmarkets.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XASE\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XASE\/hours\/2023-02-09\/","mic":"XASE","operating_mic":"XNYS","acronym":"AMEX","name":"NYSE Mkt Llc","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/ARCX\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/ARCX\/hours\/2023-02-09\/","mic":"ARCX","operating_mic":"XNYS","acronym":"NYSE","name":"NYSE Arca","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNYS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNYS\/hours\/2023-02-09\/","mic":"XNYS","operating_mic":"XNYS","acronym":"NYSE","name":"New York Stock Exchange, Inc.","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nyse.com"},{"url":"https:\/\/api.robinhood.com\/markets\/XNAS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/XNAS\/hours\/2023-02-09\/","mic":"XNAS","operating_mic":"XNAS","acronym":"NASDAQ","name":"NASDAQ - All Markets","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.nasdaq.com"},{"url":"https:\/\/api.robinhood.com\/markets\/BATS\/","todays_hours":"https:\/\/api.robinhood.com\/markets\/BATS\/hours\/2023-02-09\/","mic":"BATS","operating_mic":"BATS","acronym":"BATS","name":"BATS Exchange","city":"New York","country":"United States of America","timezone":"US\/Eastern","website":"www.batstrading.com"}]}
+// {
+//   "next": null,
+//   "previous": null,
+//   "results": [
+//     {
+//       "url": "https://api.robinhood.com/markets/IEXG/",
+//       "todays_hours": "https://api.robinhood.com/markets/IEXG/hours/2023-02-09/",
+//       "mic": "IEXG",
+//       "operating_mic": "IEXG",
+//       "acronym": "IEX",
+//       "name": "IEX Market",
+//       "city": "New York",
+//       "country": "US - United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.iextrading.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/OTCM/",
+//       "todays_hours": "https://api.robinhood.com/markets/OTCM/hours/2023-02-09/",
+//       "mic": "OTCM",
+//       "operating_mic": "OTCM",
+//       "acronym": "OTCM",
+//       "name": "Otc Markets",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.otcmarkets.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/XASE/",
+//       "todays_hours": "https://api.robinhood.com/markets/XASE/hours/2023-02-09/",
+//       "mic": "XASE",
+//       "operating_mic": "XNYS",
+//       "acronym": "AMEX",
+//       "name": "NYSE Mkt Llc",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.nyse.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/ARCX/",
+//       "todays_hours": "https://api.robinhood.com/markets/ARCX/hours/2023-02-09/",
+//       "mic": "ARCX",
+//       "operating_mic": "XNYS",
+//       "acronym": "NYSE",
+//       "name": "NYSE Arca",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.nyse.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/XNYS/",
+//       "todays_hours": "https://api.robinhood.com/markets/XNYS/hours/2023-02-09/",
+//       "mic": "XNYS",
+//       "operating_mic": "XNYS",
+//       "acronym": "NYSE",
+//       "name": "New York Stock Exchange, Inc.",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.nyse.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/XNAS/",
+//       "todays_hours": "https://api.robinhood.com/markets/XNAS/hours/2023-02-09/",
+//       "mic": "XNAS",
+//       "operating_mic": "XNAS",
+//       "acronym": "NASDAQ",
+//       "name": "NASDAQ - All Markets",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.nasdaq.com"
+//     },
+//     {
+//       "url": "https://api.robinhood.com/markets/BATS/",
+//       "todays_hours": "https://api.robinhood.com/markets/BATS/hours/2023-02-09/",
+//       "mic": "BATS",
+//       "operating_mic": "BATS",
+//       "acronym": "BATS",
+//       "name": "BATS Exchange",
+//       "city": "New York",
+//       "country": "United States of America",
+//       "timezone": "US/Eastern",
+//       "website": "www.batstrading.com"
+//     }
+//   ]
+// }
 def markets_url():
     return('https://api.robinhood.com/markets/')
 

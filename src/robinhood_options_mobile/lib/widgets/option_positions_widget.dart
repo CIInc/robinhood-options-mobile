@@ -541,12 +541,14 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   actions: [
                     IconButton(
                         icon: auth.currentUser != null
-                            ? CircleAvatar(
-                                maxRadius: 15, // 12,
-                                backgroundImage: CachedNetworkImageProvider(
-                                  auth.currentUser!.photoURL ??
-                                      Constants.placeholderImage,
-                                ))
+                            ? (auth.currentUser!.photoURL == null
+                                ? const Icon(Icons.account_circle)
+                                : CircleAvatar(
+                                    maxRadius: 12,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        auth.currentUser!.photoURL!
+                                        //  ?? Constants .placeholderImage, // No longer used
+                                        )))
                             : const Icon(Icons.login),
                         onPressed: () {
                           showProfile(context, auth, _firestoreService,

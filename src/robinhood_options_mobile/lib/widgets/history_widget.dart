@@ -468,9 +468,9 @@ class _HistoryPageState extends State<HistoryPage>
       onRefresh: _pullRefresh,
       child: CustomScrollView(slivers: [
         SliverAppBar(
-          floating: true,
-          snap: true,
-          pinned: false,
+          floating: false,
+          snap: false,
+          pinned: true,
           title: Wrap(
               crossAxisAlignment: WrapCrossAlignment.end,
               //runAlignment: WrapAlignment.end,
@@ -1166,19 +1166,16 @@ class _HistoryPageState extends State<HistoryPage>
                 // delegate: SliverChildListDelegate(widgets),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    if (index == 0) {
-                      return SizedBox(
-                          height: 240,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                10.0, 0, 10, 10), //EdgeInsets.zero
-                            child: dividendChart(),
-                          ));
-                    }
-                    // var amount = filteredDividends![index].averagePrice! *
-                    //     filteredDividends![index].quantity! *
-                    //     (filteredDividends![index].side == "buy" ? -1 : 1);
-                    var dividend = filteredDividends![index - 1];
+                    // if (index == 0) {
+                    //   return SizedBox(
+                    //       height: 240,
+                    //       child: Padding(
+                    //         padding: const EdgeInsets.fromLTRB(
+                    //             10.0, 0, 10, 10), //EdgeInsets.zero
+                    //         child: dividendChart(),
+                    //       ));
+                    // }
+                    var dividend = filteredDividends![index];
                     return Card(
                         child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1279,7 +1276,7 @@ class _HistoryPageState extends State<HistoryPage>
                       ],
                     ));
                   },
-                  childCount: filteredDividends!.length + 1,
+                  childCount: filteredDividends!.length,
                 ),
               ),
             ),
@@ -1334,16 +1331,16 @@ class _HistoryPageState extends State<HistoryPage>
                 // delegate: SliverChildListDelegate(widgets),
                 delegate: SliverChildBuilderDelegate(
                   (BuildContext context, int index) {
-                    if (index == 0) {
-                      return SizedBox(
-                          height: 240,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                10.0, 0, 10, 10), //EdgeInsets.zero
-                            child: interestChart(),
-                          ));
-                    }
-                    var interest = filteredInterests![index - 1];
+                    // if (index == 0) {
+                    //   return SizedBox(
+                    //       height: 240,
+                    //       child: Padding(
+                    //         padding: const EdgeInsets.fromLTRB(
+                    //             10.0, 0, 10, 10), //EdgeInsets.zero
+                    //         child: interestChart(),
+                    //       ));
+                    // }
+                    var interest = filteredInterests![index];
                     return Card(
                         child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1406,7 +1403,7 @@ class _HistoryPageState extends State<HistoryPage>
                       ],
                     ));
                   },
-                  childCount: filteredInterests!.length + 1,
+                  childCount: filteredInterests!.length,
                 ),
               ),
             ),

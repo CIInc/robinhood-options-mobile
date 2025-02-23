@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
-import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -36,6 +35,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -46,21 +46,6 @@ import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dar
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
-
-final formatDate = DateFormat("yMMMd");
-final formatMediumDate = DateFormat("EEE MMM d, y hh:mm:ss a");
-final formatLongDate = DateFormat("EEEE MMMM d, y hh:mm:ss a");
-final formatCompactDate = DateFormat("MMM d yy");
-final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");
-final formatCompactDateTimeWithMinute = DateFormat("MMM d yy hh:mm a");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatCompactCurrency = NumberFormat.compactCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatPercentageOneDigit =
-    NumberFormat.decimalPercentPattern(decimalDigits: 1);
-final formatPercentageInteger =
-    NumberFormat.decimalPercentPattern(decimalDigits: 0);
-final formatCompactNumber = NumberFormat.compact();
 
 /*
 class DrawerItem {
@@ -143,6 +128,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   Future<List<dynamic>>? futureDividends;
   Future<List<dynamic>>? futureInterests;
+
+  Future<PortfolioHistoricals>? futurePortfolioHistoricalsYear;
+  Future<dynamic>? futureMarketIndexHistoricalsSp500;
+  Future<dynamic>? futureMarketIndexHistoricalsNasdaq;
+  // final marketIndexHistoricalsNotifier = ValueNotifier<dynamic>(null);
 
   Future<InstrumentPositionStore>? futureStockPositions;
   //Stream<StockPositionStore>? positionStoreStream;
@@ -352,6 +342,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 chartBoundsFilter,
                 chartDateSpanFilter);
 
+            futurePortfolioHistoricalsYear = widget.service
+                .getPortfolioHistoricals(
+                    widget.user,
+                    Provider.of<PortfolioHistoricalsStore>(context,
+                        listen: false),
+                    account!.accountNumber,
+                    chartBoundsFilter,
+                    ChartDateSpan.ytd);
+
             // Future.delayed(Duration(seconds: 1), () {
             //   if (mounted) {
             futureDividends = widget.service.getDividends(
@@ -420,6 +419,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //List<OptionAggregatePosition>? optionPositions,
       //List<StockPosition>? positions,
       bool done = false}) {
+    // var indices = RobinhoodService().getMarketIndices(user: widget.user);
+    futureMarketIndexHistoricalsSp500 = YahooService()
+        .getMarketIndexHistoricals(symbol: '^GSPC', user: widget.user); // ^IXIC
+    futureMarketIndexHistoricalsNasdaq = YahooService()
+        .getMarketIndexHistoricals(symbol: '^IXIC', user: widget.user);
     //debugPrint('_buildPage');
     return RefreshIndicator(
       onRefresh: _pullRefresh,
@@ -638,7 +642,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               lastHistorical = portfolioHistoricals!.equityHistoricals[
                   portfolioHistoricals!.equityHistoricals.length - 1];
               open = firstHistorical
-                  .adjustedCloseEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+                  .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
 
               // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
@@ -693,92 +697,101 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   context,
                   listen: false);
               TimeSeriesChart historicalChart = TimeSeriesChart(
-                  [
-                    charts.Series<EquityHistorical, DateTime>(
-                      id: 'Adjusted Equity',
-                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                          Theme.of(context).colorScheme.primary),
-                      strokeWidthPxFn: (EquityHistorical history, index) => 2,
-                      //charts.MaterialPalette.blue.shadeDefault,
-                      domainFn: (EquityHistorical history, _) =>
-                          history.beginsAt!,
-                      //filteredEquityHistoricals.indexOf(history),
-                      measureFn: (EquityHistorical history, index) => index == 0
-                          ? history.adjustedCloseEquity //adjustedOpenEquity
-                          : history.adjustedCloseEquity,
-                      labelAccessorFn: (EquityHistorical history, index) =>
-                          formatCompactNumber.format((index == 0
-                              ? history.adjustedCloseEquity //adjustedOpenEquity
-                              : history.adjustedCloseEquity)),
-                      data: portfolioHistoricals!.equityHistoricals,
-                      /*
+                [
+                  charts.Series<EquityHistorical, DateTime>(
+                    id: 'Adjusted Equity',
+                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                        Theme.of(context).colorScheme.primary),
+                    // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                    //charts.MaterialPalette.blue.shadeDefault,
+                    domainFn: (EquityHistorical history, _) =>
+                        history.beginsAt!,
+                    //filteredEquityHistoricals.indexOf(history),
+                    measureFn: (EquityHistorical history, index) => index == 0
+                        ? history.adjustedCloseEquity //adjustedOpenEquity
+                        : history.adjustedCloseEquity,
+                    labelAccessorFn: (EquityHistorical history, index) =>
+                        formatCompactNumber.format((index == 0
+                            ? history.adjustedCloseEquity //adjustedOpenEquity
+                            : history.adjustedCloseEquity)),
+                    data: portfolioHistoricals!.equityHistoricals,
+                    /*
                           [
                             ...portfolioHistoricals!.equityHistoricals,
                             EquityHistorical(portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioStore.items.first.updatedAt, 0, '')
                           ]
                           */
-                    ),
-                    charts.Series<EquityHistorical, DateTime>(
-                        id: 'Equity',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.green.shadeDefault,
-                        strokeWidthPxFn: (EquityHistorical history, index) => 2,
-                        domainFn: (EquityHistorical history, _) =>
-                            history.beginsAt!,
-                        //filteredEquityHistoricals.indexOf(history),
-                        measureFn: (EquityHistorical history, index) =>
-                            index == 0
-                                ? history.openEquity
-                                : history.closeEquity,
-                        data: portfolioHistoricals!
-                            .equityHistoricals //filteredEquityHistoricals,
-                        ),
-                    charts.Series<EquityHistorical, DateTime>(
-                        id: 'Market Value',
-                        colorFn: (_, __) =>
-                            charts.MaterialPalette.red.shadeDefault,
-                        strokeWidthPxFn: (EquityHistorical history, index) => 2,
-                        domainFn: (EquityHistorical history, _) =>
-                            history.beginsAt!,
-                        //filteredEquityHistoricals.indexOf(history),
-                        measureFn: (EquityHistorical history, index) =>
-                            index == 0
-                                ? history.openMarketValue
-                                : history.closeMarketValue,
-                        data: portfolioHistoricals!
-                            .equityHistoricals //filteredEquityHistoricals,
-                        ),
-                  ],
-                  animate: animateChart,
-                  zeroBound: false,
-                  open: open,
-                  close: close,
-                  hiddenSeries: const ['Equity', 'Market Value'],
-                  onSelected: (dynamic historical) {
-                provider.selectionChanged(historical); //?.first
-              }, getTextForTextSymbolRenderer: () {
-                firstHistorical = portfolioHistoricals!.equityHistoricals[0];
-                open = firstHistorical!.adjustedOpenEquity!;
-                if (provider.selection != null) {
-                  changeInPeriod = provider.selection!.adjustedCloseEquity! -
-                      open; // portfolios![0].equityPreviousClose!;
-                  changePercentInPeriod = provider
-                              .selection!.adjustedCloseEquity! /
-                          open -
-                      1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
-                } else {
-                  changeInPeriod = close - open;
-                  changePercentInPeriod =
-                      (close / open) - 1; // changeInPeriod / close;
-                }
-                // String? returnText = widget.user.getDisplayText(changeInPeriod,
-                //     displayValue: DisplayValue.totalReturn);
-                // String? returnPercentText = widget.user.getDisplayText(
-                //     changePercentInPeriod,
-                //     displayValue: DisplayValue.totalReturnPercent);
-                return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
-                // \n$returnText $returnPercentText
-              });
+                  ),
+                  charts.Series<EquityHistorical, DateTime>(
+                      id: 'Equity',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.green.shadeDefault,
+                      // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                      domainFn: (EquityHistorical history, _) =>
+                          history.beginsAt!,
+                      //filteredEquityHistoricals.indexOf(history),
+                      measureFn: (EquityHistorical history, index) =>
+                          index == 0 ? history.openEquity : history.closeEquity,
+                      data: portfolioHistoricals!
+                          .equityHistoricals //filteredEquityHistoricals,
+                      ),
+                  charts.Series<EquityHistorical, DateTime>(
+                      id: 'Market Value',
+                      colorFn: (_, __) =>
+                          charts.MaterialPalette.red.shadeDefault,
+                      // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                      domainFn: (EquityHistorical history, _) =>
+                          history.beginsAt!,
+                      //filteredEquityHistoricals.indexOf(history),
+                      measureFn: (EquityHistorical history, index) => index == 0
+                          ? history.openMarketValue
+                          : history.closeMarketValue,
+                      data: portfolioHistoricals!
+                          .equityHistoricals //filteredEquityHistoricals,
+                      ),
+                ],
+                animate: animateChart,
+                zeroBound: false,
+                open: open,
+                close: close,
+                seriesLegend: charts.SeriesLegend(
+                  horizontalFirst: true,
+                  position: charts.BehaviorPosition.top,
+                  defaultHiddenSeries: const ['Equity', 'Market Value'],
+                  // To show value on legend upon selection
+                  // showMeasures: true,
+                  measureFormatter: (measure) =>
+                      measure != null ? formatPercentage.format(measure) : '',
+                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                ),
+                onSelected: (charts.SelectionModel<dynamic>? model) {
+                  provider.selectionChanged(
+                      model?.selectedDatum.first.datum); //?.first
+                },
+                symbolRenderer: TextSymbolRenderer(() {
+                  firstHistorical = portfolioHistoricals!.equityHistoricals[0];
+                  open = firstHistorical!.adjustedOpenEquity!;
+                  if (provider.selection != null) {
+                    changeInPeriod = provider.selection!.adjustedCloseEquity! -
+                        open; // portfolios![0].equityPreviousClose!;
+                    changePercentInPeriod = provider
+                                .selection!.adjustedCloseEquity! /
+                            open -
+                        1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
+                  } else {
+                    changeInPeriod = close - open;
+                    changePercentInPeriod =
+                        (close / open) - 1; // changeInPeriod / close;
+                  }
+                  // String? returnText = widget.user.getDisplayText(changeInPeriod,
+                  //     displayValue: DisplayValue.totalReturn);
+                  // String? returnPercentText = widget.user.getDisplayText(
+                  //     changePercentInPeriod,
+                  //     displayValue: DisplayValue.totalReturnPercent);
+                  return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
+                  // \n$returnText $returnPercentText
+                }, marginBottom: 16),
+              );
 
               return SliverToBoxAdapter(
                   child: Stack(
@@ -929,7 +942,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                                         fontSize:
                                                             summaryValueFontSize)),
                                                 Text(
-                                                    formatMediumDate.format(
+                                                    formatMediumDateTime.format(
                                                         selection != null
                                                             ? selection
                                                                 .beginsAt!
@@ -1221,6 +1234,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     if (value) {
                                       resetChart(ChartDateSpan.month_3,
                                           chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('YTD'),
+                                  selected:
+                                      chartDateSpanFilter == ChartDateSpan.ytd,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(
+                                          ChartDateSpan.ytd, chartBoundsFilter);
                                     }
                                   },
                                 ),
@@ -1679,11 +1708,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ],
               ));
             }),
-
-            Consumer4<DividendStore, InterestStore, InstrumentPositionStore,
-                    ChartSelectionStore>(
+            Consumer3<DividendStore, InterestStore, InstrumentPositionStore>(
+                //, ChartSelectionStore
                 builder: (context, dividendStore, interestStore,
-                    instrumentPositionStore, chartSelectionStore, child) {
+                    instrumentPositionStore, child) {
+              //, chartSelectionStore
+              // var dividendStore =
+              //     Provider.of<DividendStore>(context, listen: false);
+              // var interestStore =
+              //     Provider.of<InterestStore>(context, listen: false);
+              // var instrumentPositionStore =
+              //     Provider.of<InstrumentPositionStore>(context, listen: false);
+              var chartSelectionStore =
+                  Provider.of<ChartSelectionStore>(context, listen: false);
               return IncomeTransactionsWidget(widget.user, widget.service,
                   dividendStore, instrumentPositionStore, chartSelectionStore,
                   interestStore: interestStore,
@@ -1693,6 +1730,245 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   analytics: widget.analytics,
                   observer: widget.observer);
             }),
+            FutureBuilder(
+              future: Future.wait([
+                futureMarketIndexHistoricalsSp500 as Future,
+                futureMarketIndexHistoricalsNasdaq as Future,
+                futurePortfolioHistoricalsYear != null
+                    ? futurePortfolioHistoricalsYear as Future
+                    : Future.value(null)
+              ]),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  var sp500 = snapshot.data![0];
+                  var nasdaq = snapshot.data![1];
+                  var portfolio = snapshot.data![2] as PortfolioHistoricals?;
+                  if (portfolio != null) {
+                    final DateTime now = DateTime.now();
+                    final DateTime newYearsDay = DateTime(now.year, 1, 1);
+                    var ytdportfolio = portfolio.equityHistoricals
+                        // .where((element) =>
+                        //     element.beginsAt!.compareTo(newYearsDay) >= 0)
+                        .toList();
+                    // var portfolioStore =
+                    //     Provider.of<PortfolioStore>(context, listen: false);
+                    // var forexHoldingStore =
+                    //     Provider.of<ForexHoldingStore>(context, listen: false);
+                    // var close = (portfolioStore.items[0].equity ?? 0) +
+                    //     forexHoldingStore.equity;
+                    // ytdportfolio.add(EquityHistorical(
+                    //     close,
+                    //     close,
+                    //     close,
+                    //     close,
+                    //     close,
+                    //     close,
+                    //     portfolioStore.items.first.updatedAt,
+                    //     0,
+                    //     ''));
+                    var regularsp500 = sp500['chart']['result'][0]['meta']
+                        ['currentTradingPeriod']['regular'];
+                    // var postsp500 = sp500['chart']['result'][0]['meta']
+                    //     ['currentTradingPeriod']['post'];
+                    var sp500PreviousClose = sp500['chart']['result'][0]['meta']
+                        ['chartPreviousClose'];
+                    var nasdaqPreviousClose = nasdaq['chart']['result'][0]
+                        ['meta']['chartPreviousClose'];
+                    var enddiffsp500 =
+                        regularsp500['end'] - regularsp500['start'];
+                    // var enddiffsp500 = postsp500['end'] - regularsp500['start'];
+                    // var quotesp500 =
+                    //     sp500['chart']['result'][0]['indicators']['quote'][0];
+                    // var quotenasdaq =
+                    //     nasdaq['chart']['result'][0]['indicators']['quote'][0];
+                    // var seriesOpensp500 = quotesp500['open'][0];
+                    // var seriesOpennasdaq = quotenasdaq['open'][0];
+                    var seriesDatasp500 =
+                        (sp500['chart']['result'][0]['timestamp'] as List)
+                            .mapIndexed((index, e) => {
+                                  'date': DateTime.fromMillisecondsSinceEpoch(
+                                      (e + enddiffsp500) * 1000),
+                                  'value': (sp500['chart']['result'][0]
+                                                  ['indicators']['adjclose'][0]
+                                              ['adjclose'] as List)[index] /
+                                          sp500PreviousClose -
+                                      1
+                                })
+                            .toList();
+                    seriesDatasp500
+                        .insert(0, {'date': newYearsDay, 'value': 0.0});
+                    var seriesDatanasdaq =
+                        (nasdaq['chart']['result'][0]['timestamp'] as List)
+                            .mapIndexed((index, e) => {
+                                  'date': DateTime.fromMillisecondsSinceEpoch(
+                                      (e + enddiffsp500) * 1000),
+                                  'value': (nasdaq['chart']['result'][0]
+                                                  ['indicators']['adjclose'][0]
+                                              ['adjclose'] as List)[index] /
+                                          nasdaqPreviousClose -
+                                      1
+                                })
+                            .toList();
+                    seriesDatanasdaq
+                        .insert(0, {'date': newYearsDay, 'value': 0.0});
+                    var seriesOpenportfolio =
+                        ytdportfolio[0].adjustedOpenEquity;
+                    var seriesDataportfolio = ytdportfolio
+                        .mapIndexed((index, e) => {
+                              'date': e.beginsAt,
+                              'value':
+                                  // index == 0 ? 0.0 :
+                                  e.adjustedCloseEquity! /
+                                          seriesOpenportfolio! -
+                                      1
+                            })
+                        .toList();
+                    // seriesDataportfolio
+                    //     .insert(0, {'date': newYearsDay, 'value': 0});
+                    // var portfoliodiffsp500 =
+                    //     (seriesDataportfolio.last['value'] as double) -
+                    //         seriesDatasp500.last['value'];
+                    // var portfoliodiffnasdaq =
+                    //     (seriesDataportfolio.last['value'] as double) -
+                    //         seriesDatanasdaq.last['value'];
+                    var extents = charts.NumericExtents.fromValues(
+                        (seriesDatasp500 +
+                                seriesDatanasdaq +
+                                seriesDataportfolio)
+                            .map((e) => e['value']));
+                    extents = charts.NumericExtents(
+                        extents.min - (extents.width * 0.1),
+                        extents.max + (extents.width * 0.1));
+                    var brightness = MediaQuery.of(context).platformBrightness;
+                    var axisLabelColor = charts.MaterialPalette.gray.shade500;
+                    if (brightness == Brightness.light) {
+                      axisLabelColor = charts.MaterialPalette.gray.shade700;
+                    }
+                    var provider = Provider.of<ChartSelectionStore>(context,
+                        listen: false);
+
+                    // var seriesData = Map<DateTime, double>.fromIterables(
+                    //     (snapshot.data['chart']['result'][0]['timestamp'] as List)
+                    //         .map((e) => (e as Timestamp).toDate()),
+                    //     snapshot.data['chart']['result'][0]['indicators']
+                    //         ['adjClose'][0]['adjClose'] as List<double>);
+                    TimeSeriesChart marketIndicesChart = TimeSeriesChart(
+                      [
+                        charts.Series<dynamic, DateTime>(
+                          id: 'Portfolio',
+                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                              Colors.accents[0 % Colors.accents.length]),
+                          // strokeWidthPxFn: (dynamic data, index) => 1,
+                          //charts.MaterialPalette.blue.shadeDefault,
+                          domainFn: (dynamic data, _) => data['date'],
+                          //filteredEquityHistoricals.indexOf(history),
+                          measureFn: (dynamic data, index) => data['value'],
+                          // labelAccessorFn: (dynamic data, index) =>
+                          //     formatCompactNumber.format(data['value']),
+                          data: seriesDataportfolio,
+                        ),
+                        charts.Series<dynamic, DateTime>(
+                          id: 'S&P 500',
+                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                              Colors.accents[4 % Colors.accents.length]),
+                          // strokeWidthPxFn: (dynamic data, index) => 1,
+                          //charts.MaterialPalette.blue.shadeDefault,
+                          domainFn: (dynamic data, _) => data['date'],
+                          //filteredEquityHistoricals.indexOf(history),
+                          measureFn: (dynamic data, index) => data['value'],
+                          // labelAccessorFn: (dynamic data, index) =>
+                          //     formatCompactNumber.format(data['value']),
+                          data: seriesDatasp500,
+                        ),
+                        charts.Series<dynamic, DateTime>(
+                          id: 'Nasdaq',
+                          colorFn: (_, index) => charts.ColorUtil.fromDartColor(
+                              Colors.accents[2 % Colors.accents.length]),
+                          // strokeWidthPxFn: (dynamic data, index) => 1,
+                          //charts.MaterialPalette.blue.shadeDefault,
+                          domainFn: (dynamic data, _) => data['date'],
+                          //filteredEquityHistoricals.indexOf(history),
+                          measureFn: (dynamic data, index) => data['value'],
+                          // labelAccessorFn: (dynamic data, index) =>
+                          //     formatCompactNumber.format(data['value']),
+                          data: seriesDatanasdaq,
+                        ),
+                      ],
+                      animate: animateChart,
+                      zeroBound: false,
+                      primaryMeasureAxis: charts.PercentAxisSpec(
+                          viewport: extents,
+                          renderSpec: charts.GridlineRendererSpec(
+                              labelStyle:
+                                  charts.TextStyleSpec(color: axisLabelColor))),
+                      seriesLegend: charts.SeriesLegend(
+                        horizontalFirst: false,
+                        desiredMaxColumns: 2,
+                        cellPadding: EdgeInsets.fromLTRB(8, 3, 8, 3),
+                        position: charts.BehaviorPosition.top,
+                        defaultHiddenSeries: const ['Nasdaq'],
+                        // To show value on legend upon selection
+                        showMeasures: true,
+                        measureFormatter: (measure) => measure != null
+                            ? formatPercentage.format(measure)
+                            : '',
+                        // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                      ),
+                      onSelected: (charts.SelectionModel? model) {
+                        provider.selectionChanged(model != null
+                            ? MapEntry(model.selectedDatum.first.datum['date'],
+                                model.selectedDatum.first.datum['value'])
+                            : null); //?.first
+                      },
+                      symbolRenderer: TextSymbolRenderer(() {
+                        return provider.selection != null
+                            // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
+                            ? formatCompactDateTimeWithHour.format(
+                                (provider.selection as MapEntry).key.toLocal())
+                            : '0';
+                      }, marginBottom: 16),
+                    );
+                    return SliverToBoxAdapter(
+                        child: ShrinkWrappingViewport(
+                            offset: ViewportOffset.zero(),
+                            slivers: [
+                          SliverToBoxAdapter(
+                            child: ListTile(
+                              title: const Text(
+                                "Benchmarks",
+                                style: TextStyle(fontSize: 19.0),
+                              ),
+                              subtitle:
+                                  Text("Compare with S&P 500, Nasdaq (YTD)"),
+                              // subtitle: Text("S&P 500 • Nasdaq (YTD)"),
+                              // trailing: Wrap(spacing: 8, children: [
+                              //   Text(
+                              //     '${portfoliodiffsp500 > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffsp500)}  ${portfoliodiffnasdaq > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffnasdaq)}', // seriesDataportfolio.last['value']
+                              //     style: const TextStyle(fontSize: 21.0),
+                              //     textAlign: TextAlign.right,
+                              //   )
+                              // ]),
+                            ),
+                          ),
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                                height: 340, // 460, // 240,
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      10.0, 10.0, 10.0, 10.0),
+                                  //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                                  //padding: const EdgeInsets.all(10.0),
+                                  child: marketIndicesChart,
+                                )),
+                          )
+                        ]));
+                  }
+                }
+                return SliverToBoxAdapter(
+                  child: Container(),
+                );
+              },
+            ),
             Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
               //if (positions != null) {
@@ -1834,118 +2110,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           ]), //controller: _controller,
     );
   }
-
-  // SingleChildScrollView buildDetailScrollView(
-  //     Icon todayIcon,
-  //     String todayReturnText,
-  //     String todayReturnPercentText,
-  //     Icon totalIcon,
-  //     String totalReturnText,
-  //     String totalReturnPercentText) {
-  //   return SingleChildScrollView(
-  //       scrollDirection: Axis.horizontal,
-  //       child: Padding(
-  //           padding: const EdgeInsets.symmetric(horizontal: 5),
-  //           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-  //             /*
-  //                                   Padding(
-  //                                     padding: const EdgeInsets.all(
-  //                                         summaryEgdeInset), //.symmetric(horizontal: 6),
-  //                                     child: Column(
-  //                                         mainAxisSize: MainAxisSize.min,
-  //                                         children: <Widget>[
-  //                                           Text(marketValueText,
-  //                                               style: const TextStyle(
-  //                                                   fontSize:
-  //                                                       summaryValueFontSize)),
-  //                                           //Container(height: 5),
-  //                                           //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-  //                                           const Text("Market Value",
-  //                                               style: TextStyle(
-  //                                                   fontSize:
-  //                                                       summaryLabelFontSize)),
-  //                                         ]),
-  //                                   ),
-  //                                   */
-  //             Padding(
-  //               padding: const EdgeInsets.all(
-  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
-  //               child:
-  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-  //                 Wrap(spacing: 8, children: [
-  //                   todayIcon,
-  //                   Text(todayReturnText,
-  //                       style: const TextStyle(fontSize: summaryValueFontSize))
-  //                 ]),
-  //                 /*
-  //                                         Text(todayReturnText,
-  //                                             style: const TextStyle(
-  //                                                 fontSize:
-  //                                                     summaryValueFontSize)),
-  //                                                     */
-  //                 /*
-  //                                 Text(todayReturnPercentText,
-  //                                     style: const TextStyle(
-  //                                         fontSize: summaryValueFontSize)),
-  //                                         */
-  //                 const Text("Return Today",
-  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
-  //               ]),
-  //             ),
-  //             Padding(
-  //               padding: const EdgeInsets.all(
-  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
-  //               child:
-  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-  //                 Text(todayReturnPercentText,
-  //                     style: const TextStyle(fontSize: summaryValueFontSize)),
-  //                 const Text("Return Today %",
-  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
-  //               ]),
-  //             ),
-  //             Padding(
-  //               padding: const EdgeInsets.all(
-  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
-  //               child:
-  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-  //                 Wrap(spacing: 8, children: [
-  //                   totalIcon,
-  //                   Text(totalReturnText,
-  //                       style: const TextStyle(fontSize: summaryValueFontSize))
-  //                 ]),
-  //                 /*
-  //                                         Text(totalReturnText,
-  //                                             style: const TextStyle(
-  //                                                 fontSize:
-  //                                                     summaryValueFontSize)),
-  //                                                     */
-  //                 /*
-  //                                 Text(totalReturnPercentText,
-  //                                     style: const TextStyle(
-  //                                         fontSize: summaryValueFontSize)),
-  //                                         */
-  //                 //Container(height: 5),
-  //                 //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-  //                 const Text("Total Return",
-  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
-  //               ]),
-  //             ),
-  //             Padding(
-  //               padding: const EdgeInsets.all(
-  //                   summaryEgdeInset), //.symmetric(horizontal: 6),
-  //               child:
-  //                   Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-  //                 Text(totalReturnPercentText,
-  //                     style: const TextStyle(fontSize: summaryValueFontSize)),
-
-  //                 //Container(height: 5),
-  //                 //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-  //                 const Text("Total Return %",
-  //                     style: TextStyle(fontSize: summaryLabelFontSize)),
-  //               ]),
-  //             ),
-  //           ])));
-  // }
 
   SliverAppBar buildSliverAppBar(
       //List<Portfolio>? portfolios,

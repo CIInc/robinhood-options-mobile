@@ -176,9 +176,9 @@ class _InstrumentOptionChainWidgetState
     slivers.add(SliverAppBar(
       title: headerTitle(instrument),
       //expandedHeight: 240,
-      floating: true,
-      snap: true,
-      pinned: false,
+      floating: false,
+      snap: false,
+      pinned: true,
     ));
 
     if (done == false) {

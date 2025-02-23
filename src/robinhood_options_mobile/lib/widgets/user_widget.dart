@@ -13,10 +13,12 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserWidget extends StatefulWidget {
@@ -27,16 +29,16 @@ class UserWidget extends StatefulWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
-  const UserWidget(
-    this.auth, {
-    super.key,
-    required this.userId,
-    this.isProfileView = false,
-    this.onSignout,
-    required this.analytics,
-    required this.observer,
-    required this.brokerageUser,
-  });
+  final UserInfo? userInfo;
+  const UserWidget(this.auth,
+      {super.key,
+      required this.userId,
+      this.isProfileView = false,
+      this.onSignout,
+      required this.analytics,
+      required this.observer,
+      required this.brokerageUser,
+      this.userInfo});
 
   @override
   State<UserWidget> createState() => _UserWidgetState();
@@ -113,14 +115,17 @@ class _UserWidgetState extends State<UserWidget> {
                             title: const Text('User'),
                             actions: [
                               IconButton(
-                                  icon: widget.auth.currentUser != null
-                                      ? CircleAvatar(
-                                          maxRadius: 15, // 12,
-                                          backgroundImage:
-                                              CachedNetworkImageProvider(
-                                            widget.auth.currentUser!.photoURL ??
-                                                Constants.placeholderImage,
-                                          ))
+                                  icon: auth.currentUser != null
+                                      ? (auth.currentUser!.photoURL == null
+                                          ? const Icon(Icons.account_circle)
+                                          : CircleAvatar(
+                                              maxRadius: 12,
+                                              backgroundImage:
+                                                  CachedNetworkImageProvider(
+                                                      auth.currentUser!
+                                                          .photoURL!
+                                                      //  ?? Constants .placeholderImage, // No longer used
+                                                      )))
                                       : const Icon(Icons.login),
                                   onPressed: () async {
                                     showProfile(
@@ -317,7 +322,8 @@ class _UserWidgetState extends State<UserWidget> {
                             if (user != null) ...[
                               for (var brokerageUser
                                   in user.brokerageUsers) ...[
-                                ListTile(
+                                ExpansionTile(
+                                  shape: const Border(),
                                   leading: CircleAvatar(
                                       //backgroundColor: Colors.amber,
                                       child: Text(
@@ -350,6 +356,39 @@ class _UserWidgetState extends State<UserWidget> {
                                   //     Navigator.pop(context); // close the drawer
                                   //   }
                                   // },
+                                  children: [
+                                    if (brokerageUser.userInfo != null) ...[
+                                      SizedBox(
+                                        height: 400,
+                                        child: UserInfoCardWidget(
+                                            user: brokerageUser.userInfo!,
+                                            brokerageUser: brokerageUser),
+                                        // userWidget(brokerageUser, widget.analytics, widget.observer),
+                                        // UserInfoWidget(
+                                        //     widget.brokerageUser,
+                                        //     widget.brokerageUser.userInfo!,
+                                        //     null,
+                                        //     analytics: widget.analytics,
+                                        //     observer: widget.observer),
+                                      )
+                                    ] else if (widget.isProfileView &&
+                                        widget.auth.currentUser != null &&
+                                        widget.auth.currentUser!.uid ==
+                                            widget.userId &&
+                                        widget.userInfo != null) ...[
+                                      SizedBox(
+                                        height: 360,
+                                        child: UserInfoCardWidget(
+                                            user: widget.userInfo!,
+                                            brokerageUser: brokerageUser),
+                                      )
+                                    ] else ...[
+                                      Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Text('No user info available.'),
+                                      )
+                                    ]
+                                  ],
                                 )
                               ]
                             ]
@@ -357,43 +396,6 @@ class _UserWidgetState extends State<UserWidget> {
                         )),
                       )),
                       // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-                      SliverToBoxAdapter(
-                          child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Card(
-                          child: ListTile(
-                              leading: const Icon(Icons.tune),
-                              title: Text('Display Settings'),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                // Navigator.pop(context);
-                                showModalBottomSheet<String>(
-                                    context: context,
-                                    // isScrollControlled: true,
-                                    useSafeArea: true,
-                                    showDragHandle: true,
-                                    builder: (context) {
-                                      return MoreMenuBottomSheet(
-                                          widget.brokerageUser,
-                                          analytics: widget.analytics,
-                                          observer: widget.observer,
-                                          onSettingsChanged: (settings) =>
-                                              debugPrint(jsonEncode(settings)));
-                                    });
-                                // Navigator.push(
-                                //     context,
-                                //     MaterialPageRoute(
-                                //         builder: (BuildContext context) =>
-                                //             MoreMenuBottomSheet(
-                                //                 widget.brokerageUser,
-                                //                 analytics: widget.analytics,
-                                //                 observer: widget.observer,
-                                //                 onSettingsChanged: (settings) =>
-                                //                     debugPrint(jsonEncode(
-                                //                         settings)))));
-                              }),
-                        ),
-                      )),
 
                       // SliverToBoxAdapter(
                       //     child: ListTile(
@@ -426,6 +428,44 @@ class _UserWidgetState extends State<UserWidget> {
                       if (widget.isProfileView &&
                           widget.auth.currentUser != null &&
                           widget.auth.currentUser!.uid == widget.userId) ...[
+                        SliverToBoxAdapter(
+                            child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Card(
+                            child: ListTile(
+                                leading: const Icon(Icons.tune),
+                                title: Text('Display Settings'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  // Navigator.pop(context);
+                                  showModalBottomSheet<String>(
+                                      context: context,
+                                      // isScrollControlled: true,
+                                      useSafeArea: true,
+                                      showDragHandle: true,
+                                      builder: (context) {
+                                        return MoreMenuBottomSheet(
+                                            widget.brokerageUser,
+                                            analytics: widget.analytics,
+                                            observer: widget.observer,
+                                            onSettingsChanged: (settings) =>
+                                                debugPrint(
+                                                    jsonEncode(settings)));
+                                      });
+                                  // Navigator.push(
+                                  //     context,
+                                  //     MaterialPageRoute(
+                                  //         builder: (BuildContext context) =>
+                                  //             MoreMenuBottomSheet(
+                                  //                 widget.brokerageUser,
+                                  //                 analytics: widget.analytics,
+                                  //                 observer: widget.observer,
+                                  //                 onSettingsChanged: (settings) =>
+                                  //                     debugPrint(jsonEncode(
+                                  //                         settings)))));
+                                }),
+                          ),
+                        )),
                         const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
                         SliverToBoxAdapter(
                             child: Column(

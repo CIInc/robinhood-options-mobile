@@ -50,5 +50,20 @@ class UserInfo {
         locality = null,
         profileName = json['accounts'][0]['nickName'],
         createdAt = null,
-        lastLoginTime = null; // DateTime.tryParse(json['lastLoginTime']);
+        lastLoginTime = null;
+
+  toJson() {
+    return {
+      'url': url,
+      'id': id,
+      'id_info': idInfo,
+      'username': username,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'locality': locality,
+      'profile_name': profileName,
+      'created_at': createdAt,
+    };
+  }
 }

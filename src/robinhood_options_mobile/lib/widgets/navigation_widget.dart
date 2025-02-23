@@ -78,7 +78,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     1: GlobalKey<NavigatorState>(),
     2: GlobalKey<NavigatorState>(),
     3: GlobalKey<NavigatorState>(),
-    4: GlobalKey<NavigatorState>(),
+    // 4: GlobalKey<NavigatorState>(),
   };
 
   int _pageIndex = 0;
@@ -302,6 +302,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             if (dataSnapshot.hasData &&
                 dataSnapshot.connectionState == ConnectionState.done) {
               userInfo = dataSnapshot.data!;
+              userStore.currentUser!.userInfo = userInfo;
               widget.analytics.setUserId(id: userInfo!.username);
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
@@ -364,11 +365,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             observer: widget.observer,
             navigatorKey: navigatorKeys[3]),
       ],
-      UserInfoWidget(userStore.currentUser!, userInfo!,
-          accounts?.first, //accounts != null ? accounts!.first : null,
-          analytics: widget.analytics,
-          observer: widget.observer,
-          navigatorKey: navigatorKeys[4]),
+      // UserInfoWidget(userStore.currentUser!, userInfo!,
+      //     accounts?.first, //accounts != null ? accounts!.first : null,
+      //     analytics: widget.analytics,
+      //     observer: widget.observer,
+      //     navigatorKey: navigatorKeys[4]),
       //const LoginWidget()
       //],
     ];
@@ -409,52 +410,54 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      bottomNavigationBar: SizedBox(
-          height: loggedIn(userStore) ? null : 0,
-          child: BottomNavigationBar(
-            items: <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: Icon(Icons.account_balance), //home
-                label: 'Portfolio',
-              ),
-              if (userStore.currentUser != null &&
-                  (userStore.currentUser!.source == Source.robinhood ||
-                      userStore.currentUser!.source == Source.demo)) ...[
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.search),
-                  label: 'Search',
-                ),
-                /*
+      bottomNavigationBar: !loggedIn(userStore)
+          ? null
+          : SizedBox(
+              height: loggedIn(userStore) ? null : 0,
+              child: BottomNavigationBar(
+                items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.account_balance), //home
+                    label: 'Portfolio',
+                  ),
+                  if (userStore.currentUser != null &&
+                      (userStore.currentUser!.source == Source.robinhood ||
+                          userStore.currentUser!.source == Source.demo)) ...[
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.search),
+                      label: 'Search',
+                    ),
+                    /*
                 BottomNavigationBarItem(
                   icon: Icon(Icons.payments), //inventory //history
                   label: 'Orders',
                 ),
                 */
-                BottomNavigationBarItem(
-                  icon:
-                      Icon(Icons.collections_bookmark), //bookmarks //visibility
-                  label: 'Lists',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.history),
-                  label: 'History',
-                ),
-              ],
-              BottomNavigationBarItem(
-                icon: Icon(Icons.account_circle), // manage_accounts //person
-                label: 'Accounts',
-              ),
-            ],
-            currentIndex: _pageIndex,
-            //fixedColor: Colors.grey,
-            selectedItemColor: Theme.of(context).colorScheme.primary,
-            //selectedItemColor: Colors.blue,
-            unselectedItemColor: Colors
-                .grey.shade400, // Theme.of(context).colorScheme.background,
-            //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-            onTap: _onPageChanged,
-            //onTap: _onIndexedViewChanged,
-          )),
+                    BottomNavigationBarItem(
+                      icon: Icon(
+                          Icons.collections_bookmark), //bookmarks //visibility
+                      label: 'Lists',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.history),
+                      label: 'History',
+                    ),
+                  ],
+                  // BottomNavigationBarItem(
+                  //   icon: Icon(Icons.account_circle), // manage_accounts //person
+                  //   label: 'Accounts',
+                  // ),
+                ],
+                currentIndex: _pageIndex,
+                //fixedColor: Colors.grey,
+                selectedItemColor: Theme.of(context).colorScheme.primary,
+                //selectedItemColor: Colors.blue,
+                unselectedItemColor: Colors
+                    .grey.shade400, // Theme.of(context).colorScheme.background,
+                //unselectedItemColor: Colors.grey.shade400, //.amber[800],
+                onTap: _onPageChanged,
+                //onTap: _onIndexedViewChanged,
+              )),
     );
   }
 
@@ -641,7 +644,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                         selected: _pageIndex == 4,
                         onTap: () {
                           Navigator.pop(context); // close the drawer
-                          _onPageChanged(4);
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    // LoginWidget(
+                                    //   analytics: widget.analytics,
+                                    //   observer: widget.observer,
+                                    // )
+
+                                    UserInfoWidget(
+                                        userStore.currentUser!,
+                                        userInfo!,
+                                        accounts
+                                            ?.first, //accounts != null ? accounts!.first : null,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer),
+                              ));
+                          // _onPageChanged(4);
                         },
                       ),
                       ListTile(

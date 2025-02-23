@@ -1,17 +1,21 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
+import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 enum SortType { alphabetical, change }
 
@@ -42,10 +46,11 @@ class ListWidget extends StatefulWidget {
 
 class _ListWidgetState extends State<ListWidget>
     with AutomaticKeepAliveClientMixin<ListWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
   Stream<Watchlist>? watchlistStream;
   Watchlist? watchlist;
   SortType? _sortType = SortType.alphabetical;
-  SortDirection? _sortDirection = SortDirection.desc;
+  SortDirection? _sortDirection = SortDirection.asc;
 
   @override
   bool get wantKeepAlive => true;
@@ -133,88 +138,123 @@ class _ListWidgetState extends State<ListWidget>
               ]),
           actions: [
             IconButton(
-                icon: const Icon(Icons.sort),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    //constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            // tileColor: Theme.of(context).colorScheme.primary,
-                            leading: const Icon(Icons.sort),
-                            title: const Text(
-                              "Sort Watch List",
-                              style: TextStyle(fontSize: 19.0),
-                            ),
-                            /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Ascending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Descending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Ascending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Descending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                            ],
-                          )
-                        ],
-                      );
-                    },
-                  );
-                })
+                icon: auth.currentUser != null
+                    ? (auth.currentUser!.photoURL == null
+                        ? const Icon(Icons.account_circle)
+                        : CircleAvatar(
+                            maxRadius: 12,
+                            backgroundImage: CachedNetworkImageProvider(
+                                auth.currentUser!.photoURL!
+                                //  ?? Constants .placeholderImage, // No longer used
+                                )))
+                    : const Icon(Icons.login),
+                onPressed: () async {
+                  var response = await showProfile(
+                      context,
+                      auth,
+                      _firestoreService,
+                      widget.analytics,
+                      widget.observer,
+                      widget.user);
+                  if (response != null) {
+                    setState(() {});
+                  }
+                }),
+            // IconButton(
+            //     icon: const Icon(Icons.sort),
+            //     onPressed: () {
+            //       showModalBottomSheet<void>(
+            //         context: context,
+            //         showDragHandle: true,
+            //         //constraints: BoxConstraints(maxHeight: 260),
+            //         builder: (BuildContext context) {
+            //           return Column(
+            //             mainAxisAlignment: MainAxisAlignment.start,
+            //             crossAxisAlignment: CrossAxisAlignment.start,
+            //             children: [
+            //               ListTile(
+            //                 // tileColor: Theme.of(context).colorScheme.primary,
+            //                 leading: const Icon(Icons.sort),
+            //                 title: const Text(
+            //                   "Sort Watch List",
+            //                   style: TextStyle(fontSize: 19.0),
+            //                 ),
+            //                 /*
+            //                       trailing: TextButton(
+            //                           child: const Text("APPLY"),
+            //                           onPressed: () => Navigator.pop(context))*/
+            //               ),
+            //               Column(
+            //                 mainAxisAlignment: MainAxisAlignment.start,
+            //                 crossAxisAlignment: CrossAxisAlignment.start,
+            //                 children: [
+            //                   RadioListTile<SortType>(
+            //                     title: const Text('Alphabetical'),
+            //                     value: SortType.alphabetical,
+            //                     groupValue: _sortType,
+            //                     onChanged: (SortType? value) {
+            //                       Navigator.pop(context);
+            //                       setState(() {
+            //                         _sortType = value;
+            //                         _sortDirection = SortDirection.desc;
+            //                       });
+            //                     },
+            //                     secondary: _sortType == SortType.alphabetical
+            //                         ? IconButton(
+            //                             icon: Icon(
+            //                                 _sortDirection == SortDirection.desc
+            //                                     ? Icons.south
+            //                                     : Icons.north),
+            //                             onPressed: () {
+            //                               Navigator.pop(context, 'dialog');
+            //                               setState(() {
+            //                                 _sortDirection = _sortDirection ==
+            //                                         SortDirection.asc
+            //                                     ? SortDirection.desc
+            //                                     : SortDirection.asc;
+            //                               });
+            //                               // showSettings();
+            //                             },
+            //                           )
+            //                         : null,
+            //                   ),
+            //                   RadioListTile<SortType>(
+            //                     title: const Text('Change'),
+            //                     value: SortType.change,
+            //                     groupValue: _sortType,
+            //                     onChanged: (SortType? value) {
+            //                       Navigator.pop(context);
+            //                       setState(() {
+            //                         _sortType = value;
+            //                         _sortDirection = SortDirection.asc;
+            //                       });
+            //                     },
+            //                     secondary: _sortType == SortType.change
+            //                         ? IconButton(
+            //                             icon: Icon(
+            //                                 _sortDirection == SortDirection.desc
+            //                                     ? Icons.south
+            //                                     : Icons.north),
+            //                             onPressed: () {
+            //                               Navigator.pop(context, 'dialog');
+            //                               setState(() {
+            //                                 _sortDirection = _sortDirection ==
+            //                                         SortDirection.asc
+            //                                     ? SortDirection.desc
+            //                                     : SortDirection.asc;
+            //                               });
+            //                               // showSettings();
+            //                             },
+            //                           )
+            //                         : null,
+            //                   ),
+            //                 ],
+            //               )
+            //             ],
+            //           );
+            //         },
+            //       );
+            //     })
           ],
         ),
         body: CustomScrollView(slivers: [
@@ -274,6 +314,30 @@ class _ListWidgetState extends State<ListWidget>
                                                 _sortType = value;
                                               });
                                             },
+                                            secondary: _sortType ==
+                                                    SortType.alphabetical
+                                                ? IconButton(
+                                                    icon: Icon(_sortDirection ==
+                                                            SortDirection.desc
+                                                        ? Icons.south
+                                                        : Icons.north),
+                                                    onPressed: () {
+                                                      Navigator.pop(
+                                                          context, 'dialog');
+                                                      setState(() {
+                                                        _sortDirection =
+                                                            _sortDirection ==
+                                                                    SortDirection
+                                                                        .asc
+                                                                ? SortDirection
+                                                                    .desc
+                                                                : SortDirection
+                                                                    .asc;
+                                                      });
+                                                      // showSettings();
+                                                    },
+                                                  )
+                                                : null,
                                           ),
                                           RadioListTile<SortType>(
                                             title: const Text('Change'),
@@ -285,6 +349,30 @@ class _ListWidgetState extends State<ListWidget>
                                                 _sortType = value;
                                               });
                                             },
+                                            secondary: _sortType ==
+                                                    SortType.change
+                                                ? IconButton(
+                                                    icon: Icon(_sortDirection ==
+                                                            SortDirection.desc
+                                                        ? Icons.south
+                                                        : Icons.north),
+                                                    onPressed: () {
+                                                      Navigator.pop(
+                                                          context, 'dialog');
+                                                      setState(() {
+                                                        _sortDirection =
+                                                            _sortDirection ==
+                                                                    SortDirection
+                                                                        .asc
+                                                                ? SortDirection
+                                                                    .desc
+                                                                : SortDirection
+                                                                    .asc;
+                                                      });
+                                                      // showSettings();
+                                                    },
+                                                  )
+                                                : null,
                                           ),
                                         ],
                                       )

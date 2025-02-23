@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/Users/aymericgrassart/development/flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/Users/aymericgrassart/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/android/app/.cxx/RelWithDebInfo/6k553420/x86_64",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/Users/aymericgrassart/Library/Android/sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/android/app/.cxx/RelWithDebInfo/6k553420/x86_64",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

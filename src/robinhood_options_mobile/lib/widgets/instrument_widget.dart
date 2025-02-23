@@ -659,13 +659,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   extents.min - (extents.width * 0.1),
                   extents.max + (extents.width * 0.1));
               //extents.min - (extents.min * 0.01), extents.max * 1.01);
-              chart = TimeSeriesChart(seriesList,
-                  open: open,
-                  close: close,
-                  hiddenSeries: const ["Close", "Volume", "Low", "High"],
-                  onSelected: _onChartSelection,
-                  zeroBound: false,
-                  viewport: extents);
+              var provider = Provider.of<InstrumentHistoricalsSelectionStore>(
+                  context,
+                  listen: false);
+
+              chart = TimeSeriesChart(
+                seriesList,
+                open: open,
+                close: close,
+                seriesLegend: charts.SeriesLegend(
+                  horizontalFirst: true,
+                  position: charts.BehaviorPosition.top,
+                  defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
+                  // To show value on legend upon selection
+                  showMeasures: true,
+                  measureFormatter: (measure) =>
+                      measure != null ? formatCurrency.format(measure) : '',
+                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                ),
+                onSelected: (charts.SelectionModel<DateTime>? historical) {
+                  provider
+                      .selectionChanged(historical?.selectedDatum.first.datum);
+                },
+                symbolRenderer: TextSymbolRenderer(() {
+                  return provider.selection != null
+                      // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
+                      ? formatCompactDateTimeWithHour.format(
+                          (provider.selection as InstrumentHistorical)
+                              .beginsAt!
+                              .toLocal())
+                      : '0';
+                }, marginBottom: 16),
+                zeroBound: false,
+                // viewport: extents
+              );
 
               /*
               slivers.add(const SliverToBoxAdapter(
@@ -676,6 +703,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               return SliverToBoxAdapter(
                   child: Column(
                 children: [
+                  SizedBox(
+                      height: 340, // 240,
+                      child: Padding(
+                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
+                        padding: const EdgeInsets.all(10.0),
+                        child: chart,
+                      )),
                   Consumer<InstrumentHistoricalsSelectionStore>(
                       builder: (context, value, child) {
                     selection = value.selection;
@@ -736,19 +770,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               ],
                             ),
                             Text(
-                              '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                              '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                               style: TextStyle(fontSize: 10, color: textColor),
                             ),
                           ],
                         )));
                   }),
-                  SizedBox(
-                      height: 240,
-                      child: Padding(
-                        //padding: EdgeInsets.symmetric(horizontal: 12.0),
-                        padding: const EdgeInsets.all(10.0),
-                        child: chart,
-                      )),
                   SizedBox(
                       height: 56,
                       child: ListView.builder(
@@ -1147,27 +1174,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       //futureInstrumentOrders = null;
       //futureOptionOrders = null;
     });
-  }
-
-  _onChartSelection(dynamic historical) {
-    var provider = Provider.of<InstrumentHistoricalsSelectionStore>(context,
-        listen: false);
-    provider.selectionChanged(historical);
-    /*
-    if (historical != null) {
-      if (selection != historical as InstrumentHistorical) {
-        setState(() {
-          selection = historical;
-        });
-      }
-    } else {
-      if (selection != null) {
-        setState(() {
-          selection = null;
-        });
-      }
-    }
-    */
   }
 
   /*

@@ -25,12 +25,6 @@ import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
-final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.####");
-final formatCompactNumber = NumberFormat.compact();
-
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
 final ItemPositionsListener itemPositionListener =
@@ -574,12 +568,14 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   actions: [
                     IconButton(
                         icon: auth.currentUser != null
-                            ? CircleAvatar(
-                                maxRadius: 15, // 12,
-                                backgroundImage: CachedNetworkImageProvider(
-                                  auth.currentUser!.photoURL ??
-                                      Constants.placeholderImage,
-                                ))
+                            ? (auth.currentUser!.photoURL == null
+                                ? const Icon(Icons.account_circle)
+                                : CircleAvatar(
+                                    maxRadius: 12,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        auth.currentUser!.photoURL!
+                                        //  ?? Constants .placeholderImage, // No longer used
+                                        )))
                             : const Icon(Icons.login),
                         onPressed: () {
                           showProfile(context, auth, _firestoreService,

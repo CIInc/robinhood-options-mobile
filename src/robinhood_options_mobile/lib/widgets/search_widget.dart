@@ -159,9 +159,9 @@ class _SearchWidgetState extends State<SearchWidget>
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   SliverAppBar(
-                      floating: true,
-                      snap: true,
-                      pinned: false,
+                      floating: false,
+                      snap: false,
+                      pinned: true,
                       title: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10.0),
                           child: TextField(
@@ -479,7 +479,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     //       )
                     //     : SizedBox(height: 40, width: 40),
                     Text(movers[index].symbol,
-                        style: const TextStyle(fontSize: 16.0)),
+                        style: const TextStyle(fontSize: 17.0)),
                     Wrap(
                       children: [
                         Icon(

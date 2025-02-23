@@ -53,25 +53,33 @@ class UserListTile extends StatelessWidget {
                 Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (BuildContext context) => UserWidget(
-                              auth,
-                              userId: auth.currentUser!.uid,
-                              isProfileView: true,
-                              onSignout: () async {
-                                // Reset userRole
-                                final authUtil = AuthUtil(auth);
-                                userRole = await authUtil.userRole();
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Signed out'),
-                                          behavior: SnackBarBehavior.floating));
-                                  Navigator.pop(context);
-                                }
-                              },
-                              analytics: analytics,
-                              observer: observer,
-                              brokerageUser: brokerageUser,
+                        builder: (BuildContext context) => Scaffold(
+                              appBar: AppBar(
+                                title: Text(user.name ??
+                                    user.providerId?.capitalize() ??
+                                    ''),
+                              ),
+                              body: UserWidget(
+                                auth,
+                                userId: document.id,
+                                isProfileView: true,
+                                onSignout: () async {
+                                  // Reset userRole
+                                  final authUtil = AuthUtil(auth);
+                                  userRole = await authUtil.userRole();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text('Signed out'),
+                                            behavior:
+                                                SnackBarBehavior.floating));
+                                    Navigator.pop(context);
+                                  }
+                                },
+                                analytics: analytics,
+                                observer: observer,
+                                brokerageUser: brokerageUser,
+                              ),
                             )));
               }
             : null);

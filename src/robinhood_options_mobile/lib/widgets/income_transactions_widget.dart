@@ -8,6 +8,15 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:community_charts_common/community_charts_common.dart' as common
+    show
+        // ChartBehavior,
+        // SelectNearest,
+        SelectionMode
+    // SelectionModelType,
+    // SelectionTrigger
+    ;
+
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
@@ -179,7 +188,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               v.map((m) => double.parse(m["amount"])).reduce((a, b) => a + b));
         })
         .entries
-        .toList();
+        .toList()
+        .sortedBy<DateTime>((e) => e.key);
     final Map<DateTime, List> groupedInterests = interestItems
         // .where((d) =>
         //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
@@ -196,7 +206,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   .reduce((a, b) => a + b));
         })
         .entries
-        .toList();
+        .toList()
+        .sortedBy<DateTime>((e) => e.key);
     final groupedCumulativeData = (groupedDividendsData + groupedInterestsData)
         .groupListsBy((element) => element.key)
         .map((k, v) =>
@@ -210,24 +221,34 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               ..add(MapEntry(element.key,
                   element.value + (sums.isEmpty ? 0 : sums.last.value))));
 
-    var pastYearDividends = groupedDividendsData.take(12).toList() +
-        groupedInterestsData.take(12).toList();
-    // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
-    //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
-    // var pastMonthDividends = groupedDividendsData.take(1).toList() +
-    //     groupedInterestsData.take(1).toList();
-    // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
-    //     .where(
-    //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
-    var pastYearTotalIncome =
-        (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
-                pastYearDividends.isNotEmpty
-            ? pastYearDividends
-                .where((e) => e.key.isAfter(
-                    DateTime(DateTime.now().year - 1, DateTime.now().month, 1)))
-                .map((e) => e.value)
-                .reduce((a, b) => a + b)
-            : 0.0;
+    // var pastYearDividends = groupedDividendsData.take(12).toList() +
+    //     groupedInterestsData.take(12).toList();
+    // // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
+    // //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
+    // // var pastMonthDividends = groupedDividendsData.take(1).toList() +
+    // //     groupedInterestsData.take(1).toList();
+    // // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
+    // //     .where(
+    // //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
+    // var pastYearTotalIncome =
+    //     (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
+    //             pastYearDividends.isNotEmpty
+    //         ? pastYearDividends
+    //             .where((e) => e.key.isAfter(
+    //                 DateTime(DateTime.now().year - 1, DateTime.now().month, 1)))
+    //             .map((e) => e.value ?? 0.0)
+    //             .reduce((a, b) => a + b)
+    //         : 0.0;
+    var pastYearInterest = groupedInterestsData.where((e) => e.key
+        .isAfter(DateTime(DateTime.now().year - 1, DateTime.now().month, 1)));
+    var pastYearDividend = groupedDividendsData.where((e) => e.key
+        .isAfter(DateTime(DateTime.now().year - 1, DateTime.now().month, 1)));
+    var pastYearTotalIncome = (pastYearInterest.isNotEmpty
+            ? pastYearInterest.map((e) => e.value).reduce((a, b) => a + b)
+            : 0.0) +
+        (pastYearDividend.isNotEmpty
+            ? pastYearDividend.map((e) => e.value).reduce((a, b) => a + b)
+            : 0.0);
     var totalIncome = (groupedInterestsData.isNotEmpty
             ? groupedInterestsData.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0) +
@@ -348,7 +369,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // measureFn: (dynamic measure, index) => double.parse(measure["amount"]),
           measureFn: (dynamic measure, index) =>
               (measure as MapEntry<DateTime, double>).value,
-          labelAccessorFn: (datum, index) => formatCompactNumber
+          labelAccessorFn: (datum, index) => formatCurrency
               .format((datum as MapEntry<DateTime, double>).value),
           data: groupedCumulativeData,
         )
@@ -356,10 +377,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           ..setAttribute(charts.rendererIdKey, 'customLine'),
       ],
       animate: true,
-      onSelected: (selected) {
+      onSelected: (charts.SelectionModel? model) {
         // chartSelectionStore.selectionsChanged(
         //     selected.map((e) => e as MapEntry<DateTime, double>).toList());
-        widget.chartSelectionStore.selectionChanged(selected);
+        widget.chartSelectionStore.selectionChanged(model != null
+            ? model.selectedDatum.first.datum as MapEntry<DateTime, double>
+            : null);
       },
       seriesRendererConfig: charts.BarRendererConfig<DateTime>(
         groupingType: charts.BarGroupingType.stacked,
@@ -372,34 +395,75 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             customRendererId: 'customLine')
       ],
       // hiddenSeries: ['Cumulative'],
+      // selectionMode: common.SelectionMode.expandToDomain,
       behaviors: [
         charts.SelectNearest(
-            eventTrigger: charts.SelectionTrigger.tap), // tapAndDrag
+          eventTrigger: charts.SelectionTrigger.tap,
+          selectionMode: common.SelectionMode.expandToDomain,
+        ), // tapAndDrag
         // charts.DomainHighlighter(),
-        // TODO: Doesn't work all the time, the legend repositions itself.
-        // if (!widget.showList) ...[
-        charts.SeriesLegend(),
-        // ],
+        // charts.InitialSelection(selectedSeriesConfig: [
+        //   'Interest',
+        //   'Dividend',
+        //   'Cumulative'
+        // ], selectedDataConfig: [
+        //   if (groupedInterestsData.isNotEmpty) ...[
+        //     charts.SeriesDatumConfig<DateTime>(
+        //         "Interest", groupedInterestsData.last.key)
+        //   ],
+        //   if (groupedDividendsData.isNotEmpty) ...[
+        //     charts.SeriesDatumConfig<DateTime>(
+        //         "Dividend", groupedDividendsData.last.key)
+        //   ],
+        //   if (groupedCumulativeData.isNotEmpty) ...[
+        //     charts.SeriesDatumConfig<DateTime>(
+        //         "Cumulative", groupedCumulativeData.last.key)
+        //   ],
+        // ], shouldPreserveSelectionOnDraw: false),
+        charts.SeriesLegend(
+          position: charts.BehaviorPosition.top,
+          desiredMaxColumns: 2,
+          // widget.chartSelectionStore.selection != null ? 2 : 3,
+          cellPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
+          showMeasures: true,
+          // legendDefaultMeasure: groupedInterestsData.isNotEmpty &&
+          //         groupedCumulativeData.isNotEmpty
+          //     ? charts.LegendDefaultMeasure.lastValue
+          //     : charts.LegendDefaultMeasure.none,
+          measureFormatter: (num? value) {
+            return value == null ? '-' : formatCurrency.format(value);
+          },
+          secondaryMeasureFormatter: (num? value) {
+            return value == null ? '-' : formatCurrency.format(value);
+          },
+        ),
         // Add the sliding viewport behavior to have the viewport center on the
         // domain that is currently selected.
-        charts.SlidingViewport(),
+        // charts.SlidingViewport(),
         // A pan and zoom behavior helps demonstrate the sliding viewport
         // behavior by allowing the data visible in the viewport to be adjusted
         // dynamically.
-        charts.PanAndZoomBehavior(),
+        // TODO: This breaks the deselection of the chart. Figure out how to support both.
+        charts.PanAndZoomBehavior(panningCompletedCallback: () {
+          debugPrint('panned');
+          // Not working, see todo above.
+          widget.chartSelectionStore.selectionChanged(null);
+        }),
         charts.LinePointHighlighter(
-          symbolRenderer: TextSymbolRenderer(() => widget
-                      .chartSelectionStore.selection !=
-                  null
-              ? '${formatMonthDate.format(widget.chartSelectionStore.selection!.key)}\n${formatCurrency.format(widget.chartSelectionStore.selection!.value)}'
-              : ''),
+          symbolRenderer: TextSymbolRenderer(
+              () => widget.chartSelectionStore.selection != null
+                  ? formatMonthDate
+                      .format(widget.chartSelectionStore.selection!.key)
+                  // \n${formatCurrency.format(widget.chartSelectionStore.selection!.value)}'
+                  : '',
+              placeAbovePoint: false),
           // chartSelectionStore.selection
           //     ?.map((s) => s.value.round().toString())
           //     .join(' ') ??
           // ''),
-          seriesIds: [
-            dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
-          ], // , 'Interest'
+          // seriesIds: [
+          //   dividendItems.isNotEmpty ? 'Dividend' : 'Interest'
+          // ], // , 'Interest'
           // drawFollowLinesAcrossChart: true,
           // formatCompactCurrency
           //     .format(chartSelection?.value)),
@@ -426,23 +490,23 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         // showAxisLine: true,
         // renderSpec: charts.GridlineRendererSpec(),
         // TODO: Figure out why autoViewport is not working for pending or interest data, they require explicit setting of viewport which is different than the auto.
-        viewport: groupedDividendsData.isEmpty && groupedInterestsData.isEmpty
-            ? null
-            :
-            // transactionFilters.contains('pending') ||
-            //         (!transactionFilters.contains('dividend') &&
-            //             transactionFilters.contains('interest'))
-            //     ?
-            // charts.NumericExtents.fromValues((groupedInterestsData +
-            //         groupedDividendsData +
-            //         [MapEntry<DateTime, double>(DateTime.now(), 0.0)])
-            //     .map((e) => e.value))
-            charts.NumericExtents(
-                0,
-                (groupedDividendsData + groupedInterestsData)
-                        .map((e) => e.value)
-                        .max *
-                    1.1), // : null,
+        // viewport: groupedDividendsData.isEmpty && groupedInterestsData.isEmpty
+        //     ? null
+        //     :
+        //     // transactionFilters.contains('pending') ||
+        //     //         (!transactionFilters.contains('dividend') &&
+        //     //             transactionFilters.contains('interest'))
+        //     //     ?
+        //     // charts.NumericExtents.fromValues((groupedInterestsData +
+        //     //         groupedDividendsData +
+        //     //         [MapEntry<DateTime, double>(DateTime.now(), 0.0)])
+        //     //     .map((e) => e.value))
+        //     charts.NumericExtents(
+        //         0,
+        //         (groupedDividendsData + groupedInterestsData)
+        //                 .map((e) => e.value)
+        //                 .max *
+        //             1.1), // : null,
         // measureAxisNumericExtents = charts.NumericExtents(
         //     measureAxisNumericExtents.min, measureAxisNumericExtents.max * 1.1);
         //.NumericExtents(0, 500),
@@ -1272,12 +1336,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                     actions: [
                       IconButton(
                           icon: auth.currentUser != null
-                              ? CircleAvatar(
-                                  maxRadius: 15, // 12,
-                                  backgroundImage: CachedNetworkImageProvider(
-                                    auth.currentUser!.photoURL ??
-                                        Constants.placeholderImage,
-                                  ))
+                              ? (auth.currentUser!.photoURL == null
+                                  ? const Icon(Icons.account_circle)
+                                  : CircleAvatar(
+                                      maxRadius: 12,
+                                      backgroundImage: CachedNetworkImageProvider(
+                                          auth.currentUser!.photoURL!
+                                          //  ?? Constants .placeholderImage, // No longer used
+                                          )))
                               : const Icon(Icons.login),
                           onPressed: () {
                             showProfile(context, auth, _firestoreService,
