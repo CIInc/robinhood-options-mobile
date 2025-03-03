@@ -1,13 +1,15 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
-import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
@@ -16,21 +18,22 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/history_widget.dart';
 import 'package:robinhood_options_mobile/widgets/home_widget.dart';
 import 'package:robinhood_options_mobile/widgets/initial_widget.dart';
 import 'package:robinhood_options_mobile/widgets/lists_widget.dart';
 import 'package:robinhood_options_mobile/widgets/login_widget.dart';
-import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
-import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
@@ -64,14 +67,16 @@ class NavigationStatefulWidget extends StatefulWidget {
 
 /// This is the private State class that goes with NavigationStatefulWidget.
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
+  final FirestoreService _firestoreService = FirestoreService();
+
   late IBrokerageService service;
 
-  // List<BrokerageUser> brokerageUsers = [];
-  // int currentUserIndex = 0;
-  Future<UserInfo?>? futureUser;
   UserInfo? userInfo;
-  Future<List<Account>>? futureAccounts;
-  List<Account>? accounts;
+  // List<Account>? accounts;
+  DocumentReference<User>? userDoc;
+  User? user;
+
+  PackageInfo? packageInfo;
 
   Map<int, GlobalKey<NavigatorState>> navigatorKeys = {
     0: GlobalKey<NavigatorState>(),
@@ -105,6 +110,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       //     });
     }
 
+    if (auth.currentUser != null) {
+      _firestoreService.updateUserField(auth.currentUser!.uid,
+          lastVisited: DateTime.now());
+    }
+
     // web not supported
     if (!kIsWeb) {
       loadDeepLinks(userStore);
@@ -123,6 +133,107 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       refreshCredentialsTimer!.cancel();
     }
     super.dispose();
+  }
+
+  // BrokerageUser get currentUser =>
+  //     currentUserIndex >= 0 && currentUserIndex < brokerageUsers.length
+  //         ? brokerageUsers[currentUserIndex]
+  //         : brokerageUsers[0];
+
+  @override
+  Widget build(BuildContext context) {
+    // The listen: true here causes the entire app to refresh whenever user settings are changed,
+    // yet it seems necessary to detect authentication changes.
+    // TODO: Figure out better approach to handle only authentication changes.
+    var userStore = Provider.of<BrokerageUserStore>(context, listen: true);
+
+    //var accountStore = Provider.of<AccountStore>(context, listen: true);
+    if (userStore.items.isNotEmpty) {
+      service = userStore.currentUser!.source == BrokerageSource.robinhood
+          ? RobinhoodService()
+          : userStore.currentUser!.source == BrokerageSource.schwab
+              ? SchwabService()
+              : userStore.currentUser!.source == BrokerageSource.plaid
+                  ? PlaidService()
+                  : DemoService();
+
+      var futureUserInfo = service.getUser(userStore.currentUser!);
+      //futureAccounts ??= widget.service.getAccounts(robinhoodUser!);
+
+      if (auth.currentUser != null) {
+        userDoc = _firestoreService.userCollection.doc(auth.currentUser!.uid);
+      }
+      final packageInfoFuture = PackageInfo.fromPlatform();
+      // debugPrint(info.toString());
+      var futureArr = [futureUserInfo, packageInfoFuture];
+      if (userDoc != null) {
+        futureArr.add(userDoc!.get());
+      }
+      return FutureBuilder(
+          future:
+              // futureUser,
+              // Future.wait([futureUser as Future, futureAccounts as Future]),
+              Future.wait(futureArr),
+          builder: (context1, dataSnapshot) {
+            if (dataSnapshot.hasData &&
+                dataSnapshot.connectionState == ConnectionState.done) {
+              // userInfo = dataSnapshot.data!;
+              userInfo = dataSnapshot.data![0] as UserInfo;
+              packageInfo = dataSnapshot.data!.length > 1
+                  ? dataSnapshot.data![1] as PackageInfo
+                  : null;
+              DocumentSnapshot<User>? userSnapshot =
+                  dataSnapshot.data!.length > 2
+                      ? dataSnapshot.data![2] as DocumentSnapshot<User>
+                      : null;
+              if (userStore.currentUser != null &&
+                  userStore.currentUser!.userInfo == null) {
+                userStore.currentUser!.userInfo = userInfo;
+                userStore.save();
+              }
+              if (userSnapshot != null) {
+                user = userSnapshot.data();
+                var buser = user!.brokerageUsers.firstWhereOrNull((b) =>
+                    b.userName == userStore.currentUser!.userName &&
+                    b.source == userStore.currentUser!.source);
+                if (buser != null && buser.userInfo == null) {
+                  buser.userInfo = userInfo;
+                  // authUtil.setUser(_firestoreService,
+                  //     brokerageUserStore: userStore);
+                  _firestoreService.updateUser(userDoc!, user!);
+                }
+              }
+              widget.analytics.setUserId(id: userInfo!.username);
+              /*
+                    List<dynamic> data = dataSnapshot.data as List<dynamic>;
+                    userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
+                    accounts =
+                        data.length > 1 ? data[1] as List<Account> : null;
+                        */
+              _buildTabs(userStore);
+            } else if (dataSnapshot.hasError) {
+              debugPrint("${dataSnapshot.error}");
+              return buildScaffold(userStore,
+                  widget: InitialWidget(
+                      child: Column(children: [
+                    Text("${dataSnapshot.error}"),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    ElevatedButton.icon(
+                      label: const Text(
+                        "Login",
+                        style: TextStyle(fontSize: 20.0),
+                      ),
+                      icon: const Icon(Icons.login),
+                      onPressed: () => _openLogin(),
+                    )
+                  ])));
+            }
+            return buildScaffold(userStore);
+          });
+    }
+    return buildScaffold(userStore);
   }
 
   void initTabs() {
@@ -178,11 +289,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       debugPrint('code:$code');
       var user = await SchwabService().getAccessToken(code);
 
-      service = user!.source == Source.robinhood
+      service = user!.source == BrokerageSource.robinhood
           ? RobinhoodService()
-          : user.source == Source.schwab
+          : user.source == BrokerageSource.schwab
               ? SchwabService()
-              : user.source == Source.plaid
+              : user.source == BrokerageSource.plaid
                   ? PlaidService()
                   : DemoService();
 
@@ -274,73 +385,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         */
   }
 
-  // BrokerageUser get currentUser =>
-  //     currentUserIndex >= 0 && currentUserIndex < brokerageUsers.length
-  //         ? brokerageUsers[currentUserIndex]
-  //         : brokerageUsers[0];
-
-  @override
-  Widget build(BuildContext context) {
-    var userStore = Provider.of<BrokerageUserStore>(context, listen: true);
-
-    //var accountStore = Provider.of<AccountStore>(context, listen: true);
-    if (userStore.items.isNotEmpty) {
-      service = userStore.currentUser!.source == Source.robinhood
-          ? RobinhoodService()
-          : userStore.currentUser!.source == Source.schwab
-              ? SchwabService()
-              : userStore.currentUser!.source == Source.plaid
-                  ? PlaidService()
-                  : DemoService();
-
-      futureUser = service.getUser(userStore.currentUser!);
-      //futureAccounts ??= widget.service.getAccounts(robinhoodUser!);
-      return FutureBuilder(
-          future:
-              futureUser, // Future.wait([futureUser as Future, futureAccounts as Future]),
-          builder: (context1, dataSnapshot) {
-            if (dataSnapshot.hasData &&
-                dataSnapshot.connectionState == ConnectionState.done) {
-              userInfo = dataSnapshot.data!;
-              userStore.currentUser!.userInfo = userInfo;
-              widget.analytics.setUserId(id: userInfo!.username);
-              /*
-                    List<dynamic> data = dataSnapshot.data as List<dynamic>;
-                    userInfo = data.isNotEmpty ? data[0] as UserInfo : null;
-                    accounts =
-                        data.length > 1 ? data[1] as List<Account> : null;
-                        */
-              _buildTabs(userStore);
-            } else if (dataSnapshot.hasError) {
-              debugPrint("${dataSnapshot.error}");
-              return buildScaffold(userStore,
-                  widget: InitialWidget(
-                      child: Column(children: [
-                    Text("${dataSnapshot.error}"),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    ElevatedButton.icon(
-                      label: const Text(
-                        "Login",
-                        style: TextStyle(fontSize: 20.0),
-                      ),
-                      icon: const Icon(Icons.login),
-                      onPressed: () => _openLogin(),
-                    )
-                  ])));
-            }
-            return buildScaffold(userStore);
-          });
-    }
-    return buildScaffold(userStore);
-  }
-
   _buildTabs(BrokerageUserStore userStore) {
     tabPages = [
       HomePage(
         userStore.currentUser!, userInfo!,
         service,
+        user: user,
+        userDoc:
+            userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
         title: Constants.appTitle,
         navigatorKey: navigatorKeys[0],
         analytics: widget.analytics,
@@ -350,28 +402,26 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       ),
       //const HomePage(title: 'Orders'),
       if (userStore.currentUser != null &&
-          (userStore.currentUser!.source == Source.robinhood ||
-              userStore.currentUser!.source == Source.demo)) ...[
+          (userStore.currentUser!.source == BrokerageSource.robinhood ||
+              userStore.currentUser!.source == BrokerageSource.demo)) ...[
         SearchWidget(userStore.currentUser!, service,
+            user: user,
             analytics: widget.analytics,
             observer: widget.observer,
             navigatorKey: navigatorKeys[1]),
         ListsWidget(userStore.currentUser!, service,
+            user: user,
             analytics: widget.analytics,
             observer: widget.observer,
             navigatorKey: navigatorKeys[2]),
         HistoryPage(userStore.currentUser!, service,
+            user: user,
+            userDoc:
+                userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),
             analytics: widget.analytics,
             observer: widget.observer,
             navigatorKey: navigatorKeys[3]),
       ],
-      // UserInfoWidget(userStore.currentUser!, userInfo!,
-      //     accounts?.first, //accounts != null ? accounts!.first : null,
-      //     analytics: widget.analytics,
-      //     observer: widget.observer,
-      //     navigatorKey: navigatorKeys[4]),
-      //const LoginWidget()
-      //],
     ];
   }
 
@@ -410,54 +460,56 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             controller: _pageController,
             physics: const NeverScrollableScrollPhysics(),
           ),
-      bottomNavigationBar: !loggedIn(userStore)
-          ? null
-          : SizedBox(
-              height: loggedIn(userStore) ? null : 0,
-              child: BottomNavigationBar(
-                items: <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.account_balance), //home
-                    label: 'Portfolio',
-                  ),
-                  if (userStore.currentUser != null &&
-                      (userStore.currentUser!.source == Source.robinhood ||
-                          userStore.currentUser!.source == Source.demo)) ...[
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.search),
-                      label: 'Search',
-                    ),
-                    /*
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.payments), //inventory //history
-                  label: 'Orders',
-                ),
-                */
-                    BottomNavigationBarItem(
-                      icon: Icon(
-                          Icons.collections_bookmark), //bookmarks //visibility
-                      label: 'Lists',
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.history),
-                      label: 'History',
-                    ),
-                  ],
-                  // BottomNavigationBarItem(
-                  //   icon: Icon(Icons.account_circle), // manage_accounts //person
-                  //   label: 'Accounts',
-                  // ),
-                ],
-                currentIndex: _pageIndex,
-                //fixedColor: Colors.grey,
-                selectedItemColor: Theme.of(context).colorScheme.primary,
-                //selectedItemColor: Colors.blue,
-                unselectedItemColor: Colors
-                    .grey.shade400, // Theme.of(context).colorScheme.background,
-                //unselectedItemColor: Colors.grey.shade400, //.amber[800],
-                onTap: _onPageChanged,
-                //onTap: _onIndexedViewChanged,
-              )),
+      // bottomNavigationBar: !loggedIn(userStore)
+      //     ? null
+      //     : SizedBox(
+      //         height: loggedIn(userStore) ? null : 0,
+      //         child: BottomNavigationBar(
+      //           items: <BottomNavigationBarItem>[
+      //             BottomNavigationBarItem(
+      //               icon: Icon(Icons.account_balance), //home
+      //               label: 'Portfolio',
+      //             ),
+      //             if (userStore.currentUser != null &&
+      //                 (userStore.currentUser!.source ==
+      //                         BrokerageSource.robinhood ||
+      //                     userStore.currentUser!.source ==
+      //                         BrokerageSource.demo)) ...[
+      //               BottomNavigationBarItem(
+      //                 icon: Icon(Icons.search),
+      //                 label: 'Search',
+      //               ),
+      //               /*
+      //           BottomNavigationBarItem(
+      //             icon: Icon(Icons.payments), //inventory //history
+      //             label: 'Orders',
+      //           ),
+      //           */
+      //               BottomNavigationBarItem(
+      //                 icon: Icon(
+      //                     Icons.collections_bookmark), //bookmarks //visibility
+      //                 label: 'Lists',
+      //               ),
+      //               BottomNavigationBarItem(
+      //                 icon: Icon(Icons.history),
+      //                 label: 'History',
+      //               ),
+      //             ],
+      //             // BottomNavigationBarItem(
+      //             //   icon: Icon(Icons.account_circle), // manage_accounts //person
+      //             //   label: 'Accounts',
+      //             // ),
+      //           ],
+      //           currentIndex: _pageIndex,
+      //           //fixedColor: Colors.grey,
+      //           selectedItemColor: Theme.of(context).colorScheme.primary,
+      //           //selectedItemColor: Colors.blue,
+      //           unselectedItemColor: Colors
+      //               .grey.shade400, // Theme.of(context).colorScheme.background,
+      //           //unselectedItemColor: Colors.grey.shade400, //.amber[800],
+      //           onTap: _onPageChanged,
+      //           //onTap: _onIndexedViewChanged,
+      //         )),
     );
   }
 
@@ -465,17 +517,23 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     return Consumer<DrawerProvider>(builder: (context, drawerProvider, child) {
       final userWidgets = <Widget>[];
       for (int userIndex = 0; userIndex < userStore.items.length; userIndex++) {
-        final user = userStore.items[userIndex];
+        final brokerageUser = userStore.items[userIndex];
         userWidgets.add(ListTile(
           leading: CircleAvatar(
+              radius: 16, //12,
               //backgroundColor: Colors.amber,
-              child: Text(
-            user.userName != null && user.userName!.isNotEmpty
-                ? user.userName!.substring(0, 1).toUpperCase()
-                : '',
-          )),
+              child: userStore.currentUser!.userName == brokerageUser.userName
+                  ? Icon(Icons.check)
+                  : Text(
+                      brokerageUser.userName != null &&
+                              brokerageUser.userName!.isNotEmpty
+                          ? brokerageUser.userName!
+                              .substring(0, 1)
+                              .toUpperCase()
+                          : '',
+                    )),
           title: Text(
-              '${user.userName != null ? user.userName! : ''} (${user.source.enumValue().capitalize()})'),
+              '${brokerageUser.userName != null ? brokerageUser.userName! : ''} (${brokerageUser.source.enumValue().capitalize()})'),
           //selected: userInfo!.profileName == userInfo!.profileName,
           onTap: () async {
             drawerProvider.toggleDrawer();
@@ -526,240 +584,266 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       ]);
 
       return Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: userStore.items.isEmpty
-              ? <Widget>[
-                  const DrawerHeader(
-                    child: Text(Constants.appTitle,
-                        style: TextStyle(fontSize: 30)),
-                    //decoration: BoxDecoration(color: Colors.green)
-                  ),
-                  ListTile(
-                      leading: const Icon(
-                          Icons.login), //const Icon(Icons.verified_user),
-                      title: const Text('Login'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _openLogin();
-                      }),
-                ]
-              : <Widget>[
-                  UserAccountsDrawerHeader(
-                    accountName: Text(
-                        '${userInfo != null ? userInfo!.profileName : ''} (${service.name})'),
-                    accountEmail: Text(userStore.currentUser!.userName != null
-                        ? userStore.currentUser!.userName!
-                        : ''), //userInfo!.email,
-                    currentAccountPicture: CircleAvatar(
-                        //backgroundColor: Colors.amber,
-                        child: Text(
-                      userInfo != null &&
-                              userInfo!.firstName != null &&
-                              userInfo!.lastName != null &&
-                              userInfo!.firstName!.isNotEmpty &&
-                              userInfo!.lastName!.isNotEmpty
-                          ? userInfo!.firstName!.substring(0, 1) +
-                              userInfo!.lastName!.substring(0, 1)
-                          : '',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 32),
-                    )),
-                    /*
-                  otherAccountsPictures: [
-                    GestureDetector(
-                      onTap: () => _onTapOtherAccounts(context),
-                      child: Semantics(
-                        label: 'Switch Account',
-                        child: const CircleAvatar(
-                          backgroundColor: Colors.lightBlue,
-                          child: Text('OT'),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: userStore.items.isEmpty
+                    ? <Widget>[
+                        const DrawerHeader(
+                          child: Text(Constants.appTitle,
+                              style: TextStyle(fontSize: 30)),
+                          //decoration: BoxDecoration(color: Colors.green)
                         ),
-                      ),
-                    )
-                  ],
-                  */
-                    onDetailsPressed: () {
-                      drawerProvider.toggleDrawer();
-                    },
-                  ),
-                  Column(children: [
-                    AnimatedSwitcher(
-                        duration: Durations.short2,
-                        transitionBuilder:
-                            (Widget child, Animation<double> animation) {
-                          return SlideTransition(
-                              position: (Tween<Offset>(
-                                      begin: Offset(0, -0.5), end: Offset.zero))
-                                  .animate(animation),
-                              child: child);
-                        },
-                        child: drawerProvider.showDrawerContents
-                            ? Column(
-                                children: userWidgets,
-                              )
-                            : Container()),
-                    ListTile(
-                      leading: const Icon(Icons.account_balance),
-                      title: const Text("Portfolio"),
-                      selected: _pageIndex == 0,
-                      onTap: () {
-                        Navigator.pop(context); // close the drawer
-                        _onPageChanged(0);
-                      },
-                    ),
-                    if (userStore.currentUser != null &&
-                        (userStore.currentUser!.source == Source.robinhood ||
-                            userStore.currentUser!.source == Source.demo)) ...[
-                      ListTile(
-                        leading: const Icon(Icons.search),
-                        title: const Text("Search"),
-                        selected: _pageIndex == 1,
-                        onTap: () {
-                          Navigator.pop(context); // close the drawer
-                          _onPageChanged(1);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.collections_bookmark),
-                        title: const Text("Lists"),
-                        selected: _pageIndex == 2,
-                        onTap: () {
-                          Navigator.pop(context); // close the drawer
-                          _onPageChanged(2);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.history),
-                        title: const Text("History"),
-                        selected: _pageIndex == 3,
-                        onTap: () {
-                          Navigator.pop(context); // close the drawer
-                          _onPageChanged(3);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.account_circle),
-                        title: const Text("Account"),
-                        selected: _pageIndex == 4,
-                        onTap: () {
-                          Navigator.pop(context); // close the drawer
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    // LoginWidget(
-                                    //   analytics: widget.analytics,
-                                    //   observer: widget.observer,
-                                    // )
-
-                                    UserInfoWidget(
-                                        userStore.currentUser!,
-                                        userInfo!,
-                                        accounts
-                                            ?.first, //accounts != null ? accounts!.first : null,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer),
-                              ));
-                          // _onPageChanged(4);
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.settings),
-                        title: const Text("Settings"),
-                        selected: false,
-                        onTap: () {
-                          Navigator.pop(context); // close the drawer
-                          showModalBottomSheet<void>(
-                              context: context,
-                              showDragHandle: true,
-                              //isScrollControlled: true,
-                              //useRootNavigator: true,
-                              //constraints: const BoxConstraints(maxHeight: 200),
-                              builder: (_) => MoreMenuBottomSheet(
-                                  userStore.currentUser!,
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                  showStockSettings: true,
-                                  showOptionsSettings: true,
-                                  showCryptoSettings: true,
-                                  chainSymbols: null,
-                                  positionSymbols: null,
-                                  cryptoSymbols: null,
-                                  optionSymbolFilters: null,
-                                  stockSymbolFilters: null,
-                                  cryptoFilters: null,
-                                  onSettingsChanged: (dynamic settings) {}));
-                        },
-                      ),
-                    ],
-                    // const Divider(
-                    //   height: 10,
-                    // ),
-                    // ListTile(
-                    //   leading: const Icon(Icons.settings),
-                    //   title: const Text("Settings"),
-                    //   //selected: false,
-                    //   onTap: () {
-                    //     Navigator.pop(context); // close the drawer
-                    //     showModalBottomSheet<void>(
-                    //         context: context,
-                    //         //isScrollControlled: true,
-                    //         //useRootNavigator: true,
-                    //         //constraints: const BoxConstraints(maxHeight: 200),
-                    //         builder: (_) => MoreMenuBottomSheet(
-                    //               userStore.currentUser!,
-                    //               /*
-                    //   chainSymbols: chainSymbols,
-                    //   positionSymbols: positionSymbols,
-                    //   cryptoSymbols: cryptoSymbols,
-                    //   optionSymbolFilters: optionSymbolFilters,
-                    //   stockSymbolFilters: stockSymbolFilters,
-                    //   cryptoFilters: cryptoFilters,*/
-                    //               onSettingsChanged: (_) => {},
-                    //               analytics: widget.analytics,
-                    //               observer: widget.observer,
-                    //             ));
-                    //   },
-                    // ),
-                    // const Divider(
-                    //   height: 10,
-                    // ),
-                    ListTile(
-                      leading: const Icon(Icons.logout),
-                      title: const Text("Logout"),
-                      //selected: false,
-                      onTap: () {
-                        _onSelectItem(1);
-                        _logout(userStore);
-                      },
-                    ),
-                    if (userRole == UserRole.admin) ...[
-                      const Divider(
-                        height: 10,
-                      ),
-                      ListTile(
-                          leading: const Icon(Icons.person_search),
-                          title: const Text("Users"),
-                          //selected: false,
-                          onTap: () {
-                            Navigator.pop(context); // close the drawer
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (BuildContext context) =>
-                                        UsersWidget(auth,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                            brokerageUser:
-                                                userStore.currentUser!)));
-                          }),
-                      // const Divider(
-                      //   height: 10,
-                      // ),
-                    ],
-                  ])
-                ],
+                        ListTile(
+                            leading: const Icon(
+                                Icons.login), //const Icon(Icons.verified_user),
+                            title: const Text('Login'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _openLogin();
+                            }),
+                      ]
+                    : <Widget>[
+                        UserAccountsDrawerHeader(
+                          accountName: Text(
+                              '${userInfo != null ? userInfo!.profileName : ''} (${service.name})'),
+                          accountEmail: Text(
+                              userStore.currentUser!.userName != null
+                                  ? userStore.currentUser!.userName!
+                                  : ''), //userInfo!.email,
+                          currentAccountPicture: CircleAvatar(
+                              //backgroundColor: Colors.amber,
+                              child: Text(
+                            userInfo != null &&
+                                    userInfo!.firstName != null &&
+                                    userInfo!.lastName != null &&
+                                    userInfo!.firstName!.isNotEmpty &&
+                                    userInfo!.lastName!.isNotEmpty
+                                ? userInfo!.firstName!.substring(0, 1) +
+                                    userInfo!.lastName!.substring(0, 1)
+                                : '',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 32),
+                          )),
+                          /*
+                        otherAccountsPictures: [
+                          GestureDetector(
+                            onTap: () => _onTapOtherAccounts(context),
+                            child: Semantics(
+                              label: 'Switch Account',
+                              child: const CircleAvatar(
+                                backgroundColor: Colors.lightBlue,
+                                child: Text('OT'),
+                              ),
+                            ),
+                          )
+                        ],
+                        */
+                          onDetailsPressed: () {
+                            drawerProvider.toggleDrawer();
+                          },
+                        ),
+                        Column(children: [
+                          AnimatedSwitcher(
+                              duration: Durations.short2,
+                              transitionBuilder:
+                                  (Widget child, Animation<double> animation) {
+                                return SlideTransition(
+                                    position: (Tween<Offset>(
+                                            begin: Offset(0, -0.25),
+                                            end: Offset.zero))
+                                        .animate(animation),
+                                    child: child);
+                              },
+                              child: drawerProvider.showDrawerContents
+                                  ? Column(
+                                      children: userWidgets,
+                                    )
+                                  : Container()),
+                          ListTile(
+                            leading: const Icon(Icons.account_balance),
+                            title: const Text("Portfolio"),
+                            selected: _pageIndex == 0,
+                            onTap: () {
+                              Navigator.pop(context); // close the drawer
+                              _onPageChanged(0);
+                            },
+                          ),
+                          if (userStore.currentUser != null &&
+                              (userStore.currentUser!.source ==
+                                      BrokerageSource.robinhood ||
+                                  userStore.currentUser!.source ==
+                                      BrokerageSource.demo)) ...[
+                            ListTile(
+                              leading: const Icon(Icons.search),
+                              title: const Text("Search"),
+                              selected: _pageIndex == 1,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(1);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.collections_bookmark),
+                              title: const Text("Lists"),
+                              selected: _pageIndex == 2,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(2);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.history),
+                              title: const Text("History"),
+                              selected: _pageIndex == 3,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(3);
+                              },
+                            ),
+                            // ListTile(
+                            //   leading: const Icon(Icons.account_circle),
+                            //   title: const Text("Account"),
+                            //   selected: _pageIndex == 4,
+                            //   onTap: () {
+                            //     Navigator.pop(context); // close the drawer
+                            //     Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(
+                            //           builder: (BuildContext context) => UserInfoWidget(
+                            //               userStore.currentUser!,
+                            //               userInfo!,
+                            //               null, // accounts?.first, //accounts != null ? accounts!.first : null,
+                            //               analytics: widget.analytics,
+                            //               observer: widget.observer),
+                            //         ));
+                            //     // _onPageChanged(4);
+                            //   },
+                            // ),
+                            // ListTile(
+                            //   leading: const Icon(Icons.settings),
+                            //   title: const Text("Settings"),
+                            //   selected: false,
+                            //   onTap: () {
+                            //     Navigator.pop(context); // close the drawer
+                            //     showModalBottomSheet<void>(
+                            //         context: context,
+                            //         showDragHandle: true,
+                            //         //isScrollControlled: true,
+                            //         //useRootNavigator: true,
+                            //         //constraints: const BoxConstraints(maxHeight: 200),
+                            //         builder: (_) => MoreMenuBottomSheet(
+                            //             userStore.currentUser!,
+                            //             analytics: widget.analytics,
+                            //             observer: widget.observer,
+                            //             showStockSettings: true,
+                            //             showOptionsSettings: true,
+                            //             showCryptoSettings: true,
+                            //             chainSymbols: null,
+                            //             positionSymbols: null,
+                            //             cryptoSymbols: null,
+                            //             optionSymbolFilters: null,
+                            //             stockSymbolFilters: null,
+                            //             cryptoFilters: null,
+                            //             onSettingsChanged:
+                            //                 (dynamic settings) {}));
+                            //   },
+                            // ),
+                          ],
+                          // const Divider(
+                          //   height: 10,
+                          // ),
+                          // ListTile(
+                          //   leading: const Icon(Icons.settings),
+                          //   title: const Text("Settings"),
+                          //   //selected: false,
+                          //   onTap: () {
+                          //     Navigator.pop(context); // close the drawer
+                          //     showModalBottomSheet<void>(
+                          //         context: context,
+                          //         //isScrollControlled: true,
+                          //         //useRootNavigator: true,
+                          //         //constraints: const BoxConstraints(maxHeight: 200),
+                          //         builder: (_) => MoreMenuBottomSheet(
+                          //               userStore.currentUser!,
+                          //               /*
+                          //   chainSymbols: chainSymbols,
+                          //   positionSymbols: positionSymbols,
+                          //   cryptoSymbols: cryptoSymbols,
+                          //   optionSymbolFilters: optionSymbolFilters,
+                          //   stockSymbolFilters: stockSymbolFilters,
+                          //   cryptoFilters: cryptoFilters,*/
+                          //               onSettingsChanged: (_) => {},
+                          //               analytics: widget.analytics,
+                          //               observer: widget.observer,
+                          //             ));
+                          //   },
+                          // ),
+                          // const Divider(
+                          //   height: 10,
+                          // ),
+                          const Divider(
+                            thickness: 0.25,
+                            // height: 10,
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.link_off),
+                            title: Text(
+                                "Unlink ${userStore.currentUser!.source.enumValue().capitalize()} Account"),
+                            //selected: false,
+                            onTap: () {
+                              _onSelectItem(1);
+                              _logout(userStore);
+                            },
+                          ),
+                          if (userRole == UserRole.admin) ...[
+                            const Divider(
+                              thickness: 0.25,
+                              // height: 10,
+                            ),
+                            ListTile(
+                                leading: const Icon(Icons.person_search),
+                                title: const Text("Users"),
+                                //selected: false,
+                                onTap: () {
+                                  Navigator.pop(context); // close the drawer
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (BuildContext context) =>
+                                              UsersWidget(auth,
+                                                  analytics: widget.analytics,
+                                                  observer: widget.observer,
+                                                  brokerageUser:
+                                                      userStore.currentUser!)));
+                                }),
+                            // const Divider(
+                            //   height: 10,
+                            // ),
+                          ],
+                        ])
+                      ],
+              ),
+            ),
+            // ListTile(
+            //   title: Text('RealizeAlpha'),
+            //   trailing: Text('v${packageInfo.toString()}'),
+            // )
+            if (packageInfo != null) ...[
+              // const Divider(
+              //   height: 10,
+              // ),
+              Container(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  '${packageInfo!.appName} v${packageInfo!.version}',
+                  style: TextStyle(fontSize: 12.0),
+                ),
+              )
+            ],
+          ],
         ),
       );
     });
@@ -818,6 +902,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       //   futureUser = null;
       // });
 
+      if (auth.currentUser != null) {
+        var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+        final authUtil = AuthUtil(auth);
+        await authUtil.setUser(_firestoreService,
+            brokerageUserStore: userStore);
+      }
+
       // After the Selection Screen returns a result, hide any previous snackbars
       // and show the new result.
       ScaffoldMessenger.of(context)
@@ -828,12 +919,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   _logout(BrokerageUserStore userStore) async {
     var alert = AlertDialog(
-      title: const Text('Logout process'),
+      title: const Text('Unlink process'),
       content: const SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
             Text('This action will require you to log in again.'),
-            Text('Are you sure you want to log out?'),
+            Text('Are you sure you want to unlink your brokerage account?'),
           ],
         ),
       ),
@@ -851,6 +942,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             userStore.remove(userStore.currentUser!);
             userStore.setCurrentUserIndex(0);
             userStore.save();
+
+            if (auth.currentUser != null) {
+              final authUtil = AuthUtil(auth);
+              await authUtil.setUser(_firestoreService,
+                  brokerageUserStore: userStore);
+            }
+
             setState(() {
               initTabs();
               // currentUserIndex = 0;

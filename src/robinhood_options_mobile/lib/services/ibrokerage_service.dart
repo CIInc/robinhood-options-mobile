@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -50,7 +51,8 @@ abstract class IBrokerageService {
   Future<UserInfo?> getUser(BrokerageUser user);
   Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
       PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore});
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc});
   Future<List<Portfolio>> getPortfolios(
       BrokerageUser user, PortfolioStore store);
 
@@ -60,12 +62,13 @@ abstract class IBrokerageService {
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
-      {bool nonzero = true});
+      {bool nonzero = true,
+      DocumentReference? userDoc});
 
   // Forex
   Future<List<ForexHolding>> getNummusHoldings(
       BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true});
+      {bool nonzero = true, DocumentReference? userDoc});
   Future<List<ForexHolding>> refreshNummusHoldings(
       BrokerageUser user, ForexHoldingStore store);
   Future<ForexQuote> getForexQuote(BrokerageUser user, String id);
@@ -75,7 +78,7 @@ abstract class IBrokerageService {
   // Options
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true});
+      {bool nonzero = true, DocumentReference? userDoc});
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
       BrokerageUser user,
       {bool nonzero = true});
@@ -100,7 +103,7 @@ abstract class IBrokerageService {
       BrokerageUser user, String instrumentUrl);
   Stream<List<OptionEvent>> streamOptionEvents(
       BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20});
+      {int pageSize = 20, DocumentReference? userDoc});
 
   Future<List<OptionChain>> getOptionChainsByIds(
       BrokerageUser user, List<String> ids);
@@ -153,12 +156,14 @@ abstract class IBrokerageService {
 
   // Dividends & Interests
   Stream<List<dynamic>> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore);
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc});
   Future<List<dynamic>> getDividends(BrokerageUser user,
       DividendStore dividendStore, InstrumentStore instrumentStore,
       {String? instrumentId});
   Stream<List<dynamic>> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore);
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc});
   Future<List<dynamic>> getInterests(
       BrokerageUser user, InterestStore dividendStore,
       {String? instrumentId});
@@ -193,9 +198,11 @@ abstract class IBrokerageService {
 
   // Orders
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore);
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc});
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store);
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc});
   Future<List<OptionOrder>> getOptionOrders(
       BrokerageUser user, OptionOrderStore store, String chainId);
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,

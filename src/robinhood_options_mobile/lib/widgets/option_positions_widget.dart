@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,10 +11,8 @@ import 'package:community_charts_flutter/community_charts_flutter.dart'
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
-import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -24,7 +21,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/widgets/option_positions_page_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /*
@@ -62,7 +59,7 @@ class OptionPositionsWidget extends StatefulWidget {
 }
 
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  // final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +248,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             : '',
         //charts.MaterialPalette.blue.shadeDefault,
         colorFn: (_, __) => shades[1],
+        // Not working as replacement to colorFn, setting the 2nd measure as gray
+        // seriesColor: shades[1],
         //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
         domainFn: (var d, _) => d['domain'],
         measureFn: (var d, _) => d['secondaryMeasure'],
@@ -441,7 +440,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     )
                   ]),
                 ),
-                onTap: null,
+                onTap: () {
+                  navigateToFullPage(context);
+                },
               ),
               _buildDetailScrollRow(
                   widget.filteredOptionPositions,
@@ -459,22 +460,86 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   summaryValueFontSize,
                   summaryLabelFontSize,
                   iconSize: 27.0),
-              if (
-                  //user.displayValue != DisplayValue.lastPrice &&
-                  barChartSeriesList.isNotEmpty &&
-                      barChartSeriesList.first.data.isNotEmpty) ...[
-                SizedBox(
-                    height: barChartSeriesList.first.data.length * 25 +
-                        80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                          10.0, 0, 10, 10), //EdgeInsets.zero
-                      child: optionChart,
-                    )),
-              ],
             ]
                 //)
                 )),
+        if (
+            //user.displayValue != DisplayValue.lastPrice &&
+            barChartSeriesList.isNotEmpty &&
+                barChartSeriesList.first.data.isNotEmpty) ...[
+          SliverToBoxAdapter(
+            child: SizedBox(
+                height: barChartSeriesList.first.data.length * 25 +
+                    80, //(barChartSeriesList.first.data.length < 20 ? 300 : 400),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      10.0, 0, 10, 10), //EdgeInsets.zero
+                  child: optionChart,
+                )),
+          ),
+        ],
+        SliverToBoxAdapter(
+            child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0), //.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            spacing: 8.0,
+            children: [
+              TextButton.icon(
+                  // FilledButton.tonalIcon(
+                  // OutlinedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        // isScrollControlled: true,
+                        //useRootNavigator: true,
+                        //constraints: const BoxConstraints(maxHeight: 200),
+                        builder: (_) => MoreMenuBottomSheet(widget.user,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlyPrimaryMeasure: true,
+                                onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  label: Text(BrokerageUser.displayValueText(
+                      widget.user.displayValue!)),
+                  icon: Icon(Icons.line_axis)),
+              TextButton.icon(
+                  // FilledButton.tonalIcon(
+                  // OutlinedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        // isScrollControlled: true,
+                        //useRootNavigator: true,
+                        //constraints: const BoxConstraints(maxHeight: 200),
+                        builder: (_) => MoreMenuBottomSheet(widget.user,
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                showOnlySort: true, onSettingsChanged: (value) {
+                              setState(() {});
+                            }));
+                  },
+                  label: Text(
+                      BrokerageUser.displayValueText(widget.user.sortOptions!)),
+                  icon: Icon(widget.user.sortDirection == SortDirection.desc
+                      ? Icons.south
+                      : Icons.north)
+                  // Icon(Icons.sort)
+                  ),
+              // ListTile(
+              //   trailing: FilledButton.tonalIcon(
+              //       // OutlinedButton.icon(
+              //       onPressed: () {},
+              //       label: Text('Market Value'),
+              //       icon: Icon(Icons.sort)),
+              // ),
+            ],
+          ),
+        )),
         if (widget.showList) ...[
           widget.user.optionsView == OptionsView.list
               ? SliverList(
@@ -529,67 +594,73 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
   void navigateToFullPage(BuildContext pageContext) {
     Navigator.push(
-      pageContext,
-      MaterialPageRoute(
-          builder: (context) => Material(
-                  child: CustomScrollView(slivers: [
-                SliverAppBar(
-                  title: Text("Options"),
-                  floating: true,
-                  snap: true,
-                  pinned: false,
-                  actions: [
-                    IconButton(
-                        icon: auth.currentUser != null
-                            ? (auth.currentUser!.photoURL == null
-                                ? const Icon(Icons.account_circle)
-                                : CircleAvatar(
-                                    maxRadius: 12,
-                                    backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
-                            : const Icon(Icons.login),
-                        onPressed: () {
-                          showProfile(context, auth, _firestoreService,
-                              widget.analytics, widget.observer, widget.user);
-                        }),
-                    IconButton(
-                        icon: Icon(Icons.more_vert),
-                        onPressed: () async {
-                          await showModalBottomSheet<void>(
-                              context: context,
-                              showDragHandle: true,
-                              //isScrollControlled: true,
-                              //useRootNavigator: true,
-                              //constraints: const BoxConstraints(maxHeight: 200),
-                              builder: (_) => MoreMenuBottomSheet(widget.user,
-                                      analytics: widget.analytics,
-                                      observer: widget.observer,
-                                      showOptionsSettings: true,
-                                      chainSymbols: null,
-                                      positionSymbols: null,
-                                      cryptoSymbols: null,
-                                      optionSymbolFilters: null,
-                                      stockSymbolFilters: null,
-                                      cryptoFilters: null,
-                                      onSettingsChanged: (value) {
-                                    setState(() {});
-                                    debugPrint("Settings changed");
-                                  }));
-                          // Navigator.pop(context);
-                        })
-                  ],
-                ),
-                OptionPositionsWidget(
+        pageContext,
+        MaterialPageRoute(
+            builder: (context) => OptionPositionsPageWidget(
                   widget.user,
                   widget.service,
                   widget.filteredOptionPositions,
                   analytics: widget.analytics,
                   observer: widget.observer,
-                )
-              ]))),
-    );
+                )));
+    // Material(
+    //         child: CustomScrollView(slivers: [
+    //       SliverAppBar(
+    //         title: Text("Options"),
+    //         floating: true,
+    //         snap: true,
+    //         pinned: false,
+    //         actions: [
+    //           IconButton(
+    //               icon: auth.currentUser != null
+    //                   ? (auth.currentUser!.photoURL == null
+    //                       ? const Icon(Icons.account_circle)
+    //                       : CircleAvatar(
+    //                           maxRadius: 12,
+    //                           backgroundImage: CachedNetworkImageProvider(
+    //                               auth.currentUser!.photoURL!
+    //                               //  ?? Constants .placeholderImage, // No longer used
+    //                               )))
+    //                   : const Icon(Icons.login),
+    //               onPressed: () {
+    //                 showProfile(context, auth, _firestoreService,
+    //                     widget.analytics, widget.observer, widget.user);
+    //               }),
+    //           IconButton(
+    //               icon: Icon(Icons.more_vert),
+    //               onPressed: () async {
+    //                 await showModalBottomSheet<void>(
+    //                     context: context,
+    //                     showDragHandle: true,
+    //                     //isScrollControlled: true,
+    //                     //useRootNavigator: true,
+    //                     //constraints: const BoxConstraints(maxHeight: 200),
+    //                     builder: (_) => MoreMenuBottomSheet(widget.user,
+    //                             analytics: widget.analytics,
+    //                             observer: widget.observer,
+    //                             showOptionsSettings: true,
+    //                             chainSymbols: null,
+    //                             positionSymbols: null,
+    //                             cryptoSymbols: null,
+    //                             optionSymbolFilters: null,
+    //                             stockSymbolFilters: null,
+    //                             cryptoFilters: null,
+    //                             onSettingsChanged: (value) {
+    //                           setState(() {});
+    //                           debugPrint("Settings changed");
+    //                         }));
+    //                 // Navigator.pop(context);
+    //               })
+    //         ],
+    //       ),
+    //       OptionPositionsWidget(
+    //         widget.user,
+    //         widget.service,
+    //         widget.filteredOptionPositions,
+    //         analytics: widget.analytics,
+    //         observer: widget.observer,
+    //       )
+    //     ]))));
   }
 
   _calculateGreekAggregates(
@@ -608,42 +679,49 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
 
     deltaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.delta != null
                 ? e.optionInstrument!.optionMarketData!.delta! * e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     gammaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.gamma != null
                 ? e.optionInstrument!.optionMarketData!.gamma! * e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     thetaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.theta != null
                 ? e.optionInstrument!.optionMarketData!.theta! * e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     vegaAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.vega != null
                 ? e.optionInstrument!.optionMarketData!.vega! * e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     rhoAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.rho != null
                 ? e.optionInstrument!.optionMarketData!.rho! * e.marketValue
                 : 0)
             .reduce((a, b) => a + b) /
         denominator;
     ivAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => e.optionInstrument != null &&
-                    e.optionInstrument!.optionMarketData != null
+                    e.optionInstrument!.optionMarketData != null &&
+                    e.optionInstrument!.optionMarketData!.impliedVolatility !=
+                        null
                 ? e.optionInstrument!.optionMarketData!.impliedVolatility! *
                     e.marketValue
                 : 0)
@@ -652,7 +730,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
     chanceAvg = filteredOptionPositions
             .map((OptionAggregatePosition e) => (e.direction == 'debit'
                 ? (e.optionInstrument != null &&
-                        e.optionInstrument!.optionMarketData != null
+                        e.optionInstrument!.optionMarketData != null &&
+                        e.optionInstrument!.optionMarketData!
+                                .chanceOfProfitLong !=
+                            null
                     ? e.optionInstrument!.optionMarketData!
                             .chanceOfProfitLong! *
                         e.marketValue

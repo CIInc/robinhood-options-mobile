@@ -42,6 +42,20 @@ class OptionLeg {
             ? OptionLegExecution.fromJsonArray(json['executions'])
             : [];
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'position': position,
+        'position_type': positionType,
+        'option': option,
+        'position_effect': positionEffect,
+        'ratio_quantity': ratioQuantity,
+        'side': side,
+        'expiration_date': expirationDate,
+        'strike_price': strikePrice,
+        'option_type': optionType,
+        'executions': executions.map((e) => e.toJson()).toList()
+      };
+
   static List<OptionLeg> fromJsonArray(dynamic json) {
     List<OptionLeg> legs = [];
     for (int i = 0; i < json.length; i++) {

@@ -226,6 +226,25 @@ class OptionAggregatePosition {
             '', // longStrategyCode,
             ''); //shortStrategyCode);
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'chain': chain,
+        'account': account,
+        'symbol': symbol,
+        'strategy': strategy,
+        'average_open_price': averageOpenPrice,
+        'legs': legs.map((leg) => leg.toJson()).toList(),
+        'quantity': quantity,
+        'intraday_average_open_price': intradayAverageOpenPrice,
+        'intraday_quantity': intradayQuantity,
+        'direction': direction,
+        'intraday_direction': intradayDirection,
+        'trade_value_multiplier': tradeValueMultiplier,
+        'created_at': createdAt,
+        'updated_at': updatedAt,
+        'strategy_code': strategyCode
+      };
+
   // Helpers
   double get marketValue {
     if (optionInstrument == null ||

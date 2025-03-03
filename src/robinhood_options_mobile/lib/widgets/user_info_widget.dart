@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -124,7 +125,10 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
             ])),
             SliverToBoxAdapter(
               child: UserInfoCardWidget(
-                  user: widget.userInfo, brokerageUser: widget.user),
+                user: widget.userInfo,
+                brokerageUser: widget.user,
+                firestoreService: _firestoreService,
+              ),
             ),
             const SliverToBoxAdapter(
                 child: SizedBox(
@@ -384,12 +388,14 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
 class UserInfoCardWidget extends StatelessWidget {
   final UserInfo user;
   final BrokerageUser brokerageUser;
+  final FirestoreService firestoreService;
 
   const UserInfoCardWidget({
-    Key? key,
+    super.key,
     required this.user,
     required this.brokerageUser,
-  }) : super(key: key);
+    required this.firestoreService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -498,8 +504,14 @@ class UserInfoCardWidget extends StatelessWidget {
               userStore.remove(userStore.currentUser!);
               await userStore.save();
               userStore.setCurrentUserIndex(0);
+
+              if (auth.currentUser != null) {
+                final authUtil = AuthUtil(auth);
+                await authUtil.setUser(firestoreService,
+                    brokerageUserStore: userStore);
+              }
             },
-            label: const Text('Logout'),
+            label: const Text('Disconnect'),
           ),
         ],
       ))

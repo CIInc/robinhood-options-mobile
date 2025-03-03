@@ -47,6 +47,7 @@ bool shouldUseFirestoreEmulator = false;
 
 late final FirebaseApp app;
 late final FirebaseAuth auth;
+late final AuthUtil authUtil;
 late UserRole userRole;
 
 void main() async {
@@ -59,7 +60,8 @@ void main() async {
   );
 
   auth = FirebaseAuth.instanceFor(app: app);
-  final authUtil = AuthUtil(auth);
+
+  authUtil = AuthUtil(auth);
   userRole = await authUtil.userRole();
 
   FirebaseFirestore.instance.settings = const Settings(

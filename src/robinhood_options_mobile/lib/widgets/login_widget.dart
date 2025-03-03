@@ -34,7 +34,7 @@ class LoginWidget extends StatefulWidget {
 }
 
 class _LoginWidgetState extends State<LoginWidget> {
-  Source source = Source.demo;
+  BrokerageSource source = BrokerageSource.demo;
 
   Future<http.Response>? authenticationResponse;
   Future<http.Response>? challengeResponse;
@@ -173,14 +173,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                   */
                 } else if (authenticationResponse['access_token'] != null) {
                   _stopMonitoringClipboard();
-                  var service = source == Source.robinhood
+                  var service = source == BrokerageSource.robinhood
                       ? RobinhoodService()
-                      : source == Source.schwab
+                      : source == BrokerageSource.schwab
                           ? SchwabService()
                           : DemoService();
                   client = generateClient(
                       authenticationSnapshot.data!,
-                      source == Source.robinhood
+                      source == BrokerageSource.robinhood
                           ? service.authEndpoint
                           : service.tokenEndpoint,
                       ['internal'],
@@ -287,12 +287,12 @@ class _LoginWidgetState extends State<LoginWidget> {
                 debugPrint(value.toString());
                 setState(() {
                   source = value == 0
-                      ? Source.demo
+                      ? BrokerageSource.demo
                       : value == 1
-                          ? Source.robinhood
+                          ? BrokerageSource.robinhood
                           : value == 2
-                              ? Source.schwab
-                              : Source.plaid;
+                              ? BrokerageSource.schwab
+                              : BrokerageSource.plaid;
                 });
               },
               // shrinkExtent: 200,
@@ -308,11 +308,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                           'Demo',
                           textAlign: TextAlign.center,
                         )),
-                    selected: source == Source.demo,
+                    selected: source == BrokerageSource.demo,
                     // labelPadding: const EdgeInsets.all(10.0),
                     onSelected: (bool selected) {
                       setState(() {
-                        source = Source.demo;
+                        source = BrokerageSource.demo;
                       });
                     },
                   ),
@@ -329,12 +329,12 @@ class _LoginWidgetState extends State<LoginWidget> {
                       ),
                     ),
                     // label: const Text('Robinhood'),
-                    selected: source == Source.robinhood,
+                    selected: source == BrokerageSource.robinhood,
                     // labelPadding: const EdgeInsets.all(10.0),
                     //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
                     onSelected: (bool selected) {
                       setState(() {
-                        source = Source.robinhood;
+                        source = BrokerageSource.robinhood;
                         //instrumentPosition = null;
                       });
                     },
@@ -351,11 +351,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                           textAlign: TextAlign.center,
                         )),
                     // label: const Text('Schwab'),
-                    selected: source == Source.schwab,
+                    selected: source == BrokerageSource.schwab,
                     // labelPadding: const EdgeInsets.all(10.0),
                     onSelected: (bool selected) {
                       setState(() {
-                        source = Source.schwab;
+                        source = BrokerageSource.schwab;
                       });
                     },
                   ),
@@ -370,18 +370,18 @@ class _LoginWidgetState extends State<LoginWidget> {
                           'Plaid',
                           textAlign: TextAlign.center,
                         )),
-                    selected: source == Source.plaid,
+                    selected: source == BrokerageSource.plaid,
                     // labelPadding: const EdgeInsets.all(10.0),
                     onSelected: (bool selected) {
                       setState(() {
-                        source = Source.plaid;
+                        source = BrokerageSource.plaid;
                       });
                     },
                   ),
                 ),
               ],
             )),
-        if (source == Source.robinhood) ...[
+        if (source == BrokerageSource.robinhood) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
@@ -435,7 +435,7 @@ class _LoginWidgetState extends State<LoginWidget> {
           ],
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
-        ] else if (source == Source.schwab) ...[
+        ] else if (source == BrokerageSource.schwab) ...[
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
               child: SizedBox(
@@ -451,7 +451,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     onPressed:
                         challengeRequestId == null ? _login : _handleChallenge,
                   )))
-        ] else if (source == Source.demo) ...[
+        ] else if (source == BrokerageSource.demo) ...[
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
               child: SizedBox(
@@ -467,7 +467,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                     onPressed:
                         challengeRequestId == null ? _login : _handleChallenge,
                   )))
-        ] else if (source == Source.plaid) ...[
+        ] else if (source == BrokerageSource.plaid) ...[
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
               child: SizedBox(
@@ -488,7 +488,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _login() async {
-    if (source == Source.schwab) {
+    if (source == BrokerageSource.schwab) {
       var code = await SchwabService().login();
       debugPrint('SchwabService().login(): $code');
       // Handled by deep links & oauth redirect flow.
@@ -505,17 +505,17 @@ class _LoginWidgetState extends State<LoginWidget> {
       //     await userStore.save();
       //   }
       // }
-    } else if (source == Source.demo) {
+    } else if (source == BrokerageSource.demo) {
       DemoService().login();
       var user = BrokerageUser(source, "Demo Account", null, null);
       var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
       userStore.addOrUpdate(user);
       userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      userStore.save();
+      await userStore.save();
       if (mounted) {
         Navigator.pop(context, user);
       }
-    } else if (source == Source.robinhood) {
+    } else if (source == BrokerageSource.robinhood) {
       setState(() {
         loading = true;
       });
@@ -569,7 +569,7 @@ class _LoginWidgetState extends State<LoginWidget> {
       //       challengeType: challengeType,
       //       challengeId: mfaCtl.text.isEmpty ? challengeResponseId : null);
       // });
-    } else if (source == Source.plaid) {
+    } else if (source == BrokerageSource.plaid) {
       // var service = PlaidService();
       // service.login();
       if (_configuration == null) {

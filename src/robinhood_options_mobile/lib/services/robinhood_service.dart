@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -21,6 +22,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -372,10 +374,15 @@ Response: {
   }
 
   @override
-  Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
-      PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore}) async {
-    var results = await RobinhoodService.pagedGet(user, "$endpoint/accounts/");
+  Future<List<Account>> getAccounts(
+      BrokerageUser brokerageUser,
+      AccountStore store,
+      PortfolioStore? portfolioStore,
+      OptionPositionStore? optionPositionStore,
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
+    var results =
+        await RobinhoodService.pagedGet(brokerageUser, "$endpoint/accounts/");
     //debugPrint(results);
     // https://phoenix.robinhood.com/accounts/unified
     // Remove old acccounts to get current ones
@@ -383,9 +390,16 @@ Response: {
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var op = Account.fromJson(result, user);
+      var op = Account.fromJson(result);
       accounts.add(op);
       store.addOrUpdate(op);
+    }
+    if (userDoc != null) {
+      var userSnapshot = await userDoc.get();
+      var user = userSnapshot.data() as User;
+      user.accounts = accounts;
+      await _firestoreService.updateUser(
+          userDoc as DocumentReference<User>, user);
     }
     return accounts;
   }
@@ -634,11 +648,13 @@ Response: {
 
   @override
   Future<InstrumentPositionStore> getStockPositionStore(
-      BrokerageUser user,
-      InstrumentPositionStore store,
-      InstrumentStore instrumentStore,
-      QuoteStore quoteStore,
-      {bool nonzero = true}) async {
+    BrokerageUser user,
+    InstrumentPositionStore store,
+    InstrumentStore instrumentStore,
+    QuoteStore quoteStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     var pageStream = streamedGet(user, "$endpoint/positions/?nonzero=$nonzero");
     //debugPrint(results);
     await for (final results in pageStream) {
@@ -649,6 +665,9 @@ Response: {
         //if ((withQuantity && op.quantity! > 0) ||
         //    (!withQuantity && op.quantity == 0)) {
         store.addOrUpdate(op);
+        if (userDoc != null) {
+          _firestoreService.upsertInstrumentPosition(op, userDoc);
+        }
       }
       var instrumentIds = store.items.map((e) => e.instrumentId).toList();
       var instrumentObjs =
@@ -679,9 +698,11 @@ Response: {
           store.update(position);
           // Update Instrument
           instrumentStore.update(position.instrumentObj!);
-          _firestoreService.upsertInstrument(position.instrumentObj!);
-          debugPrint(
-              'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+          if (userDoc != null) {
+            await _firestoreService.upsertInstrument(position.instrumentObj!);
+            debugPrint(
+                'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+          }
         }
       }
     }
@@ -756,7 +777,7 @@ Response: {
           position.instrumentObj!.quoteObj = quoteObj;
           // Update store
           store.update(position);
-          _firestoreService.upsertInstrument(position.instrumentObj!);
+          await _firestoreService.upsertInstrument(position.instrumentObj!);
           debugPrint(
               'RobinhoodService.refreshPositionQuote: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
         }
@@ -766,8 +787,12 @@ Response: {
   }
 
   @override
-  Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore) async* {
+  Stream<List<InstrumentOrder>> streamPositionOrders(
+    BrokerageUser user,
+    InstrumentOrderStore store,
+    InstrumentStore instrumentStore, {
+    DocumentReference? userDoc,
+  }) async* {
     List<InstrumentOrder> list = [];
     var pageStream = streamedGet(
         user, "$endpoint/orders/"); // ?chain_id=${instrument.tradeableChainId}
@@ -790,6 +815,20 @@ Response: {
       list.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
       yield list;
 
+      if (userDoc != null) {
+        // var len = list.length;
+        // var size = 30;
+        // List<List<InstrumentOrder>> chunks = [];
+        // for (var i = 0; i < len; i += size) {
+        //   var end = (i + size < len) ? i + size : len;
+        //   chunks.add(list.sublist(i, end));
+        // }
+        // for (var chunk in chunks) {
+        //   await _firestoreService.upsertInstrumentOrders(chunk, userDoc);
+        // }
+        await _firestoreService.upsertInstrumentOrders(list, userDoc);
+      }
+
       var instrumentIds = list.map((e) => e.instrumentId).toSet().toList();
       var instrumentObjs =
           await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -807,7 +846,8 @@ Response: {
 
   @override
   Stream<List<dynamic>> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore) async* {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) async* {
     // https://api.robinhood.com/dividends/
     // https://api.robinhood.com/dividends/?account_numbers=5QR24141&page_size=10
 
@@ -836,11 +876,19 @@ Response: {
           list.add(result);
           // store.add(op);
           yield list;
+          // if (userDoc != null) {
+          //   await _firestoreService.upsertDividend(result, userDoc,
+          //       updateIfExists: false);
+          // }
         }
       }
       list.sort((a, b) => DateTime.parse(b["record_date"]!)
           .compareTo(DateTime.parse(a["record_date"]!)));
       yield list;
+
+      if (userDoc != null) {
+        await _firestoreService.upsertDividends(results, userDoc);
+      }
 
       var instrumentIds = list
           .map((e) {
@@ -904,7 +952,8 @@ Response: {
 
   @override
   Stream<List<dynamic>> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore) async* {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) async* {
     // https://api.robinhood.com/accounts/sweeps/?default_to_all_accounts=true&page_size=10
     List<dynamic> list = [];
     var pageStream = streamedGet(user,
@@ -916,11 +965,18 @@ Response: {
           list.add(result);
           // store.add(op);
           yield list;
+          // if (userDoc != null) {
+          //   await _firestoreService.upsertInterest(result, userDoc,
+          //       updateIfExists: false);
+          // }
         }
       }
       // list.sort((a, b) => DateTime.parse(b["record_date"]!)
       //     .compareTo(DateTime.parse(a["record_date"]!)));
-      yield list;
+      // yield list;
+      if (userDoc != null) {
+        await _firestoreService.upsertInterests(results, userDoc);
+      }
     }
   }
 
@@ -1881,9 +1937,13 @@ Response: {
   }
 
   @override
-  Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
-      OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true}) async {
+  Future<OptionPositionStore> getOptionPositionStore(
+    BrokerageUser user,
+    OptionPositionStore store,
+    InstrumentStore instrumentStore, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     List<OptionAggregatePosition> ops =
         await getAggregateOptionPositions(user, nonzero: nonzero);
     for (var op in ops) {
@@ -1957,6 +2017,9 @@ Response: {
     for (var op in ops) {
       if (logoUrls.containsKey(op.symbol)) {
         op.logoUrl = logoUrls[op.symbol];
+      }
+      if (userDoc != null) {
+        _firestoreService.upsertOptionPosition(op, userDoc);
       }
     }
     return store;
@@ -2204,7 +2267,10 @@ Response: {
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store) async* {
+    BrokerageUser user,
+    OptionOrderStore store, {
+    DocumentReference? userDoc,
+  }) async* {
     //https://api.robinhood.com/options/orders/?chain_ids=9330028e-455f-4acf-9954-77f60b19151d
     var pageStream = streamedGet(user,
         "$endpoint/options/orders/"); // ?chain_id=${instrument.tradeableChainId}
@@ -2218,10 +2284,26 @@ Response: {
           list.add(op);
           store.add(op);
           yield list;
+          // if (userDoc != null) {
+          //   await _firestoreService.upsertOptionOrder(op, userDoc);
+          // }
         }
       }
       list.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
       yield list;
+    }
+    if (userDoc != null) {
+      // var len = list.length;
+      // var size = 30;
+      // List<List<OptionOrder>> chunks = [];
+      // for (var i = 0; i < len; i += size) {
+      //   var end = (i + size < len) ? i + size : len;
+      //   chunks.add(list.sublist(i, end));
+      // }
+      // for (var chunk in chunks) {
+      //   await _firestoreService.upsertOptionOrders(chunk, userDoc);
+      // }
+      await _firestoreService.upsertOptionOrders(list, userDoc);
     }
     //optionOrders = list;
   }
@@ -2261,7 +2343,7 @@ Response: {
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
       BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20}) async* {
+      {int pageSize = 20, DocumentReference? userDoc}) async* {
     List<OptionEvent> list = [];
     //https://api.robinhood.com/options/orders/?page_size=10
     var pageStream = streamedGet(user,
@@ -2278,7 +2360,19 @@ Response: {
         }
       }
     }
-    //optionEvents = list;
+    if (userDoc != null) {
+      // var len = list.length;
+      // var size = 30;
+      // List<List<OptionEvent>> chunks = [];
+      // for (var i = 0; i < len; i += size) {
+      //   var end = (i + size < len) ? i + size : len;
+      //   chunks.add(list.sublist(i, end));
+      // }
+      // for (var chunk in chunks) {
+      //   await _firestoreService.upsertOptionEvents(chunk, userDoc);
+      // }
+      await _firestoreService.upsertOptionEvents(list, userDoc);
+    }
   }
 
   Future<dynamic> getOptionEvents(BrokerageUser user,
@@ -2335,8 +2429,11 @@ Response: {
 
   @override
   Future<List<ForexHolding>> getNummusHoldings(
-      BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true}) async {
+    BrokerageUser user,
+    ForexHoldingStore store, {
+    bool nonzero = true,
+    DocumentReference? userDoc,
+  }) async {
     var results = await RobinhoodService.pagedGet(
         user, "$robinHoodNummusEndpoint/holdings/?nonzero=$nonzero");
     var quotes = await getForexPairs(user);
@@ -2357,6 +2454,9 @@ Response: {
       }
       list.add(op);
       store.addOrUpdate(op);
+      if (userDoc != null) {
+        _firestoreService.upsertForexPosition(op, userDoc);
+      }
     }
 
     return list;

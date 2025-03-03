@@ -7,15 +7,18 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
@@ -52,6 +55,12 @@ class _UserWidgetState extends State<UserWidget> {
   late Future<SharedPreferences> futurePrefs;
   late UserRole selectedRole;
   bool _isLoading = false;
+  bool isExpanded = false;
+
+  bool get isCurrentUserProfileView =>
+      widget.isProfileView &&
+      widget.auth.currentUser != null &&
+      widget.auth.currentUser!.uid == widget.userId;
 
   @override
   void initState() {
@@ -115,15 +124,14 @@ class _UserWidgetState extends State<UserWidget> {
                             title: const Text('User'),
                             actions: [
                               IconButton(
-                                  icon: auth.currentUser != null
-                                      ? (auth.currentUser!.photoURL == null
+                                  icon: user != null
+                                      ? (user.photoUrl == null
                                           ? const Icon(Icons.account_circle)
                                           : CircleAvatar(
                                               maxRadius: 12,
                                               backgroundImage:
                                                   CachedNetworkImageProvider(
-                                                      auth.currentUser!
-                                                          .photoURL!
+                                                      user.photoUrl!
                                                       //  ?? Constants .placeholderImage, // No longer used
                                                       )))
                                       : const Icon(Icons.login),
@@ -315,10 +323,21 @@ class _UserWidgetState extends State<UserWidget> {
                             child: Column(
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.account_balance),
-                              title: Text('Brokerage Accounts'),
-                              // trailing: const Icon(Icons.chevron_right),
-                            ),
+                                leading: const Icon(Icons.account_balance),
+                                title: Text('Brokerage Accounts'),
+                                trailing: TextButton.icon(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      final authUtil = AuthUtil(auth);
+                                      authUtil.openLogin(
+                                          context,
+                                          _firestoreService,
+                                          widget.analytics,
+                                          widget.observer);
+                                    },
+                                    icon: const Icon(Icons.person_add_outlined),
+                                    // icon: const Icon(Icons.add),
+                                    label: const Text('Link'))),
                             if (user != null) ...[
                               for (var brokerageUser
                                   in user.brokerageUsers) ...[
@@ -358,29 +377,33 @@ class _UserWidgetState extends State<UserWidget> {
                                   // },
                                   children: [
                                     if (brokerageUser.userInfo != null) ...[
-                                      SizedBox(
-                                        height: 400,
-                                        child: UserInfoCardWidget(
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: SizedBox(
+                                          height: 400,
+                                          child: UserInfoCardWidget(
                                             user: brokerageUser.userInfo!,
-                                            brokerageUser: brokerageUser),
-                                        // userWidget(brokerageUser, widget.analytics, widget.observer),
-                                        // UserInfoWidget(
-                                        //     widget.brokerageUser,
-                                        //     widget.brokerageUser.userInfo!,
-                                        //     null,
-                                        //     analytics: widget.analytics,
-                                        //     observer: widget.observer),
+                                            brokerageUser: brokerageUser,
+                                            firestoreService: _firestoreService,
+                                          ),
+                                          // userWidget(brokerageUser, widget.analytics, widget.observer),
+                                          // UserInfoWidget(
+                                          //     widget.brokerageUser,
+                                          //     widget.brokerageUser.userInfo!,
+                                          //     null,
+                                          //     analytics: widget.analytics,
+                                          //     observer: widget.observer),
+                                        ),
                                       )
-                                    ] else if (widget.isProfileView &&
-                                        widget.auth.currentUser != null &&
-                                        widget.auth.currentUser!.uid ==
-                                            widget.userId &&
+                                    ] else if (isCurrentUserProfileView &&
                                         widget.userInfo != null) ...[
                                       SizedBox(
                                         height: 360,
                                         child: UserInfoCardWidget(
                                             user: widget.userInfo!,
-                                            brokerageUser: brokerageUser),
+                                            brokerageUser: brokerageUser,
+                                            firestoreService:
+                                                _firestoreService),
                                       )
                                     ] else ...[
                                       Padding(
@@ -425,45 +448,139 @@ class _UserWidgetState extends State<UserWidget> {
                       //                 icon: const Icon(Icons.sms_outlined),
                       //                 label: const Text('Compose'))
                       //             : null)),
-                      if (widget.isProfileView &&
-                          widget.auth.currentUser != null &&
-                          widget.auth.currentUser!.uid == widget.userId) ...[
+                      if (isCurrentUserProfileView) ...[
                         SliverToBoxAdapter(
                             child: Padding(
                           padding: const EdgeInsets.all(8.0),
                           child: Card(
-                            child: ListTile(
-                                leading: const Icon(Icons.tune),
-                                title: Text('Display Settings'),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: () {
-                                  // Navigator.pop(context);
-                                  showModalBottomSheet<String>(
-                                      context: context,
-                                      // isScrollControlled: true,
-                                      useSafeArea: true,
-                                      showDragHandle: true,
-                                      builder: (context) {
-                                        return MoreMenuBottomSheet(
-                                            widget.brokerageUser,
-                                            analytics: widget.analytics,
-                                            observer: widget.observer,
-                                            onSettingsChanged: (settings) =>
-                                                debugPrint(
-                                                    jsonEncode(settings)));
+                            child: Column(
+                              children: [
+                                if (user != null) ...[
+                                  SwitchListTile(
+                                    //leading: Icon(Icons.functions),
+                                    title: const Text("Sharing"),
+                                    subtitle:
+                                        const Text("Setup for private sharing"),
+                                    value: widget.brokerageUser
+                                        .persistToFirebase, // user.persistToFirebase,
+                                    onChanged: (bool value) {
+                                      setState(() {
+                                        user!.persistToFirebase = value;
                                       });
-                                  // Navigator.push(
-                                  //     context,
-                                  //     MaterialPageRoute(
-                                  //         builder: (BuildContext context) =>
-                                  //             MoreMenuBottomSheet(
-                                  //                 widget.brokerageUser,
-                                  //                 analytics: widget.analytics,
-                                  //                 observer: widget.observer,
-                                  //                 onSettingsChanged: (settings) =>
-                                  //                     debugPrint(jsonEncode(
-                                  //                         settings)))));
-                                }),
+                                      // Also set the brokerageUser for unauthenticated users.
+                                      widget.brokerageUser.persistToFirebase =
+                                          value;
+                                      saveBrokerageUser(context);
+                                      _onSettingsChanged(user: user);
+                                    },
+                                    secondary:
+                                        const Icon(Icons.cloud_upload_outlined),
+                                  ),
+                                  SwitchListTile(
+                                    //leading: Icon(Icons.functions),
+                                    title: const Text("Refresh Market Data"),
+                                    subtitle:
+                                        const Text("Occurs every 15 seconds"),
+                                    value: widget.brokerageUser
+                                        .refreshEnabled, // user.refreshQuotes,
+                                    onChanged: (bool value) async {
+                                      setState(() {
+                                        user!.refreshQuotes = value;
+                                      });
+                                      // Also set the brokerageUser for unauthenticated users.
+                                      widget.brokerageUser.refreshEnabled =
+                                          value;
+                                      saveBrokerageUser(context);
+                                      _onSettingsChanged(user: user);
+                                    },
+                                    secondary: const Icon(Icons.refresh),
+                                  ),
+                                ],
+                                // ListTile(
+                                //     leading: const Icon(Icons.tune),
+                                //     title: Text('Display Settings'),
+                                //     trailing: const Icon(Icons.chevron_right),
+                                //     onTap: () {
+                                //       // Navigator.pop(context);
+                                //       showModalBottomSheet<String>(
+                                //           context: context,
+                                //           // isScrollControlled: true,
+                                //           useSafeArea: true,
+                                //           showDragHandle: true,
+                                //           builder: (context) {
+                                //             return MoreMenuBottomSheet(
+                                //                 widget.brokerageUser,
+                                //                 analytics: widget.analytics,
+                                //                 observer: widget.observer,
+                                //                 onSettingsChanged: (settings) =>
+                                //                     debugPrint(
+                                //                         jsonEncode(settings)));
+                                //           });
+                                //       // Navigator.push(
+                                //       //     context,
+                                //       //     MaterialPageRoute(
+                                //       //         builder: (BuildContext context) =>
+                                //       //             MoreMenuBottomSheet(
+                                //       //                 widget.brokerageUser,
+                                //       //                 analytics: widget.analytics,
+                                //       //                 observer: widget.observer,
+                                //       //                 onSettingsChanged: (settings) =>
+                                //       //                     debugPrint(jsonEncode(
+                                //       //                         settings)))));
+                                //     }),
+                                ExpansionTile(
+                                  shape: const Border(),
+                                  leading: Icon(Icons.tune),
+                                  title: Text('Display Settings'),
+                                  children: [
+                                    SizedBox(
+                                      height: 250,
+                                      child: MoreMenuBottomSheet(
+                                        widget.brokerageUser,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        onSettingsChanged: (settings) =>
+                                            debugPrint(jsonEncode(settings)),
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        showStockSettings: true,
+                                        showOptionsSettings: true,
+                                        showCryptoSettings: true,
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                // ExpansionPanelList(
+                                //   expansionCallback:
+                                //       (int index, bool isExpanded1) {
+                                //     setState(() {
+                                //       isExpanded = isExpanded1;
+                                //       // _data[index].isExpanded = !isExpanded;
+                                //     });
+                                //   },
+                                //   children: [
+                                //     ExpansionPanel(
+                                //         headerBuilder: (context, isExpanded) {
+                                //           return ListTile(
+                                //             leading: Icon(Icons.tune),
+                                //             title: Text('Display Settings'),
+                                //           );
+                                //         },
+                                //         body: SizedBox(
+                                //           height: 1000,
+                                //           child: MoreMenuBottomSheet(
+                                //               widget.brokerageUser,
+                                //               analytics: widget.analytics,
+                                //               observer: widget.observer,
+                                //               onSettingsChanged: (settings) =>
+                                //                   debugPrint(
+                                //                       jsonEncode(settings))),
+                                //         ),
+                                //         isExpanded: isExpanded)
+                                //   ],
+                                // )
+                              ],
+                            ),
                           ),
                         )),
                         const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
@@ -495,6 +612,18 @@ class _UserWidgetState extends State<UserWidget> {
               });
         });
     // });
+  }
+
+  void saveBrokerageUser(BuildContext context) {
+    var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+    userStore.addOrUpdate(widget.brokerageUser);
+    userStore.save();
+  }
+
+  Future<void> _onSettingsChanged({User? user, bool persistUser = true}) async {
+    if (persistUser && user != null) {
+      await _firestoreService.updateUser(userDocumentReference!, user);
+    }
   }
 
   Future<void> showRoleSelection(BuildContext context, User user) async {

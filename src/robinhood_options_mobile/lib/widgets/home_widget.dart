@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +33,7 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -55,9 +57,12 @@ class DrawerItem {
 }
 */
 class HomePage extends StatefulWidget {
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final UserInfo userInfo;
   final IBrokerageService service;
+
+  final User? user;
+  final DocumentReference? userDoc;
   //final Account account;
   /*
   final drawerItems = [
@@ -69,7 +74,7 @@ class HomePage extends StatefulWidget {
   */
 
   const HomePage(
-    this.user,
+    this.brokerageUser,
     this.userInfo, // this.account,
     this.service, {
     super.key,
@@ -77,6 +82,8 @@ class HomePage extends StatefulWidget {
     required this.observer,
     this.title,
     this.navigatorKey,
+    this.user,
+    this.userDoc,
     //required this.onUserChanged,
     //required this.onAccountsChanged
   });
@@ -238,33 +245,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     // Provider.of<BrokerageUserStore>(context, listen: true);
 
     futureAccounts = widget.service.getAccounts(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<AccountStore>(context, listen: false),
         Provider.of<PortfolioStore>(context, listen: false),
         Provider.of<OptionPositionStore>(context, listen: false),
         instrumentPositionStore:
-            Provider.of<InstrumentPositionStore>(context, listen: false));
+            Provider.of<InstrumentPositionStore>(context, listen: false),
+        userDoc: widget.userDoc);
 
-    if (widget.user.source == Source.robinhood ||
-        widget.user.source == Source.demo) {
-      futurePortfolios = widget.service.getPortfolios(
-          widget.user, Provider.of<PortfolioStore>(context, listen: false));
+    if (widget.brokerageUser.source == BrokerageSource.robinhood ||
+        widget.brokerageUser.source == BrokerageSource.demo) {
+      futurePortfolios = widget.service.getPortfolios(widget.brokerageUser,
+          Provider.of<PortfolioStore>(context, listen: false));
       futureNummusHoldings = widget.service.getNummusHoldings(
-          widget.user, Provider.of<ForexHoldingStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1]);
+          widget.brokerageUser,
+          Provider.of<ForexHoldingStore>(context, listen: false),
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
 
       futureOptionPositions = widget.service.getOptionPositionStore(
-          widget.user,
+          widget.brokerageUser,
           Provider.of<OptionPositionStore>(context, listen: false),
           Provider.of<InstrumentStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1]);
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
 
       futureStockPositions = widget.service.getStockPositionStore(
-          widget.user,
+          widget.brokerageUser,
           Provider.of<InstrumentPositionStore>(context, listen: false),
           Provider.of<InstrumentStore>(context, listen: false),
           Provider.of<QuoteStore>(context, listen: false),
-          nonzero: !hasQuantityFilters[1]);
+          nonzero: !hasQuantityFilters[1],
+          userDoc: widget.userDoc);
     }
     /*
     positionStoreStream = widget.service.streamStockPositionStore(
@@ -312,7 +324,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           //   }
           // }
 
-          if (widget.user.source == Source.schwab) {
+          if (widget.brokerageUser.source == BrokerageSource.schwab) {
             // futurePortfolios = widget.service.getPortfolios(
             //     widget.user, Provider.of<PortfolioStore>(context, listen: false));
             // futureNummusHoldings = widget.service.getNummusHoldings(
@@ -326,17 +338,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             //     nonzero: !hasQuantityFilters[1]);
 
             futureStockPositions = widget.service.getStockPositionStore(
-                widget.user,
+                widget.brokerageUser,
                 Provider.of<InstrumentPositionStore>(context, listen: false),
                 Provider.of<InstrumentStore>(context, listen: false),
                 Provider.of<QuoteStore>(context, listen: false),
-                nonzero: !hasQuantityFilters[1]);
+                nonzero: !hasQuantityFilters[1],
+                userDoc: widget.userDoc);
           }
 
-          if (widget.user.source == Source.robinhood ||
-              widget.user.source == Source.demo) {
+          if (widget.brokerageUser.source == BrokerageSource.robinhood ||
+              widget.brokerageUser.source == BrokerageSource.demo) {
             futurePortfolioHistoricals = widget.service.getPortfolioHistoricals(
-                widget.user,
+                widget.brokerageUser,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
                 chartBoundsFilter,
@@ -344,7 +357,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
             futurePortfolioHistoricalsYear = widget.service
                 .getPortfolioHistoricals(
-                    widget.user,
+                    widget.brokerageUser,
                     Provider.of<PortfolioHistoricalsStore>(context,
                         listen: false),
                     account!.accountNumber,
@@ -354,14 +367,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             // Future.delayed(Duration(seconds: 1), () {
             //   if (mounted) {
             futureDividends = widget.service.getDividends(
-              widget.user,
+              widget.brokerageUser,
               Provider.of<DividendStore>(context, listen: false),
               Provider.of<InstrumentStore>(context, listen: false),
             );
             //   }
             // });
             futureInterests = widget.service.getInterests(
-              widget.user,
+              widget.brokerageUser,
               Provider.of<InterestStore>(context, listen: false),
             );
           }
@@ -420,10 +433,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       //List<StockPosition>? positions,
       bool done = false}) {
     // var indices = RobinhoodService().getMarketIndices(user: widget.user);
-    futureMarketIndexHistoricalsSp500 = YahooService()
-        .getMarketIndexHistoricals(symbol: '^GSPC', user: widget.user); // ^IXIC
-    futureMarketIndexHistoricalsNasdaq = YahooService()
-        .getMarketIndexHistoricals(symbol: '^IXIC', user: widget.user);
+    futureMarketIndexHistoricalsSp500 =
+        YahooService().getMarketIndexHistoricals(symbol: '^GSPC'); // ^IXIC
+    futureMarketIndexHistoricalsNasdaq =
+        YahooService().getMarketIndexHistoricals(symbol: '^IXIC');
     //debugPrint('_buildPage');
     return RefreshIndicator(
       onRefresh: _pullRefresh,
@@ -440,7 +453,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
               analytics: widget.analytics,
               observer: widget.observer,
-              user: widget.user,
+              user: widget.brokerageUser,
             ),
 
             // Consumer4<PortfolioStore, InstrumentPositionStore,
@@ -500,7 +513,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 subtitle: Text(
                   // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
                   updatedAt != null
-                      ? formatLongDate.format(updatedAt.toLocal())
+                      ? formatLongDateTime.format(updatedAt.toLocal())
                       : '',
                   // selection != null
                   // ? selection!.beginsAt!.toLocal()
@@ -833,13 +846,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         changePercentInPeriod =
                             close / open - 1; // changeInPeriod / close;
                       }
-                      String? returnText = widget.user.getDisplayText(
+                      String? returnText = widget.brokerageUser.getDisplayText(
                           changeInPeriod,
                           displayValue: DisplayValue.totalReturn);
-                      String? returnPercentText = widget.user.getDisplayText(
-                          changePercentInPeriod,
-                          displayValue: DisplayValue.totalReturnPercent);
-                      Icon todayIcon = widget.user
+                      String? returnPercentText = widget.brokerageUser
+                          .getDisplayText(changePercentInPeriod,
+                              displayValue: DisplayValue.totalReturnPercent);
+                      Icon todayIcon = widget.brokerageUser
                           .getDisplayIcon(changeInPeriod, size: 26.0);
 
                       //return Text(value.selection!.beginsAt.toString());
@@ -1516,7 +1529,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // ]),
                   ),
                   ConstrainedBox(
-                      constraints: BoxConstraints(maxHeight: 175), // 320
+                      constraints: BoxConstraints(maxHeight: 180), // 320
                       child:
                           // ListView(
                           //     padding: const EdgeInsets.all(5.0),
@@ -1721,8 +1734,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               //     Provider.of<InstrumentPositionStore>(context, listen: false);
               var chartSelectionStore =
                   Provider.of<ChartSelectionStore>(context, listen: false);
-              return IncomeTransactionsWidget(widget.user, widget.service,
-                  dividendStore, instrumentPositionStore, chartSelectionStore,
+              return IncomeTransactionsWidget(
+                  widget.brokerageUser,
+                  widget.service,
+                  dividendStore,
+                  instrumentPositionStore,
+                  chartSelectionStore,
                   interestStore: interestStore,
                   showChips: false,
                   showList: false,
@@ -1846,12 +1863,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     }
                     var provider = Provider.of<ChartSelectionStore>(context,
                         listen: false);
+                    // provider.selectionChanged(MapEntry(
+                    //     seriesDataportfolio.first['date'] as DateTime,
+                    //     seriesDataportfolio.first['value'] as double));
 
                     // var seriesData = Map<DateTime, double>.fromIterables(
                     //     (snapshot.data['chart']['result'][0]['timestamp'] as List)
                     //         .map((e) => (e as Timestamp).toDate()),
                     //     snapshot.data['chart']['result'][0]['indicators']
                     //         ['adjClose'][0]['adjClose'] as List<double>);
+                    provider.selection = MapEntry(
+                        seriesDatasp500.last['date'] as DateTime,
+                        seriesDatasp500.last['value'] as double);
+                    // provider.selectionChanged(MapEntry(
+                    //     seriesDataportfolio.last['date'] as DateTime,
+                    //     seriesDataportfolio.last['value'] as double));
                     TimeSeriesChart marketIndicesChart = TimeSeriesChart(
                       [
                         charts.Series<dynamic, DateTime>(
@@ -1902,30 +1928,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               labelStyle:
                                   charts.TextStyleSpec(color: axisLabelColor))),
                       seriesLegend: charts.SeriesLegend(
-                        horizontalFirst: false,
-                        desiredMaxColumns: 2,
-                        cellPadding: EdgeInsets.fromLTRB(8, 3, 8, 3),
-                        position: charts.BehaviorPosition.top,
-                        defaultHiddenSeries: const ['Nasdaq'],
-                        // To show value on legend upon selection
-                        showMeasures: true,
-                        measureFormatter: (measure) => measure != null
-                            ? formatPercentage.format(measure)
-                            : '',
-                        // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                      ),
+                          horizontalFirst: false,
+                          desiredMaxColumns: 2,
+                          cellPadding: EdgeInsets.fromLTRB(8, 3, 8, 3),
+                          position: charts.BehaviorPosition.top,
+                          // defaultHiddenSeries: const ['Nasdaq'],
+                          // To show value on legend upon selection
+                          showMeasures: true,
+                          measureFormatter: (measure) => measure != null
+                              ? formatPercentage.format(measure)
+                              : '',
+                          legendDefaultMeasure:
+                              charts.LegendDefaultMeasure.lastValue),
                       onSelected: (charts.SelectionModel? model) {
                         provider.selectionChanged(model != null
                             ? MapEntry(model.selectedDatum.first.datum['date'],
                                 model.selectedDatum.first.datum['value'])
                             : null); //?.first
                       },
+                      initialSelection:
+                          charts.InitialSelection(selectedDataConfig: [
+                        charts.SeriesDatumConfig<DateTime>('Portfolio',
+                            seriesDataportfolio.last['date'] as DateTime),
+                        charts.SeriesDatumConfig<DateTime>('S&P 500',
+                            seriesDatasp500.last['date'] as DateTime),
+                        charts.SeriesDatumConfig<DateTime>(
+                            'Nasdaq', seriesDatanasdaq.last['date'] as DateTime)
+                      ]),
                       symbolRenderer: TextSymbolRenderer(() {
                         return provider.selection != null
                             // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
                             ? formatCompactDateTimeWithHour.format(
                                 (provider.selection as MapEntry).key.toLocal())
-                            : '0';
+                            : '';
                       }, marginBottom: 16),
                     );
                     return SliverToBoxAdapter(
@@ -1935,11 +1970,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           SliverToBoxAdapter(
                             child: ListTile(
                               title: const Text(
-                                "Benchmarks",
+                                "Performance",
                                 style: TextStyle(fontSize: 19.0),
                               ),
-                              subtitle:
-                                  Text("Compare with S&P 500, Nasdaq (YTD)"),
+                              subtitle: Text(
+                                  "Compare S&P 500, Nasdaq benchmarks (YTD)"),
                               // subtitle: Text("S&P 500 • Nasdaq (YTD)"),
                               // trailing: Wrap(spacing: 8, children: [
                               //   Text(
@@ -1952,7 +1987,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           ),
                           SliverToBoxAdapter(
                             child: SizedBox(
-                                height: 340, // 460, // 240,
+                                height: 380, // 460, // 240,
                                 child: Padding(
                                   padding: const EdgeInsets.fromLTRB(
                                       10.0, 10.0, 10.0, 10.0),
@@ -2003,7 +2038,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               }
               */
               return InstrumentPositionsWidget(
-                widget.user,
+                widget.brokerageUser,
                 widget.service,
                 filteredPositions,
                 showList: false,
@@ -2031,7 +2066,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .toList();
 
               return OptionPositionsWidget(
-                widget.user,
+                widget.brokerageUser,
                 widget.service,
                 filteredOptionAggregatePositions,
                 showList: false,
@@ -2076,7 +2111,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       )),
                       */
                       ForexPositionsWidget(
-                        widget.user,
+                        widget.brokerageUser,
                         widget.service,
                         filteredHoldings,
                         showList: false,
@@ -2111,257 +2146,257 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     );
   }
 
-  SliverAppBar buildSliverAppBar(
-      //List<Portfolio>? portfolios,
-      UserInfo? userInfo,
-      Account? account,
-      PortfolioStore portfolioStore,
-      InstrumentPositionStore stockPositionStore,
-      OptionPositionStore optionPositionStore,
-      ForexHoldingStore forexHoldingStore) {
-    positionSymbols = stockPositionStore.symbols;
-    positionSymbols.sort((a, b) => (a.compareTo(b)));
+  // SliverAppBar buildSliverAppBar(
+  //     //List<Portfolio>? portfolios,
+  //     UserInfo? userInfo,
+  //     Account? account,
+  //     PortfolioStore portfolioStore,
+  //     InstrumentPositionStore stockPositionStore,
+  //     OptionPositionStore optionPositionStore,
+  //     ForexHoldingStore forexHoldingStore) {
+  //   positionSymbols = stockPositionStore.symbols;
+  //   positionSymbols.sort((a, b) => (a.compareTo(b)));
 
-    chainSymbols = optionPositionStore.symbols;
-    chainSymbols.sort((a, b) => (a.compareTo(b)));
+  //   chainSymbols = optionPositionStore.symbols;
+  //   chainSymbols.sort((a, b) => (a.compareTo(b)));
 
-    // double changeInPeriod = 0;
-    // double changePercentInPeriod = 0;
-    // if (portfolioStore.items.isNotEmpty &&
-    //     portfolioStore.items[0].equity != null &&
-    //     portfolioStore.items[0].equityPreviousClose != null) {
-    //   changeInPeriod = portfolioStore.items[0].equity! -
-    //       portfolioStore.items[0].equityPreviousClose!;
-    //   changePercentInPeriod =
-    //       (changeInPeriod) / portfolioStore.items[0].equity!;
-    // }
-    var sliverAppBar = SliverAppBar(
-      /* Drawer will automatically add menu to SliverAppBar.
-                    leading: IconButton(
-                      icon: const Icon(Icons.menu),
-                      tooltip: 'Menu',
-                      onPressed: () {/* ... */},
-                    ),*/
-      // backgroundColor: Colors.green,
-      // brightness: Brightness.light,
-      // expandedHeight: 185.0, //240.0, //280.0,
-      //collapsedHeight: 80.0,
-      /*
-                      bottom: PreferredSize(
-                        child: Icon(Icons.linear_scale, size: 60.0),
-                        preferredSize: Size.fromHeight(50.0))
-                        */
-      floating: true,
-      snap: true,
-      pinned: false,
-      /*
-      bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
-        child: AppBar( )
-        ),
-        */
-      //leading: Container(),
-      /*IconButton(
-        icon: const Icon(Icons.menu),
-        tooltip: 'Menu',
-        onPressed: () {/* ... */},
-      ),*/
-      title: Text(
-        widget.title!, // ${userInfo?.profileName} (${widget.service.name})
-        // style: const TextStyle(fontSize: 17.0)
-      ),
-      // Wrap(
-      //     crossAxisAlignment: WrapCrossAlignment.end,
-      //     //runAlignment: WrapAlignment.end,
-      //     //alignment: WrapAlignment.end,
-      //     spacing: 20,
-      //     //runSpacing: 5,
-      //     children: [
-      //       if (userInfo != null) ...[
-      //         Text(
-      //             "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : ''})",
-      //             style: const TextStyle(
-      //                 fontSize: 17.0)), //, color: Colors.white70
-      //         Wrap(
-      //             spacing: 10,
-      //             crossAxisAlignment: WrapCrossAlignment.end,
-      //             children: [
-      //               Text(formatCurrency.format(portfolioValue),
-      //                   style: const TextStyle(fontSize: 19.0)),
-      //               //style: const TextStyle(fontSize: 20.0),
-      //               //textAlign: TextAlign.right
-      //               Wrap(
-      //                   spacing: 2,
-      //                   //crossAxisAlignment: WrapCrossAlignment.center,
-      //                   //alignment: WrapAlignment.center,
-      //                   children: [
-      //                     Icon(
-      //                         changeInPeriod > 0
-      //                             ? Icons.trending_up
-      //                             : (changeInPeriod < 0
-      //                                 ? Icons.trending_down
-      //                                 : Icons.trending_flat),
-      //                         color: (changeInPeriod > 0
-      //                             ? Colors.green
-      //                             : (changeInPeriod < 0
-      //                                 ? Colors.red
-      //                                 : Colors.grey)),
-      //                         size: 19.0),
-      //                     Text(
-      //                         formatPercentage
-      //                             .format(changePercentInPeriod.abs()),
-      //                         style: const TextStyle(fontSize: 16.0)),
-      //                   ]),
-      //               Text(
-      //                   "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-      //                   style: const TextStyle(fontSize: 16.0)),
-      //             ]),
-      //       ]
-      //     ]),
-      flexibleSpace: LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-        // // Disabled SliverAppBar effect for now
-        // final settings = context
-        //     .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+  //   // double changeInPeriod = 0;
+  //   // double changePercentInPeriod = 0;
+  //   // if (portfolioStore.items.isNotEmpty &&
+  //   //     portfolioStore.items[0].equity != null &&
+  //   //     portfolioStore.items[0].equityPreviousClose != null) {
+  //   //   changeInPeriod = portfolioStore.items[0].equity! -
+  //   //       portfolioStore.items[0].equityPreviousClose!;
+  //   //   changePercentInPeriod =
+  //   //       (changeInPeriod) / portfolioStore.items[0].equity!;
+  //   // }
+  //   var sliverAppBar = SliverAppBar(
+  //     /* Drawer will automatically add menu to SliverAppBar.
+  //                   leading: IconButton(
+  //                     icon: const Icon(Icons.menu),
+  //                     tooltip: 'Menu',
+  //                     onPressed: () {/* ... */},
+  //                   ),*/
+  //     // backgroundColor: Colors.green,
+  //     // brightness: Brightness.light,
+  //     // expandedHeight: 185.0, //240.0, //280.0,
+  //     //collapsedHeight: 80.0,
+  //     /*
+  //                     bottom: PreferredSize(
+  //                       child: Icon(Icons.linear_scale, size: 60.0),
+  //                       preferredSize: Size.fromHeight(50.0))
+  //                       */
+  //     floating: true,
+  //     snap: true,
+  //     pinned: false,
+  //     /*
+  //     bottom: PreferredSize(
+  //       preferredSize: Size.fromHeight(0),
+  //       child: AppBar( )
+  //       ),
+  //       */
+  //     //leading: Container(),
+  //     /*IconButton(
+  //       icon: const Icon(Icons.menu),
+  //       tooltip: 'Menu',
+  //       onPressed: () {/* ... */},
+  //     ),*/
+  //     title: Text(
+  //       widget.title!, // ${userInfo?.profileName} (${widget.service.name})
+  //       // style: const TextStyle(fontSize: 17.0)
+  //     ),
+  //     // Wrap(
+  //     //     crossAxisAlignment: WrapCrossAlignment.end,
+  //     //     //runAlignment: WrapAlignment.end,
+  //     //     //alignment: WrapAlignment.end,
+  //     //     spacing: 20,
+  //     //     //runSpacing: 5,
+  //     //     children: [
+  //     //       if (userInfo != null) ...[
+  //     //         Text(
+  //     //             "${userInfo.profileName} (${widget.user.source == Source.robinhood ? Constants.robinhoodName : ''})",
+  //     //             style: const TextStyle(
+  //     //                 fontSize: 17.0)), //, color: Colors.white70
+  //     //         Wrap(
+  //     //             spacing: 10,
+  //     //             crossAxisAlignment: WrapCrossAlignment.end,
+  //     //             children: [
+  //     //               Text(formatCurrency.format(portfolioValue),
+  //     //                   style: const TextStyle(fontSize: 19.0)),
+  //     //               //style: const TextStyle(fontSize: 20.0),
+  //     //               //textAlign: TextAlign.right
+  //     //               Wrap(
+  //     //                   spacing: 2,
+  //     //                   //crossAxisAlignment: WrapCrossAlignment.center,
+  //     //                   //alignment: WrapAlignment.center,
+  //     //                   children: [
+  //     //                     Icon(
+  //     //                         changeInPeriod > 0
+  //     //                             ? Icons.trending_up
+  //     //                             : (changeInPeriod < 0
+  //     //                                 ? Icons.trending_down
+  //     //                                 : Icons.trending_flat),
+  //     //                         color: (changeInPeriod > 0
+  //     //                             ? Colors.green
+  //     //                             : (changeInPeriod < 0
+  //     //                                 ? Colors.red
+  //     //                                 : Colors.grey)),
+  //     //                         size: 19.0),
+  //     //                     Text(
+  //     //                         formatPercentage
+  //     //                             .format(changePercentInPeriod.abs()),
+  //     //                         style: const TextStyle(fontSize: 16.0)),
+  //     //                   ]),
+  //     //               Text(
+  //     //                   "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+  //     //                   style: const TextStyle(fontSize: 16.0)),
+  //     //             ]),
+  //     //       ]
+  //     //     ]),
+  //     flexibleSpace: LayoutBuilder(
+  //         builder: (BuildContext context, BoxConstraints constraints) {
+  //       // // Disabled SliverAppBar effect for now
+  //       // final settings = context
+  //       //     .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
 
-        // final deltaExtent = settings!.maxExtent - settings.minExtent;
-        // final t =
-        //     (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
-        //         .clamp(0.0, 1.0);
-        // final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-        // const fadeEnd = 1.0;
-        // final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+  //       // final deltaExtent = settings!.maxExtent - settings.minExtent;
+  //       // final t =
+  //       //     (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
+  //       //         .clamp(0.0, 1.0);
+  //       // final fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+  //       // const fadeEnd = 1.0;
+  //       // final opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
 
-        //bool visible = settings == null || settings.currentExtent <= settings.minExtent;
+  //       //bool visible = settings == null || settings.currentExtent <= settings.minExtent;
 
-        // var shades = PieChart.makeShades(
-        //     charts.ColorUtil.fromDartColor(
-        //         Theme.of(context).colorScheme.primary),
-        //     4);
-        return FlexibleSpaceBar(
-          expandedTitleScale: 1.2,
-          // titlePadding:
-          //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
-          //centerTitle: true,
-          //titlePadding: EdgeInsets.symmetric(horizontal: 5),
-          //background: const FlutterLogo(),
-          // background: const SizedBox(
-          //   width: double.infinity,
-          //   child:
-          //       FlutterLogo()
-          //   //Image.network(
-          //   //  Constants.flexibleSpaceBarBackground,
-          //   //  fit: BoxFit.cover,
-          //   //)
-          //   ,
-          // ),
-          // background: SizedBox(
-          //     height: 180,
-          //     width: 180,
-          //     child: Padding(
-          //       //padding: EdgeInsets.zero,
-          //       //padding: EdgeInsets.symmetric(horizontal: 12.0),
-          //       //padding: const EdgeInsets.all(10.0),
-          //       padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
-          //       child: PieChart(
-          //         [
-          //           charts.Series<PieChartData, String>(
-          //             id: 'Portfolio Breakdown',
-          //             //colorFn: (_, index) => shades[index!],
-          //             //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
-          //             // colorFn: (_, index) => charts.MaterialPalette.cyan
-          //             //     .makeShades(4)[index!],
-          //             // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-          //             //     Theme.of(context).colorScheme.primary),
-          //             domainFn: (PieChartData val, index) => val.label,
-          //             measureFn: (PieChartData val, index) => val.value,
-          //             data: data,
-          //           ),
-          //         ],
-          //         animate: false,
-          //         renderer: charts.ArcRendererConfig(
-          //             //arcWidth: 60,
-          //             arcRendererDecorators: [
-          //               new charts.ArcLabelDecorator()
-          //             ]),
-          //         onSelected: (_) {},
-          //       ),
-          //     )),
+  //       // var shades = PieChart.makeShades(
+  //       //     charts.ColorUtil.fromDartColor(
+  //       //         Theme.of(context).colorScheme.primary),
+  //       //     4);
+  //       return FlexibleSpaceBar(
+  //         expandedTitleScale: 1.2,
+  //         // titlePadding:
+  //         //     const EdgeInsets.only(top: kToolbarHeight * 2, bottom: 15),
+  //         //centerTitle: true,
+  //         //titlePadding: EdgeInsets.symmetric(horizontal: 5),
+  //         //background: const FlutterLogo(),
+  //         // background: const SizedBox(
+  //         //   width: double.infinity,
+  //         //   child:
+  //         //       FlutterLogo()
+  //         //   //Image.network(
+  //         //   //  Constants.flexibleSpaceBarBackground,
+  //         //   //  fit: BoxFit.cover,
+  //         //   //)
+  //         //   ,
+  //         // ),
+  //         // background: SizedBox(
+  //         //     height: 180,
+  //         //     width: 180,
+  //         //     child: Padding(
+  //         //       //padding: EdgeInsets.zero,
+  //         //       //padding: EdgeInsets.symmetric(horizontal: 12.0),
+  //         //       //padding: const EdgeInsets.all(10.0),
+  //         //       padding: const EdgeInsets.fromLTRB(10, 100, 10, 10),
+  //         //       child: PieChart(
+  //         //         [
+  //         //           charts.Series<PieChartData, String>(
+  //         //             id: 'Portfolio Breakdown',
+  //         //             //colorFn: (_, index) => shades[index!],
+  //         //             //colorFn: (_, __) => charts.MaterialPalette.blue.shadeDefault,
+  //         //             // colorFn: (_, index) => charts.MaterialPalette.cyan
+  //         //             //     .makeShades(4)[index!],
+  //         //             // colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+  //         //             //     Theme.of(context).colorScheme.primary),
+  //         //             domainFn: (PieChartData val, index) => val.label,
+  //         //             measureFn: (PieChartData val, index) => val.value,
+  //         //             data: data,
+  //         //           ),
+  //         //         ],
+  //         //         animate: false,
+  //         //         renderer: charts.ArcRendererConfig(
+  //         //             //arcWidth: 60,
+  //         //             arcRendererDecorators: [
+  //         //               new charts.ArcLabelDecorator()
+  //         //             ]),
+  //         //         onSelected: (_) {},
+  //         //       ),
+  //         //     )),
 
-          // // Disabled SliverAppBar effect for now
-          // title: Opacity(
-          //     //duration: Duration(milliseconds: 300),
-          //     opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
-          //     child: //Container()
-          //         SingleChildScrollView(
-          //             child: _buildExpandedSliverAppBarTitle(
-          //                 userInfo,
-          //                 portfolioStore.items,
-          //                 portfolioStore,
-          //                 optionPositionStore,
-          //                 stockPositionStore,
-          //                 forexHoldingStore)))
-        );
-      }),
-      actions: <Widget>[
-        IconButton(
-          icon: const Icon(Icons.more_vert),
-          // icon: const Icon(Icons.settings),
-          onPressed: () {
-            showSettings();
-          },
-        ),
-        /*
-        IconButton(
-          icon: ru != null && ru.userName != null
-              ? const Icon(Icons.logout)
-              : const Icon(Icons.login),
-          tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
-          onPressed: () {
-            if (ru != null && ru.userName != null) {
-              var alert = AlertDialog(
-                title: const Text('Logout process'),
-                content: SingleChildScrollView(
-                  child: ListBody(
-                    children: <Widget>[
-                      const Text(
-                          'This action will require you to log in again.'),
-                      const Text('Are you sure you want to log out?'),
-                    ],
-                  ),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('Cancel'),
-                    onPressed: () {
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                  TextButton(
-                    child: const Text('OK'),
-                    onPressed: () {
-                      _logout();
-                      Navigator.pop(context, 'dialog');
-                    },
-                  ),
-                ],
-              );
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return alert;
-                },
-              );
-            } else {
-              _openLogin();
-            }
-            /* ... */
-          },
-        ),*/
-      ],
-    );
-    return sliverAppBar;
-  }
+  //         // // Disabled SliverAppBar effect for now
+  //         // title: Opacity(
+  //         //     //duration: Duration(milliseconds: 300),
+  //         //     opacity: opacity, //top > kToolbarHeight * 3 ? 1.0 : 0.0,
+  //         //     child: //Container()
+  //         //         SingleChildScrollView(
+  //         //             child: _buildExpandedSliverAppBarTitle(
+  //         //                 userInfo,
+  //         //                 portfolioStore.items,
+  //         //                 portfolioStore,
+  //         //                 optionPositionStore,
+  //         //                 stockPositionStore,
+  //         //                 forexHoldingStore)))
+  //       );
+  //     }),
+  //     actions: <Widget>[
+  //       IconButton(
+  //         icon: const Icon(Icons.more_vert),
+  //         // icon: const Icon(Icons.settings),
+  //         onPressed: () {
+  //           showSettings();
+  //         },
+  //       ),
+  //       /*
+  //       IconButton(
+  //         icon: ru != null && ru.userName != null
+  //             ? const Icon(Icons.logout)
+  //             : const Icon(Icons.login),
+  //         tooltip: ru != null && ru.userName != null ? 'Logout' : 'Login',
+  //         onPressed: () {
+  //           if (ru != null && ru.userName != null) {
+  //             var alert = AlertDialog(
+  //               title: const Text('Logout process'),
+  //               content: SingleChildScrollView(
+  //                 child: ListBody(
+  //                   children: <Widget>[
+  //                     const Text(
+  //                         'This action will require you to log in again.'),
+  //                     const Text('Are you sure you want to log out?'),
+  //                   ],
+  //                 ),
+  //               ),
+  //               actions: <Widget>[
+  //                 TextButton(
+  //                   child: const Text('Cancel'),
+  //                   onPressed: () {
+  //                     Navigator.pop(context, 'dialog');
+  //                   },
+  //                 ),
+  //                 TextButton(
+  //                   child: const Text('OK'),
+  //                   onPressed: () {
+  //                     _logout();
+  //                     Navigator.pop(context, 'dialog');
+  //                   },
+  //                 ),
+  //               ],
+  //             );
+  //             showDialog(
+  //               context: context,
+  //               builder: (BuildContext context) {
+  //                 return alert;
+  //               },
+  //             );
+  //           } else {
+  //             _openLogin();
+  //           }
+  //           /* ... */
+  //         },
+  //       ),*/
+  //     ],
+  //   );
+  //   return sliverAppBar;
+  // }
 
   void _startRefreshTimer() {
     // Start listening to clipboard
@@ -2380,8 +2415,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   _refresh() async {
-    if (widget.user.refreshEnabled &&
-        widget.user.source == Source.robinhood &&
+    if (widget.brokerageUser.refreshEnabled &&
+        widget.brokerageUser.source == BrokerageSource.robinhood &&
         (_notification == null || _notification == AppLifecycleState.resumed)) {
       if (account != null) {
         // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
@@ -2392,7 +2427,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //     Provider.of<OptionPositionStore>(context, listen: false));
         // if (!mounted) return;
         await widget.service.getPortfolioHistoricals(
-            widget.user,
+            widget.brokerageUser,
             Provider.of<PortfolioHistoricalsStore>(context, listen: false),
             account!.accountNumber,
             chartBoundsFilter,
@@ -2400,23 +2435,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       }
       if (!mounted) return;
       await widget.service.refreshOptionMarketData(
-          widget.user,
+          widget.brokerageUser,
           Provider.of<OptionPositionStore>(context, listen: false),
           Provider.of<OptionInstrumentStore>(context, listen: false));
 
       if (!mounted) return;
       await widget.service.refreshPositionQuote(
-          widget.user,
+          widget.brokerageUser,
           Provider.of<InstrumentPositionStore>(context, listen: false),
           Provider.of<QuoteStore>(context, listen: false));
 
       if (!mounted) return;
-      await widget.service.getPortfolios(
-          widget.user, Provider.of<PortfolioStore>(context, listen: false));
+      await widget.service.getPortfolios(widget.brokerageUser,
+          Provider.of<PortfolioStore>(context, listen: false));
 
       if (!mounted) return;
       await widget.service.refreshNummusHoldings(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<ForexHoldingStore>(context, listen: false),
       );
     }
@@ -2441,7 +2476,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         Provider.of<PortfolioHistoricalsStore>(context, listen: false);
     // futurePortfolioHistoricals =
     await widget.service.getPortfolioHistoricals(
-        widget.user,
+        widget.brokerageUser,
         portfolioHistoricalStore,
         account!.accountNumber,
         chartBoundsFilter,
@@ -2471,7 +2506,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
         //isScrollControlled: true,
         //useRootNavigator: true,
         //constraints: const BoxConstraints(maxHeight: 200),
-        builder: (_) => MoreMenuBottomSheet(widget.user,
+        builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
             analytics: widget.analytics,
             observer: widget.observer,
             chainSymbols: chainSymbols,

@@ -73,6 +73,19 @@ class ForexHolding {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
             DateTime.tryParse(json['updated_at']);
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'currency': {
+          'id': currencyId,
+          'code': currencyCode,
+          'name': currencyName,
+        },
+        'quantity': quantity,
+        'directCostBasis': directCostBasis,
+        'createdAt': createdAt,
+        'updatedAt': updatedAt
+      };
+
   double get marketValue {
     return quoteObj!.markPrice! * quantity!;
   }

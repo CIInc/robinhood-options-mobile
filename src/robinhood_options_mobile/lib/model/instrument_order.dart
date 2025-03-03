@@ -90,6 +90,32 @@ class InstrumentOrder {
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
             DateTime.tryParse(json['updated_at']);
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'ref_id': refId,
+        'url': url,
+        'account': account,
+        'position': position,
+        'cancel': cancel,
+        'instrument': instrument,
+        'instrument_id': instrumentId,
+        'cumulative_quantity': cumulativeQuantity,
+        'average_price': averagePrice,
+        'fees': fees,
+        'state': state,
+        'pending_cancel_open_agent': pendingCancelOpenAgent,
+        'type': type,
+        'side': side,
+        'time_in_force': timeInForce,
+        'trigger': trigger,
+        'price': price,
+        'stop_price': stopPrice,
+        'quantity': quantity,
+        'reject_reason': rejectReason,
+        'created_at': createdAt,
+        'updated_at': updatedAt
+      };
+
   /* CSV Generation */
 
   List<dynamic> convertToDynamic() {

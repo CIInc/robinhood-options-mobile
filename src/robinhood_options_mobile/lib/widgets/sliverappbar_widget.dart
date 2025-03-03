@@ -9,6 +9,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auth_widget.dart';
+import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
 class ExpandedSliverAppBar extends StatelessWidget {
@@ -115,7 +116,38 @@ class ExpandedSliverAppBar extends StatelessWidget {
                       if (response != null && onChange != null) {
                         onChange!();
                       }
-                    })
+                    }),
+                if (auth.currentUser == null)
+                  IconButton(
+                      icon: Icon(Icons.more_vert),
+                      onPressed: () async {
+                        await showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            //isScrollControlled: true,
+                            //useRootNavigator: true,
+                            //constraints: const BoxConstraints(maxHeight: 200),
+                            builder: (_) => MoreMenuBottomSheet(user,
+                                    analytics: analytics,
+                                    observer: observer,
+                                    showMarketSettings: true,
+                                    chainSymbols: null,
+                                    positionSymbols: null,
+                                    cryptoSymbols: null,
+                                    optionSymbolFilters: null,
+                                    stockSymbolFilters: null,
+                                    cryptoFilters: null,
+                                    onSettingsChanged: (value) {
+                                  // debugPrint(
+                                  //     "Settings changed ${jsonEncode(value)}");
+                                  debugPrint(
+                                      "showPositionDetails: ${user.showPositionDetails.toString()}");
+                                  debugPrint(
+                                      "displayValue: ${user.displayValue.toString()}");
+                                  // setState(() {});
+                                }));
+                        // Navigator.pop(context);
+                      })
               ]);
         });
   }
@@ -159,12 +191,12 @@ Future<String?> showProfile(
                 }
                 var userStore =
                     Provider.of<BrokerageUserStore>(context, listen: false);
-
-                final authUtil = AuthUtil(auth);
-                var user = await authUtil.setUser(
-                    firebaseUser, firestoreService,
-                    brokerageUserStore: userStore);
-                userRole = user.role; // authUtil.userRole();
+                if (auth.currentUser != null) {
+                  final authUtil = AuthUtil(auth);
+                  var user = await authUtil.setUser(firestoreService,
+                      brokerageUserStore: userStore); // firebaseUser,
+                  userRole = user.role; // authUtil.userRole();
+                }
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       content: Text(

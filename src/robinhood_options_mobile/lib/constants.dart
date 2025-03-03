@@ -57,6 +57,13 @@ class Constants {
       'ca-app-pub-9947876916436144/1275427761';
   static const String searchBanneriOSAdUnit =
       'ca-app-pub-9947876916436144/3130729634';
+
+  static dynamic toEncodable(dynamic object) {
+    if (object is DateTime) {
+      return object.toIso8601String();
+    }
+    return object;
+  }
 }
 
 const totalValueFontSize = 23.0;

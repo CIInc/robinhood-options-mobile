@@ -54,6 +54,7 @@ class InstrumentPosition {
   final DateTime? createdAt;
 
   Instrument? instrumentObj;
+  // DocumentReference<Instrument>? instrumentDocRef;
 
   InstrumentPosition(
       this.url,
@@ -111,6 +112,9 @@ class InstrumentPosition {
         createdAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
             DateTime.tryParse(json['created_at']);
+  // instrumentDocRef = json['instrumentDocRef'] != null
+  //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
+  //     : null;
 
   InstrumentPosition.fromSchwabJson(dynamic json)
       : url = '', // json['url'],
@@ -231,6 +235,31 @@ class InstrumentPosition {
             false,
             null,
             dateCreated: DateTime.now());
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'instrument': instrument,
+        'account': account,
+        'account_number': accountNumber,
+        'average_buy_price': averageBuyPrice,
+        'pending_average_buy_price': pendingAverageBuyPrice,
+        'quantity': quantity,
+        'intraday_average_buy_price': intradayAverageBuyPrice,
+        'intraday_quantity': intradayQuantity,
+        'shares_available_for_exercise': sharesAvailableForExercise,
+        'shares_held_for_buys': sharesHeldForBuys,
+        'shares_held_for_sells': sharesHeldForSells,
+        'shares_held_for_stock_grants': sharesHeldForStockGrants,
+        'shares_held_for_options_collateral': sharesHeldForOptionsCollateral,
+        'shares_held_for_options_events': sharesHeldForOptionsEvents,
+        'shares_pending_from_options_events': sharesPendingFromOptionsEvents,
+        'shares_available_for_closing_short_position':
+            sharesAvailableForClosingShortPosition,
+        'avg_cost_affected': averageCostAffected,
+        'updated_at': updatedAt,
+        'created_at': createdAt,
+        // 'instrumentDocRef': instrumentDocRef
+      };
 
   String get instrumentId {
     var splits = instrument.split("/");

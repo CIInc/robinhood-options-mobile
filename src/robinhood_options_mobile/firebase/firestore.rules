@@ -2,10 +2,61 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
-      //allow read, write: if
-      //    request.time < timestamp.date(2025, 3, 6);
+    match /user/{uid} {
+      allow read, create: if request.auth.uid != null;
+      allow update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      allow delete: if request.auth.token.role == 'admin';
+      match /instrumentPosition/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /instrumentOrder/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /optionPosition/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /optionOrder/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /optionEvent/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /forexPosition/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /dividend/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
+      match /interest/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.token.role == 'admin';
+      }
     }
+    match /instrument/{instrumentid} {
+      allow read: if true;
+      allow create, update: if request.auth.uid != null;
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
+    //match /{document=**} {
+    //  allow read, write: if false;
+    //  //allow read, write: if
+    //  //    request.time < timestamp.date(2025, 3, 6);
+    //}
   }
 }

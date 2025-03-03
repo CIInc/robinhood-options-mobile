@@ -329,7 +329,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         charts.Series<dynamic, DateTime>(
             id: 'Dividend',
             //charts.MaterialPalette.blue.shadeDefault,
-            colorFn: (_, __) => shades[0],
+            // colorFn: (_, __) => shades[0],
+            seriesColor: shades[0],
             // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
             domainFn: (dynamic domain, _) =>
                 (domain as MapEntry<DateTime, double>).key,
@@ -345,7 +346,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         charts.Series<dynamic, DateTime>(
           id: 'Interest',
           //charts.MaterialPalette.blue.shadeDefault,
-          colorFn: (_, __) => shades[1],
+          // colorFn: (_, __) => shades[1],
+          seriesColor: shades[1],
           //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
           // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
           domainFn: (dynamic domain, _) =>
@@ -361,7 +363,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         charts.Series<dynamic, DateTime>(
           id: 'Cumulative',
           //charts.MaterialPalette.blue.shadeDefault,
-          colorFn: (_, __) => shades[2],
+          // colorFn: (_, __) => shades[2],
+          seriesColor: shades[2],
           //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
           // domainFn: (dynamic domain, _) => DateTime.parse(domain["payable_date"]),
           domainFn: (dynamic domain, _) =>
@@ -447,7 +450,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         charts.PanAndZoomBehavior(panningCompletedCallback: () {
           debugPrint('panned');
           // Not working, see todo above.
-          widget.chartSelectionStore.selectionChanged(null);
+          // widget.chartSelectionStore.selectionChanged(null);
         }),
         charts.LinePointHighlighter(
           symbolRenderer: TextSymbolRenderer(
@@ -590,6 +593,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             //       style: const TextStyle(fontSize: 14)),
             // ]
           ]),
+          onTap: () {
+            navigateToFullPage(context);
+          },
         ),
         if (incomeTransactions.isNotEmpty &&
             transactionSymbolFilters.isNotEmpty &&
@@ -756,9 +762,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             ],
           ),
         ],
-
         SizedBox(
-            height: 300,
+            height: 340,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
               //padding: EdgeInsets.symmetric(horizontal: 10.0),

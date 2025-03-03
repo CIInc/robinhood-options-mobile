@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -6,15 +7,17 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:intl/intl.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_event_store.dart';
 import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -31,22 +34,6 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 
-import '../model/instrument_store.dart';
-
-final formatDate = DateFormat("yMMMd");
-final formatCompactDate = DateFormat("MMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.#####");
-final formatCompactNumber = NumberFormat.compact();
-
-/*
-class DrawerItem {
-  String title;
-  IconData icon;
-  DrawerItem(this.title, this.icon);
-}
-*/
 class HistoryPage extends StatefulWidget {
   /*
   final drawerItems = [
@@ -57,17 +44,21 @@ class HistoryPage extends StatefulWidget {
   ];
   */
 
-  const HistoryPage(this.user, this.service,
+  const HistoryPage(this.brokerageUser, this.service,
       {super.key,
       required this.analytics,
       required this.observer,
+      this.user,
+      this.userDoc,
       this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final User? user;
+  final DocumentReference? userDoc;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -156,7 +147,9 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildScaffold() {
     optionOrderStream ??= widget.service.streamOptionOrders(
-        widget.user, Provider.of<OptionOrderStore>(context, listen: false));
+        widget.brokerageUser,
+        Provider.of<OptionOrderStore>(context, listen: false),
+        userDoc: widget.userDoc);
 
     return StreamBuilder(
         stream: optionOrderStream,
@@ -165,9 +158,10 @@ class _HistoryPageState extends State<HistoryPage>
             optionOrders = optionOrdersSnapshot.data as List<OptionOrder>;
 
             positionOrderStream ??= widget.service.streamPositionOrders(
-                widget.user,
+                widget.brokerageUser,
                 Provider.of<InstrumentOrderStore>(context, listen: false),
-                Provider.of<InstrumentStore>(context, listen: false));
+                Provider.of<InstrumentStore>(context, listen: false),
+                userDoc: widget.userDoc);
 
             return StreamBuilder(
                 stream: positionOrderStream,
@@ -177,8 +171,9 @@ class _HistoryPageState extends State<HistoryPage>
                         positionOrdersSnapshot.data as List<InstrumentOrder>;
 
                     optionEventStream ??= widget.service.streamOptionEvents(
-                        widget.user,
-                        Provider.of<OptionEventStore>(context, listen: false));
+                        widget.brokerageUser,
+                        Provider.of<OptionEventStore>(context, listen: false),
+                        userDoc: widget.userDoc);
                     return StreamBuilder(
                         stream: optionEventStream,
                         builder: (context6, optionEventSnapshot) {
@@ -202,9 +197,10 @@ class _HistoryPageState extends State<HistoryPage>
                             }
 
                             dividendStream ??= widget.service.streamDividends(
-                                widget.user,
+                                widget.brokerageUser,
                                 Provider.of<InstrumentStore>(context,
-                                    listen: false));
+                                    listen: false),
+                                userDoc: widget.userDoc);
                             return StreamBuilder(
                                 stream: dividendStream,
                                 builder: (context6, dividendSnapshot) {
@@ -218,10 +214,11 @@ class _HistoryPageState extends State<HistoryPage>
 
                                     interestStream ??= widget.service
                                         .streamInterests(
-                                            widget.user,
+                                            widget.brokerageUser,
                                             Provider.of<InstrumentStore>(
                                                 context,
-                                                listen: false));
+                                                listen: false),
+                                            userDoc: widget.userDoc);
 
                                     return StreamBuilder<Object>(
                                         stream: interestStream,
@@ -503,7 +500,7 @@ class _HistoryPageState extends State<HistoryPage>
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
-                      widget.user);
+                      widget.brokerageUser);
                   if (response != null) {
                     setState(() {});
                   }
@@ -616,7 +613,7 @@ class _HistoryPageState extends State<HistoryPage>
                 })
           ],
         ),
-        if (widget.user.userName != null) ...[
+        if (widget.brokerageUser.userName != null) ...[
           if (done == false) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
@@ -785,7 +782,7 @@ class _HistoryPageState extends State<HistoryPage>
                                       MaterialPageRoute(
                                           builder: (context) =>
                                               OptionOrderWidget(
-                                                widget.user,
+                                                widget.brokerageUser,
                                                 widget.service,
                                                 optionOrder,
                                                 analytics: widget.analytics,
@@ -1078,7 +1075,7 @@ class _HistoryPageState extends State<HistoryPage>
                                       MaterialPageRoute(
                                           builder: (context) =>
                                               PositionOrderWidget(
-                                                widget.user,
+                                                widget.brokerageUser,
                                                 widget.service,
                                                 filteredPositionOrders![index],
                                                 analytics: widget.analytics,
@@ -1411,6 +1408,10 @@ class _HistoryPageState extends State<HistoryPage>
         ],
         // TODO: Introduce web banner
         if (!kIsWeb) ...[
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
           SliverToBoxAdapter(
               child: AdBannerWidget(size: AdSize.mediumRectangle)),
         ],

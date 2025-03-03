@@ -30,6 +30,8 @@ class TimeSeriesChart extends StatefulWidget {
   final common.SelectionMode selectionMode;
   final List<charts.ChartBehavior<DateTime>>? behaviors;
   final charts.ChartBehavior<DateTime>? seriesLegend;
+  final charts.ChartBehavior<DateTime>? initialSelection;
+
   final charts.AxisSpec<dynamic>? domainAxis;
   final charts.NumericAxisSpec? primaryMeasureAxis;
   final charts.NumericAxisSpec? secondaryMeasureAxis;
@@ -50,6 +52,7 @@ class TimeSeriesChart extends StatefulWidget {
       this.selectionMode = common.SelectionMode.selectOverlapping,
       this.behaviors,
       this.seriesLegend,
+      this.initialSelection,
       this.domainAxis,
       this.primaryMeasureAxis,
       this.secondaryMeasureAxis,
@@ -157,12 +160,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
             // symbolRenderer: widget.getTextForTextSymbolRenderer != null
             // ? TextSymbolRenderer(widget.getTextForTextSymbolRenderer!, marginBottom: 16)
             //     : null),
-            charts.InitialSelection(selectedDataConfig: [
-              // charts.SeriesDatumConfig<DateTime>(
-              //     'Adjusted Equity',
-              //     (widget.seriesList.first.data.last as EquityHistorical)
-              //         .beginsAt!)
-            ]),
+
+            if (widget.initialSelection != null) ...[widget.initialSelection!],
             if (widget.seriesLegend != null) ...[widget.seriesLegend!],
             if (widget.open != null && widget.close != null) ...[
               charts.RangeAnnotation([

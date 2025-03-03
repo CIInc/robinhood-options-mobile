@@ -75,12 +75,12 @@ class BrokerageUserStore extends ChangeNotifier {
   Map<String, dynamic> toJson() {
     return {
       'currentUserIndex': currentUserIndex,
-      'users': items,
+      'users': items.map((e) => e.toJson()).toList(),
     };
   }
 
   Future save() async {
-    var contents = jsonEncode(toJson());
+    var contents = jsonEncode(toJson(), toEncodable: Constants.toEncodable);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(Constants.preferencesUserKey, contents);
   }

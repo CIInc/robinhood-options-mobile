@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -28,17 +29,19 @@ final formatCompactNumber = NumberFormat.compact();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class ListsWidget extends StatefulWidget {
-  const ListsWidget(this.user, this.service,
+  const ListsWidget(this.brokerageUser, this.service,
       {super.key,
       required this.analytics,
       required this.observer,
-      this.navigatorKey});
+      this.navigatorKey,
+      this.user});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final User? user;
 
   @override
   State<ListsWidget> createState() => _ListsWidgetState();
@@ -85,11 +88,11 @@ class _ListsWidgetState extends State<ListsWidget>
   }
 
   Widget _buildPage() {
-    if (widget.user.userName == null) {
+    if (widget.brokerageUser.userName == null) {
       return Container();
     }
     watchlistStream ??= widget.service.streamLists(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false));
     return StreamBuilder(
@@ -279,7 +282,7 @@ class _ListsWidgetState extends State<ListsWidget>
                     _firestoreService,
                     widget.analytics,
                     widget.observer,
-                    widget.user);
+                    widget.brokerageUser);
                 if (response != null) {
                   setState(() {});
                 }
@@ -651,7 +654,8 @@ class _ListsWidgetState extends State<ListsWidget>
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildWatchlistGridItem(watchLists, index, widget.user);
+              return _buildWatchlistGridItem(
+                  watchLists, index, widget.brokerageUser);
               /*
           return Container(
             alignment: Alignment.center,

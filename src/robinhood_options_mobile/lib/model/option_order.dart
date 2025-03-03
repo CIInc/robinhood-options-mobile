@@ -129,6 +129,33 @@ class OptionOrder {
     return strat;
   }
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'chain_id': chainId,
+        'chain_symbol': chainSymbol,
+        'cancel_url': cancelUrl,
+        'canceled_quantity': canceledQuantity,
+        'direction': direction,
+        'legs': legs.map((e) => e.toJson()).toList(),
+        'pending_quantity': pendingQuantity,
+        'premium': premium,
+        'processed_premium': processedPremium,
+        'price': price,
+        'processed_quantity': processedQuantity,
+        'quantity': quantity,
+        'ref_id': refId,
+        'state': state,
+        'time_in_force': timeInForce,
+        'trigger': trigger,
+        'type': type,
+        'response_category': responseCategory,
+        'opening_strategy': openingStrategy,
+        'closing_strategy': closingStrategy,
+        'stop_price': stopPrice,
+        'created_at': createdAt,
+        'updated_at': updatedAt
+      };
+
   /* CSV Generation */
 
   List<dynamic> convertToDynamic() {

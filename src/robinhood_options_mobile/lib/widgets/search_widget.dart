@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -24,14 +25,19 @@ final formatCurrency = NumberFormat.simpleCurrency();
 final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
 
 class SearchWidget extends StatefulWidget {
-  final BrokerageUser user;
+  final User? user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
 
-  const SearchWidget(this.user, this.service,
-      {super.key,
-      required this.analytics,
-      required this.observer,
-      this.navigatorKey});
+  const SearchWidget(
+    this.brokerageUser,
+    this.service, {
+    super.key,
+    required this.analytics,
+    required this.observer,
+    this.navigatorKey,
+    this.user,
+  });
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -91,10 +97,12 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildScaffold() {
     instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
 
-    futureMovers ??= widget.service.getMovers(widget.user, direction: "up");
-    futureLosers ??= widget.service.getMovers(widget.user, direction: "down");
+    futureMovers ??=
+        widget.service.getMovers(widget.brokerageUser, direction: "up");
+    futureLosers ??=
+        widget.service.getMovers(widget.brokerageUser, direction: "down");
     futureListMovers ??=
-        widget.service.getTopMovers(widget.user, instrumentStore!);
+        widget.service.getTopMovers(widget.brokerageUser, instrumentStore!);
     // futureListMostPopular ??=
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
@@ -180,8 +188,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               onChanged: (text) {
                                 widget.analytics.logSearch(searchTerm: text);
                                 setState(() {
-                                  futureSearch =
-                                      widget.service.search(widget.user, text);
+                                  futureSearch = widget.service
+                                      .search(widget.brokerageUser, text);
                                 });
                               })),
                       //expandedHeight: 80.0,
@@ -204,7 +212,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                   _firestoreService,
                                   widget.analytics,
                                   widget.observer,
-                                  widget.user);
+                                  widget.brokerageUser);
                               if (response != null) {
                                 setState(() {});
                               }
@@ -376,7 +384,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
                                   return _buildListGridItem(
-                                      listMovers, index, widget.user);
+                                      listMovers, index, widget.brokerageUser);
                                 },
                                 childCount: listMovers.length,
                               ),
@@ -413,8 +421,8 @@ class _SearchWidgetState extends State<SearchWidget>
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
-                                  return _buildListGridItem(
-                                      listMostPopular, index, widget.user);
+                                  return _buildListGridItem(listMostPopular,
+                                      index, widget.brokerageUser);
                                 },
                                 childCount: listMostPopular.length,
                               ),
@@ -523,7 +531,9 @@ class _SearchWidgetState extends State<SearchWidget>
                   ]),
               onTap: () async {
                 var instrument = await widget.service.getInstrument(
-                    widget.user, instrumentStore!, movers[index].instrumentUrl);
+                    widget.brokerageUser,
+                    instrumentStore!,
+                    movers[index].instrumentUrl);
 
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
@@ -535,7 +545,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     context,
                     MaterialPageRoute(
                         builder: (context) => InstrumentWidget(
-                              widget.user,
+                              widget.brokerageUser,
                               widget.service,
                               instrument,
                               analytics: widget.analytics,
@@ -566,7 +576,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       context,
                       MaterialPageRoute(
                           builder: (context) => InstrumentWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 instrument,
                                 analytics: widget.analytics,

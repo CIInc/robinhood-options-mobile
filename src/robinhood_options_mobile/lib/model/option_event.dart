@@ -57,4 +57,24 @@ class OptionEvent {
             ? double.tryParse(json['underlying_price'])
             : null,
         updatedAt = DateTime.tryParse(json['updated_at']);
+
+  Map<String, dynamic> toJson() => {
+        'account': account,
+        'cash_component': cashComponent,
+        'chain_id': chainId,
+        'created_at': createdAt,
+        'direction': direction,
+        'equity_components': equityComponents,
+        'event_date': eventDate,
+        'id': id,
+        'option': option,
+        'position': position,
+        'quantity': quantity,
+        'source_ref_id': sourceRefId,
+        'state': state,
+        'total_cash_amount': totalCashAmount,
+        'type': type,
+        'underlying_price': underlyingPrice,
+        'updated_at': updatedAt
+      };
 }

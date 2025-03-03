@@ -723,58 +723,58 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           close / open - 1; // changeInPeriod / close;
                     }
                     return SizedBox(
-                        height: 43,
+                        // height: 43,
                         child: Center(
                             child: Column(
+                      children: [
+                        Wrap(
                           children: [
-                            Wrap(
-                              children: [
-                                Text(
-                                    formatCurrency.format(selection != null
-                                        ? selection!.closePrice
-                                        : close),
-                                    style: TextStyle(
-                                        fontSize: 20, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Icon(
-                                  changeInPeriod > 0
-                                      ? Icons.trending_up
-                                      : (changeInPeriod < 0
-                                          ? Icons.trending_down
-                                          : Icons.trending_flat),
-                                  color: (changeInPeriod > 0
-                                      ? Colors.green
-                                      : (changeInPeriod < 0
-                                          ? Colors.red
-                                          : Colors.grey)),
-                                  //size: 16.0
-                                ),
-                                Container(
-                                  width: 2,
-                                ),
-                                Text(
-                                    formatPercentage
-                                        //.format(selection!.netReturn!.abs()),
-                                        .format(changePercentInPeriod.abs()),
-                                    style: TextStyle(
-                                        fontSize: 20.0, color: textColor)),
-                                Container(
-                                  width: 10,
-                                ),
-                                Text(
-                                    "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                                    style: TextStyle(
-                                        fontSize: 20.0, color: textColor)),
-                              ],
+                            Text(
+                                formatCurrency.format(selection != null
+                                    ? selection!.closePrice
+                                    : close),
+                                style:
+                                    TextStyle(fontSize: 20, color: textColor)),
+                            Container(
+                              width: 10,
+                            ),
+                            Icon(
+                              changeInPeriod > 0
+                                  ? Icons.trending_up
+                                  : (changeInPeriod < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              color: (changeInPeriod > 0
+                                  ? Colors.green
+                                  : (changeInPeriod < 0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                              //size: 16.0
+                            ),
+                            Container(
+                              width: 2,
                             ),
                             Text(
-                              '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                              style: TextStyle(fontSize: 10, color: textColor),
+                                formatPercentage
+                                    //.format(selection!.netReturn!.abs()),
+                                    .format(changePercentInPeriod.abs()),
+                                style: TextStyle(
+                                    fontSize: 20.0, color: textColor)),
+                            Container(
+                              width: 10,
                             ),
+                            Text(
+                                "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
+                                style: TextStyle(
+                                    fontSize: 20.0, color: textColor)),
                           ],
-                        )));
+                        ),
+                        Text(
+                          '${formatMediumDateTime.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDateTime.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                          style: TextStyle(fontSize: 10, color: textColor),
+                        ),
+                      ],
+                    )));
                   }),
                   SizedBox(
                       height: 56,
@@ -2516,7 +2516,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         .similarObj![index]["logo_url"]
                         .toString()
                         .replaceAll("https:////", "https://");
-                    _firestoreService.upsertInstrument(similarInstruments[0]);
+                    await _firestoreService
+                        .upsertInstrument(similarInstruments[0]);
                   }
                   if (context.mounted) {
                     Navigator.push(

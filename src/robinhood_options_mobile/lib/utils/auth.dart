@@ -1,35 +1,78 @@
 import 'package:collection/collection.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 class AuthUtil {
   final firebase_auth.FirebaseAuth auth;
   AuthUtil(this.auth);
 
+  UserRole? _userRole;
+
   Future<UserRole> userRole() async {
-    String role = "golfer";
-    if (auth.currentUser != null) {
-      var token = await auth.currentUser!.getIdTokenResult(false);
-      if (token.claims != null && token.claims!['role'] != null) {
-        role = token.claims!['role'];
+    if (_userRole == null) {
+      String role = "user";
+      if (auth.currentUser != null) {
+        var token = await auth.currentUser!.getIdTokenResult(false);
+        if (token.claims != null && token.claims!['role'] != null) {
+          role = token.claims!['role'];
+        }
       }
+      _userRole = role.parseEnum(UserRole.values, UserRole.user) as UserRole;
     }
-    return role.parseEnum(UserRole.values, UserRole.user) as UserRole;
+    return _userRole!;
+  }
+
+  void openLogin(BuildContext context, FirestoreService firestoreService,
+      FirebaseAnalytics analytics, FirebaseAnalyticsObserver observer) async {
+    final BrokerageUser? result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) => LoginWidget(
+                  analytics: analytics,
+                  observer: observer,
+                )));
+
+    if (result != null) {
+      if (!context.mounted) return;
+      // TODO: see if setState is actually needed, Provider pattern is already listening.
+      // setState(() {
+      //   futureUser = null;
+      // });
+
+      if (auth.currentUser != null) {
+        var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+        final authUtil = AuthUtil(auth);
+        await authUtil.setUser(firestoreService, brokerageUserStore: userStore);
+      }
+
+      // After the Selection Screen returns a result, hide any previous snackbars
+      // and show the new result.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
+    }
   }
 
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
 
-  Future<User> setUser(firebase_auth.User firebaseUser, FirestoreService store,
-      {BrokerageUserStore? brokerageUserStore}) async {
+  Future<User> setUser(FirestoreService store,
+      {required BrokerageUserStore? brokerageUserStore,
+      DateTime? lastVisited}) async {
     var value = await userRole();
     debugPrint(value.enumValue());
 
@@ -99,7 +142,10 @@ class AuthUtil {
             'The notification permission was not granted and blocked instead.');
       }
     }
-
+    final firebaseUser = auth.currentUser;
+    if (firebaseUser == null) {
+      throw Exception("Firebase user is not authenticated.");
+    }
     final documentReference = store.userCollection.doc(firebaseUser.uid);
     final document = await documentReference.get();
     User? user;
@@ -108,9 +154,10 @@ class AuthUtil {
     } else {
       user = User(
           devices: [],
-          dateCreated: DateTime.now().toUtc(),
-          dateUpdated: DateTime.now().toUtc(),
-          brokerageUsers: []);
+          dateCreated: DateTime.now(), //.toUtc(),
+          // dateUpdated: DateTime.now(), //.toUtc(),
+          brokerageUsers: [],
+          accounts: []);
     }
     user.name = firebaseUser.displayName;
     user.nameLower = firebaseUser.displayName?.toLowerCase();
@@ -121,6 +168,9 @@ class AuthUtil {
         ? firebaseUser.providerData[0].providerId
         : null;
     user.role = value;
+    if (lastVisited != null) {
+      user.lastVisited = lastVisited; // DateTime.now(); //.toUtc();
+    }
 
     String deviceId = "";
     if (deviceData.keys.contains("identifierForVendor")) {
@@ -131,10 +181,10 @@ class AuthUtil {
     var device =
         user.devices.firstWhereOrNull((element) => element.id == deviceId);
     if (device == null) {
-      device = Device(id: deviceId, dateCreated: DateTime.now().toUtc());
+      device = Device(id: deviceId, dateCreated: DateTime.now()); //.toUtc()
       user.devices.add(device);
     } else {
-      device.dateUpdated = DateTime.now().toUtc();
+      device.dateUpdated = DateTime.now(); //.toUtc();
     }
     device.model = deviceData["model"];
     device.appVersion = '${info.version} (${info.buildNumber})';

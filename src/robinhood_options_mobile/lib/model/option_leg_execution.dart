@@ -15,6 +15,14 @@ class OptionLegExecution {
         settlementDate = DateTime.tryParse(json['settlement_date']),
         timestamp = DateTime.tryParse(json['timestamp']);
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'price': price,
+        'quantity': quantity,
+        'settlement_date': settlementDate,
+        'timestamp': timestamp
+      };
+
   static List<OptionLegExecution> fromJsonArray(dynamic json) {
     List<OptionLegExecution> legs = [];
     for (int i = 0; i < json.length; i++) {

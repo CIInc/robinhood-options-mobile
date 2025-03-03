@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
@@ -160,8 +161,8 @@ class SchwabService implements IBrokerageService {
         null);
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
-    var user =
-        BrokerageUser(Source.schwab, '', client.credentials.toJson(), client);
+    var user = BrokerageUser(
+        BrokerageSource.schwab, '', client.credentials.toJson(), client);
     //user.save(userStore).then((value) {});
     return user;
   }
@@ -312,7 +313,8 @@ class SchwabService implements IBrokerageService {
   @override
   Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
       PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore}) async {
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
     var url = '$endpoint/trader/v1/accounts?fields=positions'; // orders
     var results = await getJson(user, url);
     //debugPrint(results);
@@ -321,7 +323,7 @@ class SchwabService implements IBrokerageService {
     List<Account> accounts = [];
     for (var i = 0; i < results.length; i++) {
       var result = results[i];
-      var account = Account.fromSchwabJson(result, user);
+      var account = Account.fromSchwabJson(result);
       accounts.add(account);
       store.addOrUpdate(account);
 
@@ -821,7 +823,7 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   @override
   Future<List<ForexHolding>> getNummusHoldings(
       BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true}) {
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // TODO: implement getNummusHoldings
     throw UnimplementedError();
   }
@@ -850,7 +852,7 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
   @override
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true}) {
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // var symbols = store.items
     //     .where((e) =>
     //         e.instrumentObj !=
@@ -867,7 +869,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
-      {bool nonzero = true}) async {
+      {bool nonzero = true,
+      DocumentReference? userDoc}) async {
     // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
     // var instrumentObjs =
     //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -941,7 +944,8 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
 
   @override
   Stream<List> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamDividends
     throw UnimplementedError();
   }
@@ -1087,7 +1091,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 ]*/
   @override
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore) {
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamPositionOrders
     throw UnimplementedError();
   }
@@ -1260,7 +1265,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store) {
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamOptionOrders
     throw UnimplementedError();
   }
@@ -1472,7 +1478,7 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
       BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20}) {
+      {int pageSize = 20, DocumentReference? userDoc}) {
     // TODO: implement streamOptionEvents
     throw UnimplementedError();
   }
@@ -1491,7 +1497,8 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Stream<List> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamInterests
     throw UnimplementedError();
   }

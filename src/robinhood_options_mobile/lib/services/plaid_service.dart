@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
@@ -95,8 +96,8 @@ class PlaidService implements IBrokerageService {
         null);
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
-    var user =
-        BrokerageUser(Source.plaid, '', client.credentials.toJson(), client);
+    var user = BrokerageUser(
+        BrokerageSource.plaid, '', client.credentials.toJson(), client);
     //user.save(userStore).then((value) {});
     return user;
   }
@@ -114,7 +115,8 @@ class PlaidService implements IBrokerageService {
   @override
   Future<List<Account>> getAccounts(BrokerageUser user, AccountStore store,
       PortfolioStore? portfolioStore, OptionPositionStore? optionPositionStore,
-      {InstrumentPositionStore? instrumentPositionStore}) async {
+      {InstrumentPositionStore? instrumentPositionStore,
+      DocumentReference? userDoc}) async {
     // https://createplaidlinktoken-tct53t2egq-uc.a.run.app
     HttpsCallable callable =
         FirebaseFunctions.instance.httpsCallable('getInvestmentsHoldings');
@@ -134,7 +136,7 @@ class PlaidService implements IBrokerageService {
     List<Account> accounts = [];
     // for (var i = 0; i < results.length; i++) {
     //   var result = results[i];
-    var account = Account.fromPlaidJson(resp.data, user);
+    var account = Account.fromPlaidJson(resp.data);
     accounts.add(account);
     store.addOrUpdate(account);
 
@@ -221,7 +223,7 @@ class PlaidService implements IBrokerageService {
   @override
   Future<List<ForexHolding>> getNummusHoldings(
       BrokerageUser user, ForexHoldingStore store,
-      {bool nonzero = true}) {
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // TODO: implement getNummusHoldings
     throw UnimplementedError();
   }
@@ -250,7 +252,7 @@ class PlaidService implements IBrokerageService {
   @override
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
-      {bool nonzero = true}) {
+      {bool nonzero = true, DocumentReference? userDoc}) {
     // var symbols = store.items
     //     .where((e) =>
     //         e.instrumentObj !=
@@ -267,7 +269,8 @@ class PlaidService implements IBrokerageService {
       InstrumentPositionStore store,
       InstrumentStore instrumentStore,
       QuoteStore quoteStore,
-      {bool nonzero = true}) async {
+      {bool nonzero = true,
+      DocumentReference? userDoc}) async {
     // var instrumentIds = store.items.map((e) => e.instrumentId).toList();
     // var instrumentObjs =
     //     await getInstrumentsByIds(user, instrumentStore, instrumentIds);
@@ -341,7 +344,8 @@ class PlaidService implements IBrokerageService {
 
   @override
   Stream<List> streamDividends(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamDividends
     throw UnimplementedError();
   }
@@ -355,7 +359,8 @@ class PlaidService implements IBrokerageService {
 
   @override
   Stream<List<InstrumentOrder>> streamPositionOrders(BrokerageUser user,
-      InstrumentOrderStore store, InstrumentStore instrumentStore) {
+      InstrumentOrderStore store, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamPositionOrders
     throw UnimplementedError();
   }
@@ -465,7 +470,8 @@ class PlaidService implements IBrokerageService {
 
   @override
   Stream<List<OptionOrder>> streamOptionOrders(
-      BrokerageUser user, OptionOrderStore store) {
+      BrokerageUser user, OptionOrderStore store,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamOptionOrders
     throw UnimplementedError();
   }
@@ -677,7 +683,7 @@ class PlaidService implements IBrokerageService {
   @override
   Stream<List<OptionEvent>> streamOptionEvents(
       BrokerageUser user, OptionEventStore store,
-      {int pageSize = 20}) {
+      {int pageSize = 20, DocumentReference? userDoc}) {
     // TODO: implement streamOptionEvents
     throw UnimplementedError();
   }
@@ -696,7 +702,8 @@ class PlaidService implements IBrokerageService {
 
   @override
   Stream<List> streamInterests(
-      BrokerageUser user, InstrumentStore instrumentStore) {
+      BrokerageUser user, InstrumentStore instrumentStore,
+      {DocumentReference? userDoc}) {
     // TODO: implement streamInterests
     throw UnimplementedError();
   }

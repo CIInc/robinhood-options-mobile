@@ -1,7 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 
@@ -11,13 +11,6 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
-
-final formatDate = DateFormat("yMMMd");
-final formatCompactDate = DateFormat("MMMd");
-final formatCurrency = NumberFormat.simpleCurrency();
-final formatPercentage = NumberFormat.decimalPercentPattern(decimalDigits: 2);
-final formatNumber = NumberFormat("0.####");
-final formatCompactNumber = NumberFormat.compact();
 
 class PositionOrderWidget extends StatefulWidget {
   const PositionOrderWidget(

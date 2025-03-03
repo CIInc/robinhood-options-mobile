@@ -2111,7 +2111,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
       children: <Widget>[
         ListTile(
           // leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName ?? instrument.symbol}'),
+          title: Text(instrument.simpleName ?? instrument.symbol),
           subtitle: Text(instrument.name),
           trailing: Wrap(
             spacing: 8,

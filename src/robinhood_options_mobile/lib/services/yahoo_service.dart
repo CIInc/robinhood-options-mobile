@@ -1,9 +1,12 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:http/http.dart' as http;
+// import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 
 class YahooService {
+  final http.Client httpClient = http.Client();
+
+  // YahooService({required this.httpClient});
   /*
 {
   "chart": {
@@ -337,11 +340,10 @@ class YahooService {
   Future<dynamic> getMarketIndexHistoricals(
       {String symbol = "^GSP",
       String range = "ytd", // 1y
-      String interval = "1d",
-      required BrokerageUser user}) async {
+      String interval = "1d"}) async {
     var url =
         "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
-    var entryJson = await getJson(user, url);
+    var entryJson = await getJson(url);
     return entryJson;
     // List<dynamic> list = [];
     // for (var i = 0; i < entryJson['results'].length; i++) {
@@ -351,11 +353,11 @@ class YahooService {
     // return list;
   }
 
-  static Future<dynamic> getJson(BrokerageUser user, String url) async {
+  Future<dynamic> getJson(String url) async {
     // debugPrint(url);
     Stopwatch stopwatch = Stopwatch();
     stopwatch.start();
-    String responseStr = await user.oauth2Client!.read(Uri.parse(url));
+    String responseStr = await httpClient.read(Uri.parse(url));
     debugPrint(
         "${(responseStr.length / 1000)}K in ${stopwatch.elapsed.inMilliseconds}ms $url");
     dynamic responseJson = jsonDecode(responseStr);
@@ -364,7 +366,7 @@ class YahooService {
 }
 
 class MarketIndicesModel extends ValueNotifier<dynamic> {
-  MarketIndicesModel(dynamic initialValue) : super(initialValue);
+  MarketIndicesModel(super.initialValue);
 
   void set(dynamic newValue) {
     value = newValue;

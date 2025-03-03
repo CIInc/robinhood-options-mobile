@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -10,19 +9,17 @@ import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
-import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
-import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_pie_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/instrument_positions_page_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
-import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class InstrumentPositionsWidget extends StatefulWidget {
   const InstrumentPositionsWidget(
@@ -50,7 +47,7 @@ class InstrumentPositionsWidget extends StatefulWidget {
 }
 
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
-  final FirestoreService _firestoreService = FirestoreService();
+  // final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
@@ -127,8 +124,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           ? BrokerageUser.displayValueText(DisplayValue.totalCost)
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
-      // colorFn: (_, __) => shades[1],
-      seriesColor: shades[1],
+      colorFn: (_, __) => shades[1],
+      // Not working as replacement to colorFn, setting the 2nd measure as gray
+      // seriesColor: shades[1],
       //charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
       domainFn: (var d, _) => d['domain'],
       measureFn: (var d, _) => d['secondaryMeasure'],
@@ -409,7 +407,9 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                             */
             ]),
           ),
-          onTap: null,
+          onTap: () {
+            navigateToFullPage(context);
+          },
         ),
         /*
         if (user.displayValue != DisplayValue.lastPrice) ...[
@@ -447,6 +447,68 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                   child: positionChart,
                 )))
       ],
+      SliverToBoxAdapter(
+          child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0), //.all(8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          spacing: 8.0,
+          children: [
+            TextButton.icon(
+                // FilledButton.tonalIcon(
+                // OutlinedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                      context: context,
+                      showDragHandle: true,
+                      // isScrollControlled: true,
+                      //useRootNavigator: true,
+                      //constraints: const BoxConstraints(maxHeight: 200),
+                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              showOnlyPrimaryMeasure: true,
+                              onSettingsChanged: (value) {
+                            setState(() {});
+                          }));
+                },
+                label: Text(
+                    BrokerageUser.displayValueText(widget.user.displayValue!)),
+                icon: Icon(Icons.line_axis)),
+            TextButton.icon(
+                // FilledButton.tonalIcon(
+                // OutlinedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet<void>(
+                      context: context,
+                      showDragHandle: true,
+                      // isScrollControlled: true,
+                      //useRootNavigator: true,
+                      //constraints: const BoxConstraints(maxHeight: 200),
+                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              showOnlySort: true, onSettingsChanged: (value) {
+                            setState(() {});
+                          }));
+                },
+                label: Text(
+                    BrokerageUser.displayValueText(widget.user.sortOptions!)),
+                icon: Icon(widget.user.sortDirection == SortDirection.desc
+                    ? Icons.south
+                    : Icons.north)
+                // Icon(Icons.sort)
+                ),
+            // ListTile(
+            //   trailing: FilledButton.tonalIcon(
+            //       // OutlinedButton.icon(
+            //       onPressed: () {},
+            //       label: Text('Market Value'),
+            //       icon: Icon(Icons.sort)),
+            // ),
+          ],
+        ),
+      )),
       if (widget.showList) ...[
         SliverList(
           // delegate: SliverChildListDelegate(widgets),
@@ -483,67 +545,76 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (context) => Material(
-                    child: CustomScrollView(slivers: [
-                  SliverAppBar(
-                    title: Text("Stocks & ETFs"),
-                    floating: true,
-                    snap: true,
-                    pinned: false,
-                    actions: [
-                      IconButton(
-                          icon: auth.currentUser != null
-                              ? (auth.currentUser!.photoURL == null
-                                  ? const Icon(Icons.account_circle)
-                                  : CircleAvatar(
-                                      maxRadius: 12,
-                                      backgroundImage: CachedNetworkImageProvider(
-                                          auth.currentUser!.photoURL!
-                                          //  ?? Constants .placeholderImage, // No longer used
-                                          )))
-                              : const Icon(Icons.login),
-                          onPressed: () {
-                            showProfile(context, auth, _firestoreService,
-                                widget.analytics, widget.observer, widget.user);
-                          }),
-                      IconButton(
-                          icon: Icon(Icons.more_vert),
-                          onPressed: () async {
-                            await showModalBottomSheet<void>(
-                                context: context,
-                                showDragHandle: true,
-                                //isScrollControlled: true,
-                                //useRootNavigator: true,
-                                //constraints: const BoxConstraints(maxHeight: 200),
-                                builder: (_) => MoreMenuBottomSheet(widget.user,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        showStockSettings: true,
-                                        chainSymbols: null,
-                                        positionSymbols: null,
-                                        cryptoSymbols: null,
-                                        optionSymbolFilters: null,
-                                        stockSymbolFilters: null,
-                                        cryptoFilters: null,
-                                        onSettingsChanged: (value) {
-                                      // debugPrint(
-                                      //     "Settings changed ${jsonEncode(value)}");
-                                      debugPrint(
-                                          "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
-                                      setState(() {});
-                                    }));
-                            // Navigator.pop(context);
-                          })
-                    ],
-                  ),
-                  InstrumentPositionsWidget(
-                    widget.user,
-                    widget.service,
-                    widget.filteredPositions,
-                    analytics: widget.analytics,
-                    observer: widget.observer,
-                  )
-                ]))));
+            builder: (context) => InstrumentPositionsPageWidget(
+                  widget.user,
+                  widget.service,
+                  widget.filteredPositions,
+                  analytics: widget.analytics,
+                  observer: widget.observer,
+                )));
+    // Material(
+    //         child: CustomScrollView(slivers: [
+    //       SliverAppBar(
+    //         title: Text("Stocks & ETFs"),
+    //         floating: true,
+    //         snap: true,
+    //         pinned: false,
+    //         actions: [
+    //           IconButton(
+    //               icon: auth.currentUser != null
+    //                   ? (auth.currentUser!.photoURL == null
+    //                       ? const Icon(Icons.account_circle)
+    //                       : CircleAvatar(
+    //                           maxRadius: 12,
+    //                           backgroundImage: CachedNetworkImageProvider(
+    //                               auth.currentUser!.photoURL!
+    //                               //  ?? Constants .placeholderImage, // No longer used
+    //                               )))
+    //                   : const Icon(Icons.login),
+    //               onPressed: () {
+    //                 showProfile(context, auth, _firestoreService,
+    //                     widget.analytics, widget.observer, widget.user);
+    //               }),
+    //           IconButton(
+    //               icon: Icon(Icons.more_vert),
+    //               onPressed: () async {
+    //                 await showModalBottomSheet<void>(
+    //                     context: context,
+    //                     showDragHandle: true,
+    //                     //isScrollControlled: true,
+    //                     //useRootNavigator: true,
+    //                     //constraints: const BoxConstraints(maxHeight: 200),
+    //                     builder: (_) => MoreMenuBottomSheet(widget.user,
+    //                             analytics: widget.analytics,
+    //                             observer: widget.observer,
+    //                             showStockSettings: true,
+    //                             chainSymbols: null,
+    //                             positionSymbols: null,
+    //                             cryptoSymbols: null,
+    //                             optionSymbolFilters: null,
+    //                             stockSymbolFilters: null,
+    //                             cryptoFilters: null,
+    //                             onSettingsChanged: (value) {
+    //                           // debugPrint(
+    //                           //     "Settings changed ${jsonEncode(value)}");
+    //                           debugPrint(
+    //                               "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
+    //                           debugPrint(
+    //                               "displayValue: ${widget.user.displayValue.toString()}");
+    //                           setState(() {});
+    //                         }));
+    //                 // Navigator.pop(context);
+    //               })
+    //         ],
+    //       ),
+    //       InstrumentPositionsWidget(
+    //         widget.user,
+    //         widget.service,
+    //         widget.filteredPositions,
+    //         analytics: widget.analytics,
+    //         observer: widget.observer,
+    //       )
+    //     ]))));
   }
 
   Widget _buildPositionRow(

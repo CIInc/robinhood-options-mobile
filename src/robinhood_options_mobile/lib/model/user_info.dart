@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserInfo {
   // Robinhood
   final String url;
@@ -34,10 +36,18 @@ class UserInfo {
         email = json['email'],
         firstName = json['first_name'],
         lastName = json['last_name'],
-        locality = json['origin']['locality'],
+        locality = json['locality'] ??
+            json['origin'][
+                'locality'], // Robinhood uses origin.locality, Firebase stores this object which is flattened by design.
         profileName = json['profile_name'],
-        createdAt = DateTime.tryParse(json['created_at']),
-        lastLoginTime = null;
+        createdAt = json['created_at'] != null
+            ? (json['created_at'] is Timestamp
+                ? (json['created_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['created_at']))
+            : null,
+        lastLoginTime = json['last_login_time'] is Timestamp
+            ? (json['last_login_time'] as Timestamp).toDate()
+            : null;
 
   UserInfo.fromSchwab(dynamic json)
       : url = '',
@@ -64,6 +74,7 @@ class UserInfo {
       'locality': locality,
       'profile_name': profileName,
       'created_at': createdAt,
+      // 'last_login_time': lastLoginTime,
     };
   }
 }

@@ -14,8 +14,8 @@ import 'package:robinhood_options_mobile/services/schwab_service.dart';
 
 //@immutable
 class BrokerageUser {
-  final String id = DateTime.now().microsecondsSinceEpoch.toString();
-  final Source source;
+  // final String id = DateTime.now().microsecondsSinceEpoch.toString();
+  final BrokerageSource source;
   late String? userName;
   String? credentials;
   oauth2.Client? oauth2Client;
@@ -23,23 +23,23 @@ class BrokerageUser {
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
   DisplayValue? displayValue = DisplayValue.marketValue;
-  DisplayValue? sortOptions = DisplayValue.expirationDate;
-  SortDirection? sortDirection = SortDirection.asc;
+  DisplayValue? sortOptions = DisplayValue.marketValue;
+  SortDirection? sortDirection = SortDirection.desc;
   bool showPositionDetails = true;
-  // UserInfo? userInfo;
   UserInfo? userInfo;
+  bool persistToFirebase = true;
 
   BrokerageUser(
       this.source, this.userName, this.credentials, this.oauth2Client);
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
-      : source = json['source'] == Source.robinhood.toString()
-            ? Source.robinhood
-            : json['source'] == Source.schwab.toString()
-                ? Source.schwab
-                : json['source'] == Source.plaid.toString()
-                    ? Source.plaid
-                    : Source.demo,
+      : source = json['source'] == BrokerageSource.robinhood.toString()
+            ? BrokerageSource.robinhood
+            : json['source'] == BrokerageSource.schwab.toString()
+                ? BrokerageSource.schwab
+                : json['source'] == BrokerageSource.plaid.toString()
+                    ? BrokerageSource.plaid
+                    : BrokerageSource.demo,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -57,7 +57,8 @@ class BrokerageUser {
         showPositionDetails = json['showPositionDetails'] ?? true,
         userInfo = json['userInfo'] != null
             ? UserInfo.fromJson(json['userInfo'])
-            : null;
+            : null,
+        persistToFirebase = json['persistToFirebase'] ?? true;
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
@@ -70,19 +71,23 @@ class BrokerageUser {
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
         'userInfo': userInfo?.toJson(),
+        'persistToFirebase': persistToFirebase
       };
 
   static List<BrokerageUser> fromJsonArray(dynamic json) {
     List<BrokerageUser> list = [];
+    if (json == null) {
+      return list;
+    }
     for (int i = 0; i < json.length; i++) {
       var user = BrokerageUser.fromJson(json[i]);
       if (user.credentials != null) {
         var credentials = Credentials.fromJson(user.credentials as String);
-        var service = user.source == Source.robinhood
+        var service = user.source == BrokerageSource.robinhood
             ? RobinhoodService()
-            : user.source == Source.schwab
+            : user.source == BrokerageSource.schwab
                 ? SchwabService()
-                : user.source == Source.plaid
+                : user.source == BrokerageSource.plaid
                     ? PlaidService()
                     : DemoService();
 

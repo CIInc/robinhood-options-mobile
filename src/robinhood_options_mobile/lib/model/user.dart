@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
+import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
 
@@ -16,7 +17,11 @@ class User {
   List<Device> devices;
   DateTime dateCreated;
   DateTime? dateUpdated;
+  DateTime? lastVisited;
   List<BrokerageUser> brokerageUsers = [];
+  List<Account> accounts = [];
+  bool persistToFirebase;
+  bool refreshQuotes;
 
   User(
       {this.name,
@@ -30,7 +35,11 @@ class User {
       required this.devices,
       required this.dateCreated,
       this.dateUpdated,
-      required this.brokerageUsers});
+      this.lastVisited,
+      required this.brokerageUsers,
+      required this.accounts,
+      this.persistToFirebase = true,
+      this.refreshQuotes = false});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -50,9 +59,21 @@ class User {
             dateUpdated: json['dateUpdated'] != null
                 ? (json['dateUpdated'] as Timestamp).toDate()
                 : null,
+            lastVisited: json['lastVisited'] != null
+                ? (json['lastVisited'] as Timestamp).toDate()
+                : null,
             brokerageUsers: json['brokerageUsers'] != null
                 ? BrokerageUser.fromJsonArray(json['brokerageUsers'])
-                : []);
+                : [],
+            accounts: json['accounts'] != null
+                ? Account.fromJsonArray(json['accounts'])
+                : [],
+            persistToFirebase: json['persistToFirebase'] != null
+                ? json['persistToFirebase'] as bool
+                : true,
+            refreshQuotes: json['refreshQuotes'] != null
+                ? json['refreshQuotes'] as bool
+                : true);
 
   Map<String, Object?> toJson() {
     return {
@@ -67,7 +88,11 @@ class User {
       'devices': devices.map((e) => e.toJson()).toList(),
       'dateCreated': dateCreated,
       'dateUpdated': dateUpdated,
-      'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList()
+      'lastVisited': lastVisited,
+      'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
+      'accounts': accounts.map((e) => e.toJson()).toList(),
+      'persistToFirebase': persistToFirebase,
+      'refreshQuotes': refreshQuotes
     };
   }
 
