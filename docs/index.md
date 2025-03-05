@@ -24,6 +24,12 @@
   - Crypto section
     - [x] Crypto holdings
     - [x] Crypto detail view with market data (see Crypto view)
+- Transactions tab
+  - [x] Position order list
+  - [x] Option order list
+    - [x] Integrated option event list
+  - [x] Balances and order counts
+  - [x] Share orders
 - Search tab
   - [x] Search companies by name or symbol
   - [x] S&P movers, losers and gainers
@@ -37,12 +43,6 @@
   - [ ] Create new list
   - [ ] Edit list
   - [ ] Add symbol to list
-- History tab
-  - [x] Position order list
-  - [x] Option order list
-    - [x] Integrated option event list
-  - [x] Balances and order counts
-  - [x] Share orders as a link
 
 ### Views
 

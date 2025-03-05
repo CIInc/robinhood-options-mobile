@@ -578,23 +578,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               double changeInPeriod = 0;
               double changePercentInPeriod = 0;
 
-              firstHistorical = portfolioHistoricals!.equityHistoricals[0];
-              lastHistorical = portfolioHistoricals!.equityHistoricals[
-                  portfolioHistoricals!.equityHistoricals.length - 1];
-              open = firstHistorical
-                  .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+              firstHistorical = portfolioHistoricals!.equityHistoricals.first;
+              lastHistorical = portfolioHistoricals!.equityHistoricals.last;
 
               // Update last historical from day span to deal with the issue that
               // lastHistorical return different values at different increment spans.
+              var hourHistoricals = portfolioHistoricalsStore.items
+                  .singleWhereOrNull((e) => e.span == 'hour');
               var dayHistoricals = portfolioHistoricalsStore.items
                   .singleWhereOrNull((e) => e.span == 'day');
-              var allHistoricals = portfolioHistoricals!.equityHistoricals +
-                  (portfolioHistoricals!.span != 'hour' &&
-                          portfolioHistoricals!.span != 'day'
-                      ? [dayHistoricals!.equityHistoricals.last]
-                      : []);
-              lastHistorical = allHistoricals.last;
+              final DateTime now = DateTime.now();
+              final DateTime today = DateTime(now.year, now.month, now.day);
+              final maxDate = portfolioHistoricals!.equityHistoricals
+                  .map((e) => e.beginsAt!)
+                  .reduce((a, b) => a.isAfter(b) ? a : b);
+              var allHistoricals = (portfolioHistoricals!.span == "day"
+                      // || portfolioHistoricals!.span == "hour"
+                      ? portfolioHistoricals!.equityHistoricals
+                          .where((element) =>
+                              element.beginsAt!.compareTo(today) >= 0)
+                          .toList()
+                      : portfolioHistoricals!.equityHistoricals) +
+                  (hourHistoricals != null
+                      ? hourHistoricals.equityHistoricals
+                          .where((element) =>
+                              element.beginsAt!.compareTo(today) >= 0 &&
+                              element.beginsAt!.compareTo(maxDate) >= 0)
+                          .toList()
+                      : [dayHistoricals!.equityHistoricals.last]);
+              if (allHistoricals.isNotEmpty) {
+                firstHistorical = allHistoricals.first;
+                lastHistorical = allHistoricals.last;
+              }
 
+              open = firstHistorical
+                  .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
               // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
 
@@ -607,15 +625,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               //   // updatedAt = portfolioStore.items[0].updatedAt!;
               // }
 
-              // This solution uses the portfolioStore but causes flickers on each refresh as the value keeps changing.
-              // if (portfolioStore.items.isNotEmpty) {// && forexHoldingStore.items.isNotEmpty
-              //   close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-              // }
-
               changeInPeriod = close - open;
               changePercentInPeriod = (close / open) - 1;
               // Wrong change percent calculation.
               // changePercentInPeriod = changeInPeriod / close;
+
+              // Since the chart is not candlesticks, each point is the opening value of the time span,
+              // so add a final point at an extra increment of time span to account for the closing value.
+              Duration intervalDuration = Duration.zero;
+              switch (portfolioHistoricals!.interval) {
+                case 'month':
+                  intervalDuration = Duration(days: 30);
+                  break;
+                case 'week':
+                  intervalDuration = Duration(days: 7);
+                  break;
+                case 'day':
+                  intervalDuration = Duration(days: 1);
+                  break;
+                case 'hour':
+                  intervalDuration = Duration(hours: 1);
+                  break;
+                case '10minute':
+                  intervalDuration = Duration(minutes: 10);
+                  break;
+                case '5minute':
+                  intervalDuration = Duration(minutes: 5);
+                  break;
+                case '15second':
+                  intervalDuration = Duration(seconds: 15);
+                  break;
+              }
+              var adjDate = allHistoricals.last.beginsAt!.add(intervalDuration);
+              if (adjDate.compareTo(now) >= 0) {
+                adjDate = now;
+              }
+              allHistoricals.add(EquityHistorical(
+                  allHistoricals.last.adjustedCloseEquity,
+                  allHistoricals.last.adjustedCloseEquity,
+                  allHistoricals.last.closeEquity,
+                  allHistoricals.last.closeEquity,
+                  allHistoricals.last.closeMarketValue,
+                  allHistoricals.last.closeMarketValue,
+                  adjDate,
+                  allHistoricals.last.netReturn,
+                  allHistoricals.last.session));
 
               /*
               var brightness = MediaQuery.of(context).platformBrightness;
@@ -640,21 +694,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     domainFn: (EquityHistorical history, _) =>
                         history.beginsAt!,
                     //filteredEquityHistoricals.indexOf(history),
-                    measureFn: (EquityHistorical history, index) => index == 0
-                        ? history.adjustedCloseEquity //adjustedOpenEquity
-                        : history.adjustedCloseEquity,
+                    measureFn: (EquityHistorical history, index) =>
+                        history.adjustedOpenEquity,
                     labelAccessorFn: (EquityHistorical history, index) =>
-                        formatCompactNumber.format((index == 0
-                            ? history.adjustedCloseEquity //adjustedOpenEquity
-                            : history.adjustedCloseEquity)),
+                        formatCompactNumber
+                            .format((history.adjustedOpenEquity)),
                     data:
                         allHistoricals, // portfolioHistoricals!.equityHistoricals,
-                    /*
-                          [
-                            ...portfolioHistoricals!.equityHistoricals,
-                            EquityHistorical(portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioValue, portfolioStore.items.first.updatedAt, 0, '')
-                          ]
-                          */
                   ),
                   charts.Series<EquityHistorical, DateTime>(
                       id: 'Equity',
@@ -665,9 +711,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           history.beginsAt!,
                       //filteredEquityHistoricals.indexOf(history),
                       measureFn: (EquityHistorical history, index) =>
-                          index == 0 ? history.openEquity : history.closeEquity,
-                      data: portfolioHistoricals!
-                          .equityHistoricals //filteredEquityHistoricals,
+                          history.openEquity,
+                      data:
+                          allHistoricals // portfolioHistoricals!.equityHistoricals
                       ),
                   charts.Series<EquityHistorical, DateTime>(
                       id: 'Market Value',
@@ -677,11 +723,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       domainFn: (EquityHistorical history, _) =>
                           history.beginsAt!,
                       //filteredEquityHistoricals.indexOf(history),
-                      measureFn: (EquityHistorical history, index) => index == 0
-                          ? history.openMarketValue
-                          : history.closeMarketValue,
-                      data: portfolioHistoricals!
-                          .equityHistoricals //filteredEquityHistoricals,
+                      measureFn: (EquityHistorical history, index) =>
+                          history.openMarketValue,
+                      data:
+                          allHistoricals // portfolioHistoricals!.equityHistoricals
                       ),
                 ],
                 animate: animateChart,
@@ -2127,7 +2172,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             Provider.of<PortfolioHistoricalsStore>(context, listen: false),
             account!.accountNumber,
             chartBoundsFilter,
-            chartDateSpanFilter);
+            // Use the faster increment hour chart to append to the day chart.
+            chartDateSpanFilter == ChartDateSpan.day
+                ? ChartDateSpan.hour
+                : chartDateSpanFilter);
       }
       if (!mounted) return;
       await widget.service.refreshOptionMarketData(

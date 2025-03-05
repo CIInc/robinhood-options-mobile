@@ -129,6 +129,11 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white),
+        tabBarTheme: TabBarTheme(
+          dividerColor: Colors.transparent,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+        ),
         chipTheme: ChipThemeData(
           side: BorderSide.none,
           // shape: LinearBorder()

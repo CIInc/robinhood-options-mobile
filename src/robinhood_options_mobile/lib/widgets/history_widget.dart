@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
@@ -65,8 +64,10 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage>
-    with AutomaticKeepAliveClientMixin<HistoryPage> {
+    with AutomaticKeepAliveClientMixin<HistoryPage>, TickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
+
+  late final TabController _tabController;
 
   Stream<List<InstrumentOrder>>? positionOrderStream;
   List<InstrumentOrder>? positionOrders;
@@ -103,11 +104,12 @@ class _HistoryPageState extends State<HistoryPage>
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
 
-  int orderDateFilterSelected = 1;
+  String orderDateFilterSelection = 'Past Week';
 
   bool showShareView = false;
   List<String> selectedPositionOrdersToShare = [];
   List<String> selectedOptionOrdersToShare = [];
+  List<String> selectionsToShare = [];
   bool shareText = true;
   bool shareLink = true;
 
@@ -117,6 +119,7 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
     widget.analytics.logScreenView(screenName: 'History');
   }
 
@@ -321,20 +324,25 @@ class _HistoryPageState extends State<HistoryPage>
       //List<WatchlistItem>? watchListItems,
       bool done = false}) {
     int days = 0;
-    switch (orderDateFilterSelected) {
-      case 0:
+
+    switch (orderDateFilterSelection) {
+      case 'Today':
         days = 1;
         break;
-      case 1:
+      case 'Past Week':
         days = 7;
         break;
-      case 2:
+      case 'Past Month':
         days = 30;
         break;
-      case 3:
+      case 'Past 90 days':
+        days = 90;
+        break;
+      case 'Past Year':
         days = 365;
         break;
-      case 4:
+      case 'This Year':
+        days = 0;
         break;
     }
 
@@ -346,6 +354,8 @@ class _HistoryPageState extends State<HistoryPage>
       filteredOptionOrders = optionOrders
           .where((element) =>
               (orderFilters.isEmpty || orderFilters.contains(element.state)) &&
+              (orderDateFilterSelection == 'This Year' ||
+                  element.createdAt!.year == DateTime.now().year) &&
               (days == 0 ||
                   (element.createdAt!
                           .add(Duration(days: days))
@@ -381,6 +391,8 @@ class _HistoryPageState extends State<HistoryPage>
       filteredPositionOrders = positionOrders
           .where((element) =>
               (orderFilters.isEmpty || orderFilters.contains(element.state)) &&
+              (orderDateFilterSelection == 'This Year' ||
+                  element.createdAt!.year == DateTime.now().year) &&
               (days == 0 ||
                   element.createdAt!
                           .add(Duration(days: days))
@@ -403,8 +415,11 @@ class _HistoryPageState extends State<HistoryPage>
       filteredDividends = dividends
           .where((element) =>
               //(orderFilters.isEmpty || orderFilters.contains(element["state"])) &&
+              (orderDateFilterSelection == 'This Year' ||
+                  DateTime.parse(element["payable_date"]!).year ==
+                      DateTime.now().year) &&
               (days == 0 ||
-                  DateTime.parse(element["record_date"]!)
+                  DateTime.parse(element["payable_date"]!)
                           .add(Duration(days: days))
                           .compareTo(DateTime.now()) >=
                       0) &&
@@ -424,6 +439,9 @@ class _HistoryPageState extends State<HistoryPage>
       filteredInterests = interests
           .where((element) =>
               //(orderFilters.isEmpty || orderFilters.contains(element["state"])) &&
+              (orderDateFilterSelection == 'This Year' ||
+                  DateTime.parse(element["pay_date"]!).year ==
+                      DateTime.now().year) &&
               (days == 0 ||
                   DateTime.parse(element["pay_date"]!)
                           .add(Duration(days: days))
@@ -459,981 +477,1161 @@ class _HistoryPageState extends State<HistoryPage>
     }
     // Removed Scaffold at this level as it blocks the drawer menu from appearing.
     // This requires the removal of the share floatingActionButton, still available in the vertical menu.
+
     return /*Scaffold(
       body: */
         RefreshIndicator(
       onRefresh: _pullRefresh,
-      child: CustomScrollView(slivers: [
-        SliverAppBar(
-          floating: false,
-          snap: false,
-          pinned: true,
-          title: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              //runAlignment: WrapAlignment.end,
-              //alignment: WrapAlignment.end,
-              spacing: 20,
-              //runSpacing: 5,
-              children: [
-                const Text('History', style: TextStyle(fontSize: 20.0)),
-                Text(
-                    "${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length) : "0"} of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"} orders $orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
-                    style:
-                        const TextStyle(fontSize: 16.0, color: Colors.white70)),
-              ]),
-          actions: [
-            IconButton(
-                icon: auth.currentUser != null
-                    ? (auth.currentUser!.photoURL == null
-                        ? const Icon(Icons.account_circle)
-                        : CircleAvatar(
-                            maxRadius: 12,
-                            backgroundImage: CachedNetworkImageProvider(
-                                auth.currentUser!.photoURL!
-                                //  ?? Constants .placeholderImage, // No longer used
-                                )))
-                    : const Icon(Icons.login),
-                onPressed: () async {
-                  var response = await showProfile(
-                      context,
-                      auth,
-                      _firestoreService,
-                      widget.analytics,
-                      widget.observer,
-                      widget.brokerageUser);
-                  if (response != null) {
-                    setState(() {});
-                  }
-                }),
-            IconButton(
-                icon: const Icon(Icons.more_vert_sharp),
-                onPressed: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    //constraints: BoxConstraints(maxHeight: 260),
-                    builder: (BuildContext context) {
-                      return Scaffold(
-                          // appBar: AppBar(
-                          //     // leading: const CloseButton(),
-                          //     title: const Text('History Settings')),
-                          body: ListView(
-                        //Column(
-                        //mainAxisAlignment: MainAxisAlignment.start,
-                        //crossAxisAlignment: CrossAxisAlignment.center,
+      child: NestedScrollView(
+          floatHeaderSlivers: true,
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                  floating: true,
+                  snap: true,
+                  pinned: true,
+                  centerTitle: false,
+                  title: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.end,
+                      //runAlignment: WrapAlignment.end,
+                      //alignment: WrapAlignment.end,
+                      spacing: 20,
+                      //runSpacing: 5,
+                      children: [
+                        const Text('Transactions',
+                            style: TextStyle(fontSize: 20.0)),
+                        Text(
+                            "$orderDateFilterDisplay ${balance > 0 ? "+" : balance < 0 ? "-" : ""}${formatCurrency.format(balance.abs())}",
+                            //  ${filteredPositionOrders != null && filteredOptionOrders != null ? formatCompactNumber.format(filteredPositionOrders!.length + filteredOptionOrders!.length + filteredDividends!.length) : "0"}
+                            //  of ${positionOrders != null && optionOrders != null ? formatCompactNumber.format(positionOrders.length + optionOrders.length) : "0"}
+                            style: const TextStyle(
+                                fontSize: 16.0, color: Colors.white70)),
+                      ]),
+                  actions: [
+                    IconButton(
+                        icon: auth.currentUser != null
+                            ? (auth.currentUser!.photoURL == null
+                                ? const Icon(Icons.account_circle)
+                                : CircleAvatar(
+                                    maxRadius: 12,
+                                    backgroundImage: CachedNetworkImageProvider(
+                                        auth.currentUser!.photoURL!
+                                        //  ?? Constants .placeholderImage, // No longer used
+                                        )))
+                            : const Icon(Icons.login),
+                        onPressed: () async {
+                          var response = await showProfile(
+                              context,
+                              auth,
+                              _firestoreService,
+                              widget.analytics,
+                              widget.observer,
+                              widget.brokerageUser);
+                          if (response != null) {
+                            setState(() {});
+                          }
+                        }),
+                    // IconButton(
+                    //     icon: const Icon(Icons.more_vert_sharp),
+                    //     onPressed: () {
+                    //       showModalBottomSheet<void>(
+                    //         context: context,
+                    //         showDragHandle: true,
+                    //         //constraints: BoxConstraints(maxHeight: 260),
+                    //         builder: (BuildContext context) {
+                    //           return Scaffold(
+                    //               // appBar: AppBar(
+                    //               //     // leading: const CloseButton(),
+                    //               //     title: const Text('History Settings')),
+                    //               body: ListView(
+                    //             //Column(
+                    //             //mainAxisAlignment: MainAxisAlignment.start,
+                    //             //crossAxisAlignment: CrossAxisAlignment.center,
+                    //             children: [
+                    //               ListTile(
+                    //                 leading: Icon(Icons.share),
+                    //                 title: const Text(
+                    //                   "Share",
+                    //                   style: TextStyle(fontSize: 19.0),
+                    //                 ),
+                    //                 trailing: TextButton.icon(
+                    //                   onPressed: _closeAndShowShareView,
+                    //                   label: showShareView
+                    //                       ? Text(
+                    //                           'Preview ${selectedPositionOrdersToShare.length + selectedOptionOrdersToShare.length + selectionsToShare.length} selections')
+                    //                       : Text('Select items'),
+                    //                   // icon: showShareView
+                    //                   //     ? const Icon(Icons.preview)
+                    //                   //     : const Icon(Icons.checkbox),
+                    //                 ),
+                    //               ),
+                    //               const ListTile(
+                    //                 leading: Icon(Icons.filter_list),
+                    //                 title: Text(
+                    //                   "Filters",
+                    //                   style: TextStyle(fontSize: 19.0),
+                    //                   // style: TextStyle(fontWeight: FontWeight.bold),
+                    //                 ),
+                    //               ),
+                    //               // const ListTile(
+                    //               //   title: Text("Order State & Date"),
+                    //               // ),
+                    //               // orderFilterWidget,
+                    //               orderDateFilterWidget,
+                    //               // const ListTile(
+                    //               //   title: Text("Symbols"),
+                    //               // ),
+                    //               SizedBox(
+                    //                 height: 25,
+                    //               ),
+                    //               stockOrderSymbolFilterWidget(4),
+                    //               /*
+                    //       Column(
+                    //         mainAxisAlignment: MainAxisAlignment.start,
+                    //         crossAxisAlignment: CrossAxisAlignment.start,
+                    //         children: [
+                    //           RadioListTile<SortType>(
+                    //             title: const Text('Alphabetical (Ascending)'),
+                    //             value: SortType.alphabetical,
+                    //             groupValue: _sortType,
+                    //             onChanged: (SortType? value) {
+                    //               Navigator.pop(context);
+                    //               setState(() {
+                    //                 _sortType = value;
+                    //                 _sortDirection = SortDirection.asc;
+                    //               });
+                    //             },
+                    //           ),
+                    //           RadioListTile<SortType>(
+                    //             title: const Text('Alphabetical (Descending)'),
+                    //             value: SortType.alphabetical,
+                    //             groupValue: _sortType,
+                    //             onChanged: (SortType? value) {
+                    //               Navigator.pop(context);
+                    //               setState(() {
+                    //                 _sortType = value;
+                    //                 _sortDirection = SortDirection.desc;
+                    //               });
+                    //             },
+                    //           ),
+                    //           RadioListTile<SortType>(
+                    //             title: const Text('Change (Ascending)'),
+                    //             value: SortType.change,
+                    //             groupValue: _sortType,
+                    //             onChanged: (SortType? value) {
+                    //               Navigator.pop(context);
+                    //               setState(() {
+                    //                 _sortType = value;
+                    //                 _sortDirection = SortDirection.asc;
+                    //               });
+                    //             },
+                    //           ),
+                    //           RadioListTile<SortType>(
+                    //             title: const Text('Change (Descending)'),
+                    //             value: SortType.change,
+                    //             groupValue: _sortType,
+                    //             onChanged: (SortType? value) {
+                    //               Navigator.pop(context);
+                    //               setState(() {
+                    //                 _sortType = value;
+                    //                 _sortDirection = SortDirection.desc;
+                    //               });
+                    //             },
+                    //           ),
+                    //         ],
+                    //       )
+                    //       */
+                    //               const SizedBox(
+                    //                 height: 25.0,
+                    //               )
+                    //             ],
+                    //           ));
+                    //         },
+                    //       );
+                    //     })
+                  ],
+                  bottom: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    dividerColor: Colors.transparent,
+                    // labelColor: Theme.of(context)
+                    //     .appBarTheme
+                    //     .foregroundColor, //  Colors.black87
+                    // unselectedLabelColor: Colors.black87,
+                    // indicatorColor: Colors.white,
+                    // indicatorWeight: 3.0,
+                    tabs: <Widget>[
+                      Tab(
+                        // icon: Icon(Icons.cloud_outlined)
+                        text: 'Stocks',
+                      ),
+                      Tab(
+                        //icon: Icon(Icons.beach_access_sharp)
+                        text: 'Options',
+                      ),
+                      Tab(
+                        //icon: Icon(Icons.brightness_5_sharp)
+                        text: 'Dividends',
+                      ),
+                      Tab(
+                        //icon: Icon(Icons.brightness_5_sharp)
+                        text: 'Interests',
+                      ),
+                    ],
+                  ))
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: <Widget>[
+              CustomScrollView(
+                slivers: [
+                  if (positionOrders != null) ...[
+                    SliverToBoxAdapter(
+                        child: ListTile(
+                      title: const Text(
+                        "Stocks & ETFs",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                        "$orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
+                        // ${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders
+                      ),
+                      trailing: Wrap(
                         children: [
-                          ListTile(
-                            title: const Text("Share"),
-                            trailing: IconButton(
-                              onPressed: _closeAndShowShareView,
-                              icon: showShareView
-                                  ? const Icon(Icons.preview)
-                                  : const Icon(Icons.share),
-                            ),
-                          ),
-                          const ListTile(
-                            leading: Icon(Icons.filter_list),
-                            title: Text(
-                              "Filters",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const ListTile(
-                            title: Text("Order State & Date"),
-                          ),
-                          orderFilterWidget,
-                          orderDateFilterWidget,
-                          const ListTile(
-                            title: Text("Symbols"),
-                          ),
-                          stockOrderSymbolFilterWidget,
-                          /*                         
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Ascending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Alphabetical (Descending)'),
-                                value: SortType.alphabetical,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Ascending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.asc;
-                                  });
-                                },
-                              ),
-                              RadioListTile<SortType>(
-                                title: const Text('Change (Descending)'),
-                                value: SortType.change,
-                                groupValue: _sortType,
-                                onChanged: (SortType? value) {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _sortType = value;
-                                    _sortDirection = SortDirection.desc;
-                                  });
-                                },
-                              ),
-                            ],
-                          )
-                          */
-                          const SizedBox(
-                            height: 25.0,
-                          )
-                        ],
-                      ));
-                    },
-                  );
-                })
-          ],
-        ),
-        if (widget.brokerageUser.userName != null) ...[
-          if (done == false) ...[
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 3, //150.0,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Center(
-                      child: LinearProgressIndicator(
-                          //value: controller.value,
-                          //semanticsLabel: 'Linear progress indicator',
-                          ) //CircularProgressIndicator(),
-                      )),
-            ))
-          ],
-          if (welcomeWidget != null) ...[
-            SliverToBoxAdapter(
-                child: SizedBox(
-              height: 150.0,
-              child: Align(alignment: Alignment.center, child: welcomeWidget),
-            ))
-          ],
-          if (optionOrders != null) ...[
-            SliverStickyHeader(
-              header: Material(
-                  //elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: const Text(
-                          "Option Orders & Events",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders $orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              var future = showModalBottomSheet<void>(
-                                context: context,
-                                // showDragHandle: true,
-                                // constraints: BoxConstraints(maxHeight: 260),
-                                builder:
-                                    /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                    (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        // tileColor: Theme.of(context)
-                                        //     .colorScheme
-                                        //     .primary,
-                                        leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Filter Option Orders",
-                                          style: TextStyle(fontSize: 19.0),
+                          IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                var future = showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  // constraints: BoxConstraints(maxHeight: 260),
+                                  builder:
+                                      /*
+                              (_) => OptionOrderFilterBottomSheet(
+                                  orderSymbols: orderSymbols,
+                                  optionPositions:
+                                      optionPositions)
+                                      */
+                                      (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context)
+                                          //     .colorScheme
+                                          //     .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Stock Orders",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
+                                      trailing: TextButton(
+                                          child: const Text("APPLY"),
+                                          onPressed: () => Navigator.pop(context))*/
                                         ),
-                                        /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                      ),
-                                      const ListTile(
-                                        title: Text("Order State & Date"),
-                                      ),
-                                      orderFilterWidget,
-                                      orderDateFilterWidget,
-                                      const ListTile(
-                                        title: Text("Symbols"),
-                                      ),
-                                      optionOrderSymbolFilterWidget,
-                                    ],
-                                  );
-                                },
-                              );
-                              future.then((void value) => {});
-                            }),
-                      ))),
-              sliver: SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    var optionOrder = filteredOptionOrders![index];
-                    var subtitle = Text(
-                        "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
-                    if (optionOrder.optionEvents != null) {
-                      var optionEvent = optionOrder.optionEvents!.first;
-                      subtitle = Text(
-                          "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
-                    }
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        showShareView
-                            ? CheckboxListTile(
-                                value: selectedOptionOrdersToShare
-                                    .contains(filteredOptionOrders![index].id),
-                                onChanged: (bool? newValue) {
-                                  if (newValue!) {
-                                    setState(() {
-                                      selectedOptionOrdersToShare
-                                          .add(filteredOptionOrders![index].id);
-                                    });
-                                  } else {
-                                    setState(() {
-                                      selectedOptionOrdersToShare.remove(
-                                          filteredOptionOrders![index].id);
-                                    });
-                                  }
-                                },
-                                title: Text(
-                                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                subtitle: subtitle,
-                              )
-                            : ListTile(
-                                leading: CircleAvatar(
-                                    //backgroundImage: AssetImage(user.profilePicture),
-                                    /*
-                          backgroundColor: optionOrder.optionEvents != null
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.secondary,
-                              */
-                                    child: optionOrder.optionEvents != null
-                                        ? const Icon(Icons.check)
-                                        : Text(
-                                            '${optionOrder.quantity!.round()}',
-                                            style:
-                                                const TextStyle(fontSize: 17))),
-                                title: Text(
-                                    "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                subtitle: subtitle,
-                                trailing: Wrap(spacing: 8, children: [
-                                  Text(
-                                    (optionOrder.direction == "credit"
-                                            ? "+"
-                                            : "-") +
-                                        (optionOrder.processedPremium != null
-                                            ? formatCurrency.format(
-                                                optionOrder.processedPremium)
-                                            : ""),
-                                    style: const TextStyle(fontSize: 18.0),
-                                    textAlign: TextAlign.right,
-                                  )
-                                ]),
-
-                                isThreeLine: optionOrder.optionEvents != null,
-                                onTap: () {
-                                  /* For navigation within this tab, uncomment
-                              widget.navigatorKey!.currentState!.push(
-                                  MaterialPageRoute(
-                                      builder: (context) => OptionOrderWidget(
-                                          widget.user,
-                                          optionOrder)));
-                                          */
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              OptionOrderWidget(
-                                                widget.brokerageUser,
-                                                widget.service,
-                                                optionOrder,
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                              )));
-                                },
-                              ),
-                      ],
-                    ));
-                  },
-                  childCount: filteredOptionOrders!.length,
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            ))
-          ],
-          if (optionEvents != null && filteredOptionEvents != null) ...[
-            SliverStickyHeader(
-              header: Material(
-                  //elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: const Text(
-                          "Option Events",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders $orderDateFilterDisplay"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              var future = showModalBottomSheet<void>(
-                                context: context,
-                                // constraints: BoxConstraints(maxHeight: 260),
-                                builder:
-                                    /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                    (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        // tileColor: Theme.of(context)
-                                        //     .colorScheme
-                                        //     .primary,
-                                        leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Filter Option Events",
-                                          style: TextStyle(fontSize: 19.0),
+                                        // const ListTile(
+                                        //   title: Text("Order State & Date"),
+                                        // ),
+                                        orderFilterWidget,
+                                        orderDateFilterWidget,
+                                        // const ListTile(
+                                        //   title: Text("Symbols"),
+                                        // ),
+                                        SizedBox(
+                                          height: 25,
                                         ),
-                                        /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                      ),
-                                      const ListTile(
-                                        title: Text("Order State & Date"),
-                                      ),
-                                      orderFilterWidget,
-                                      orderDateFilterWidget,
-                                      const ListTile(
-                                        title: Text("Symbols"),
-                                      ),
-                                      optionOrderSymbolFilterWidget,
-                                    ],
-                                  );
-                                },
-                              );
-                              future.then((void value) => {});
-                            }),
-                      ))),
-              sliver: SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        ListTile(
-                          leading: CircleAvatar(
-                              //backgroundImage: AssetImage(user.profilePicture),
-                              child: Text(
-                                  '${filteredOptionEvents![index].quantity!.round()}',
-                                  style: const TextStyle(fontSize: 17))),
-                          title: Text(
-                              "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
-                          subtitle: Text(
-                              "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
-                          trailing: Wrap(spacing: 8, children: [
-                            Text(
-                              (filteredOptionEvents![index].direction ==
-                                          "credit"
-                                      ? "+"
-                                      : "-") +
-                                  (filteredOptionEvents![index]
-                                              .totalCashAmount !=
-                                          null
-                                      ? formatCurrency.format(
-                                          filteredOptionEvents![index]
-                                              .totalCashAmount)
-                                      : ""),
-                              style: const TextStyle(fontSize: 18.0),
-                              textAlign: TextAlign.right,
-                            )
-                          ]),
-
-                          //isThreeLine: true,
-                          onTap: () {
-                            () => showDialog<String>(
-                                context: context,
-                                builder: (BuildContext context) => AlertDialog(
-                                      title: const Text('Alert'),
-                                      content: const Text(
-                                          'This feature is not implemented.'),
-                                      actions: <Widget>[
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, 'OK'),
-                                          child: const Text('OK'),
-                                        ),
+                                        stockOrderSymbolFilterWidget(4),
                                       ],
-                                    ));
-                          },
-                        ),
-                      ],
-                    ));
-                  },
-                  childCount: filteredOptionEvents!.length,
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            ))
-          ],
-          if (positionOrders != null) ...[
-            SliverStickyHeader(
-              header: Material(
-                  //elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: const Text(
-                          "Stock Orders",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                          "${formatCompactNumber.format(filteredPositionOrders!.length)} of ${formatCompactNumber.format(positionOrders.length)} orders $orderDateFilterDisplay ${positionOrdersBalance > 0 ? "+" : positionOrdersBalance < 0 ? "-" : ""}${formatCurrency.format(positionOrdersBalance.abs())}",
-                        ),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              var future = showModalBottomSheet<void>(
-                                context: context,
-                                // constraints: BoxConstraints(maxHeight: 260),
-                                builder:
-                                    /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                    (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        // tileColor: Theme.of(context)
-                                        //     .colorScheme
-                                        //     .primary,
-                                        leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Filter Stock Orders",
-                                          style: TextStyle(fontSize: 19.0),
-                                        ),
-                                        /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                      ),
-                                      const ListTile(
-                                        title: Text("Order State & Date"),
-                                      ),
-                                      orderFilterWidget,
-                                      orderDateFilterWidget,
-                                      const ListTile(
-                                        title: Text("Symbols"),
-                                      ),
-                                      stockOrderSymbolFilterWidget,
-                                    ],
-                                  );
-                                },
-                              );
-                              future.then((void value) => {});
-                            }),
-                      ))),
-              sliver: SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    var amount = 0.0;
-                    if (filteredPositionOrders![index].averagePrice != null) {
-                      amount = filteredPositionOrders![index].averagePrice! *
-                          filteredPositionOrders![index].quantity! *
-                          (filteredPositionOrders![index].side == "buy"
-                              ? -1
-                              : 1);
-                    }
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        showShareView
-                            ? CheckboxListTile(
-                                value: selectedPositionOrdersToShare.contains(
-                                    filteredPositionOrders![index].id),
-                                onChanged: (bool? newValue) {
-                                  if (newValue!) {
-                                    setState(() {
-                                      selectedPositionOrdersToShare.add(
-                                          filteredPositionOrders![index].id);
-                                    });
-                                  } else {
-                                    setState(() {
-                                      selectedPositionOrdersToShare.remove(
-                                          filteredPositionOrders![index].id);
-                                    });
-                                  }
-                                },
-                                title: Text(
-                                    "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                subtitle: Text(
-                                    "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                              )
-                            : ListTile(
-                                leading: CircleAvatar(
-                                    //backgroundImage: AssetImage(user.profilePicture),
-                                    child: Text(
-                                  formatCompactNumber.format(
-                                      filteredPositionOrders![index].quantity!),
-                                  style: const TextStyle(fontSize: 17),
-                                  overflow: TextOverflow.fade,
-                                  softWrap: false,
-                                )),
-                                title: Text(
-                                    "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                subtitle: Text(
-                                    "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                                trailing: Wrap(spacing: 8, children: [
-                                  Text(
-                                    filteredPositionOrders![index]
-                                                .averagePrice !=
-                                            null
-                                        ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
-                                        : "",
-                                    style: const TextStyle(fontSize: 18.0),
-                                    textAlign: TextAlign.right,
-                                  )
-                                ]),
+                                    );
+                                  },
+                                );
+                                future.then((void value) => {});
+                              }),
+                          IconButton(
+                              tooltip: 'Share selections',
+                              onPressed: () => _showShareView(),
+                              icon: Icon(showShareView
+                                  ? Icons.check
+                                  : Icons.ios_share))
+                        ],
+                      ),
+                    )),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          var amount = 0.0;
+                          if (filteredPositionOrders![index].averagePrice !=
+                              null) {
+                            amount = filteredPositionOrders![index]
+                                    .averagePrice! *
+                                filteredPositionOrders![index].quantity! *
+                                (filteredPositionOrders![index].side == "buy"
+                                    ? -1
+                                    : 1);
+                          }
+                          return Card(
+                              child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              showShareView
+                                  ? CheckboxListTile(
+                                      value: selectedPositionOrdersToShare
+                                          .contains(
+                                              filteredPositionOrders![index]
+                                                  .id),
+                                      onChanged: (bool? newValue) {
+                                        if (newValue!) {
+                                          setState(() {
+                                            selectedPositionOrdersToShare.add(
+                                                filteredPositionOrders![index]
+                                                    .id);
+                                          });
+                                        } else {
+                                          setState(() {
+                                            selectedPositionOrdersToShare
+                                                .remove(filteredPositionOrders![
+                                                        index]
+                                                    .id);
+                                          });
+                                        }
+                                      },
+                                      title: Text(
+                                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                      subtitle: Text(
+                                          "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                                    )
+                                  : ListTile(
+                                      leading: CircleAvatar(
+                                          //backgroundImage: AssetImage(user.profilePicture),
+                                          child: Text(
+                                        formatCompactNumber.format(
+                                            filteredPositionOrders![index]
+                                                .quantity!),
+                                        style: const TextStyle(fontSize: 17),
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                      )),
+                                      title: Text(
+                                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                      subtitle: Text(
+                                          "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                                      trailing: Wrap(spacing: 8, children: [
+                                        Text(
+                                          filteredPositionOrders![index]
+                                                      .averagePrice !=
+                                                  null
+                                              ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
+                                              : "",
+                                          style:
+                                              const TextStyle(fontSize: 18.0),
+                                          textAlign: TextAlign.right,
+                                        )
+                                      ]),
 
-                                //isThreeLine: true,
-                                onTap: () {
-                                  /* For navigation within this tab, uncomment
+                                      //isThreeLine: true,
+                                      onTap: () {
+                                        /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           filteredPositionOrders![index])));
                                           */
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) =>
-                                              PositionOrderWidget(
-                                                widget.brokerageUser,
-                                                widget.service,
-                                                filteredPositionOrders![index],
-                                                analytics: widget.analytics,
-                                                observer: widget.observer,
-                                              )));
-                                },
-                              ),
-                      ],
-                    ));
-                  },
-                  childCount: filteredPositionOrders!.length,
-                ),
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    PositionOrderWidget(
+                                                      widget.brokerageUser,
+                                                      widget.service,
+                                                      filteredPositionOrders![
+                                                          index],
+                                                      analytics:
+                                                          widget.analytics,
+                                                      observer: widget.observer,
+                                                    )));
+                                      },
+                                    ),
+                            ],
+                          ));
+                        },
+                        childCount: filteredPositionOrders!.length,
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    ))
+                  ],
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(size: AdSize.mediumRectangle)),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  ))
+                ],
               ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            ))
-          ],
-          if (dividends != null) ...[
-            SliverStickyHeader(
-              header: Material(
-                  //elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: const Text(
-                          "Dividends",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends $orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              var future = showModalBottomSheet<void>(
-                                context: context,
-                                // constraints: BoxConstraints(maxHeight: 260),
-                                builder:
-                                    /*
-                          (_) => OptionOrderFilterBottomSheet(
-                              orderSymbols: orderSymbols,
-                              optionPositions:
-                                  optionPositions)
-                                  */
-                                    (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        // tileColor: Theme.of(context)
-                                        //     .colorScheme
-                                        //     .primary,
-                                        leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Filter Dividends",
-                                          style: TextStyle(fontSize: 19.0),
+              CustomScrollView(
+                slivers: [
+                  if (optionOrders != null) ...[
+                    SliverToBoxAdapter(
+                        child: ListTile(
+                      title: const Text(
+                        "Options",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "$orderDateFilterDisplay ${optionOrdersPremiumBalance > 0 ? "+" : optionOrdersPremiumBalance < 0 ? "-" : ""}${formatCurrency.format(optionOrdersPremiumBalance.abs())}"),
+                      // ${formatCompactNumber.format(filteredOptionOrders!.length)} of ${formatCompactNumber.format(optionOrders.length)} orders
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                var future = showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  // constraints: BoxConstraints(maxHeight: 260),
+                                  builder:
+                                      /*
+                              (_) => OptionOrderFilterBottomSheet(
+                                  orderSymbols: orderSymbols,
+                                  optionPositions:
+                                      optionPositions)
+                                      */
+                                      (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context)
+                                          //     .colorScheme
+                                          //     .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Option Orders",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
+                                      trailing: TextButton(
+                                          child: const Text("APPLY"),
+                                          onPressed: () => Navigator.pop(context))*/
                                         ),
-                                        /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-                                      ),
-                                      const ListTile(
-                                        title: Text("Order State & Date"),
-                                      ),
-                                      orderFilterWidget,
-                                      orderDateFilterWidget,
-                                      const ListTile(
-                                        title: Text("Symbols"),
-                                      ),
-                                      stockOrderSymbolFilterWidget,
-                                    ],
-                                  );
-                                },
-                              );
-                              future.then((void value) => {});
-                            }),
-                      ))),
-              sliver: SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    // if (index == 0) {
-                    //   return SizedBox(
-                    //       height: 240,
-                    //       child: Padding(
-                    //         padding: const EdgeInsets.fromLTRB(
-                    //             10.0, 0, 10, 10), //EdgeInsets.zero
-                    //         child: dividendChart(),
-                    //       ));
-                    // }
-                    var dividend = filteredDividends![index];
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        showShareView
-                            ? CheckboxListTile(
-                                value: selectedPositionOrdersToShare.contains(
-                                    filteredDividends![index]["record_date"]),
-                                onChanged: (bool? newValue) {
-                                  if (newValue!) {
-                                    setState(() {
-                                      selectedPositionOrdersToShare.add(
-                                          filteredDividends![index]
-                                              ["record_date"]);
-                                    });
-                                  } else {
-                                    setState(() {
-                                      selectedPositionOrdersToShare.remove(
-                                          filteredDividends![index]
-                                              ["record_date"]);
-                                    });
-                                  }
-                                },
-                                title: Text(
-                                    "${filteredDividends![index].instrumentObj != null ? filteredDividends![index].instrumentObj!.symbol : ""} ${filteredDividends![index].type} ${filteredDividends![index].side} ${filteredDividends![index].averagePrice != null ? formatCurrency.format(filteredDividends![index].averagePrice) : ""}"),
-                                subtitle: Text(
-                                    "${filteredDividends![index].state} ${formatDate.format(filteredDividends![index].updatedAt!)}"),
-                              )
-                            : ListTile(
+                                        // const ListTile(
+                                        //   title: Text("Order State & Date"),
+                                        // ),
+                                        orderFilterWidget,
+                                        orderDateFilterWidget,
+                                        // const ListTile(
+                                        //   title: Text("Symbols"),
+                                        // ),
+                                        SizedBox(
+                                          height: 25,
+                                        ),
+                                        optionOrderSymbolFilterWidget(4),
+                                      ],
+                                    );
+                                  },
+                                );
+                                future.then((void value) => {});
+                              }),
+                          IconButton(
+                              tooltip: 'Share selections',
+                              onPressed: () => _showShareView(),
+                              icon: Icon(showShareView
+                                  ? Icons.check
+                                  : Icons.ios_share))
+                        ],
+                      ),
+                    )),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          var optionOrder = filteredOptionOrders![index];
+                          var subtitle = Text(
+                              "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}");
+                          if (optionOrder.optionEvents != null) {
+                            var optionEvent = optionOrder.optionEvents!.first;
+                            subtitle = Text(
+                                "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
+                          }
+                          return Card(
+                              child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              showShareView
+                                  ? CheckboxListTile(
+                                      value:
+                                          selectedOptionOrdersToShare.contains(
+                                              filteredOptionOrders![index].id),
+                                      onChanged: (bool? newValue) {
+                                        if (newValue!) {
+                                          setState(() {
+                                            selectedOptionOrdersToShare.add(
+                                                filteredOptionOrders![index]
+                                                    .id);
+                                          });
+                                        } else {
+                                          setState(() {
+                                            selectedOptionOrdersToShare.remove(
+                                                filteredOptionOrders![index]
+                                                    .id);
+                                          });
+                                        }
+                                      },
+                                      title: Text(
+                                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                      subtitle: subtitle,
+                                    )
+                                  : ListTile(
+                                      leading: CircleAvatar(
+                                          //backgroundImage: AssetImage(user.profilePicture),
+                                          /*
+                          backgroundColor: optionOrder.optionEvents != null
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.secondary,
+                              */
+                                          child: optionOrder.optionEvents !=
+                                                  null
+                                              ? const Icon(Icons.check)
+                                              : Text(
+                                                  '${optionOrder.quantity!.round()}',
+                                                  style: const TextStyle(
+                                                      fontSize: 17))),
+                                      title: Text(
+                                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                      subtitle: subtitle,
+                                      trailing: Wrap(spacing: 8, children: [
+                                        Text(
+                                          (optionOrder.direction == "credit"
+                                                  ? "+"
+                                                  : "-") +
+                                              (optionOrder.processedPremium !=
+                                                      null
+                                                  ? formatCurrency.format(
+                                                      optionOrder
+                                                          .processedPremium)
+                                                  : ""),
+                                          style:
+                                              const TextStyle(fontSize: 18.0),
+                                          textAlign: TextAlign.right,
+                                        )
+                                      ]),
+
+                                      isThreeLine:
+                                          optionOrder.optionEvents != null,
+                                      onTap: () {
+                                        /* For navigation within this tab, uncomment
+                              widget.navigatorKey!.currentState!.push(
+                                  MaterialPageRoute(
+                                      builder: (context) => OptionOrderWidget(
+                                          widget.user,
+                                          optionOrder)));
+                                          */
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    OptionOrderWidget(
+                                                      widget.brokerageUser,
+                                                      widget.service,
+                                                      optionOrder,
+                                                      analytics:
+                                                          widget.analytics,
+                                                      observer: widget.observer,
+                                                    )));
+                                      },
+                                    ),
+                            ],
+                          ));
+                        },
+                        childCount: filteredOptionOrders!.length,
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    ))
+                  ],
+                  if (optionEvents != null && filteredOptionEvents != null) ...[
+                    SliverToBoxAdapter(
+                        child: ListTile(
+                      title: const Text(
+                        "Option Events",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(orderDateFilterDisplay),
+                      // ${formatCompactNumber.format(filteredOptionEvents!.length)} of ${formatCompactNumber.format(optionEvents.length)} orders
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                var future = showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  // constraints: BoxConstraints(maxHeight: 260),
+                                  builder:
+                                      /*
+                              (_) => OptionOrderFilterBottomSheet(
+                                  orderSymbols: orderSymbols,
+                                  optionPositions:
+                                      optionPositions)
+                                      */
+                                      (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context)
+                                          //     .colorScheme
+                                          //     .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Option Events",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
+                                      trailing: TextButton(
+                                          child: const Text("APPLY"),
+                                          onPressed: () => Navigator.pop(context))*/
+                                        ),
+                                        // const ListTile(
+                                        //   title: Text("Order State & Date"),
+                                        // ),
+                                        orderFilterWidget,
+                                        orderDateFilterWidget,
+                                        // const ListTile(
+                                        //   title: Text("Symbols"),
+                                        // ),
+                                        SizedBox(
+                                          height: 25,
+                                        ),
+                                        optionOrderSymbolFilterWidget(4),
+                                      ],
+                                    );
+                                  },
+                                );
+                                future.then((void value) => {});
+                              }),
+                          IconButton(
+                              tooltip: 'Share selections',
+                              onPressed: () => _showShareView(),
+                              icon: Icon(showShareView
+                                  ? Icons.check
+                                  : Icons.ios_share))
+                        ],
+                      ),
+                    )),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          return Card(
+                              child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              ListTile(
                                 leading: CircleAvatar(
                                     //backgroundImage: AssetImage(user.profilePicture),
                                     child: Text(
-                                  dividend["instrumentObj"] != null
-                                      ? dividend["instrumentObj"].symbol
-                                      : "",
-                                  style: const TextStyle(fontSize: 14),
-                                  overflow: TextOverflow.fade,
-                                  softWrap: false,
-                                )),
+                                        '${filteredOptionEvents![index].quantity!.round()}',
+                                        style: const TextStyle(fontSize: 17))),
                                 title: Text(
-                                  dividend["instrumentObj"] != null
-                                      ? "${dividend["instrumentObj"].symbol}"
-                                      : ""
-                                          "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                  style: const TextStyle(fontSize: 18.0),
-                                  //overflow: TextOverflow.visible
-                                ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                    "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
                                 subtitle: Text(
-                                    "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                    style: const TextStyle(fontSize: 14)),
-                                trailing: Wrap(spacing: 10.0, children: [
-                                  Column(children: [
-                                    // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                    Text(
-                                        formatCurrency.format(
-                                            double.parse(dividend!["amount"])),
-                                        style: const TextStyle(fontSize: 18))
-                                  ])
+                                    "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
+                                trailing: Wrap(spacing: 8, children: [
+                                  Text(
+                                    (filteredOptionEvents![index].direction ==
+                                                "credit"
+                                            ? "+"
+                                            : "-") +
+                                        (filteredOptionEvents![index]
+                                                    .totalCashAmount !=
+                                                null
+                                            ? formatCurrency.format(
+                                                filteredOptionEvents![index]
+                                                    .totalCashAmount)
+                                            : ""),
+                                    style: const TextStyle(fontSize: 18.0),
+                                    textAlign: TextAlign.right,
+                                  )
                                 ]),
-                                //   onTap: () {
-                                //     /* For navigation within this tab, uncomment
-                                // widget.navigatorKey!.currentState!.push(
-                                //     MaterialPageRoute(
-                                //         builder: (context) => PositionOrderWidget(
-                                //             widget.user,
-                                //             filteredDividends![index])));
-                                //             */
-                                //     showDialog<String>(
-                                //       context: context,
-                                //       builder: (BuildContext context) =>
-                                //           AlertDialog(
-                                //         title: const Text('Alert'),
-                                //         content: const Text(
-                                //             'This feature is not implemented.\n'),
-                                //         actions: <Widget>[
-                                //           TextButton(
-                                //             onPressed: () =>
-                                //                 Navigator.pop(context, 'OK'),
-                                //             child: const Text('OK'),
-                                //           ),
-                                //         ],
-                                //       ),
-                                //     );
-
-                                //     // Navigator.push(
-                                //     //     context,
-                                //     //     MaterialPageRoute(
-                                //     //         builder: (context) => PositionOrderWidget(
-                                //     //               widget.user,
-                                //     //               filteredDividends![index],
-                                //     //               analytics: widget.analytics,
-                                //     //               observer: widget.observer,
-                                //     //             )));
-                                //   },
 
                                 //isThreeLine: true,
+                                onTap: () {
+                                  () => showDialog<String>(
+                                      context: context,
+                                      builder: (BuildContext context) =>
+                                          AlertDialog(
+                                            title: const Text('Alert'),
+                                            content: const Text(
+                                                'This feature is not implemented.'),
+                                            actions: <Widget>[
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(
+                                                    context, 'OK'),
+                                                child: const Text('OK'),
+                                              ),
+                                            ],
+                                          ));
+                                },
                               ),
-                      ],
-                    ));
-                  },
-                  childCount: filteredDividends!.length,
-                ),
+                            ],
+                          ));
+                        },
+                        childCount: filteredOptionEvents!.length,
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    ))
+                  ],
+
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(size: AdSize.mediumRectangle)),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  ))
+                ],
               ),
-            ),
-          ],
-          if (interests != null) ...[
-            SliverStickyHeader(
-              header: Material(
-                  //elevation: 2,
-                  child: Container(
-                      //height: 208.0, //60.0,
-                      //padding: EdgeInsets.symmetric(horizontal: 16.0),
-                      alignment: Alignment.centerLeft,
-                      child: ListTile(
-                        title: const Text(
-                          "Interest Payments",
-                          style: TextStyle(fontSize: 19.0),
-                        ),
-                        subtitle: Text(
-                            "${formatCompactNumber.format(filteredInterests!.length)} of ${formatCompactNumber.format(interests.length)} interest $orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}"),
-                        trailing: IconButton(
-                            icon: const Icon(Icons.filter_list),
-                            onPressed: () {
-                              var future = showModalBottomSheet<void>(
-                                context: context,
-                                // constraints: BoxConstraints(maxHeight: 260),
-                                builder: (BuildContext context) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      ListTile(
-                                        leading: const Icon(Icons.filter_list),
-                                        title: const Text(
-                                          "Filter Interest Payments",
-                                          style: TextStyle(fontSize: 19.0),
+              CustomScrollView(
+                slivers: [
+                  if (dividends != null) ...[
+                    SliverToBoxAdapter(
+                        child: ListTile(
+                      title: const Text(
+                        "Dividends",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "$orderDateFilterDisplay ${dividendBalance > 0 ? "+" : dividendBalance < 0 ? "-" : ""}${formatCurrency.format(dividendBalance.abs())}"),
+                      // ${formatCompactNumber.format(filteredDividends!.length)} of ${formatCompactNumber.format(dividends.length)} dividends
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                var future = showModalBottomSheet<void>(
+                                  context: context,
+                                  // constraints: BoxConstraints(maxHeight: 260),
+                                  showDragHandle: true,
+                                  builder:
+                                      /*
+                              (_) => OptionOrderFilterBottomSheet(
+                                  orderSymbols: orderSymbols,
+                                  optionPositions:
+                                      optionPositions)
+                                      */
+                                      (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          // tileColor: Theme.of(context)
+                                          //     .colorScheme
+                                          //     .primary,
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Dividends",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                          /*
+                                      trailing: TextButton(
+                                          child: const Text("APPLY"),
+                                          onPressed: () => Navigator.pop(context))*/
                                         ),
-                                      ),
-                                      const ListTile(
-                                        title: Text("Order State & Date"),
-                                      ),
-                                      orderFilterWidget,
-                                      orderDateFilterWidget,
-                                    ],
-                                  );
-                                },
-                              );
-                              future.then((void value) => {});
-                            }),
-                      ))),
-              sliver: SliverList(
-                // delegate: SliverChildListDelegate(widgets),
-                delegate: SliverChildBuilderDelegate(
-                  (BuildContext context, int index) {
-                    // if (index == 0) {
-                    //   return SizedBox(
-                    //       height: 240,
-                    //       child: Padding(
-                    //         padding: const EdgeInsets.fromLTRB(
-                    //             10.0, 0, 10, 10), //EdgeInsets.zero
-                    //         child: interestChart(),
-                    //       ));
-                    // }
-                    var interest = filteredInterests![index];
-                    return Card(
-                        child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        showShareView
-                            ? CheckboxListTile(
-                                value: selectedPositionOrdersToShare
-                                    .contains(interest["pay_date"]),
-                                onChanged: (bool? newValue) {
-                                  if (newValue!) {
-                                    setState(() {
-                                      selectedPositionOrdersToShare
-                                          .add(interest["pay_date"]);
-                                    });
-                                  } else {
-                                    setState(() {
-                                      selectedPositionOrdersToShare
-                                          .remove(interest["pay_date"]);
-                                    });
-                                  }
-                                },
-                                title: Text(interest["payout_type"]
-                                    .toString()
-                                    .replaceAll("_", " ")
-                                    .capitalize()),
-                                subtitle: Text(
-                                    "on ${formatDate.format(interest["pay_date"]!)}"),
-                              )
-                            : ListTile(
-                                // leading: CircleAvatar(
-                                //     //backgroundImage: AssetImage(user.profilePicture),
-                                //     child: Text(
-                                //   "INT",
-                                //   style: const TextStyle(fontSize: 14),
-                                //   overflow: TextOverflow.fade,
-                                //   softWrap: false,
-                                // )),
-                                title: Text(
-                                  interest["payout_type"]
-                                      .toString()
-                                      .replaceAll("_", " ")
-                                      .capitalize(),
-                                  // style: const TextStyle(fontSize: 18.0),
-                                  //overflow: TextOverflow.visible
-                                ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                subtitle: Text(
-                                    "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                    style: const TextStyle(fontSize: 14)),
-                                trailing: Wrap(spacing: 10.0, children: [
-                                  Column(children: [
-                                    // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                    Text(
-                                        formatCurrency.format(double.parse(
-                                            interest!["amount"]["amount"])),
-                                        style: const TextStyle(fontSize: 18))
-                                  ])
-                                ]),
-                                //isThreeLine: true,
-                              ),
-                      ],
-                    ));
-                  },
-                  childCount: filteredInterests!.length,
-                ),
+                                        // const ListTile(
+                                        //   title: Text("Order State & Date"),
+                                        // ),
+                                        orderFilterWidget,
+                                        orderDateFilterWidget,
+                                        // const ListTile(
+                                        //   title: Text("Symbols"),
+                                        // ),
+                                        SizedBox(
+                                          height: 25,
+                                        ),
+                                        stockOrderSymbolFilterWidget(4),
+                                      ],
+                                    );
+                                  },
+                                );
+                                future.then((void value) => {});
+                              }),
+                          IconButton(
+                              tooltip: 'Share selections',
+                              onPressed: () => _showShareView(),
+                              icon: Icon(showShareView
+                                  ? Icons.check
+                                  : Icons.ios_share))
+                        ],
+                      ),
+                    )),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          // if (index == 0) {
+                          //   return SizedBox(
+                          //       height: 240,
+                          //       child: Padding(
+                          //         padding: const EdgeInsets.fromLTRB(
+                          //             10.0, 0, 10, 10), //EdgeInsets.zero
+                          //         child: dividendChart(),
+                          //       ));
+                          // }
+                          var dividend = filteredDividends![index];
+                          return Card(
+                              child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              showShareView
+                                  ? CheckboxListTile(
+                                      value: selectionsToShare.contains(
+                                          filteredDividends![index]["id"]),
+                                      onChanged: (bool? newValue) {
+                                        if (newValue!) {
+                                          setState(() {
+                                            selectionsToShare.add(
+                                                filteredDividends![index]
+                                                    ["id"]);
+                                          });
+                                        } else {
+                                          setState(() {
+                                            selectionsToShare.remove(
+                                                filteredDividends![index]
+                                                    ["id"]);
+                                          });
+                                        }
+                                      },
+                                      title: Text(
+                                        dividend["instrumentObj"] != null
+                                            ? "${dividend["instrumentObj"].symbol}"
+                                            : ""
+                                                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                        style: const TextStyle(fontSize: 18.0),
+                                        //overflow: TextOverflow.visible
+                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                      // title: Text(
+                                      //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
+                                      subtitle: Text(
+                                          "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                          style: const TextStyle(fontSize: 14)),
+                                      // subtitle: Text(
+                                      //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
+                                    )
+                                  : ListTile(
+                                      leading: CircleAvatar(
+                                          //backgroundImage: AssetImage(user.profilePicture),
+                                          child: Text(
+                                        dividend["instrumentObj"] != null
+                                            ? dividend["instrumentObj"].symbol
+                                            : "",
+                                        style: const TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                      )),
+                                      title: Text(
+                                        dividend["instrumentObj"] != null
+                                            ? "${dividend["instrumentObj"].symbol}"
+                                            : ""
+                                                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                        style: const TextStyle(fontSize: 18.0),
+                                        //overflow: TextOverflow.visible
+                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                      subtitle: Text(
+                                          "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                          style: const TextStyle(fontSize: 14)),
+                                      trailing: Wrap(spacing: 10.0, children: [
+                                        Column(children: [
+                                          // const Text("Actual", style: TextStyle(fontSize: 11)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.parse(
+                                                      dividend!["amount"])),
+                                              style:
+                                                  const TextStyle(fontSize: 18))
+                                        ])
+                                      ]),
+                                      //   onTap: () {
+                                      //     /* For navigation within this tab, uncomment
+                                      // widget.navigatorKey!.currentState!.push(
+                                      //     MaterialPageRoute(
+                                      //         builder: (context) => PositionOrderWidget(
+                                      //             widget.user,
+                                      //             filteredDividends![index])));
+                                      //             */
+                                      //     showDialog<String>(
+                                      //       context: context,
+                                      //       builder: (BuildContext context) =>
+                                      //           AlertDialog(
+                                      //         title: const Text('Alert'),
+                                      //         content: const Text(
+                                      //             'This feature is not implemented.\n'),
+                                      //         actions: <Widget>[
+                                      //           TextButton(
+                                      //             onPressed: () =>
+                                      //                 Navigator.pop(context, 'OK'),
+                                      //             child: const Text('OK'),
+                                      //           ),
+                                      //         ],
+                                      //       ),
+                                      //     );
+
+                                      //     // Navigator.push(
+                                      //     //     context,
+                                      //     //     MaterialPageRoute(
+                                      //     //         builder: (context) => PositionOrderWidget(
+                                      //     //               widget.user,
+                                      //     //               filteredDividends![index],
+                                      //     //               analytics: widget.analytics,
+                                      //     //               observer: widget.observer,
+                                      //     //             )));
+                                      //   },
+
+                                      //isThreeLine: true,
+                                    ),
+                            ],
+                          ));
+                        },
+                        childCount: filteredDividends!.length,
+                      ),
+                    ),
+                  ],
+
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(size: AdSize.mediumRectangle)),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  ))
+                ],
               ),
-            ),
-          ]
-        ],
-        // TODO: Introduce web banner
-        if (!kIsWeb) ...[
-          const SliverToBoxAdapter(
-              child: SizedBox(
-            height: 25.0,
+              CustomScrollView(
+                slivers: [
+                  if (interests != null) ...[
+                    SliverToBoxAdapter(
+                        child: ListTile(
+                      title: const Text(
+                        "Interest Payments",
+                        style: TextStyle(fontSize: 19.0),
+                      ),
+                      subtitle: Text(
+                          "$orderDateFilterDisplay ${interestBalance > 0 ? "+" : interestBalance < 0 ? "-" : ""}${formatCurrency.format(interestBalance.abs())}"),
+                      // ${formatCompactNumber.format(filteredInterests!.length)} of ${formatCompactNumber.format(interests.length)} interest
+                      trailing: Wrap(
+                        children: [
+                          IconButton(
+                              icon: const Icon(Icons.filter_list),
+                              onPressed: () {
+                                var future = showModalBottomSheet<void>(
+                                  context: context,
+                                  showDragHandle: true,
+                                  // constraints: BoxConstraints(maxHeight: 260),
+                                  builder: (BuildContext context) {
+                                    return Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        ListTile(
+                                          leading:
+                                              const Icon(Icons.filter_list),
+                                          title: const Text(
+                                            "Filter Interest Payments",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                        ),
+                                        // const ListTile(
+                                        //   title: Text("Order State & Date"),
+                                        // ),
+                                        orderFilterWidget,
+                                        orderDateFilterWidget,
+                                      ],
+                                    );
+                                  },
+                                );
+                                future.then((void value) => {});
+                              }),
+                          IconButton(
+                              tooltip: 'Share selections',
+                              onPressed: () => _showShareView(),
+                              icon: Icon(showShareView
+                                  ? Icons.check
+                                  : Icons.ios_share))
+                        ],
+                      ),
+                    )),
+                    SliverList(
+                      // delegate: SliverChildListDelegate(widgets),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext context, int index) {
+                          // if (index == 0) {
+                          //   return SizedBox(
+                          //       height: 240,
+                          //       child: Padding(
+                          //         padding: const EdgeInsets.fromLTRB(
+                          //             10.0, 0, 10, 10), //EdgeInsets.zero
+                          //         child: interestChart(),
+                          //       ));
+                          // }
+                          var interest = filteredInterests![index];
+                          return Card(
+                              child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              showShareView
+                                  ? CheckboxListTile(
+                                      value: selectionsToShare
+                                          .contains(interest["id"]),
+                                      onChanged: (bool? newValue) {
+                                        if (newValue!) {
+                                          setState(() {
+                                            selectionsToShare
+                                                .add(interest["id"]);
+                                          });
+                                        } else {
+                                          setState(() {
+                                            selectionsToShare
+                                                .remove(interest["id"]);
+                                          });
+                                        }
+                                      },
+                                      title: Text(interest["payout_type"]
+                                          .toString()
+                                          .replaceAll("_", " ")
+                                          .capitalize()),
+                                      subtitle: Text(
+                                          "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
+                                    )
+                                  : ListTile(
+                                      // leading: CircleAvatar(
+                                      //     //backgroundImage: AssetImage(user.profilePicture),
+                                      //     child: Text(
+                                      //   "INT",
+                                      //   style: const TextStyle(fontSize: 14),
+                                      //   overflow: TextOverflow.fade,
+                                      //   softWrap: false,
+                                      // )),
+                                      title: Text(
+                                        interest["payout_type"]
+                                            .toString()
+                                            .replaceAll("_", " ")
+                                            .capitalize(),
+                                        // style: const TextStyle(fontSize: 18.0),
+                                        //overflow: TextOverflow.visible
+                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                      subtitle: Text(
+                                          "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                          style: const TextStyle(fontSize: 14)),
+                                      trailing: Wrap(spacing: 10.0, children: [
+                                        Column(children: [
+                                          // const Text("Actual", style: TextStyle(fontSize: 11)),
+                                          Text(
+                                              formatCurrency.format(
+                                                  double.parse(
+                                                      interest!["amount"]
+                                                          ["amount"])),
+                                              style:
+                                                  const TextStyle(fontSize: 18))
+                                        ])
+                                      ]),
+                                      //isThreeLine: true,
+                                    ),
+                            ],
+                          ));
+                        },
+                        childCount: filteredInterests!.length,
+                      ),
+                    ),
+                  ],
+                  // TODO: Introduce web banner
+                  if (!kIsWeb) ...[
+                    const SliverToBoxAdapter(
+                        child: SizedBox(
+                      height: 25.0,
+                    )),
+                    SliverToBoxAdapter(
+                        child: AdBannerWidget(size: AdSize.mediumRectangle)),
+                  ],
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  )),
+                  const SliverToBoxAdapter(child: DisclaimerWidget()),
+                  const SliverToBoxAdapter(
+                      child: SizedBox(
+                    height: 25.0,
+                  ))
+                ],
+              ),
+              // Center(child: Text("No option transactions found.")),
+              // Center(child: Text("No dividend distributions found.")),
+              // Center(child: Text("No interest payments found.")),
+            ],
           )),
-          SliverToBoxAdapter(
-              child: AdBannerWidget(size: AdSize.mediumRectangle)),
-        ],
-        const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        )),
-        const SliverToBoxAdapter(child: DisclaimerWidget()),
-        const SliverToBoxAdapter(
-            child: SizedBox(
-          height: 25.0,
-        ))
-      ]), //controller: _controller,
-    ) /*,
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showShareView,
-        tooltip: 'Share Orders',
-        child:
-            showShareView ? const Icon(Icons.preview) : const Icon(Icons.share),
-      ),
-    )*/
-        ;
+    );
   }
 
   Widget dividendChart() {
@@ -1787,8 +1985,8 @@ class _HistoryPageState extends State<HistoryPage>
   }
   */
 
-  Widget symbolWidgets(List<Widget> widgets) {
-    var n = 3; // 4;
+  Widget symbolWidgets(List<Widget> widgets, {int rowCount = 3}) {
+    var n = rowCount; //3; // 4;
     if (widgets.length < 8) {
       n = 1;
     } else if (widgets.length < 12) {
@@ -1828,13 +2026,14 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   String get orderDateFilterDisplay {
-    return orderDateFilterSelected == 0
-        ? "today"
-        : (orderDateFilterSelected == 1
-            ? "past week"
-            : (orderDateFilterSelected == 2
-                ? "past month"
-                : (orderDateFilterSelected == 3 ? "past year" : "")));
+    return orderDateFilterSelection.toLowerCase();
+    // return orderDateFilterSelected == 0
+    //     ? "today"
+    //     : (orderDateFilterSelected == 1
+    //         ? "past week"
+    //         : (orderDateFilterSelected == 2
+    //             ? "past month"
+    //             : (orderDateFilterSelected == 3 ? "past year" : "")));
   }
 
   Widget get orderFilterWidget {
@@ -1862,6 +2061,7 @@ class _HistoryPageState extends State<HistoryPage>
                         });
                       }
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1882,6 +2082,7 @@ class _HistoryPageState extends State<HistoryPage>
                         });
                       }
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1902,6 +2103,7 @@ class _HistoryPageState extends State<HistoryPage>
                         });
                       }
                     });
+                    Navigator.pop(context, 'dialog');
                   },
                 ),
               ),
@@ -1911,21 +2113,21 @@ class _HistoryPageState extends State<HistoryPage>
         ));
   }
 
-  Widget get optionOrderSymbolFilterWidget {
+  Widget optionOrderSymbolFilterWidget(int rowCount) {
     var widgets =
         symbolFilterWidgets(optionOrderSymbols, optionSymbolFilters).toList();
-    return symbolWidgets(widgets);
+    return symbolWidgets(widgets, rowCount: rowCount);
   }
 
-  Widget get stockOrderSymbolFilterWidget {
+  Widget stockOrderSymbolFilterWidget(int rowCount) {
     var widgets =
         symbolFilterWidgets(positionOrderSymbols, stockSymbolFilters).toList();
-    return symbolWidgets(widgets);
+    return symbolWidgets(widgets, rowCount: rowCount);
   }
 
-  Widget get cryptoFilterWidget {
+  Widget cryptoFilterWidget(int rowCount) {
     var widgets = symbolFilterWidgets(cryptoSymbols, cryptoFilters).toList();
-    return symbolWidgets(widgets);
+    return symbolWidgets(widgets, rowCount: rowCount);
   }
 
   Iterable<Widget> symbolFilterWidgets(
@@ -1947,6 +2149,7 @@ class _HistoryPageState extends State<HistoryPage>
                 });
               }
             });
+            Navigator.pop(context, 'dialog');
           },
         ),
       );
@@ -1967,11 +2170,11 @@ class _HistoryPageState extends State<HistoryPage>
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('Today'),
-                  selected: orderDateFilterSelected == 0,
+                  selected: orderDateFilterSelection == 'Today',
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderDateFilterSelected = 0;
+                        orderDateFilterSelection = 'Today';
                       } else {
                         //dateFilterSelected = null;
                       }
@@ -1986,11 +2189,11 @@ class _HistoryPageState extends State<HistoryPage>
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('Past Week'),
-                  selected: orderDateFilterSelected == 1,
+                  selected: orderDateFilterSelection == 'Past Week',
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderDateFilterSelected = 1;
+                        orderDateFilterSelection = 'Past Week';
                       } else {
                         //dateFilterSelected = null;
                       }
@@ -2005,11 +2208,30 @@ class _HistoryPageState extends State<HistoryPage>
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('Past Month'),
-                  selected: orderDateFilterSelected == 2,
+                  selected: orderDateFilterSelection == 'Past Month',
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderDateFilterSelected = 2;
+                        orderDateFilterSelection = 'Past Month';
+                      } else {}
+                    });
+                    Navigator.pop(context, 'dialog');
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: ChoiceChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Past 90 days'),
+                  selected: orderDateFilterSelection ==
+                      'Past 90 days', // orderDateFilterSelected == 2,
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderDateFilterSelection = 'Past 90 days';
+                        // orderDateFilterSelected = 2;
                       } else {}
                     });
                     Navigator.pop(context, 'dialog');
@@ -2022,11 +2244,11 @@ class _HistoryPageState extends State<HistoryPage>
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('Past Year'),
-                  selected: orderDateFilterSelected == 3,
+                  selected: orderDateFilterSelection == 'Past Year',
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderDateFilterSelected = 3;
+                        orderDateFilterSelection = 'Past Year';
                       } else {}
                     });
                     Navigator.pop(context, 'dialog');
@@ -2039,11 +2261,11 @@ class _HistoryPageState extends State<HistoryPage>
                   //avatar: const Icon(Icons.history_outlined),
                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
                   label: const Text('All Time'),
-                  selected: orderDateFilterSelected == 4,
+                  selected: orderDateFilterSelection == 'All Time',
                   onSelected: (bool value) {
                     setState(() {
                       if (value) {
-                        orderDateFilterSelected = 4;
+                        orderDateFilterSelection = 'All Time';
                       } else {}
                     });
                     Navigator.pop(context, 'dialog');
@@ -2054,11 +2276,6 @@ class _HistoryPageState extends State<HistoryPage>
           },
           itemCount: 1,
         ));
-  }
-
-  _closeAndShowShareView() async {
-    Navigator.pop(context);
-    _showShareView();
   }
 
   _showShareView() async {
@@ -2079,14 +2296,14 @@ class _HistoryPageState extends State<HistoryPage>
       var positionOrdersIdMap =
           positionOrdersToShare.map((e) => e.instrumentId);
       if (shareText) {
-        ordersText += "Here are my";
+        // ordersText += "Here are my";
         if (optionOrdersTexts.isNotEmpty) {
-          ordersText += " option orders:\n";
+          ordersText += "Option orders:\n";
         }
         ordersText += optionOrdersTexts.join("\n");
 
         if (positionOrdersMap.isNotEmpty) {
-          ordersText += " stock orders:\n";
+          ordersText += "Stock orders:\n";
         }
         ordersText += positionOrdersMap.join("\n");
       }
@@ -2097,78 +2314,87 @@ class _HistoryPageState extends State<HistoryPage>
       /*
 adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://robinhood-options-mobile.web.app/?options=123"
       */
+      final box = context.findRenderObject() as RenderBox?;
+      // final url =
+      //     'https://realizealpha.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}';
+      // debugPrint(url);
+      await Share.share(ordersText,
+          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size);
+      selectedOptionOrdersToShare.clear();
+      selectedPositionOrdersToShare.clear();
+      selectionsToShare.clear();
 
-      await showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        //isScrollControlled: true,
-        //useRootNavigator: true,
-        //constraints: BoxConstraints(maxHeight: 260),
-        builder: (BuildContext context) {
-          return Scaffold(
-              // appBar: AppBar(
-              //   // leading: const CloseButton(),
-              //   title: const Text('Sharing Options'),
-              //   actions: [
-              //     IconButton(
-              //       icon: const Icon(Icons.send),
-              //       onPressed: () {
-              //         Navigator.pop(context);
-              //         Share.share(ordersText);
-              //       },
-              //     )
-              //   ],
-              // ),
-              body: ListView(
-            //Column(
-            //mainAxisAlignment: MainAxisAlignment.start,
-            //crossAxisAlignment: CrossAxisAlignment.center,
+      // await showModalBottomSheet<void>(
+      //   context: context,
+      //   showDragHandle: true,
+      //   //isScrollControlled: true,
+      //   //useRootNavigator: true,
+      //   //constraints: BoxConstraints(maxHeight: 260),
+      //   builder: (BuildContext context) {
+      //     return Scaffold(
+      //         // appBar: AppBar(
+      //         //   // leading: const CloseButton(),
+      //         //   title: const Text('Sharing Options'),
+      //         //   actions: [
+      //         //     IconButton(
+      //         //       icon: const Icon(Icons.send),
+      //         //       onPressed: () {
+      //         //         Navigator.pop(context);
+      //         //         Share.share(ordersText);
+      //         //       },
+      //         //     )
+      //         //   ],
+      //         // ),
+      //         body: ListView(
+      //       //Column(
+      //       //mainAxisAlignment: MainAxisAlignment.start,
+      //       //crossAxisAlignment: CrossAxisAlignment.center,
 
-            children: [
-              ListTile(
-                title: const Text('Sharing Options'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Share.share(ordersText);
-                  },
-                ),
-              ),
-              CheckboxListTile(
-                value: shareText,
-                onChanged: (bool? newValue) {
-                  setState(() {
-                    shareText = newValue!;
-                  });
-                },
-                title: const Text(
-                    "Share Text"), // , style: TextStyle(fontSize: 18.0)),
-                //subtitle: subtitle,
-              ),
-              CheckboxListTile(
-                value: shareLink,
-                onChanged: (bool? newValue) {
-                  setState(() {
-                    shareLink = newValue!;
-                  });
-                },
-                title: const Text(
-                    "Share Link"), // , style: TextStyle(fontSize: 18.0)),
-                //subtitle: subtitle,
-              ),
-              ListTile(
-                subtitle: Text(ordersText,
-                    maxLines: 17, overflow: TextOverflow.ellipsis),
-                /*
-                                  trailing: TextButton(
-                                      child: const Text("APPLY"),
-                                      onPressed: () => Navigator.pop(context))*/
-              ),
-            ],
-          ));
-        },
-      );
+      //       children: [
+      //         ListTile(
+      //           title: const Text('Sharing Options'),
+      //           trailing: IconButton(
+      //             icon: const Icon(Icons.send),
+      //             onPressed: () {
+      //               Navigator.pop(context);
+      //               Share.share(ordersText);
+      //             },
+      //           ),
+      //         ),
+      //         CheckboxListTile(
+      //           value: shareText,
+      //           onChanged: (bool? newValue) {
+      //             setState(() {
+      //               shareText = newValue!;
+      //             });
+      //           },
+      //           title: const Text(
+      //               "Share Text"), // , style: TextStyle(fontSize: 18.0)),
+      //           //subtitle: subtitle,
+      //         ),
+      //         CheckboxListTile(
+      //           value: shareLink,
+      //           onChanged: (bool? newValue) {
+      //             setState(() {
+      //               shareLink = newValue!;
+      //             });
+      //           },
+      //           title: const Text(
+      //               "Share Link"), // , style: TextStyle(fontSize: 18.0)),
+      //           //subtitle: subtitle,
+      //         ),
+      //         ListTile(
+      //           subtitle: Text(ordersText,
+      //               maxLines: 17, overflow: TextOverflow.ellipsis),
+      //           /*
+      //                             trailing: TextButton(
+      //                                 child: const Text("APPLY"),
+      //                                 onPressed: () => Navigator.pop(context))*/
+      //         ),
+      //       ],
+      //     ));
+      //   },
+      // );
     }
     setState(() {
       showShareView = !showShareView;

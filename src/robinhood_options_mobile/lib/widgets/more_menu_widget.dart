@@ -99,31 +99,31 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             },
             secondary: const Icon(Icons.refresh),
           ),
-          // const Divider(
-          //   height: 10,
-          // ),
-          if (widget.showStockSettings || widget.showOptionsSettings) ...[
-            const ListTile(
-              // leading: Icon(Icons),
-              title: Text(
-                "Portfolio View",
-                style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
-              ),
+        ],
+        // const Divider(
+        //   height: 10,
+        // ),
+        if (widget.showStockSettings || widget.showOptionsSettings) ...[
+          const ListTile(
+            // leading: Icon(Icons),
+            title: Text(
+              "Portfolio View",
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 18),
             ),
-            SwitchListTile(
-              //leading: Icon(Icons.functions),
-              title: const Text("Position Details"),
-              subtitle: const Text("Displays P/L and Greeks."),
-              value: widget.user.showPositionDetails,
-              onChanged: (bool value) {
-                setState(() {
-                  widget.user.showPositionDetails = value;
-                });
-                _onSettingsChanged();
-              },
-              secondary: const Icon(Icons.functions),
-            ),
-          ],
+          ),
+          SwitchListTile(
+            //leading: Icon(Icons.functions),
+            title: const Text("Position Details"),
+            subtitle: const Text("Displays P/L and Greeks."),
+            value: widget.user.showPositionDetails,
+            onChanged: (bool value) {
+              setState(() {
+                widget.user.showPositionDetails = value;
+              });
+              _onSettingsChanged();
+            },
+            secondary: const Icon(Icons.functions),
+          ),
         ],
         // const Divider(
         //   height: 10,

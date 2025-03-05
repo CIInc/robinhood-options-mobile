@@ -62,36 +62,38 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
                 showProfile(context, auth, _firestoreService, widget.analytics,
                     widget.observer, widget.user);
               }),
-          IconButton(
-              icon: Icon(Icons.more_vert),
-              onPressed: () async {
-                await showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    //isScrollControlled: true,
-                    //useRootNavigator: true,
-                    //constraints: const BoxConstraints(maxHeight: 200),
-                    builder: (_) => MoreMenuBottomSheet(widget.user,
-                            analytics: widget.analytics,
-                            observer: widget.observer,
-                            showStockSettings: true,
-                            showCryptoSettings: true,
-                            chainSymbols: null,
-                            positionSymbols: null,
-                            cryptoSymbols: null,
-                            optionSymbolFilters: null,
-                            stockSymbolFilters: null,
-                            cryptoFilters: null, onSettingsChanged: (value) {
-                          // debugPrint(
-                          //     "Settings changed ${jsonEncode(value)}");
-                          debugPrint(
-                              "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
-                          debugPrint(
-                              "displayValue: ${widget.user.displayValue.toString()}");
-                          setState(() {});
-                        }));
-                // Navigator.pop(context);
-              })
+          // IconButton(
+          //     icon: Icon(Icons.more_vert),
+          //     onPressed: () async {
+          //       await showModalBottomSheet<void>(
+          //           context: context,
+          //           showDragHandle: true,
+          //           //isScrollControlled: true,
+          //           //useRootNavigator: true,
+          //           //constraints: const BoxConstraints(maxHeight: 200),
+          //           builder: (_) => MoreMenuBottomSheet(widget.user,
+          //                   analytics: widget.analytics,
+          //                   observer: widget.observer,
+          //                   showStockSettings: true,
+          //                   showCryptoSettings: true,
+          //                   chainSymbols: null,
+          //                   positionSymbols: null,
+          //                   cryptoSymbols: null,
+          //                   optionSymbolFilters: null,
+          //                   stockSymbolFilters: null,
+          //                   cryptoFilters: null, onSettingsChanged: (value) {
+          //                 // debugPrint(
+          //                 //     "Settings changed ${jsonEncode(value)}");
+          //                 debugPrint(
+          //                     "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
+          //                 debugPrint(
+          //                     "displayValue: ${widget.user.displayValue.toString()}");
+          //                 setState(() {});
+          //               }
+          //               )
+          //               );
+          //       // Navigator.pop(context);
+          //     })
         ],
       ),
       ForexPositionsWidget(

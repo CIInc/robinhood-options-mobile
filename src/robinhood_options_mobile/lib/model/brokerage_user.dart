@@ -115,6 +115,8 @@ class BrokerageUser {
         return 'Total Return';
       case DisplayValue.totalReturnPercent:
         return 'Total Return %';
+      case DisplayValue.expirationDate:
+        return 'Expiration Date';
       default:
         throw Exception('Not a valid display value.');
     }
