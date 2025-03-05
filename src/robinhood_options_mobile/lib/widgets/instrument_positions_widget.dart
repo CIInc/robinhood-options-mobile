@@ -407,9 +407,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
                             */
             ]),
           ),
-          onTap: () {
-            navigateToFullPage(context);
-          },
+          onTap: widget.showList
+              ? null
+              : () {
+                  navigateToFullPage(context);
+                },
         ),
         /*
         if (user.displayValue != DisplayValue.lastPrice) ...[

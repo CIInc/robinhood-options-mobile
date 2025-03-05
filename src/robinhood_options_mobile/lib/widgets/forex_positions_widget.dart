@@ -326,9 +326,11 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                                 */
             ]),
           ),
-          onTap: () {
-            navigateToFullPage(context);
-          },
+          onTap: widget.showList
+              ? null
+              : () {
+                  navigateToFullPage(context);
+                },
         ),
         SingleChildScrollView(
             scrollDirection: Axis.horizontal,

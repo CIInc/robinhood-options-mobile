@@ -258,8 +258,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     double? yield;
     double? yieldOnCost;
     double? marketValue;
-    double? gainLoss;
-    double? profitAndLoss;
+    // double? gainLoss;
+    double? gainLossPercent;
+    // double? adjustedReturn;
+    double? adjustedReturnPercent;
     double? adjustedCost;
     Instrument? instrument;
     InstrumentPosition? position;
@@ -277,8 +279,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
         if (position != null) {
           marketValue = position.marketValue;
-          gainLoss = position.gainLoss;
-          profitAndLoss = position.gainLoss + totalIncome;
+          // gainLoss = position.gainLoss;
+          gainLossPercent = position.gainLossPercent;
+          // adjustedReturn = position.gainLoss + totalIncome;
+          adjustedReturnPercent =
+              ((marketValue + totalIncome) / position.totalCost) - 1;
+
           adjustedCost =
               (position.totalCost - totalIncome) / position.quantity!;
           yieldOnCost =
@@ -434,10 +440,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           //     ? charts.LegendDefaultMeasure.lastValue
           //     : charts.LegendDefaultMeasure.none,
           measureFormatter: (num? value) {
-            return value == null ? '-' : formatCurrency.format(value);
+            return value == null ? '\$0' : formatCurrency.format(value);
           },
           secondaryMeasureFormatter: (num? value) {
-            return value == null ? '-' : formatCurrency.format(value);
+            return value == null ? '\$0' : formatCurrency.format(value);
           },
         ),
         // Add the sliding viewport behavior to have the viewport center on the
@@ -487,7 +493,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           viewport: charts.DateTimeExtents(
               start: DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
               // DateTime.now().subtract(Duration(days: 365)),
-              end: DateTime.now())),
+              // end: DateTime.now())),
+              end:
+                  DateTime.now().add(Duration(days: 29 - DateTime.now().day)))),
       // .add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
         // showAxisLine: true,
@@ -581,10 +589,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             ]
           ]),
           subtitle: Text(
-              "last 12 months ${widget.user.getDisplayText(pastYearTotalIncome, displayValue: DisplayValue.totalReturn)}"),
+              "last 12 months"), //  (total: ${formatCompactCurrency.format(totalIncome)})
           trailing: Wrap(spacing: 8, children: [
             Text(
-              formatCurrency.format(totalIncome),
+              formatCurrency.format(pastYearTotalIncome),
               style: const TextStyle(fontSize: 21.0),
               textAlign: TextAlign.right,
             ),
@@ -593,13 +601,16 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             //       style: const TextStyle(fontSize: 14)),
             // ]
           ]),
-          onTap: () {
-            navigateToFullPage(context);
-          },
+          onTap: widget.showList
+              ? null
+              : () {
+                  navigateToFullPage(context);
+                },
         ),
         if (incomeTransactions.isNotEmpty &&
             transactionSymbolFilters.isNotEmpty &&
-            widget.showYield) ...[
+            widget.showYield &&
+            yield != null) ...[
           ExpansionTile(
             shape: const Border(),
             // dense: true,
@@ -609,74 +620,47 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             title: Wrap(children: [
               const Text(
                 "Dividend Yield",
-                style: TextStyle(fontSize: 18.0),
+                style: TextStyle(fontSize: 19.0),
+              ),
+              SizedBox(
+                height: 28,
+                child: IconButton(
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
+                  icon: Icon(Icons.info_outline),
+                  onPressed: () {
+                    showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                              // context: context,
+                              title: Text('Dividend Yield'),
+                              content: Text(
+                                  'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ));
+                  },
+                ),
+              )
+            ]),
+            // subtitle:
+            //     yield != null ? Text(formatPercentage.format(yield)) : null,
+            subtitle: Text(
+                "last${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+            trailing: Wrap(spacing: 8, children: [
+              Text(
+                formatPercentage.format(yield),
+                style: const TextStyle(fontSize: 20.0),
+                textAlign: TextAlign.right,
               ),
             ]),
-            subtitle:
-                yield != null ? Text(formatPercentage.format(yield)) : null,
-            // subtitle: Text(
-            //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-            // subtitle: Text("Yield, P/L & Cost basis"),
-            // trailing: Wrap(spacing: 8, children: [
-            //   Text(
-            //     formatPercentage.format(yield),
-            //     style: const TextStyle(fontSize: 20.0),
-            //     textAlign: TextAlign.right,
-            //   ),
-            // ]),
             children: [
-              if (yield != null) ...[
-                ListTile(
-                  shape: const Border(),
-                  // dense: true,
-                  // controlAffinity: ListTileControlAffinity.leading,
-                  minTileHeight: 60,
-                  // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
-                  title: Wrap(children: [
-                    const Text(
-                      "Yield",
-                      style: TextStyle(fontSize: 18.0),
-                    ),
-                    SizedBox(
-                      height: 28,
-                      child: IconButton(
-                        iconSize: 18,
-                        padding: EdgeInsets.zero,
-                        icon: Icon(Icons.info_outline),
-                        onPressed: () {
-                          showDialog<String>(
-                              context: context,
-                              builder: (BuildContext context) => AlertDialog(
-                                    // context: context,
-                                    title: Text('Dividend Yield'),
-                                    content: Text(
-                                        'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted P/L is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: const Text('OK'),
-                                      ),
-                                    ],
-                                  ));
-                        },
-                      ),
-                    )
-                  ]),
-                  subtitle: Text(
-                      "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-                  // subtitle: Text(
-                  //     "last $dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(
-                      formatPercentage.format(yield),
-                      style: const TextStyle(fontSize: 20.0),
-                      textAlign: TextAlign.right,
-                    ),
-                  ]),
-                )
-              ],
               if (yieldOnCost != null) ...[
                 ListTile(
                   // dense: true,
@@ -689,7 +673,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                     ),
                   ]),
                   subtitle: Text(
-                      "average per share ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
+                      "average cost basis ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
                   trailing: Wrap(spacing: 8, children: [
                     Text(
                       formatPercentage.format(yieldOnCost),
@@ -699,33 +683,19 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   ]),
                 ),
               ],
-              if (marketValue != null) ...[
+              if (adjustedCost != null) ...[
                 ListTile(
                   title: Wrap(children: [
                     const Text(
-                      "Adjusted P/L",
-                      style: TextStyle(fontSize: 19.0),
+                      "Adjusted cost basis",
+                      style: TextStyle(fontSize: 18.0),
                     ),
                   ]),
-                  subtitle: Text(
-                      '${instrument!.symbol} ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)} ${gainLoss! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}'),
+                  subtitle: Text(// • ${instrument!.symbol}
+                      'last price ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
                   trailing: Wrap(spacing: 8, children: [
-                    // Text(
-                    //   formatCurrency.format(marketValue),
-                    //   style: const TextStyle(fontSize: 21.0),
-                    //   textAlign: TextAlign.right,
-                    // ),
-                    if (profitAndLoss! != 0) ...[
-                      // widget.user.getDisplayIcon(profitAndLoss)
-                      Icon(
-                          profitAndLoss > 0
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                          color: profitAndLoss > 0 ? Colors.green : Colors.red,
-                          size: 28),
-                    ],
                     Text(
-                      formatCurrency.format(profitAndLoss),
+                      formatCurrency.format(adjustedCost),
                       style: const TextStyle(fontSize: 20.0),
                       textAlign: TextAlign.right,
                     ),
@@ -736,19 +706,37 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   ]),
                 ),
               ],
-              if (adjustedCost != null) ...[
+              if (marketValue != null) ...[
                 ListTile(
                   title: Wrap(children: [
                     const Text(
-                      "Adjusted cost basis",
-                      style: TextStyle(fontSize: 19.0),
+                      "Adjusted return",
+                      style: TextStyle(fontSize: 18.0),
                     ),
                   ]),
-                  subtitle: Text(// •
-                      '${instrument!.symbol} ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
+                  subtitle: Text(
+                      // ${instrument!.symbol}  // ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)}
+                      'total return ${gainLossPercent! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}'), // ${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}
                   trailing: Wrap(spacing: 8, children: [
+                    // Text(
+                    //   formatCurrency.format(marketValue),
+                    //   style: const TextStyle(fontSize: 21.0),
+                    //   textAlign: TextAlign.right,
+                    // ),
+                    if (adjustedReturnPercent! != 0) ...[
+                      // widget.user.getDisplayIcon(profitAndLoss)
+                      Icon(
+                          adjustedReturnPercent > 0
+                              ? Icons.arrow_drop_up
+                              : Icons.arrow_drop_down,
+                          color: adjustedReturnPercent > 0
+                              ? Colors.green
+                              : Colors.red,
+                          size: 28),
+                    ],
                     Text(
-                      formatCurrency.format(adjustedCost),
+                      // formatCurrency.format(adjustedReturn),
+                      formatPercentage.format(adjustedReturnPercent),
                       style: const TextStyle(fontSize: 20.0),
                       textAlign: TextAlign.right,
                     ),

@@ -657,6 +657,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               open = firstHistorical
                   .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
 
+              // Update last historical from day span to deal with the issue that
+              // lastHistorical return different values at different increment spans.
+              var dayHistoricals = portfolioHistoricalsStore.items
+                  .singleWhereOrNull((e) => e.span == 'day');
+              var allHistoricals = portfolioHistoricals!.equityHistoricals +
+                  (portfolioHistoricals!.span != 'hour' &&
+                          portfolioHistoricals!.span != 'day'
+                      ? [dayHistoricals!.equityHistoricals.last]
+                      : []);
+              lastHistorical = allHistoricals.last;
+
               // Issue with using lastHistorical is that different increments return different values.
               close = lastHistorical.adjustedCloseEquity!;
 
@@ -678,24 +689,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               changePercentInPeriod = (close / open) - 1;
               // Wrong change percent calculation.
               // changePercentInPeriod = changeInPeriod / close;
-
-              // Add latest portfolio value to historical to show current value on chart.
-              // if (portfolioStore.items.isNotEmpty) {
-              //   // debugPrint("equity ${portfolioStore.items[0].equity.toString()} forex ${forexHoldingStore.equity} close ${close.toString()}");
-              //   portfolioHistoricals!.addOrUpdate(EquityHistorical(
-              //       lastHistorical.adjustedCloseEquity,
-              //       close,
-              //       lastHistorical.closeEquity,
-              //       close,
-              //       lastHistorical.closeMarketValue,
-              //       close,
-              //       portfolioStore.items[0].updatedAt,
-              //       lastHistorical.closeEquity! - close,
-              //       '')); //  DateTime.now()
-              //   lastHistorical = portfolioHistoricals!.equityHistoricals[
-              //       portfolioHistoricals!.equityHistoricals.length - 1];
-              //   close = lastHistorical.adjustedCloseEquity!;
-              // }
 
               /*
               var brightness = MediaQuery.of(context).platformBrightness;
@@ -727,7 +720,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         formatCompactNumber.format((index == 0
                             ? history.adjustedCloseEquity //adjustedOpenEquity
                             : history.adjustedCloseEquity)),
-                    data: portfolioHistoricals!.equityHistoricals,
+                    data:
+                        allHistoricals, // portfolioHistoricals!.equityHistoricals,
                     /*
                           [
                             ...portfolioHistoricals!.equityHistoricals,
@@ -1288,6 +1282,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 child: ChoiceChip(
                                   //avatar: const Icon(Icons.history_outlined),
                                   //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                  label: const Text('5 Years'),
+                                  selected: chartDateSpanFilter ==
+                                      ChartDateSpan.year_5,
+                                  onSelected: (bool value) {
+                                    if (value) {
+                                      resetChart(ChartDateSpan.year_5,
+                                          chartBoundsFilter);
+                                    }
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ChoiceChip(
+                                  //avatar: const Icon(Icons.history_outlined),
+                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
                                   label: const Text('All'),
                                   selected:
                                       chartDateSpanFilter == ChartDateSpan.all,
@@ -1767,6 +1777,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         // .where((element) =>
                         //     element.beginsAt!.compareTo(newYearsDay) >= 0)
                         .toList();
+                    // Update last historical from day span to deal with the issue that
+                    // lastHistorical return different values at different increment spans.
+                    var portfolioHistoricalsStore =
+                        Provider.of<PortfolioHistoricalsStore>(context,
+                            listen: true);
+                    var dayHistoricals = portfolioHistoricalsStore.items
+                        .singleWhereOrNull((e) => e.span == 'day');
+                    if (dayHistoricals != null) {
+                      ytdportfolio.add(dayHistoricals.equityHistoricals.last);
+                    }
+
                     // var portfolioStore =
                     //     Provider.of<PortfolioStore>(context, listen: false);
                     // var forexHoldingStore =

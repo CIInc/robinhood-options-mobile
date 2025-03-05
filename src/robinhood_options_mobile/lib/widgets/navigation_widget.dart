@@ -677,6 +677,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                   userStore.currentUser!.source ==
                                       BrokerageSource.demo)) ...[
                             ListTile(
+                              leading: const Icon(Icons.history),
+                              title: const Text("Transactions"),
+                              selected: _pageIndex == 3,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(3);
+                              },
+                            ),
+                            ListTile(
                               leading: const Icon(Icons.search),
                               title: const Text("Search"),
                               selected: _pageIndex == 1,
@@ -692,15 +701,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                               onTap: () {
                                 Navigator.pop(context); // close the drawer
                                 _onPageChanged(2);
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.history),
-                              title: const Text("History"),
-                              selected: _pageIndex == 3,
-                              onTap: () {
-                                Navigator.pop(context); // close the drawer
-                                _onPageChanged(3);
                               },
                             ),
                             // ListTile(

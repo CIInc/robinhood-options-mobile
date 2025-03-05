@@ -440,9 +440,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                     )
                   ]),
                 ),
-                onTap: () {
-                  navigateToFullPage(context);
-                },
+                onTap: widget.showList
+                    ? null
+                    : () {
+                        navigateToFullPage(context);
+                      },
               ),
               _buildDetailScrollRow(
                   widget.filteredOptionPositions,
