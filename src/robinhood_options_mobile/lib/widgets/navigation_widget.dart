@@ -677,7 +677,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                   userStore.currentUser!.source ==
                                       BrokerageSource.demo)) ...[
                             ListTile(
-                              leading: const Icon(Icons.history),
+                              leading: const Icon(Icons.receipt),
                               title: const Text("Transactions"),
                               selected: _pageIndex == 3,
                               onTap: () {

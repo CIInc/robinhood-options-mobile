@@ -393,6 +393,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final opacity = 1.0 - Interval(0, 1).transform(t);
               // debugPrint("transform: $t scrolled: $scrolled");
               return SliverAppBar(
+                centerTitle: false,
                 title:
                     Consumer<QuoteStore>(builder: (context, quoteStore, child) {
                   return Opacity(

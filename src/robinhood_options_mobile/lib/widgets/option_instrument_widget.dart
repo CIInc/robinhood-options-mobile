@@ -1508,6 +1508,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
           (element) => element.id == widget.optionInstrument.id);
       optionInstrument ??= widget.optionInstrument;
       return SliverAppBar(
+        centerTitle: false,
         title: Opacity(
           opacity: opacity,
           child: Align(
@@ -2008,9 +2009,6 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
         ],
       );
     });
-    /*} else {
-      return const SliverAppBar();
-    }*/
   }
 
   void _startRefreshTimer() {

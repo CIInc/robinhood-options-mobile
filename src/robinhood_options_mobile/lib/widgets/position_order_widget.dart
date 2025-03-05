@@ -102,6 +102,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
   Widget _buildPage(InstrumentOrder positionOrder) {
     return CustomScrollView(slivers: [
       SliverAppBar(
+        centerTitle: false,
         //title: Text(instrument.symbol), // Text('${positionOrder.symbol} \$${positionOrder.optionInstrument!.strikePrice} ${positionOrder.strategy.split('_').first} ${positionOrder.optionInstrument!.type.toUpperCase()}')
         expandedHeight: 120.0,
         floating: true,

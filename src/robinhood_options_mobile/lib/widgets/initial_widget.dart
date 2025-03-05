@@ -13,6 +13,7 @@ class InitialWidget extends StatelessWidget {
         floating: true,
         snap: true,
         pinned: false,
+        centerTitle: false,
         title: Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             //runAlignment: WrapAlignment.end,

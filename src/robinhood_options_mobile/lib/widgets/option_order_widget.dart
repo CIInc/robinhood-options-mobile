@@ -122,6 +122,7 @@ class _OptionOrderWidgetState extends State<OptionOrderWidget> {
         floating: true,
         snap: true,
         pinned: false,
+        centerTitle: false,
         flexibleSpace: FlexibleSpaceBar(
             title: SingleChildScrollView(
                 child: Column(

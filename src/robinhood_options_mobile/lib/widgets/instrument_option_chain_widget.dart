@@ -174,6 +174,7 @@ class _InstrumentOptionChainWidgetState
       {List<OptionInstrument>? optionInstruments, bool done = false}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
+      centerTitle: false,
       title: headerTitle(instrument),
       //expandedHeight: 240,
       floating: false,

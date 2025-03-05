@@ -41,6 +41,7 @@ class _ForexPositionsPageWidgetState extends State<ForexPositionsPageWidget> {
     return Material(
         child: CustomScrollView(slivers: [
       SliverAppBar(
+        centerTitle: false,
         title: Text("Crypto"),
         floating: true,
         snap: true,

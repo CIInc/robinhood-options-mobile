@@ -250,6 +250,7 @@ class _ListsWidgetState extends State<ListsWidget>
         floating: false,
         snap: false,
         pinned: true,
+        centerTitle: false,
         title: Wrap(
             crossAxisAlignment: WrapCrossAlignment.end,
             //runAlignment: WrapAlignment.end,

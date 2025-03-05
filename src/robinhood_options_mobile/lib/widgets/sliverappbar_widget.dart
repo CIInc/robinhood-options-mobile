@@ -44,6 +44,7 @@ class ExpandedSliverAppBar extends StatelessWidget {
               pinned: false,
               // leading: IconButton(
               //     icon: const Icon(Icons.menu_outlined), onPressed: () async {}),
+              centerTitle: false,
               title: title,
               automaticallyImplyLeading: automaticallyImplyLeading,
               // expandedHeight: 200, // 143.0,

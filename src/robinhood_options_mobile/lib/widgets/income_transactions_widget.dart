@@ -1322,6 +1322,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           builder: (context) => Material(
                   child: CustomScrollView(slivers: [
                 SliverAppBar(
+                    centerTitle: false,
                     title: Text("Income"),
                     floating: true,
                     snap: true,

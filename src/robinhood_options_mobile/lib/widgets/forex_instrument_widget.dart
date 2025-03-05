@@ -236,6 +236,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
 
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
+        centerTitle: false,
         title: headerTitle(holding),
         //expandedHeight: 160,
         expandedHeight: 120.0,

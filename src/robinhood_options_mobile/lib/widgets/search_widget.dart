@@ -170,6 +170,7 @@ class _SearchWidgetState extends State<SearchWidget>
                       floating: false,
                       snap: false,
                       pinned: true,
+                      centerTitle: false,
                       title: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 10.0),
                           child: TextField(

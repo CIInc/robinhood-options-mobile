@@ -42,6 +42,7 @@ class _InstrumentPositionsPageWidgetState
     return Material(
         child: CustomScrollView(slivers: [
       SliverAppBar(
+        centerTitle: false,
         title: Text("Stocks & ETFs"),
         floating: true,
         snap: true,

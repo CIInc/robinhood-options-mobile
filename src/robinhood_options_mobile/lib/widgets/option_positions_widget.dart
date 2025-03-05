@@ -605,64 +605,6 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   analytics: widget.analytics,
                   observer: widget.observer,
                 )));
-    // Material(
-    //         child: CustomScrollView(slivers: [
-    //       SliverAppBar(
-    //         title: Text("Options"),
-    //         floating: true,
-    //         snap: true,
-    //         pinned: false,
-    //         actions: [
-    //           IconButton(
-    //               icon: auth.currentUser != null
-    //                   ? (auth.currentUser!.photoURL == null
-    //                       ? const Icon(Icons.account_circle)
-    //                       : CircleAvatar(
-    //                           maxRadius: 12,
-    //                           backgroundImage: CachedNetworkImageProvider(
-    //                               auth.currentUser!.photoURL!
-    //                               //  ?? Constants .placeholderImage, // No longer used
-    //                               )))
-    //                   : const Icon(Icons.login),
-    //               onPressed: () {
-    //                 showProfile(context, auth, _firestoreService,
-    //                     widget.analytics, widget.observer, widget.user);
-    //               }),
-    //           IconButton(
-    //               icon: Icon(Icons.more_vert),
-    //               onPressed: () async {
-    //                 await showModalBottomSheet<void>(
-    //                     context: context,
-    //                     showDragHandle: true,
-    //                     //isScrollControlled: true,
-    //                     //useRootNavigator: true,
-    //                     //constraints: const BoxConstraints(maxHeight: 200),
-    //                     builder: (_) => MoreMenuBottomSheet(widget.user,
-    //                             analytics: widget.analytics,
-    //                             observer: widget.observer,
-    //                             showOptionsSettings: true,
-    //                             chainSymbols: null,
-    //                             positionSymbols: null,
-    //                             cryptoSymbols: null,
-    //                             optionSymbolFilters: null,
-    //                             stockSymbolFilters: null,
-    //                             cryptoFilters: null,
-    //                             onSettingsChanged: (value) {
-    //                           setState(() {});
-    //                           debugPrint("Settings changed");
-    //                         }));
-    //                 // Navigator.pop(context);
-    //               })
-    //         ],
-    //       ),
-    //       OptionPositionsWidget(
-    //         widget.user,
-    //         widget.service,
-    //         widget.filteredOptionPositions,
-    //         analytics: widget.analytics,
-    //         observer: widget.observer,
-    //       )
-    //     ]))));
   }
 
   _calculateGreekAggregates(

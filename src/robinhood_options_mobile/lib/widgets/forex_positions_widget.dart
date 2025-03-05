@@ -629,63 +629,6 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   analytics: widget.analytics,
                   observer: widget.observer,
                 )));
-    // Material(
-    //         child: CustomScrollView(slivers: [
-    //       SliverAppBar(
-    //         title: Text("Crypto"),
-    //         floating: true,
-    //         snap: true,
-    //         pinned: false,
-    //         actions: [
-    //           IconButton(
-    //               icon: auth.currentUser != null
-    //                   ? (auth.currentUser!.photoURL == null
-    //                       ? const Icon(Icons.account_circle)
-    //                       : CircleAvatar(
-    //                           maxRadius: 12,
-    //                           backgroundImage: CachedNetworkImageProvider(
-    //                               auth.currentUser!.photoURL!
-    //                               //  ?? Constants .placeholderImage, // No longer used
-    //                               )))
-    //                   : const Icon(Icons.login),
-    //               onPressed: () {
-    //                 showProfile(context, auth, _firestoreService,
-    //                     widget.analytics, widget.observer, widget.user);
-    //               }),
-    //           IconButton(
-    //               icon: Icon(Icons.more_vert),
-    //               onPressed: () async {
-    //                 await showModalBottomSheet<void>(
-    //                     context: context,
-    //                     showDragHandle: true,
-    //                     //isScrollControlled: true,
-    //                     //useRootNavigator: true,
-    //                     //constraints: const BoxConstraints(maxHeight: 200),
-    //                     builder: (_) => MoreMenuBottomSheet(widget.user,
-    //                             analytics: widget.analytics,
-    //                             observer: widget.observer,
-    //                             showCryptoSettings: true,
-    //                             chainSymbols: null,
-    //                             positionSymbols: null,
-    //                             cryptoSymbols: null,
-    //                             optionSymbolFilters: null,
-    //                             stockSymbolFilters: null,
-    //                             cryptoFilters: null,
-    //                             onSettingsChanged: (value) {
-    //                           debugPrint("Settings changed");
-    //                         }));
-    //                 // Navigator.pop(context);
-    //               })
-    //         ],
-    //       ),
-    //       ForexPositionsWidget(
-    //         widget.user,
-    //         widget.service,
-    //         widget.filteredHoldings,
-    //         analytics: widget.analytics,
-    //         observer: widget.observer,
-    //       )
-    //     ]))));
   }
 
   Widget _buildCryptoRow(

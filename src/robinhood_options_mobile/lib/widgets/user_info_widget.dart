@@ -87,6 +87,7 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
               floating: true,
               snap: true,
               pinned: false,
+              centerTitle: false,
               title: Text('Manage Accounts', style: TextStyle(fontSize: 20.0)),
               actions: [
                 IconButton(
