@@ -395,21 +395,21 @@ class _AuthGateState extends State<AuthGate> {
                                 ],
                               ),
                             ),
-                          const SizedBox(height: 10),
-                          RichText(
-                            text: TextSpan(
-                              style: Theme.of(context).textTheme.bodyLarge,
-                              children: [
-                                const TextSpan(text: 'Or '),
-                                TextSpan(
-                                  text: 'continue as guest',
-                                  style: const TextStyle(color: Colors.blue),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = _anonymousAuth,
-                                ),
-                              ],
-                            ),
-                          ),
+                          // const SizedBox(height: 10),
+                          // RichText(
+                          //   text: TextSpan(
+                          //     style: Theme.of(context).textTheme.bodyLarge,
+                          //     children: [
+                          //       const TextSpan(text: 'Or '),
+                          //       TextSpan(
+                          //         text: 'continue as guest',
+                          //         style: const TextStyle(color: Colors.blue),
+                          //         recognizer: TapGestureRecognizer()
+                          //           ..onTap = _anonymousAuth,
+                          //       ),
+                          //     ],
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),
@@ -464,26 +464,26 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  Future<void> _anonymousAuth() async {
-    setIsLoading();
+  // Future<void> _anonymousAuth() async {
+  //   setIsLoading();
 
-    try {
-      await auth.signInAnonymously();
-      if (widget.onSignin != null && auth.currentUser != null) {
-        widget.onSignin!(auth.currentUser!);
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        error = '${e.message}';
-      });
-    } catch (e) {
-      setState(() {
-        error = '$e';
-      });
-    } finally {
-      setIsLoading();
-    }
-  }
+  //   try {
+  //     await auth.signInAnonymously();
+  //     if (widget.onSignin != null && auth.currentUser != null) {
+  //       widget.onSignin!(auth.currentUser!);
+  //     }
+  //   } on FirebaseAuthException catch (e) {
+  //     setState(() {
+  //       error = '${e.message}';
+  //     });
+  //   } catch (e) {
+  //     setState(() {
+  //       error = '$e';
+  //     });
+  //   } finally {
+  //     setIsLoading();
+  //   }
+  // }
 
   Future<void> _handleMultiFactorException(
     Future<void> Function() authFunction,
