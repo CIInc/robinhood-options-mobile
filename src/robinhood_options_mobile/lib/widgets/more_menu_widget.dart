@@ -89,7 +89,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           SwitchListTile(
             //leading: Icon(Icons.functions),
             title: const Text("Refresh Market Data"),
-            subtitle: const Text("Occurs every 15 seconds"),
+            subtitle: const Text("Periodically update latest prices"),
             value: widget.user.refreshEnabled,
             onChanged: (bool value) {
               setState(() {
@@ -576,74 +576,6 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         //     //cryptoFilterWidget(bottomState),
         //   ]
         // ],
-
-        // if (widget.user.userName != null) ...[
-        //   ListTile(
-        //       leading: const Icon(Icons.account_circle),
-        //       title: const Text("Profile"),
-        //       onTap: () {
-        //         _openLogin();
-        //       }),
-        //   ListTile(
-        //     leading: const Icon(Icons.logout),
-        //     title: const Text("Logout"),
-        //     onTap: () {
-        //       var alert = AlertDialog(
-        //         title: const Text('Logout process'),
-        //         content: const SingleChildScrollView(
-        //           child: ListBody(
-        //             children: <Widget>[
-        //               Text('This action will require you to log in again.'),
-        //               Text('Are you sure you want to log out?'),
-        //             ],
-        //           ),
-        //         ),
-        //         actions: <Widget>[
-        //           TextButton(
-        //             child: const Text('Cancel'),
-        //             onPressed: () {
-        //               Navigator.pop(context, 'dialog');
-        //             },
-        //           ),
-        //           TextButton(
-        //             child: const Text('OK'),
-        //             onPressed: () {
-        //               Navigator.pop(context, 'dialog');
-        //               _logout();
-        //             },
-        //           ),
-        //         ],
-        //       );
-        //       showDialog(
-        //         context: context,
-        //         builder: (BuildContext context) {
-        //           return alert;
-        //         },
-        //       );
-        //     },
-        //   ),
-        // ]
-
-        //  else ...[
-        //   const Divider(
-        //     color: Colors.transparent,
-        //     height: 10,
-        //   ),
-        //   ListTile(
-        //     leading: const Icon(Icons.login),
-        //     title: const Text("Login"),
-        //     onTap: () {
-        //       _openLogin();
-        //     },
-        //   ),
-        //   const Divider(
-        //     height: 10,
-        //   )
-        // ],
-
-        // const SizedBox(
-        //   height: 25.0,
-        // )
       ],
     ));
   }
@@ -938,32 +870,6 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
   //         },
   //       ),
   //     );
-  //   }
-  // }
-
-  // _openLogin() async {
-  //   final BrokerageUser? result = await Navigator.push(
-  //       context,
-  //       MaterialPageRoute(
-  //           builder: (BuildContext context) => LoginWidget(
-  //                 analytics: widget.analytics,
-  //                 observer: widget.observer,
-  //               )));
-
-  //   if (result != null) {
-  //     if (!mounted) return;
-
-  //     var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-  //     final authUtil = AuthUtil(auth);
-  //     await authUtil.setUser(_firestoreService, brokerageUserStore: userStore);
-
-  //     Navigator.pop(context); //, 'login'
-
-  //     // After the Selection Screen returns a result, hide any previous snackbars
-  //     // and show the new result.
-  //     ScaffoldMessenger.of(context)
-  //       ..removeCurrentSnackBar()
-  //       ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
   //   }
   // }
 }

@@ -457,9 +457,13 @@ class _AuthGateState extends State<AuthGate> {
     if (email != null) {
       try {
         await auth.sendPasswordResetEmail(email: email!);
-        ScaffoldSnackbar.of(context).show('Password reset email is sent');
+        if (mounted) {
+          ScaffoldSnackbar.of(context).show('Password reset email is sent');
+        }
       } catch (e) {
-        ScaffoldSnackbar.of(context).show('Error resetting');
+        if (mounted) {
+          ScaffoldSnackbar.of(context).show('Error resetting');
+        }
       }
     }
   }
@@ -501,13 +505,16 @@ class _AuthGateState extends State<AuthGate> {
       final firstTotpHint = e.resolver.hints
           .firstWhereOrNull((element) => element is TotpMultiFactorInfo);
       if (firstTotpHint != null) {
-        final code = await getSmsCodeFromUser(context);
-        final assertion = await TotpMultiFactorGenerator.getAssertionForSignIn(
-          firstTotpHint.uid,
-          code!,
-        );
-        await e.resolver.resolveSignIn(assertion);
-        return;
+        if (mounted) {
+          final code = await getSmsCodeFromUser(context);
+          final assertion =
+              await TotpMultiFactorGenerator.getAssertionForSignIn(
+            firstTotpHint.uid,
+            code!,
+          );
+          await e.resolver.resolveSignIn(assertion);
+          return;
+        }
       }
 
       final firstPhoneHint = e.resolver.hints
@@ -586,10 +593,12 @@ class _AuthGateState extends State<AuthGate> {
       if (kIsWeb) {
         final confirmationResult =
             await auth.signInWithPhoneNumber(phoneController.text);
-        final smsCode = await getSmsCodeFromUser(context);
+        if (mounted) {
+          final smsCode = await getSmsCodeFromUser(context);
 
-        if (smsCode != null) {
-          await confirmationResult.confirm(smsCode);
+          if (smsCode != null) {
+            await confirmationResult.confirm(smsCode);
+          }
         }
       } else {
         await auth.verifyPhoneNumber(
@@ -666,9 +675,9 @@ class _AuthGateState extends State<AuthGate> {
         FacebookAuthProvider.credential(accessToken.tokenString),
       );
     } else {
-      print('Facebook login did not succeed');
-      print(result.status);
-      print(result.message);
+      debugPrint('Facebook login did not succeed');
+      debugPrint(result.status.toString());
+      debugPrint(result.message);
     }
   }
 }
@@ -780,7 +789,7 @@ Future<String?> getTotpFromUser(
     accountName: FirebaseAuth.instance.currentUser!.email,
     issuer: 'Firebase',
   );
-
+  if (!context.mounted) return '';
   // Update the UI - wait for the user to enter the SMS code
   await showDialog<String>(
     context: context,

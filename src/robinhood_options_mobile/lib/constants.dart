@@ -2,7 +2,7 @@ import 'package:intl/intl.dart';
 
 final formatDate = DateFormat.yMMMEd(); //.yMEd(); //("yMMMd");
 final formatCompactDate = DateFormat("MMMd");
-// final formatCompactDate = DateFormat("MMM d yy");
+final formatCompactDateYear = DateFormat.yMMM(); // ("MMM d yy");
 final formatCompactDateTimeWithHour = DateFormat("MMM d h:mm a");
 final formatCompactDateTimeWithMinute = DateFormat("MMM d yy hh:mm a");
 final formatShortDate = DateFormat("MMMM d, y");
@@ -66,7 +66,9 @@ class Constants {
   }
 }
 
-const totalValueFontSize = 23.0;
+const totalValueFontSize = 24.0;
+const assetValueFontSize = 22.0;
+const positionValueFontSize = 21.0;
 
 const summaryValueFontSize = 18.0;
 const summaryLabelFontSize = 9.0;

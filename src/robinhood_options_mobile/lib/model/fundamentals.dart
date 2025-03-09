@@ -31,7 +31,7 @@ class Fundamentals {
   final int? yearFounded;
 
   const Fundamentals(
-      this.open,
+      {this.open,
       this.high,
       this.low,
       this.volume,
@@ -47,15 +47,15 @@ class Fundamentals {
       this.pbRatio,
       this.peRatio,
       this.sharesOutstanding,
-      this.description,
-      this.instrument,
-      this.ceo,
-      this.headquartersCity,
-      this.headquartersState,
-      this.sector,
-      this.industry,
+      this.description = '',
+      this.instrument = '',
+      this.ceo = '',
+      this.headquartersCity = '',
+      this.headquartersState = '',
+      this.sector = '',
+      this.industry = '',
       this.numEmployees,
-      this.yearFounded);
+      this.yearFounded});
 
   Fundamentals.fromJson(dynamic json)
       : open = json['open'] != null

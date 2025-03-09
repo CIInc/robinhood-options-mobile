@@ -123,10 +123,10 @@ class _HistoryPageState extends State<HistoryPage>
     widget.analytics.logScreenView(screenName: 'History');
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   super.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -2417,6 +2417,7 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
       ..removeCurrentSnackBar()
       ..showSnackBar(SnackBar(
           content: Text("Downloaded ${file.path.split('/').last}"),
+          behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: 'Open',
             onPressed: () {

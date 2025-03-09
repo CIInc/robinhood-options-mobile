@@ -120,7 +120,9 @@ class OptionAggregatePosition {
         intradayAverageOpenPrice =
             null, // double.tryParse(json['intraday_average_open_price']),
         intradayQuantity = null, // double.tryParse(json['intraday_quantity']),
-        direction = json['instrument']['putCall'], // json['direction'],
+        direction = json['shortQuantity'] > 0
+            ? 'credit'
+            : 'debit', // json['direction'], //  json['instrument']['putCall']
         intradayDirection = '', // json['intraday_direction'],
         tradeValueMultiplier =
             null, // double.tryParse(json['trade_value_multiplier']),
@@ -155,7 +157,28 @@ class OptionAggregatePosition {
             '',
             null,
             '', // longStrategyCode,
-            ''); //shortStrategyCode);
+            ''),
+        instrumentObj = Instrument(
+            id: json['instrument']['cusip'],
+            url: '',
+            quote: '',
+            fundamentals: '',
+            splits: '',
+            state: '',
+            market: '',
+            name: json['instrument']['description'],
+            tradeable: true,
+            tradability: '',
+            symbol: json['instrument']['symbol'],
+            bloombergUnique: '',
+            country: '',
+            type: json['instrument']['type'],
+            rhsTradability: '',
+            fractionalTradability: '',
+            isSpac: false,
+            isTest: false,
+            ipoAccessSupportsDsp: false,
+            dateCreated: DateTime.now());
 
   OptionAggregatePosition.fromPlaidJson(
       dynamic json, dynamic json2, Account acct)

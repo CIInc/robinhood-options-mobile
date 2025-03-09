@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,7 @@ import 'package:collection/collection.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -377,6 +379,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               widget.brokerageUser,
               Provider.of<InterestStore>(context, listen: false),
             );
+          } else {
+            // Needed when switching users or linking new
+            futurePortfolioHistoricals = null;
+            futurePortfolioHistoricalsYear = null;
+            futureDividends = null;
+            futureInterests = null;
           }
           /*
           return MultiProvider(
@@ -502,63 +510,82 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   overflow: TextOverflow.ellipsis,
                 ),
                 trailing: Wrap(spacing: 8, children: [
-                  Text(
-                    formatCurrency.format(close),
-                    // selection != null
-                    //  ? selection!.adjustedCloseEquity
-                    //  : close),
-                    style:
-                        const TextStyle(fontSize: totalValueFontSize), //  21.0
-                    textAlign: TextAlign.right,
-                  ),
+                  AnimatedSwitcher(
+                    duration: Duration(milliseconds: 200),
+                    // transitionBuilder:
+                    //     (Widget child, Animation<double> animation) {
+                    //   return SlideTransition(
+                    //       position: (Tween<Offset>(
+                    //               begin: Offset(0, -0.25), end: Offset.zero))
+                    //           .animate(animation),
+                    //       child: child);
+                    // },
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Text(
+                      key: ValueKey<String>(close.toString()),
+                      formatCurrency.format(close),
+                      // selection != null
+                      //  ? selection!.adjustedCloseEquity
+                      //  : close),
+                      style: const TextStyle(
+                          fontSize: totalValueFontSize), //  21.0
+                      textAlign: TextAlign.right,
+                    ),
+                  )
                 ]),
               ));
             }),
-            Consumer<
-                PortfolioHistoricalsStore
-                // PortfolioStore,
-                // InstrumentPositionStore,
-                // OptionPositionStore,
-                // ForexHoldingStore
-                >(builder: (context,
-                portfolioHistoricalsStore,
-                // portfolioStore,
-                // instrumentPositionStore,
-                // optionPositionStore,
-                // forexHoldingStore,
-                child) {
-              // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
-              /*
+            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
+                widget.brokerageUser.source == BrokerageSource.demo) ...[
+              Consumer<
+                  PortfolioHistoricalsStore
+                  // PortfolioStore,
+                  // InstrumentPositionStore,
+                  // OptionPositionStore,
+                  // ForexHoldingStore
+                  >(builder: (context,
+                  portfolioHistoricalsStore,
+                  // portfolioStore,
+                  // instrumentPositionStore,
+                  // optionPositionStore,
+                  // forexHoldingStore,
+                  child) {
+                // Consumer3<PortfolioHistoricalsStore, PortfolioStore, ForexHoldingStore>(builder: (context, portfolioHistoricalsStore, portfolioStore, forexHoldingStore, child) {
+                /*
                 if (portfolioHistoricals != null) {
                   debugPrint(
                       'data: ${portfolioHistoricals!.bounds} ${portfolioHistoricals!.span} chip: ${chartBoundsFilter.toString()} ${chartDateSpanFilter.toString()}');
                 }
                 */
-              portfolioHistoricals = portfolioHistoricalsStore.items
-                  .firstWhereOrNull((element) =>
-                          element.span ==
-                              convertChartSpanFilter(chartDateSpanFilter) &&
-                          element.bounds ==
-                              convertChartBoundsFilter(chartBoundsFilter)
-                      //&& element.interval == element.interval
-                      );
-              if (portfolioHistoricals == null) {
                 portfolioHistoricals = portfolioHistoricalsStore.items
                     .firstWhereOrNull((element) =>
                             element.span ==
-                                convertChartSpanFilter(
-                                    prevChartDateSpanFilter) &&
+                                convertChartSpanFilter(chartDateSpanFilter) &&
                             element.bounds ==
-                                convertChartBoundsFilter(prevChartBoundsFilter)
+                                convertChartBoundsFilter(chartBoundsFilter)
                         //&& element.interval == element.interval
                         );
-
                 if (portfolioHistoricals == null) {
-                  return SliverToBoxAdapter(child: Container());
-                }
-              }
+                  portfolioHistoricals = portfolioHistoricalsStore.items
+                      .firstWhereOrNull((element) =>
+                              element.span ==
+                                  convertChartSpanFilter(
+                                      prevChartDateSpanFilter) &&
+                              element.bounds ==
+                                  convertChartBoundsFilter(
+                                      prevChartBoundsFilter)
+                          //&& element.interval == element.interval
+                          );
 
-              /* Removed because it was causing PortfolioHistoricalStore to updateListeners when the next http request was no different.  
+                  if (portfolioHistoricals == null) {
+                    return SliverToBoxAdapter(child: Container());
+                  }
+                }
+
+                /* Removed because it was causing PortfolioHistoricalStore to updateListeners when the next http request was no different.  
                 if (portfolioHistoricals!.span == "day") {
                   final DateTime now = DateTime.now();
                   final DateTime today = DateTime(now.year, now.month, now.day);
@@ -571,107 +598,108 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 }
                 */
 
-              EquityHistorical? firstHistorical;
-              EquityHistorical? lastHistorical;
-              double open = 0;
-              double close = 0;
-              double changeInPeriod = 0;
-              double changePercentInPeriod = 0;
+                EquityHistorical? firstHistorical;
+                EquityHistorical? lastHistorical;
+                double open = 0;
+                double close = 0;
+                double changeInPeriod = 0;
+                double changePercentInPeriod = 0;
 
-              firstHistorical = portfolioHistoricals!.equityHistoricals.first;
-              lastHistorical = portfolioHistoricals!.equityHistoricals.last;
+                firstHistorical = portfolioHistoricals!.equityHistoricals.first;
+                lastHistorical = portfolioHistoricals!.equityHistoricals.last;
 
-              // Update last historical from day span to deal with the issue that
-              // lastHistorical return different values at different increment spans.
-              var hourHistoricals = portfolioHistoricalsStore.items
-                  .singleWhereOrNull((e) => e.span == 'hour');
-              var dayHistoricals = portfolioHistoricalsStore.items
-                  .singleWhereOrNull((e) => e.span == 'day');
-              final DateTime now = DateTime.now();
-              final DateTime today = DateTime(now.year, now.month, now.day);
-              final maxDate = portfolioHistoricals!.equityHistoricals
-                  .map((e) => e.beginsAt!)
-                  .reduce((a, b) => a.isAfter(b) ? a : b);
-              var allHistoricals = (portfolioHistoricals!.span == "day"
-                      // || portfolioHistoricals!.span == "hour"
-                      ? portfolioHistoricals!.equityHistoricals
-                          .where((element) =>
-                              element.beginsAt!.compareTo(today) >= 0)
-                          .toList()
-                      : portfolioHistoricals!.equityHistoricals) +
-                  (hourHistoricals != null
-                      ? hourHistoricals.equityHistoricals
-                          .where((element) =>
-                              element.beginsAt!.compareTo(today) >= 0 &&
-                              element.beginsAt!.compareTo(maxDate) >= 0)
-                          .toList()
-                      : [dayHistoricals!.equityHistoricals.last]);
-              if (allHistoricals.isNotEmpty) {
-                firstHistorical = allHistoricals.first;
-                lastHistorical = allHistoricals.last;
-              }
+                // Update last historical from day span to deal with the issue that
+                // lastHistorical return different values at different increment spans.
+                var hourHistoricals = portfolioHistoricalsStore.items
+                    .singleWhereOrNull((e) => e.span == 'hour');
+                var dayHistoricals = portfolioHistoricalsStore.items
+                    .singleWhereOrNull((e) => e.span == 'day');
+                final DateTime now = DateTime.now();
+                final DateTime today = DateTime(now.year, now.month, now.day);
+                final maxDate = portfolioHistoricals!.equityHistoricals
+                    .map((e) => e.beginsAt!)
+                    .reduce((a, b) => a.isAfter(b) ? a : b);
+                var allHistoricals = (portfolioHistoricals!.span == "day"
+                        // || portfolioHistoricals!.span == "hour"
+                        ? portfolioHistoricals!.equityHistoricals
+                            .where((element) =>
+                                element.beginsAt!.compareTo(today) >= 0)
+                            .toList()
+                        : portfolioHistoricals!.equityHistoricals) +
+                    (hourHistoricals != null
+                        ? hourHistoricals.equityHistoricals
+                            .where((element) =>
+                                element.beginsAt!.compareTo(today) >= 0 &&
+                                element.beginsAt!.compareTo(maxDate) >= 0)
+                            .toList()
+                        : [dayHistoricals!.equityHistoricals.last]);
+                if (allHistoricals.isNotEmpty) {
+                  firstHistorical = allHistoricals.first;
+                  lastHistorical = allHistoricals.last;
+                }
 
-              open = firstHistorical
-                  .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
-              // Issue with using lastHistorical is that different increments return different values.
-              close = lastHistorical.adjustedCloseEquity!;
+                open = firstHistorical
+                    .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
+                // Issue with using lastHistorical is that different increments return different values.
+                close = lastHistorical.adjustedCloseEquity!;
 
-              // close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
-              // if (account != null) {
-              //   close = account.portfolioCash! +
-              //       instrumentPositionStore.equity +
-              //       optionPositionStore.equity +
-              //       forexHoldingStore.equity;
-              //   // updatedAt = portfolioStore.items[0].updatedAt!;
-              // }
+                // close = (portfolioStore.items[0].equity ?? 0) + forexHoldingStore.equity;
+                // if (account != null) {
+                //   close = account.portfolioCash! +
+                //       instrumentPositionStore.equity +
+                //       optionPositionStore.equity +
+                //       forexHoldingStore.equity;
+                //   // updatedAt = portfolioStore.items[0].updatedAt!;
+                // }
 
-              changeInPeriod = close - open;
-              changePercentInPeriod = (close / open) - 1;
-              // Wrong change percent calculation.
-              // changePercentInPeriod = changeInPeriod / close;
+                changeInPeriod = close - open;
+                changePercentInPeriod = (close / open) - 1;
+                // Wrong change percent calculation.
+                // changePercentInPeriod = changeInPeriod / close;
 
-              // Since the chart is not candlesticks, each point is the opening value of the time span,
-              // so add a final point at an extra increment of time span to account for the closing value.
-              Duration intervalDuration = Duration.zero;
-              switch (portfolioHistoricals!.interval) {
-                case 'month':
-                  intervalDuration = Duration(days: 30);
-                  break;
-                case 'week':
-                  intervalDuration = Duration(days: 7);
-                  break;
-                case 'day':
-                  intervalDuration = Duration(days: 1);
-                  break;
-                case 'hour':
-                  intervalDuration = Duration(hours: 1);
-                  break;
-                case '10minute':
-                  intervalDuration = Duration(minutes: 10);
-                  break;
-                case '5minute':
-                  intervalDuration = Duration(minutes: 5);
-                  break;
-                case '15second':
-                  intervalDuration = Duration(seconds: 15);
-                  break;
-              }
-              var adjDate = allHistoricals.last.beginsAt!.add(intervalDuration);
-              if (adjDate.compareTo(now) >= 0) {
-                adjDate = now;
-              }
-              allHistoricals.add(EquityHistorical(
-                  allHistoricals.last.adjustedCloseEquity,
-                  allHistoricals.last.adjustedCloseEquity,
-                  allHistoricals.last.closeEquity,
-                  allHistoricals.last.closeEquity,
-                  allHistoricals.last.closeMarketValue,
-                  allHistoricals.last.closeMarketValue,
-                  adjDate,
-                  allHistoricals.last.netReturn,
-                  allHistoricals.last.session));
+                // Since the chart is not candlesticks, each point is the opening value of the time span,
+                // so add a final point at an extra increment of time span to account for the closing value.
+                Duration intervalDuration = Duration.zero;
+                switch (portfolioHistoricals!.interval) {
+                  case 'month':
+                    intervalDuration = Duration(days: 30);
+                    break;
+                  case 'week':
+                    intervalDuration = Duration(days: 7);
+                    break;
+                  case 'day':
+                    intervalDuration = Duration(days: 1);
+                    break;
+                  case 'hour':
+                    intervalDuration = Duration(hours: 1);
+                    break;
+                  case '10minute':
+                    intervalDuration = Duration(minutes: 10);
+                    break;
+                  case '5minute':
+                    intervalDuration = Duration(minutes: 5);
+                    break;
+                  case '15second':
+                    intervalDuration = Duration(seconds: 15);
+                    break;
+                }
+                var adjDate =
+                    allHistoricals.last.beginsAt!.add(intervalDuration);
+                if (adjDate.compareTo(now) >= 0) {
+                  adjDate = now;
+                }
+                allHistoricals.add(EquityHistorical(
+                    allHistoricals.last.adjustedCloseEquity,
+                    allHistoricals.last.adjustedCloseEquity,
+                    allHistoricals.last.closeEquity,
+                    allHistoricals.last.closeEquity,
+                    allHistoricals.last.closeMarketValue,
+                    allHistoricals.last.closeMarketValue,
+                    adjDate,
+                    allHistoricals.last.netReturn,
+                    allHistoricals.last.session));
 
-              /*
+                /*
               var brightness = MediaQuery.of(context).platformBrightness;
               var textColor = Theme.of(context).colorScheme.background;
               if (brightness == Brightness.dark) {
@@ -680,322 +708,258 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 textColor = Colors.grey.shade800;
               }
               */
-              var provider = Provider.of<PortfolioHistoricalsSelectionStore>(
-                  context,
-                  listen: false);
-              TimeSeriesChart historicalChart = TimeSeriesChart(
-                [
-                  charts.Series<EquityHistorical, DateTime>(
-                    id: 'Adjusted Equity',
-                    colorFn: (_, __) => charts.ColorUtil.fromDartColor(
-                        Theme.of(context).colorScheme.primary),
-                    // strokeWidthPxFn: (EquityHistorical history, index) => 1,
-                    //charts.MaterialPalette.blue.shadeDefault,
-                    domainFn: (EquityHistorical history, _) =>
-                        history.beginsAt!,
-                    //filteredEquityHistoricals.indexOf(history),
-                    measureFn: (EquityHistorical history, index) =>
-                        history.adjustedOpenEquity,
-                    labelAccessorFn: (EquityHistorical history, index) =>
-                        formatCompactNumber
-                            .format((history.adjustedOpenEquity)),
-                    data:
-                        allHistoricals, // portfolioHistoricals!.equityHistoricals,
-                  ),
-                  charts.Series<EquityHistorical, DateTime>(
-                      id: 'Equity',
-                      colorFn: (_, __) =>
-                          charts.MaterialPalette.green.shadeDefault,
+                var provider = Provider.of<PortfolioHistoricalsSelectionStore>(
+                    context,
+                    listen: false);
+                TimeSeriesChart historicalChart = TimeSeriesChart(
+                  [
+                    charts.Series<EquityHistorical, DateTime>(
+                      id: 'Adjusted Equity',
+                      colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                          Theme.of(context).colorScheme.primary),
                       // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                      //charts.MaterialPalette.blue.shadeDefault,
                       domainFn: (EquityHistorical history, _) =>
                           history.beginsAt!,
                       //filteredEquityHistoricals.indexOf(history),
                       measureFn: (EquityHistorical history, index) =>
-                          history.openEquity,
+                          history.adjustedOpenEquity,
+                      labelAccessorFn: (EquityHistorical history, index) =>
+                          formatCompactNumber
+                              .format((history.adjustedOpenEquity)),
                       data:
-                          allHistoricals // portfolioHistoricals!.equityHistoricals
-                      ),
-                  charts.Series<EquityHistorical, DateTime>(
-                      id: 'Market Value',
-                      colorFn: (_, __) =>
-                          charts.MaterialPalette.red.shadeDefault,
-                      // strokeWidthPxFn: (EquityHistorical history, index) => 1,
-                      domainFn: (EquityHistorical history, _) =>
-                          history.beginsAt!,
-                      //filteredEquityHistoricals.indexOf(history),
-                      measureFn: (EquityHistorical history, index) =>
-                          history.openMarketValue,
-                      data:
-                          allHistoricals // portfolioHistoricals!.equityHistoricals
-                      ),
-                ],
-                animate: animateChart,
-                zeroBound: false,
-                open: open,
-                close: close,
-                seriesLegend: charts.SeriesLegend(
-                  horizontalFirst: true,
-                  position: charts.BehaviorPosition.top,
-                  defaultHiddenSeries: const ['Equity', 'Market Value'],
-                  // To show value on legend upon selection
-                  // showMeasures: true,
-                  measureFormatter: (measure) =>
-                      measure != null ? formatPercentage.format(measure) : '',
-                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                ),
-                onSelected: (charts.SelectionModel<dynamic>? model) {
-                  provider.selectionChanged(
-                      model?.selectedDatum.first.datum); //?.first
-                },
-                symbolRenderer: TextSymbolRenderer(() {
-                  firstHistorical = portfolioHistoricals!.equityHistoricals[0];
-                  open = firstHistorical!.adjustedOpenEquity!;
-                  if (provider.selection != null) {
-                    changeInPeriod = provider.selection!.adjustedCloseEquity! -
-                        open; // portfolios![0].equityPreviousClose!;
-                    changePercentInPeriod = provider
-                                .selection!.adjustedCloseEquity! /
-                            open -
-                        1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
-                  } else {
-                    changeInPeriod = close - open;
-                    changePercentInPeriod =
-                        (close / open) - 1; // changeInPeriod / close;
-                  }
-                  // String? returnText = widget.user.getDisplayText(changeInPeriod,
-                  //     displayValue: DisplayValue.totalReturn);
-                  // String? returnPercentText = widget.user.getDisplayText(
-                  //     changePercentInPeriod,
-                  //     displayValue: DisplayValue.totalReturnPercent);
-                  return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
-                  // \n$returnText $returnPercentText
-                }, marginBottom: 16),
-              );
-
-              return SliverToBoxAdapter(
-                  child: Stack(
-                children: [
-                  if (done == false) ...[
-                    const SizedBox(
-                      height: 3, //150.0,
-                      child: Align(
-                          alignment: Alignment.center,
-                          child: Center(
-                              child: LinearProgressIndicator(
-                                  //value: controller.value,
-                                  //semanticsLabel: 'Linear progress indicator',
-                                  ) //CircularProgressIndicator(),
-                              )),
-                    )
+                          allHistoricals, // portfolioHistoricals!.equityHistoricals,
+                    ),
+                    charts.Series<EquityHistorical, DateTime>(
+                        id: 'Equity',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.green.shadeDefault,
+                        // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                        domainFn: (EquityHistorical history, _) =>
+                            history.beginsAt!,
+                        //filteredEquityHistoricals.indexOf(history),
+                        measureFn: (EquityHistorical history, index) =>
+                            history.openEquity,
+                        data:
+                            allHistoricals // portfolioHistoricals!.equityHistoricals
+                        ),
+                    charts.Series<EquityHistorical, DateTime>(
+                        id: 'Market Value',
+                        colorFn: (_, __) =>
+                            charts.MaterialPalette.red.shadeDefault,
+                        // strokeWidthPxFn: (EquityHistorical history, index) => 1,
+                        domainFn: (EquityHistorical history, _) =>
+                            history.beginsAt!,
+                        //filteredEquityHistoricals.indexOf(history),
+                        measureFn: (EquityHistorical history, index) =>
+                            history.openMarketValue,
+                        data:
+                            allHistoricals // portfolioHistoricals!.equityHistoricals
+                        ),
                   ],
-                  Column(children: [
-                    SizedBox(
-                        height: 460, // 240,
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 10.0),
-                          //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                          //padding: const EdgeInsets.all(10.0),
-                          child: historicalChart,
-                        )),
-                    Consumer<PortfolioHistoricalsSelectionStore>(
-                        builder: (context, value, child) {
-                      var selection = value.selection;
-                      if (selection != null) {
-                        changeInPeriod = selection.adjustedCloseEquity! -
-                            open; // portfolios![0].equityPreviousClose!;
-                        changePercentInPeriod = selection.adjustedCloseEquity! /
-                                open -
-                            1; // changeInPeriod / selection.adjustedCloseEquity!;
-                      } else {
-                        changeInPeriod = close - open;
-                        changePercentInPeriod =
-                            close / open - 1; // changeInPeriod / close;
-                      }
-                      String? returnText = widget.brokerageUser.getDisplayText(
-                          changeInPeriod,
-                          displayValue: DisplayValue.totalReturn);
-                      String? returnPercentText = widget.brokerageUser
-                          .getDisplayText(changePercentInPeriod,
-                              displayValue: DisplayValue.totalReturnPercent);
-                      Icon todayIcon = widget.brokerageUser
-                          .getDisplayIcon(changeInPeriod, size: 26.0);
+                  animate: animateChart,
+                  zeroBound: false,
+                  open: open,
+                  close: close,
+                  seriesLegend: charts.SeriesLegend(
+                    horizontalFirst: true,
+                    position: charts.BehaviorPosition.top,
+                    defaultHiddenSeries: const ['Equity', 'Market Value'],
+                    // To show value on legend upon selection
+                    // showMeasures: true,
+                    measureFormatter: (measure) =>
+                        measure != null ? formatPercentage.format(measure) : '',
+                    // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                  ),
+                  onSelected: (charts.SelectionModel<dynamic>? model) {
+                    provider.selectionChanged(
+                        model?.selectedDatum.first.datum); //?.first
+                  },
+                  symbolRenderer: TextSymbolRenderer(() {
+                    firstHistorical =
+                        portfolioHistoricals!.equityHistoricals[0];
+                    open = firstHistorical!.adjustedOpenEquity!;
+                    if (provider.selection != null) {
+                      changeInPeriod =
+                          provider.selection!.adjustedCloseEquity! -
+                              open; // portfolios![0].equityPreviousClose!;
+                      changePercentInPeriod = provider
+                                  .selection!.adjustedCloseEquity! /
+                              open -
+                          1; // changeInPeriod / provider.selection!.adjustedCloseEquity!;
+                    } else {
+                      changeInPeriod = close - open;
+                      changePercentInPeriod =
+                          (close / open) - 1; // changeInPeriod / close;
+                    }
+                    // String? returnText = widget.user.getDisplayText(changeInPeriod,
+                    //     displayValue: DisplayValue.totalReturn);
+                    // String? returnPercentText = widget.user.getDisplayText(
+                    //     changePercentInPeriod,
+                    //     displayValue: DisplayValue.totalReturnPercent);
+                    return "${formatCurrency.format(provider.selection != null ? provider.selection!.adjustedCloseEquity : close)}\n${formatCompactDateTimeWithHour.format(provider.selection != null ? provider.selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}";
+                    // \n$returnText $returnPercentText
+                  }, marginBottom: 16),
+                );
 
-                      //return Text(value.selection!.beginsAt.toString());
-                      return SizedBox(
-                          //height: 72,
-                          child: Column(
-                        children: [
-                          // ListTile(
-                          //     title: const Text(
-                          //       "Portfolio",
-                          //       style: TextStyle(fontSize: 19.0),
-                          //     ),
-                          //     subtitle: Text(
-                          //       // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                          //       formatLongDate.format(
-                          //           lastHistorical!.beginsAt!.toLocal()),
-                          //       // selection != null
-                          //       // ? selection!.beginsAt!.toLocal()
-                          //       // : lastHistorical!.beginsAt!.toLocal()),
-                          //       style: const TextStyle(fontSize: 10.0),
-                          //       overflow: TextOverflow.ellipsis,
-                          //     ),
-                          //     trailing: Wrap(spacing: 8, children: [
-                          //       Text(
-                          //         formatCurrency.format(close),
-                          //         // selection != null
-                          //         //  ? selection!.adjustedCloseEquity
-                          //         //  : close),
-                          //         style: const TextStyle(fontSize: 21.0),
-                          //         textAlign: TextAlign.right,
-                          //       )
-                          //     ])
-                          //     /*
-                          //     Wrap(
-                          //       children: [
-                          //         Text(
-                          //             formatCurrency.format(selection != null
-                          //                 ? selection!.adjustedCloseEquity
-                          //                 : close),
-                          //             style: TextStyle(
-                          //                 fontSize: 19, color: textColor)),
-                          //         Container(
-                          //           width: 10,
-                          //         ),
-                          //         Icon(
-                          //           changeInPeriod > 0
-                          //               ? Icons.trending_up
-                          //               : (changeInPeriod < 0
-                          //                   ? Icons.trending_down
-                          //                   : Icons.trending_flat),
-                          //           color: (changeInPeriod > 0
-                          //               ? Colors.green
-                          //               : (changeInPeriod < 0
-                          //                   ? Colors.red
-                          //                   : Colors.grey)),
-                          //           //size: 16.0
-                          //         ),
-                          //         Container(
-                          //           width: 2,
-                          //         ),
-                          //         Text(
-                          //             formatPercentage
-                          //                 //.format(selection!.netReturn!.abs()),
-                          //                 .format(changePercentInPeriod.abs()),
-                          //             style: TextStyle(
-                          //                 fontSize: 19.0, color: textColor)),
-                          //         Container(
-                          //           width: 10,
-                          //         ),
-                          //         Text(
-                          //             "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${formatCurrency.format(changeInPeriod.abs())}",
-                          //             style: TextStyle(
-                          //                 fontSize: 19.0, color: textColor)),
-                          //       ],
-                          //     )*/
-                          //     ),
-                          SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 5),
-                                  child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                Text(
-                                                    formatCurrency.format(
-                                                        selection != null
-                                                            ? selection
-                                                                .adjustedCloseEquity
-                                                            : close),
-                                                    textAlign: TextAlign.right,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                                Text(
-                                                    formatMediumDateTime.format(
-                                                        selection != null
-                                                            ? selection
-                                                                .beginsAt!
-                                                                .toLocal()
-                                                            : lastHistorical!
-                                                                .beginsAt!
-                                                                .toLocal()), // "Value",
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryLabelFontSize)),
-                                              ]),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                Wrap(spacing: 8, children: [
-                                                  todayIcon,
-                                                  Text(returnText,
+                return SliverToBoxAdapter(
+                    child: Stack(
+                  children: [
+                    if (done == false) ...[
+                      const SizedBox(
+                        height: 3, //150.0,
+                        child: Align(
+                            alignment: Alignment.center,
+                            child: Center(
+                                child: LinearProgressIndicator(
+                                    //value: controller.value,
+                                    //semanticsLabel: 'Linear progress indicator',
+                                    ) //CircularProgressIndicator(),
+                                )),
+                      )
+                    ],
+                    Column(children: [
+                      SizedBox(
+                          height: 460, // 240,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                10.0, 10.0, 10.0, 10.0),
+                            //padding: EdgeInsets.symmetric(horizontal: 10.0),
+                            //padding: const EdgeInsets.all(10.0),
+                            child: historicalChart,
+                          )),
+                      Consumer<PortfolioHistoricalsSelectionStore>(
+                          builder: (context, value, child) {
+                        var selection = value.selection;
+                        if (selection != null) {
+                          changeInPeriod = selection.adjustedCloseEquity! -
+                              open; // portfolios![0].equityPreviousClose!;
+                          changePercentInPeriod = selection
+                                      .adjustedCloseEquity! /
+                                  open -
+                              1; // changeInPeriod / selection.adjustedCloseEquity!;
+                        } else {
+                          changeInPeriod = close - open;
+                          changePercentInPeriod =
+                              close / open - 1; // changeInPeriod / close;
+                        }
+                        String? returnText = widget.brokerageUser
+                            .getDisplayText(changeInPeriod,
+                                displayValue: DisplayValue.totalReturn);
+                        String? returnPercentText = widget.brokerageUser
+                            .getDisplayText(changePercentInPeriod,
+                                displayValue: DisplayValue.totalReturnPercent);
+                        Icon todayIcon = widget.brokerageUser
+                            .getDisplayIcon(changeInPeriod, size: 26.0);
+
+                        //return Text(value.selection!.beginsAt.toString());
+                        return SizedBox(
+                            //height: 72,
+                            child: Column(
+                          children: [
+                            SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 5),
+                                    child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(
+                                                summaryEgdeInset), //.symmetric(horizontal: 6),
+                                            child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: <Widget>[
+                                                  Text(
+                                                      formatCurrency.format(
+                                                          selection != null
+                                                              ? selection
+                                                                  .adjustedCloseEquity
+                                                              : close),
+                                                      textAlign:
+                                                          TextAlign.right,
                                                       style: const TextStyle(
                                                           fontSize:
-                                                              summaryValueFontSize))
+                                                              summaryValueFontSize)),
+                                                  Text(
+                                                      formatMediumDateTime
+                                                          .format(selection !=
+                                                                  null
+                                                              ? selection
+                                                                  .beginsAt!
+                                                                  .toLocal()
+                                                              : lastHistorical!
+                                                                  .beginsAt!
+                                                                  .toLocal()), // "Value",
+                                                      style: const TextStyle(
+                                                          fontSize:
+                                                              summaryLabelFontSize)),
                                                 ]),
-                                                const Text("Change",
-                                                    style: TextStyle(
-                                                        fontSize:
-                                                            summaryLabelFontSize)),
-                                              ]),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                Text(returnPercentText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                                const Text("Change %",
-                                                    style: TextStyle(
-                                                        fontSize:
-                                                            summaryLabelFontSize)),
-                                              ]),
-                                        ),
-                                        // Padding(
-                                        //   padding: const EdgeInsets.all(
-                                        //       summaryEgdeInset), //.symmetric(horizontal: 6),
-                                        //   child: Column(
-                                        //       mainAxisSize: MainAxisSize.min,
-                                        //       children: <Widget>[
-                                        //         const Text(
-                                        //           "",
-                                        //           // formatLongDate.format(selection != null
-                                        //           // ? selection!.beginsAt!.toLocal()
-                                        //           //: lastHistorical!.beginsAt!.toLocal()),
-                                        //         textAlign: TextAlign.right,
-                                        //             style: TextStyle(
-                                        //                 fontSize:
-                                        //                     summaryValueFontSize)),
-                                        //         Text(formatLongDate.format(selection != null
-                                        //           ? selection!.beginsAt!.toLocal()
-                                        //           : lastHistorical!.beginsAt!.toLocal()),
-                                        //           //"Date",
-                                        //             style: TextStyle(
-                                        //                 fontSize:
-                                        //                     summaryLabelFontSize)),
-                                        //       ]),
-                                        // ),
-                                      ])))
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(
+                                                summaryEgdeInset), //.symmetric(horizontal: 6),
+                                            child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: <Widget>[
+                                                  Wrap(spacing: 8, children: [
+                                                    todayIcon,
+                                                    Text(returnText,
+                                                        style: const TextStyle(
+                                                            fontSize:
+                                                                summaryValueFontSize))
+                                                  ]),
+                                                  const Text("Change",
+                                                      style: TextStyle(
+                                                          fontSize:
+                                                              summaryLabelFontSize)),
+                                                ]),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(
+                                                summaryEgdeInset), //.symmetric(horizontal: 6),
+                                            child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: <Widget>[
+                                                  Text(returnPercentText,
+                                                      style: const TextStyle(
+                                                          fontSize:
+                                                              summaryValueFontSize)),
+                                                  const Text("Change %",
+                                                      style: TextStyle(
+                                                          fontSize:
+                                                              summaryLabelFontSize)),
+                                                ]),
+                                          ),
+                                          // Padding(
+                                          //   padding: const EdgeInsets.all(
+                                          //       summaryEgdeInset), //.symmetric(horizontal: 6),
+                                          //   child: Column(
+                                          //       mainAxisSize: MainAxisSize.min,
+                                          //       children: <Widget>[
+                                          //         const Text(
+                                          //           "",
+                                          //           // formatLongDate.format(selection != null
+                                          //           // ? selection!.beginsAt!.toLocal()
+                                          //           //: lastHistorical!.beginsAt!.toLocal()),
+                                          //         textAlign: TextAlign.right,
+                                          //             style: TextStyle(
+                                          //                 fontSize:
+                                          //                     summaryValueFontSize)),
+                                          //         Text(formatLongDate.format(selection != null
+                                          //           ? selection!.beginsAt!.toLocal()
+                                          //           : lastHistorical!.beginsAt!.toLocal()),
+                                          //           //"Date",
+                                          //             style: TextStyle(
+                                          //                 fontSize:
+                                          //                     summaryLabelFontSize)),
+                                          //       ]),
+                                          // ),
+                                        ])))
 
-                          /*
+                            /*
                             ListTile(
                               title:
                                   Wrap(
@@ -1045,7 +1009,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                   style: const TextStyle(fontSize: 12.0)),
                             )
                             */
-                          /*
+                            /*
                       trailing: Wrap(
                         children: [
                           Text(
@@ -1086,7 +1050,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         ],
                       ),
                       */
-                          /*
+                            /*
                     Wrap(
                       children: [
                         Text(formatCurrency.format(close),
@@ -1125,203 +1089,205 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
                         style: TextStyle(fontSize: 10, color: textColor)),
                         */
-                        ],
-                      ));
-                    }),
-                    SizedBox(
-                        height: 56,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(5.0),
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) {
-                            return Row(children: [
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('Hour'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.hour,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.hour,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                          ],
+                        ));
+                      }),
+                      SizedBox(
+                          height: 56,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(5.0),
+                            scrollDirection: Axis.horizontal,
+                            itemBuilder: (context, index) {
+                              return Row(children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('Hour'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.hour,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.hour,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  //selectedColor: Theme.of(context).colorScheme.primaryContainer,
-                                  //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
-                                  label: const Text('Day'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.day,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(
-                                          ChartDateSpan.day, chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    //selectedColor: Theme.of(context).colorScheme.primaryContainer,
+                                    //labelStyle: TextStyle(color: Theme.of(context).colorScheme.background),
+                                    label: const Text('Day'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.day,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.day,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('Week'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.week,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.week,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('Week'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.week,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.week,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('Month'),
-                                  selected: chartDateSpanFilter ==
-                                      ChartDateSpan.month,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.month,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('Month'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.month,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.month,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('3 Months'),
-                                  selected: chartDateSpanFilter ==
-                                      ChartDateSpan.month_3,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.month_3,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('3 Months'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.month_3,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.month_3,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('YTD'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.ytd,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(
-                                          ChartDateSpan.ytd, chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('YTD'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.ytd,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.ytd,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('Year'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.year,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.year,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('Year'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.year,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.year,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('5 Years'),
-                                  selected: chartDateSpanFilter ==
-                                      ChartDateSpan.year_5,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(ChartDateSpan.year_5,
-                                          chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('5 Years'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.year_5,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.year_5,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('All'),
-                                  selected:
-                                      chartDateSpanFilter == ChartDateSpan.all,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(
-                                          ChartDateSpan.all, chartBoundsFilter);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('All'),
+                                    selected: chartDateSpanFilter ==
+                                        ChartDateSpan.all,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(ChartDateSpan.all,
+                                            chartBoundsFilter);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                              Container(
-                                width: 10,
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('Regular Hours'),
-                                  selected: chartBoundsFilter == Bounds.regular,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(
-                                          chartDateSpanFilter, Bounds.regular);
-                                    }
-                                  },
+                                Container(
+                                  width: 10,
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(4.0),
-                                child: ChoiceChip(
-                                  //avatar: const Icon(Icons.history_outlined),
-                                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                  label: const Text('24/7 Hours'),
-                                  selected: chartBoundsFilter == Bounds.t24_7,
-                                  onSelected: (bool value) {
-                                    if (value) {
-                                      resetChart(
-                                          chartDateSpanFilter, Bounds.t24_7);
-                                    }
-                                  },
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('Regular Hours'),
+                                    selected:
+                                        chartBoundsFilter == Bounds.regular,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(chartDateSpanFilter,
+                                            Bounds.regular);
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ]);
-                          },
-                          itemCount: 1,
-                        )),
-                  ])
-                ],
-              ));
-            }),
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ChoiceChip(
+                                    //avatar: const Icon(Icons.history_outlined),
+                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                    label: const Text('24/7 Hours'),
+                                    selected: chartBoundsFilter == Bounds.t24_7,
+                                    onSelected: (bool value) {
+                                      if (value) {
+                                        resetChart(
+                                            chartDateSpanFilter, Bounds.t24_7);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ]);
+                            },
+                            itemCount: 1,
+                          )),
+                    ])
+                  ],
+                ));
+              }),
+            ],
             Consumer4<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore>(
                 builder: (context, portfolioStore, stockPositionStore,
@@ -1505,7 +1471,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     // trailing: Wrap(spacing: 8, children: [
                     //   Text(
                     //     "${(positionEquityPercent * 100).round()}:${(optionEquityPercent * 100).round()}:${(cryptoPercent * 100).round()}:${(cashPercent * 100).round()}%",
-                    //     style: const TextStyle(fontSize: 21.0),
+                    //     style: const TextStyle(fontSize: assetValueFontSize),
                     //     textAlign: TextAlign.right,
                     //   )
                     // ]),
@@ -1703,32 +1669,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 ],
               ));
             }),
-            Consumer3<DividendStore, InterestStore, InstrumentPositionStore>(
-                //, ChartSelectionStore
-                builder: (context, dividendStore, interestStore,
-                    instrumentPositionStore, child) {
-              //, chartSelectionStore
-              // var dividendStore =
-              //     Provider.of<DividendStore>(context, listen: false);
-              // var interestStore =
-              //     Provider.of<InterestStore>(context, listen: false);
-              // var instrumentPositionStore =
-              //     Provider.of<InstrumentPositionStore>(context, listen: false);
-              var chartSelectionStore =
-                  Provider.of<ChartSelectionStore>(context, listen: false);
-              return IncomeTransactionsWidget(
-                  widget.brokerageUser,
-                  widget.service,
-                  dividendStore,
-                  instrumentPositionStore,
-                  chartSelectionStore,
-                  interestStore: interestStore,
-                  showChips: false,
-                  showList: false,
-                  showFooter: false,
-                  analytics: widget.analytics,
-                  observer: widget.observer);
-            }),
+            if (widget.brokerageUser.source == BrokerageSource.robinhood ||
+                widget.brokerageUser.source == BrokerageSource.demo) ...[
+              Consumer2<DividendStore, InterestStore>(
+                  //, ChartSelectionStore
+                  builder: (context, dividendStore, interestStore, child) {
+                //, chartSelectionStore
+                // var dividendStore =
+                //     Provider.of<DividendStore>(context, listen: false);
+                // var interestStore =
+                //     Provider.of<InterestStore>(context, listen: false);
+                var instrumentPositionStore =
+                    Provider.of<InstrumentPositionStore>(context,
+                        listen: false);
+                var chartSelectionStore =
+                    Provider.of<ChartSelectionStore>(context, listen: false);
+                return IncomeTransactionsWidget(
+                    widget.brokerageUser,
+                    widget.service,
+                    dividendStore,
+                    instrumentPositionStore,
+                    chartSelectionStore,
+                    interestStore: interestStore,
+                    showChips: false,
+                    showList: false,
+                    showFooter: false,
+                    analytics: widget.analytics,
+                    observer: widget.observer);
+              }),
+            ],
             FutureBuilder(
               future: Future.wait([
                 futureMarketIndexHistoricalsSp500 as Future,
@@ -1741,11 +1710,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 if (snapshot.hasData) {
                   var sp500 = snapshot.data![0];
                   var nasdaq = snapshot.data![1];
-                  var portfolio = snapshot.data![2] as PortfolioHistoricals?;
-                  if (portfolio != null) {
+                  var portfolioHistoricals =
+                      snapshot.data![2] as PortfolioHistoricals?;
+                  if (portfolioHistoricals != null) {
                     final DateTime now = DateTime.now();
                     final DateTime newYearsDay = DateTime(now.year, 1, 1);
-                    var ytdportfolio = portfolio.equityHistoricals
+                    var ytdportfolio = portfolioHistoricals.equityHistoricals
                         // .where((element) =>
                         //     element.beginsAt!.compareTo(newYearsDay) >= 0)
                         .toList();
@@ -1968,11 +1938,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               ),
                               subtitle: Text(
                                   "Compare S&P 500, Nasdaq benchmarks (YTD)"),
-                              // subtitle: Text("S&P 500 • Nasdaq (YTD)"),
                               // trailing: Wrap(spacing: 8, children: [
                               //   Text(
                               //     '${portfoliodiffsp500 > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffsp500)}  ${portfoliodiffnasdaq > 0 ? '+' : ''}${formatPercentage.format(portfoliodiffnasdaq)}', // seriesDataportfolio.last['value']
-                              //     style: const TextStyle(fontSize: 21.0),
+                              //     style: const TextStyle(fontSize: assetValueFontSize),
                               //     textAlign: TextAlign.right,
                               //   )
                               // ]),
@@ -2124,7 +2093,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   child: SizedBox(
                 height: 25.0,
               )),
-              SliverToBoxAdapter(child: AdBannerWidget()),
+              SliverToBoxAdapter(
+                  child: AdBannerWidget(
+                size: AdSize.mediumRectangle,
+                // searchBanner: true,
+              )),
             ],
             const SliverToBoxAdapter(
                 child: SizedBox(
@@ -2156,48 +2129,81 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   }
 
   _refresh() async {
+    var random = Random();
+    final maxDelay = 15000;
     if (widget.brokerageUser.refreshEnabled &&
-        widget.brokerageUser.source == BrokerageSource.robinhood &&
         (_notification == null || _notification == AppLifecycleState.resumed)) {
-      if (account != null) {
-        // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
-        // await service.getAccounts(
-        //     widget.user,
-        //     Provider.of<AccountStore>(context, listen: false),
-        //     Provider.of<PortfolioStore>(context, listen: false),
-        //     Provider.of<OptionPositionStore>(context, listen: false));
-        // if (!mounted) return;
-        await widget.service.getPortfolioHistoricals(
+      if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+        if (account != null) {
+          // // Added to attempt to fix a bug where cash balance does not refresh. TODO: Confirm
+          // await service.getAccounts(
+          //     widget.user,
+          //     Provider.of<AccountStore>(context, listen: false),
+          //     Provider.of<PortfolioStore>(context, listen: false),
+          //     Provider.of<OptionPositionStore>(context, listen: false));
+          var newRandom = (random.nextDouble() * maxDelay).toInt();
+          debugPrint('getPortfolioHistoricals scheduled in $newRandom');
+          Future.delayed(Duration(milliseconds: newRandom), () async {
+            if (!mounted) return;
+            await widget.service.getPortfolioHistoricals(
+                widget.brokerageUser,
+                Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+                account!.accountNumber,
+                chartBoundsFilter,
+                // Use the faster increment hour chart to append to the day chart.
+                chartDateSpanFilter == ChartDateSpan.day
+                    ? ChartDateSpan.hour
+                    : chartDateSpanFilter);
+          });
+        }
+        var newRandom = (random.nextDouble() * maxDelay).toInt();
+        debugPrint('refreshOptionMarketData scheduled in $newRandom');
+        Future.delayed(Duration(milliseconds: newRandom), () async {
+          if (!mounted) return;
+          await widget.service.refreshOptionMarketData(
+              widget.brokerageUser,
+              Provider.of<OptionPositionStore>(context, listen: false),
+              Provider.of<OptionInstrumentStore>(context, listen: false));
+        });
+
+        newRandom = (random.nextDouble() * maxDelay).toInt();
+        debugPrint('refreshPositionQuote scheduled in $newRandom');
+        Future.delayed(Duration(milliseconds: newRandom), () async {
+          if (!mounted) return;
+          await widget.service.refreshPositionQuote(
+              widget.brokerageUser,
+              Provider.of<InstrumentPositionStore>(context, listen: false),
+              Provider.of<QuoteStore>(context, listen: false));
+        });
+
+        newRandom = (random.nextDouble() * maxDelay).toInt();
+        debugPrint('getPortfolios scheduled in $newRandom');
+        Future.delayed(Duration(milliseconds: newRandom), () async {
+          if (!mounted) return;
+          await widget.service.getPortfolios(widget.brokerageUser,
+              Provider.of<PortfolioStore>(context, listen: false));
+        });
+
+        newRandom = (random.nextDouble() * maxDelay).toInt();
+        debugPrint('refreshNummusHoldings scheduled in $newRandom');
+        Future.delayed(Duration(milliseconds: newRandom), () async {
+          if (!mounted) return;
+          await widget.service.refreshNummusHoldings(
             widget.brokerageUser,
-            Provider.of<PortfolioHistoricalsStore>(context, listen: false),
-            account!.accountNumber,
-            chartBoundsFilter,
-            // Use the faster increment hour chart to append to the day chart.
-            chartDateSpanFilter == ChartDateSpan.day
-                ? ChartDateSpan.hour
-                : chartDateSpanFilter);
+            Provider.of<ForexHoldingStore>(context, listen: false),
+          );
+        });
       }
-      if (!mounted) return;
-      await widget.service.refreshOptionMarketData(
-          widget.brokerageUser,
-          Provider.of<OptionPositionStore>(context, listen: false),
-          Provider.of<OptionInstrumentStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.refreshPositionQuote(
-          widget.brokerageUser,
-          Provider.of<InstrumentPositionStore>(context, listen: false),
-          Provider.of<QuoteStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.getPortfolios(widget.brokerageUser,
-          Provider.of<PortfolioStore>(context, listen: false));
-
-      if (!mounted) return;
-      await widget.service.refreshNummusHoldings(
-        widget.brokerageUser,
-        Provider.of<ForexHoldingStore>(context, listen: false),
-      );
+      if (widget.brokerageUser.source == BrokerageSource.schwab) {
+        futureAccounts = widget.service.getAccounts(
+            widget.brokerageUser,
+            Provider.of<AccountStore>(context, listen: false),
+            Provider.of<PortfolioStore>(context, listen: false),
+            Provider.of<OptionPositionStore>(context, listen: false),
+            instrumentPositionStore:
+                Provider.of<InstrumentPositionStore>(context, listen: false),
+            userDoc: widget.userDoc);
+      }
     }
   }
 
@@ -2283,6 +2289,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
       ..removeCurrentSnackBar()
       ..showSnackBar(SnackBar(
           content: Text("Downloaded ${file.path.split('/').last}"),
+          behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: 'Open',
             onPressed: () {

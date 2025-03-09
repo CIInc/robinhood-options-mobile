@@ -4,6 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -490,12 +491,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          viewport: charts.DateTimeExtents(
-              start: DateTime(DateTime.now().year - 1, DateTime.now().month, 1),
-              // DateTime.now().subtract(Duration(days: 365)),
-              // end: DateTime.now())),
-              end:
-                  DateTime.now().add(Duration(days: 29 - DateTime.now().day)))),
+          viewport: transactionSymbolFilters.isNotEmpty
+              ? null
+              : charts.DateTimeExtents(
+                  start:
+                      // transactionSymbolFilters.isNotEmpty ? groupedDividendsData.map((d) => d.key).min :
+                      DateTime(
+                          DateTime.now().year - 1, DateTime.now().month, 1),
+                  // DateTime.now().subtract(Duration(days: 365)),
+                  // end: DateTime.now())),
+                  end: DateTime.now()
+                      .add(Duration(days: 29 - DateTime.now().day)))),
       // .add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
         // showAxisLine: true,
@@ -556,7 +562,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         trailing: Wrap(spacing: 8, children: [
           Text(
             formatCurrency.format(0),
-            style: const TextStyle(fontSize: 21.0),
+            style: const TextStyle(fontSize: assetValueFontSize),
             textAlign: TextAlign.right,
           )
         ]),
@@ -591,11 +597,26 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           subtitle: Text(
               "last 12 months"), //  (total: ${formatCompactCurrency.format(totalIncome)})
           trailing: Wrap(spacing: 8, children: [
-            Text(
-              formatCurrency.format(pastYearTotalIncome),
-              style: const TextStyle(fontSize: 21.0),
-              textAlign: TextAlign.right,
-            ),
+            AnimatedSwitcher(
+              duration: Duration(milliseconds: 200),
+              // transitionBuilder:
+              //     (Widget child, Animation<double> animation) {
+              //   return SlideTransition(
+              //       position: (Tween<Offset>(
+              //               begin: Offset(0, -0.25), end: Offset.zero))
+              //           .animate(animation),
+              //       child: child);
+              // },
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Text(
+                key: ValueKey<String>(pastYearTotalIncome.toString()),
+                formatCurrency.format(pastYearTotalIncome),
+                style: const TextStyle(fontSize: assetValueFontSize),
+                textAlign: TextAlign.right,
+              ),
+            )
             // if (pastYearYield != null) ...[
             //   Text('${formatPercentage.format(pastYearYield)} yield',
             //       style: const TextStyle(fontSize: 14)),
@@ -723,7 +744,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   trailing: Wrap(spacing: 8, children: [
                     // Text(
                     //   formatCurrency.format(marketValue),
-                    //   style: const TextStyle(fontSize: 21.0),
+                    //   style: const TextStyle(fontSize: positionValueFontSize),
                     //   textAlign: TextAlign.right,
                     // ),
                     if (adjustedReturnPercent! != 0) ...[
@@ -1299,7 +1320,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               child: SizedBox(
             height: 25.0,
           )),
-          SliverToBoxAdapter(child: AdBannerWidget()),
+          SliverToBoxAdapter(
+              child: AdBannerWidget(
+            size: AdSize.mediumRectangle,
+            // searchBanner: true,
+          )),
         ],
         const SliverToBoxAdapter(
             child: SizedBox(

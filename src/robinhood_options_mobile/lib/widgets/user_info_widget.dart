@@ -521,18 +521,27 @@ class UserInfoCardWidget extends StatelessWidget {
 
   Future<void> refreshToken(BuildContext context, BrokerageUser user) async {
     try {
+      debugPrint(user.oauth2Client!.identifier);
+      debugPrint(user.oauth2Client!.secret);
+      debugPrint(user.oauth2Client!.credentials.toJson());
       final newClient = await user.oauth2Client!.refreshCredentials();
       user.oauth2Client = newClient;
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text("Token refreshed.")));
+          ..showSnackBar(SnackBar(
+            content: Text("Token refreshed."),
+            behavior: SnackBarBehavior.floating,
+          ));
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text(e.toString())));
+          ..showSnackBar(SnackBar(
+            content: Text(e.toString()),
+            behavior: SnackBarBehavior.floating,
+          ));
       }
     }
   }

@@ -6,6 +6,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
@@ -387,24 +388,28 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             child: Wrap(spacing: 8, children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                child: Text(
-                  marketValueText,
-                  style: const TextStyle(fontSize: 21.0),
-                  textAlign: TextAlign.right,
+                child: AnimatedSwitcher(
+                  duration: Duration(milliseconds: 200),
+                  // transitionBuilder:
+                  //     (Widget child, Animation<double> animation) {
+                  //   return SlideTransition(
+                  //       position: (Tween<Offset>(
+                  //               begin: Offset(0, -0.25), end: Offset.zero))
+                  //           .animate(animation),
+                  //       child: child);
+                  // },
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                    return ScaleTransition(scale: animation, child: child);
+                  },
+                  child: Text(
+                    key: ValueKey<String>(marketValueText),
+                    marketValueText,
+                    style: const TextStyle(fontSize: assetValueFontSize),
+                    textAlign: TextAlign.right,
+                  ),
                 ),
               ),
-              /*
-                            if (icon != null) ...[
-                              icon,
-                            ],
-                            if (trailingText != null) ...[
-                              Text(
-                                trailingText,
-                                style: const TextStyle(fontSize: 21.0),
-                                textAlign: TextAlign.right,
-                              )
-                            ]
-                            */
             ]),
           ),
           onTap: widget.showList
@@ -528,7 +533,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
               child: SizedBox(
             height: 25.0,
           )),
-          SliverToBoxAdapter(child: AdBannerWidget()),
+          SliverToBoxAdapter(
+              child: AdBannerWidget(
+            size: AdSize.mediumRectangle,
+            // searchBanner: true,
+          )),
         ],
         const SliverToBoxAdapter(
             child: SizedBox(
@@ -648,7 +657,7 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           ],
           Text(
             trailingText,
-            style: const TextStyle(fontSize: 21.0),
+            style: const TextStyle(fontSize: positionValueFontSize),
             textAlign: TextAlign.right,
           )
         ]),

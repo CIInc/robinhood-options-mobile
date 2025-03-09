@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:intl/intl.dart';
-import 'package:oauth2/src/utils.dart';
+import 'package:oauth2/oauth2.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
@@ -48,6 +48,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
+import 'package:robinhood_options_mobile/utils/auth.dart';
 
 class SchwabService implements IBrokerageService {
   @override
@@ -65,39 +66,86 @@ class SchwabService implements IBrokerageService {
 
   // static const String scClientId = '1wzwOrhivb2PkR1UCAUVTKYqC4MTNYlj';
 
-  Future<String?> login() async {
-    // Present the dialog to the user
-    final url =
-        '$authEndpoint?response_type=code&client_id=$clientId&redirect_uri=$redirectUrl'; // %40AMER.OAUTHAP // &scope=readonly // Uri.encodeQueryComponent(
-    debugPrint(url);
-    String result;
-    try {
-      result = await FlutterWebAuth2.authenticate(
-        url: url,
-        callbackUrlScheme: 'investing-mobile',
-        // options: const FlutterWebAuth2Options(
-        //     preferEphemeral: true,
-        //     silentAuth: false,
-        //     useWebview: true,
-        //     httpsHost: 'realizealpha.web.app',
-        //     httpsPath: '')
-      );
-    } on Exception catch (e) {
-      // Format
-      debugPrint('login error: $e');
-      return null;
-    }
-    // on PlatformException {
-    //   // Handle exception by warning the user their action did not succeed
+  Future<BrokerageUser?> login() async {
+    // // Present the dialog to the user
+    // final url =
+    //     '$authEndpoint?response_type=code&client_id=$clientId&redirect_uri=$redirectUrl'; // %40AMER.OAUTHAP // &scope=readonly // Uri.encodeQueryComponent(
+    // debugPrint(url);
+    // String result;
+    // try {
+    //   result = await FlutterWebAuth2.authenticate(
+    //     url: url,
+    //     callbackUrlScheme: 'investing-mobile',
+    //     // options: const FlutterWebAuth2Options(
+    //     //     preferEphemeral: true,
+    //     //     silentAuth: false,
+    //     //     useWebview: true,
+    //     //     httpsHost: 'realizealpha.web.app',
+    //     //     httpsPath: '')
+    //   );
+    // } on Exception catch (e) {
+    //   // Format
+    //   debugPrint('login error: $e');
     //   return null;
     // }
-    // Extract token from resulting url
-    String? code = Uri.parse(result).queryParameters['code'];
+    // var user = await SchwabService()
+    //     .getAccessTokenFromLink(Uri.parse(result).queryParameters);
+    // return user;
 
-    // Extract token from resulting url
-    // debugPrint('code: ${code}');
-    return code!;
+    var codeGrant = AuthorizationCodeGrant(
+        clientId, authEndpoint, tokenEndpoint, secret: sc,
+        onCredentialsRefreshed: (creds) {
+      debugPrint('Credentials refreshed ${creds.toJson()}');
+    });
+    Uri authUri = codeGrant
+        .getAuthorizationUrl(Uri.parse(redirectUrl), scopes: ['internal']);
+    var result = await FlutterWebAuth2.authenticate(
+      url: authUri.toString(),
+      callbackUrlScheme: 'investing-mobile',
+      // options: const FlutterWebAuth2Options(
+      //     preferEphemeral: true,
+      //     silentAuth: false,
+      //     useWebview: true,
+      //     httpsHost: 'realizealpha.web.app',
+      //     httpsPath: '')
+    );
+
+    debugPrint('OAuth2 authorizationUrl created $authUri');
+    final client = await codeGrant
+        .handleAuthorizationResponse(Uri.parse(result).queryParameters);
+    debugPrint('OAuth2 client created');
+    debugPrint(jsonEncode(client.credentials));
+    var user = BrokerageUser(
+        BrokerageSource.schwab, '', client.credentials.toJson(), client);
+    //user.save(userStore).then((value) {});
+    return user;
+
+    // // Extract token from resulting url
+    // String? code = Uri.parse(result).queryParameters['code'];
+
+    // // Extract token from resulting url
+    // // debugPrint('code: ${code}');
+    // return code!;
   }
+
+  // Future<BrokerageUser?> getAccessTokenFromLink(
+  //     Map<String, String> parameters) async {
+  //   var codeGrant = AuthorizationCodeGrant(
+  //       clientId, authEndpoint, tokenEndpoint, secret: sc,
+  //       onCredentialsRefreshed: (creds) {
+  //     debugPrint('Credentials refreshed ${creds.toJson()}');
+  //   });
+  //   Uri authUri = codeGrant
+  //       .getAuthorizationUrl(Uri.parse(redirectUrl), scopes: ['internal']);
+  //   debugPrint('OAuth2 authorizationUrl created $authUri');
+  //   final client = await codeGrant.handleAuthorizationResponse(parameters);
+  //   debugPrint('OAuth2 client created');
+  //   debugPrint(jsonEncode(client.credentials));
+  //   var user = BrokerageUser(
+  //       BrokerageSource.schwab, '', client.credentials.toJson(), client);
+  //   //user.save(userStore).then((value) {});
+  //   return user;
+  // }
 
   Future<BrokerageUser?> getAccessToken(String code) async {
     // Use this code to get an access token
@@ -125,7 +173,7 @@ class SchwabService implements IBrokerageService {
       body: bodyStr,
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": basicAuthHeader(clientId, sc)
+        "Authorization": AuthUtil.basicAuthHeader(clientId, sc)
       },
       encoding: Encoding.getByName('utf-8'),
     );
@@ -157,8 +205,9 @@ class SchwabService implements IBrokerageService {
         ' ',
         clientId,
         sc,
-        null,
-        null);
+        null, (creds) {
+      debugPrint('Credentials refreshed ${creds.toJson()}');
+    });
     debugPrint('OAuth2 client created');
     debugPrint(jsonEncode(client.credentials));
     var user = BrokerageUser(
@@ -1320,7 +1369,19 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   @override
   Future<Quote> getQuote(BrokerageUser user, QuoteStore store, String symbol) {
     // TODO: implement getQuote
-    throw UnimplementedError();
+    return Future.value(Quote(
+        lastTradePrice: 0,
+        adjustedPreviousClose: 0,
+        askSize: 0,
+        askPrice: 0,
+        bidSize: 0,
+        bidPrice: 0,
+        symbol: symbol,
+        tradingHalted: false,
+        hasTraded: true,
+        lastTradePriceSource: '',
+        instrument: '',
+        instrumentId: ''));
   }
 
   @override
@@ -1354,33 +1415,41 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day,
       String? chartInterval}) {
     // TODO: implement getInstrumentHistoricals
-    throw UnimplementedError();
+    return Future.value(InstrumentHistoricals(
+        '', '', '', '', '', null, null, null, null, '', null, []));
   }
 
   @override
   Future<List<InstrumentOrder>> getInstrumentOrders(BrokerageUser user,
       InstrumentOrderStore store, List<String> instrumentUrls) {
     // TODO: implement getInstrumentOrders
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<Fundamentals> getFundamentals(
       BrokerageUser user, Instrument instrumentObj) {
     // TODO: implement getFundamentals
-    throw UnimplementedError();
+    return Future.value(Fundamentals(
+        volume: 0,
+        averageVolume: 0,
+        averageVolume2Weeks: 0,
+        high52Weeks: 0,
+        low52Weeks: 0,
+        marketCap: 0,
+        sharesOutstanding: 0));
   }
 
   @override
   Future<List> getNews(BrokerageUser user, String symbol) {
     // TODO: implement getNews
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<List> getLists(BrokerageUser user, String instrumentId) {
     // TODO: implement getLists
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
@@ -1388,44 +1457,44 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
       InstrumentStore instrumentStore,
       {String? instrumentId}) {
     // TODO: implement getDividends
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future getRatings(BrokerageUser user, String instrumentId) {
     // TODO: implement getRatings
-    throw UnimplementedError();
+    return Future.value(null);
   }
 
   @override
   Future<List> getEarnings(BrokerageUser user, String instrumentId) {
     // TODO: implement getEarnings
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<List<OptionEvent>> getOptionEventsByInstrumentUrl(
       BrokerageUser user, String instrumentUrl) {
     // TODO: implement getOptionEventsByInstrumentUrl
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future getRatingsOverview(BrokerageUser user, String instrumentId) {
     // TODO: implement getRatingsOverview
-    throw UnimplementedError();
+    return Future.value(null);
   }
 
   @override
   Future<List> getSimilar(BrokerageUser user, String instrumentId) {
     // TODO: implement getSimilar
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
   Future<List> getSplits(BrokerageUser user, Instrument instrumentObj) {
     // TODO: implement getSplits
-    throw UnimplementedError();
+    return Future.value([]);
   }
 
   @override
@@ -1455,6 +1524,117 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     throw UnimplementedError();
   }
 
+  /*
+{
+  "symbol": "GOOG",
+  "status": "SUCCESS",
+  "underlying": {
+    "symbol": "GOOG",
+    "description": "ALPHABET INC C",
+    "change": 1.54,
+    "percentChange": 0.88,
+    "close": 174.21,
+    "quoteTime": 1741395579010,
+    "tradeTime": 1741395560725,
+    "bid": 175.6,
+    "ask": 175.74,
+    "last": 175.75,
+    "mark": 175.74,
+    "markChange": 1.53,
+    "markPercentChange": 0.88,
+    "bidSize": 1,
+    "askSize": 1,
+    "highPrice": 176.9,
+    "lowPrice": 172.25,
+    "openPrice": 173.24,
+    "totalVolume": 16395287,
+    "exchangeName": "NASDAQ",
+    "fiftyTwoWeekHigh": 208.7,
+    "fiftyTwoWeekLow": 131.95,
+    "delayed": false
+  },
+  "strategy": "SINGLE",
+  "interval": 0.0,
+  "isDelayed": false,
+  "isIndex": false,
+  "interestRate": 4.738,
+  "underlyingPrice": 175.67000000000002,
+  "volatility": 29.0,
+  "daysToExpiration": 0.0,
+  "dividendYield": 0.0,
+  "numberOfContracts": 1,
+  "assetMainType": "EQUITY",
+  "assetSubType": "COE",
+  "isChainTruncated": false,
+  "callExpDateMap": {
+    "2025-05-16:69": {
+      "200.0": [
+        {
+          "putCall": "CALL",
+          "symbol": "GOOG  250516C00200000",
+          "description": "GOOG 05/16/2025 200.00 C",
+          "exchangeName": "OPR",
+          "bid": 2.63,
+          "ask": 2.72,
+          "last": 2.73,
+          "mark": 2.68,
+          "bidSize": 19,
+          "askSize": 55,
+          "bidAskSize": "19X55",
+          "lastSize": 1,
+          "highPrice": 2.93,
+          "lowPrice": 2.28,
+          "openPrice": 0.0,
+          "closePrice": 2.63,
+          "totalVolume": 602,
+          "tradeTimeInLong": 1741381117552,
+          "quoteTimeInLong": 1741381199914,
+          "netChange": 0.1,
+          "volatility": 31.549,
+          "delta": 0.208,
+          "gamma": 0.012,
+          "theta": -0.053,
+          "vega": 0.221,
+          "rho": 0.065,
+          "openInterest": 14284,
+          "timeValue": 2.73,
+          "theoreticalOptionValue": 2.675,
+          "theoreticalVolatility": 29.0,
+          "optionDeliverablesList": [
+            {
+              "symbol": "GOOG",
+              "assetType": "STOCK",
+              "deliverableUnits": 100.0
+            }
+          ],
+          "strikePrice": 200.0,
+          "expirationDate": "2025-05-16T20:00:00.000+00:00",
+          "daysToExpiration": 69,
+          "expirationType": "S",
+          "lastTradingDay": 1747440000000,
+          "multiplier": 100.0,
+          "settlementType": "P",
+          "deliverableNote": "100 GOOG",
+          "percentChange": 3.8,
+          "markChange": 0.04,
+          "markPercentChange": 1.71,
+          "intrinsicValue": -24.25,
+          "extrinsicValue": 26.98,
+          "optionRoot": "GOOG",
+          "exerciseType": "A",
+          "high52Week": 20.25,
+          "low52Week": 1.68,
+          "inTheMoney": false,
+          "mini": false,
+          "nonStandard": false,
+          "pennyPilot": true
+        }
+      ]
+    }
+  },
+  "putExpDateMap": {}
+}
+  */
   @override
   Future<OptionMarketData?> getOptionMarketData(
       BrokerageUser user, OptionInstrument optionInstrument) async {

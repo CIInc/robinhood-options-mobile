@@ -202,7 +202,7 @@ packages:
     source: hosted
     version: "1.19.1"
   community_charts_common:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: community_charts_common
       sha256: d997ade57f15490346de46efbe23805d378a672aafbf5e47e19517964b671009

@@ -193,14 +193,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               }
               if (userSnapshot != null) {
                 user = userSnapshot.data();
-                var buser = user!.brokerageUsers.firstWhereOrNull((b) =>
+                if (userStore.items.length != user!.brokerageUsers.length) {
+                  user!.brokerageUsers = userStore.items.toList();
+                  _firestoreService.updateUser(userDoc!, user!);
+                }
+                var brokerageUser = user!.brokerageUsers.firstWhereOrNull((b) =>
                     b.userName == userStore.currentUser!.userName &&
                     b.source == userStore.currentUser!.source);
-                if (buser != null && buser.userInfo == null) {
-                  buser.userInfo = userInfo;
-                  // authUtil.setUser(_firestoreService,
-                  //     brokerageUserStore: userStore);
-                  _firestoreService.updateUser(userDoc!, user!);
+                if (brokerageUser != null) {
+                  if (brokerageUser.userInfo == null) {
+                    brokerageUser.userInfo = userInfo;
+                    // authUtil.setUser(_firestoreService,
+                    //     brokerageUserStore: userStore);
+                    _firestoreService.updateUser(userDoc!, user!);
+                  }
                 }
               }
               widget.analytics.setUserId(id: userInfo!.username);
@@ -222,7 +228,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                     ),
                     ElevatedButton.icon(
                       label: const Text(
-                        "Login",
+                        "Link brokerage account",
                         style: TextStyle(fontSize: 20.0),
                       ),
                       icon: const Icon(Icons.login),
@@ -285,70 +291,93 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         return;
       }
 
-      String code = link!.queryParameters['code'].toString();
-      debugPrint('code:$code');
-      var user = await SchwabService().getAccessToken(code);
+      return;
 
-      service = user!.source == BrokerageSource.robinhood
-          ? RobinhoodService()
-          : user.source == BrokerageSource.schwab
-              ? SchwabService()
-              : user.source == BrokerageSource.plaid
-                  ? PlaidService()
-                  : DemoService();
+      // Handled by Login's FlutterWebAuth2.authenticate.
 
-      // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
-      var userInfo = await service.getUser(user);
-      user.userName = userInfo!.username;
-      // debugPrint('result:${jsonEncode(user)}');
-      userStore.addOrUpdate(user);
-      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      await userStore.save();
-      // Throws exception on jumpToPage with 'Failed assertion: line 157 pos 12: '_positions.isNotEmpty''
-      // _onPageChanged(0);
-      _pageIndex = 0;
+      // // var user =
+      // //     await SchwabService().getAccessTokenFromLink(link!.queryParameters);
 
-      if (user.oauth2Client != null &&
-          user.oauth2Client!.credentials.canRefresh) {
-        refreshCredentialsTimer = Timer.periodic(
-          user.oauth2Client!.credentials.expiration!
-              .subtract(Duration(minutes: 1))
-              .difference(DateTime.now()),
-          // Duration(milliseconds: user.oauth2Client.credentials.expiration),
-          (timer) async {
-            debugPrint('${service.name} schwab token refresh triggered.');
-            try {
-              final newClient = await user.oauth2Client!.refreshCredentials();
-              user.credentials = newClient.credentials.toJson();
-              user.oauth2Client = newClient;
-              userStore.addOrUpdate(user);
-              userStore.save();
+      // String code = link!.queryParameters['code'].toString();
+      // debugPrint('code:$code');
+      // var user = await SchwabService().getAccessToken(code);
 
-              if (mounted) {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                      content: Text("${service.name} token refreshed.")));
-              }
-            } catch (e) {
-              if (mounted) {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(content: Text(e.toString())));
-              }
-            }
-          },
-        );
-      }
+      // service = user!.source == BrokerageSource.robinhood
+      //     ? RobinhoodService()
+      //     : user.source == BrokerageSource.schwab
+      //         ? SchwabService()
+      //         : user.source == BrokerageSource.plaid
+      //             ? PlaidService()
+      //             : DemoService();
 
-      // _onPageChanged(0);
-      // TODO: Check if this is necessary considering userStore is already being listened to.
-      // setState(() {
-      //   futureUser = null;
-      // });
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      // // Fix for TD Ameritrade that doesn't include the username in its oauth2 authorization code flow.
+      // var userInfo = await service.getUser(user);
+      // user.userName = userInfo!.username;
+      // // debugPrint('result:${jsonEncode(user)}');
+      // userStore.addOrUpdate(user);
+      // userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      // await userStore.save();
+
+      // if (auth.currentUser != null) {
+      //   if (mounted) {
+      //     var userStore =
+      //         Provider.of<BrokerageUserStore>(context, listen: false);
+      //     final authUtil = AuthUtil(auth);
+      //     await authUtil.setUser(_firestoreService,
+      //         brokerageUserStore: userStore);
+      //   }
+      // }
+
+      // // Throws exception on jumpToPage with 'Failed assertion: line 157 pos 12: '_positions.isNotEmpty''
+      // // _onPageChanged(0);
+      // _pageIndex = 0;
+
+      // if (user.oauth2Client != null &&
+      //     user.oauth2Client!.credentials.canRefresh) {
+      //   refreshCredentialsTimer = Timer.periodic(
+      //     user.oauth2Client!.credentials.expiration!
+      //         .subtract(Duration(minutes: 1))
+      //         .difference(DateTime.now()),
+      //     // Duration(milliseconds: user.oauth2Client.credentials.expiration),
+      //     (timer) async {
+      //       debugPrint('${service.name} schwab token refresh triggered.');
+      //       try {
+      //         final newClient = await user.oauth2Client!.refreshCredentials();
+      //         user.credentials = newClient.credentials.toJson();
+      //         user.oauth2Client = newClient;
+      //         userStore.addOrUpdate(user);
+      //         userStore.save();
+
+      //         if (mounted) {
+      //           ScaffoldMessenger.of(context)
+      //             ..removeCurrentSnackBar()
+      //             ..showSnackBar(SnackBar(
+      //               content: Text("${service.name} token refreshed."),
+      //               behavior: SnackBarBehavior.floating,
+      //             ));
+      //         }
+      //       } catch (e) {
+      //         if (mounted) {
+      //           ScaffoldMessenger.of(context)
+      //             ..removeCurrentSnackBar()
+      //             ..showSnackBar(SnackBar(
+      //               content: Text(e.toString()),
+      //               behavior: SnackBarBehavior.floating,
+      //             ));
+      //         }
+      //       }
+      //     },
+      //   );
+      // }
+
+      // // _onPageChanged(0);
+      // // TODO: Check if this is necessary considering userStore is already being listened to.
+      // // setState(() {
+      // //   futureUser = null;
+      // // });
+      // if (mounted) {
+      //   Navigator.pop(context);
+      // }
       /*
       var grant = AuthorizationCodeGrant(Constants.tdClientId,
           Constants.tdAuthEndpoint, Constants.tdTokenEndpoint);
@@ -378,7 +407,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     setState(() {
       _pageIndex = index;
     });
-    _pageController!.jumpToPage(index);
+    if (_pageController!.hasClients && _pageController!.page != index) {
+      _pageController!.jumpToPage(index);
+    }
     /* Cause in between pages to init.
     _pageController!.animateToPage(index,
         duration: const Duration(milliseconds: 150), curve: Curves.easeInOut);
@@ -522,19 +553,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           leading: CircleAvatar(
               radius: 16, //12,
               //backgroundColor: Colors.amber,
-              child: userStore.currentUser!.userName == brokerageUser.userName
-                  ? Icon(Icons.check)
-                  : Text(
-                      brokerageUser.userName != null &&
-                              brokerageUser.userName!.isNotEmpty
-                          ? brokerageUser.userName!
-                              .substring(0, 1)
-                              .toUpperCase()
-                          : '',
-                    )),
+              child: Text(
+                brokerageUser.source.enumValue().substring(0, 1).toUpperCase(),
+              )),
           title: Text(
-              '${brokerageUser.userName != null ? brokerageUser.userName! : ''} (${brokerageUser.source.enumValue().capitalize()})'),
+            brokerageUser.userName != null ? brokerageUser.userName! : '',
+            softWrap: true,
+            overflow: TextOverflow.fade,
+            maxLines: 1,
+          ),
+          subtitle: Text(brokerageUser.source.enumValue().capitalize()),
           //selected: userInfo!.profileName == userInfo!.profileName,
+          trailing: userStore.currentUser!.userName == brokerageUser.userName
+              ? Icon(Icons.check)
+              : null,
           onTap: () async {
             drawerProvider.toggleDrawer();
 
@@ -569,14 +601,57 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         ));
       }
       userWidgets.addAll([
+        // ListTile(
+        // leading: const Icon(Icons.person_add),
+        // title: const Text("Link Brokerage Account"),
+        // //selected: userInfo!.profileName == 1,
+        // onTap: () {
+        //   Navigator.pop(context);
+        //   _openLogin();
+        // },
+        // );
         ListTile(
-            leading: const Icon(Icons.person_add),
-            title: const Text("Link Brokerage Account"),
-            //selected: userInfo!.profileName == 1,
-            onTap: () {
-              Navigator.pop(context);
-              _openLogin();
-            }),
+          // contentPadding: EdgeInsets.all(0),
+          leading: TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _openLogin();
+              },
+              label: Text('Link Brokerage'),
+              icon: const Icon(Icons.add)),
+          trailing: TextButton.icon(
+              onPressed: () {
+                _onSelectItem(1);
+                _logout(userStore);
+              },
+              label: Text(
+                  'Unlink'), //  ${userStore.currentUser!.source.enumValue().capitalize()}
+              icon: const Icon(Icons.link_off)),
+        ),
+
+        // Padding(
+        //   padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        //   child: Row(
+        //     mainAxisAlignment: MainAxisAlignment.end,
+        //     children: [
+        //       IconButton(
+        //           onPressed: () {
+        //             Navigator.pop(context);
+        //             _openLogin();
+        //           },
+        //           tooltip: 'Link Brokerage',
+        //           icon: const Icon(Icons.add)),
+        //       IconButton(
+        //           onPressed: () {
+        //             _onSelectItem(1);
+        //             _logout(userStore);
+        //           },
+        //           tooltip:
+        //               'Unlink ${userStore.currentUser!.source.enumValue().capitalize()}',
+        //           icon: const Icon(Icons.link_off)),
+        //     ],
+        //   ),
+        // ),
         const Divider(
           thickness: 0.25,
           // height: 10,
@@ -784,20 +859,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                           // const Divider(
                           //   height: 10,
                           // ),
-                          const Divider(
-                            thickness: 0.25,
-                            // height: 10,
-                          ),
-                          ListTile(
-                            leading: const Icon(Icons.link_off),
-                            title: Text(
-                                "Unlink ${userStore.currentUser!.source.enumValue().capitalize()} Account"),
-                            //selected: false,
-                            onTap: () {
-                              _onSelectItem(1);
-                              _logout(userStore);
-                            },
-                          ),
+                          // const Divider(
+                          //   thickness: 0.25,
+                          //   // height: 10,
+                          // ),
+                          // ListTile(
+                          //   leading: const Icon(Icons.link_off),
+                          //   title: Text(
+                          //       "Unlink ${userStore.currentUser!.source.enumValue().capitalize()} Account"),
+                          //   //selected: false,
+                          //   onTap: () {
+                          //     _onSelectItem(1);
+                          //     _logout(userStore);
+                          //   },
+                          // ),
                           if (userRole == UserRole.admin) ...[
                             const Divider(
                               thickness: 0.25,
@@ -911,20 +986,27 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
       // After the Selection Screen returns a result, hide any previous snackbars
       // and show the new result.
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text("Logged in ${result.userName}"),
+            behavior: SnackBarBehavior.floating,
+          ));
+      }
     }
   }
 
   _logout(BrokerageUserStore userStore) async {
     var alert = AlertDialog(
-      title: const Text('Unlink process'),
-      content: const SingleChildScrollView(
+      title: Text(
+          'Unlink ${userStore.currentUser!.source.enumValue().capitalize()}'),
+      content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
-            Text('This action will require you to log in again.'),
-            Text('Are you sure you want to unlink your brokerage account?'),
+            const Text('This action will require you to log in again.'),
+            Text(
+                'Are you sure you want to unlink your ${userStore.currentUser!.source.enumValue().capitalize()} brokerage account?'),
           ],
         ),
       ),

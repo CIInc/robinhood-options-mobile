@@ -105,6 +105,14 @@ class BrokerageUserStore extends ChangeNotifier {
         for (var element in userStore.items) {
           add(element);
         }
+        // if (userStore.currentUser!.oauth2Client!.credentials.canRefresh) {
+        //   final newClient =
+        //       await userStore.currentUser!.oauth2Client!.refreshCredentials();
+        //   userStore.currentUser!.credentials = newClient.credentials.toJson();
+        //   userStore.currentUser!.oauth2Client = newClient;
+        //   userStore.addOrUpdate(userStore.currentUser!);
+        //   userStore.save();
+        // }
       }
       // if (storeData is Map) {
       //   if (storeData['currentUserIndex'] != null) {

@@ -37,8 +37,9 @@ class UserInfo {
         firstName = json['first_name'],
         lastName = json['last_name'],
         locality = json['locality'] ??
-            json['origin'][
-                'locality'], // Robinhood uses origin.locality, Firebase stores this object which is flattened by design.
+            (json['origin'] != null
+                ? json['origin']['locality']
+                : null), // Robinhood uses origin.locality, Firebase stores this object which is flattened by design.
         profileName = json['profile_name'],
         createdAt = json['created_at'] != null
             ? (json['created_at'] is Timestamp

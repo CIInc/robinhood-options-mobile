@@ -136,6 +136,7 @@ class _LoginWidgetState extends State<LoginWidget> {
     //var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
+          centerTitle: false,
           title: const Text("Link Brokerage Account"),
         ),
         body: FutureBuilder(
@@ -230,7 +231,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                         ScaffoldMessenger.of(context)
                           ..removeCurrentSnackBar()
                           ..showSnackBar(SnackBar(
-                              content: Text("$errorMessage"))); // Login failed:
+                            content: Text("$errorMessage"),
+                            behavior: SnackBarBehavior.floating,
+                          )); // Login failed:
                       }
                     });
                   }
@@ -489,22 +492,25 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   void _login() async {
     if (source == BrokerageSource.schwab) {
-      var code = await SchwabService().login();
-      debugPrint('SchwabService().login(): $code');
+      var user = await SchwabService().login();
+      debugPrint('SchwabService().login(): $user');
       // Handled by deep links & oauth redirect flow.
-      // if (code != null) {
-      //   var user = await SchwabService.getAccessToken(code);
-      //   var userInfo = await SchwabService().getUser(user!);
-      //   user.userName = userInfo!.username;
-      //   debugPrint('result:${jsonEncode(user)}');
-      //   if (mounted) {
-      //     var userStore =
-      //         Provider.of<BrokerageUserStore>(context, listen: false);
-      //     userStore.addOrUpdate(user);
-      //     userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      //     await userStore.save();
-      //   }
-      // }
+      if (user != null) {
+        // var user = await SchwabService.getAccessToken(code);
+        var userInfo = await SchwabService().getUser(user);
+        user.userName = userInfo!.username;
+        debugPrint('result:${jsonEncode(user)}');
+        if (mounted) {
+          var userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
+          userStore.addOrUpdate(user);
+          userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+          await userStore.save();
+        }
+        if (mounted) {
+          Navigator.pop(context, user);
+        }
+      }
     } else if (source == BrokerageSource.demo) {
       DemoService().login();
       var user = BrokerageUser(source, "Demo Account", null, null);
@@ -669,10 +675,15 @@ class _LoginWidgetState extends State<LoginWidget> {
     } on FirebaseFunctionsException catch (e) {
       debugPrint(jsonEncode(e));
     } catch (e) {
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("$e"))); // Login failed:
-      // Do other things that might be thrown that I have overlooked
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text("$e"),
+            behavior: SnackBarBehavior.floating,
+          )); // Login failed:
+        // Do other things that might be thrown that I have overlooked
+      }
     }
   }
 
@@ -685,7 +696,9 @@ class _LoginWidgetState extends State<LoginWidget> {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(SnackBar(
-            content: Text("${event.metadata.errorMessage}"))); // Login failed:
+          content: Text("${event.metadata.errorMessage}"),
+          behavior: SnackBarBehavior.floating,
+        )); // Login failed:
     }
   }
 
@@ -731,8 +744,9 @@ class _LoginWidgetState extends State<LoginWidget> {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
         ..showSnackBar(SnackBar(
-            content: Text(event.error!.displayMessage ??
-                event.error!.message))); // Login failed:
+          content: Text(event.error!.displayMessage ?? event.error!.message),
+          behavior: SnackBarBehavior.floating,
+        )); // Login failed:
     }
 
     // Call PlaidLink.create() again

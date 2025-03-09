@@ -95,15 +95,19 @@ class _TradeOptionWidgetState extends State<TradeOptionWidget> {
                 ScaffoldMessenger.of(context)
                   ..removeCurrentSnackBar()
                   ..showSnackBar(SnackBar(
-                      content: Text(
-                          "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed.")));
+                    content: Text(
+                        "Order to $positionType ${widget.optionInstrument!.chainSymbol} \$${widget.optionInstrument!.strikePrice} ${widget.optionInstrument!.type} placed."),
+                    behavior: SnackBarBehavior.floating,
+                  ));
               }
             } else {
               setState(() {
                 ScaffoldMessenger.of(context)
                   ..removeCurrentSnackBar()
                   ..showSnackBar(SnackBar(
-                      content: Text("Error placing order. $orderJson")));
+                    content: Text("Error placing order. $orderJson"),
+                    behavior: SnackBarBehavior.floating,
+                  ));
               });
             }
           },

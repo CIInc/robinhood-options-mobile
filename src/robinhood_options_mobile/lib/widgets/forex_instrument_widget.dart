@@ -6,11 +6,14 @@ import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
+import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
+import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/forex_quote.dart';
+import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -50,7 +53,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
   TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
   Bounds chartBoundsFilter = Bounds.t24_7; //regular
-  InstrumentHistorical? selection;
 
   //final dataKey = GlobalKey();
 
@@ -164,12 +166,15 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       changeInPeriod = close - open;
       changePercentInPeriod = close / open - 1; // changeInPeriod / close;
 
-      if (selection != null) {
-        changeInPeriod = selection!.closePrice! -
-            open; // portfolios![0].equityPreviousClose!;
-        changePercentInPeriod = selection!.closePrice! / open -
-            1; // changeInPeriod / selection!.closePrice!;
-      }
+      var provider = Provider.of<InstrumentHistoricalsSelectionStore>(context,
+          listen: false);
+      // var selection = provider.selection;
+      // if (selection != null) {
+      //   changeInPeriod = selection.closePrice! -
+      //       open; // portfolios![0].equityPreviousClose!;
+      //   changePercentInPeriod = selection.closePrice! / open -
+      //       1; // changeInPeriod / selection!.closePrice!;
+      // }
 
       if (chart == null) {
         List<charts.Series<dynamic, DateTime>> seriesList = [
@@ -215,22 +220,27 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
             .historicalsObj!
             .historicals[holding.historicalsObj!.historicals.length - 1]
             .closePrice!;
-        chart = TimeSeriesChart(seriesList,
-            open: open,
-            close: close,
-            seriesLegend: charts.SeriesLegend(
-              horizontalFirst: true,
-              position: charts.BehaviorPosition.top,
-              defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
-              // To show value on legend upon selection
-              showMeasures: true,
-              measureFormatter: (measure) =>
-                  measure != null ? formatCurrency.format(measure) : '',
-              // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-            ),
-            zeroBound: false,
-            dataIsInWholeNumbers: open > 2,
-            onSelected: _onChartSelection);
+
+        chart = TimeSeriesChart(
+          seriesList,
+          open: open,
+          close: close,
+          seriesLegend: charts.SeriesLegend(
+            horizontalFirst: true,
+            position: charts.BehaviorPosition.top,
+            defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
+            // To show value on legend upon selection
+            showMeasures: true,
+            measureFormatter: (measure) =>
+                measure != null ? formatCurrency.format(measure) : '',
+            // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+          ),
+          zeroBound: false,
+          dataIsInWholeNumbers: open > 2,
+          onSelected: (charts.SelectionModel<DateTime>? historical) {
+            provider.selectionChanged(historical?.selectedDatum.first.datum);
+          },
+        );
       }
     }
 
@@ -311,59 +321,78 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
         height: 12.0,
       )));
 
-      slivers.add(SliverToBoxAdapter(
-          child: SizedBox(
-              height: 43,
-              child: Center(
-                  child: Column(
-                children: [
-                  Wrap(
-                    children: [
-                      Text(
-                          close < 0.001
-                              ? NumberFormat.simpleCurrency(decimalDigits: 8)
-                                  .format(close)
-                              : formatCurrency.format(close),
-                          style: TextStyle(fontSize: 20, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Icon(
-                        changeInPeriod > 0
-                            ? Icons.trending_up
-                            : (changeInPeriod < 0
-                                ? Icons.trending_down
-                                : Icons.trending_flat),
-                        color: (changeInPeriod > 0
-                            ? Colors.green
-                            : (changeInPeriod < 0 ? Colors.red : Colors.grey)),
-                        //size: 16.0
-                      ),
-                      Container(
-                        width: 2,
-                      ),
-                      Text(
-                          formatPercentage
-                              //.format(selection!.netReturn!.abs()),
-                              .format(changePercentInPeriod.abs()),
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                      Container(
-                        width: 10,
-                      ),
-                      Text(
-                          "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${close < 0.001 ? NumberFormat.simpleCurrency(decimalDigits: 8).format(changeInPeriod.abs()) : formatCurrency.format(changeInPeriod.abs())}",
-                          style: TextStyle(fontSize: 20.0, color: textColor)),
-                    ],
-                  ),
-                  Text(
-                      '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection!.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
-                      style: TextStyle(fontSize: 10, color: textColor)),
-                ],
-              )))));
+      slivers.add(Consumer<InstrumentHistoricalsSelectionStore>(
+          builder: (context, value, child) {
+        var selection = value.selection;
+        if (selection != null) {
+          changeInPeriod = selection.closePrice! - open;
+          changePercentInPeriod = selection.closePrice! / open -
+              1; // changeInPeriod / selection!.closePrice!;
+        } else {
+          changeInPeriod = close - open;
+          changePercentInPeriod = close / open - 1; // changeInPeriod / close;
+        }
+
+        return SliverToBoxAdapter(
+            child: SizedBox(
+                height: 43,
+                child: Center(
+                    child: Column(
+                  children: [
+                    Wrap(
+                      children: [
+                        Text(
+                            close < 0.001
+                                ? NumberFormat.simpleCurrency(decimalDigits: 8)
+                                    .format(selection != null
+                                        ? selection.closePrice
+                                        : close)
+                                : formatCurrency.format(selection != null
+                                    ? selection.closePrice
+                                    : close),
+                            style: TextStyle(fontSize: 20, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Icon(
+                          changeInPeriod > 0
+                              ? Icons.trending_up
+                              : (changeInPeriod < 0
+                                  ? Icons.trending_down
+                                  : Icons.trending_flat),
+                          color: (changeInPeriod > 0
+                              ? Colors.green
+                              : (changeInPeriod < 0
+                                  ? Colors.red
+                                  : Colors.grey)),
+                          //size: 16.0
+                        ),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(
+                            formatPercentage
+                                //.format(selection!.netReturn!.abs()),
+                                .format(changePercentInPeriod.abs()),
+                            style: TextStyle(fontSize: 20.0, color: textColor)),
+                        Container(
+                          width: 10,
+                        ),
+                        Text(
+                            "${changeInPeriod > 0 ? "+" : changeInPeriod < 0 ? "-" : ""}${close < 0.001 ? NumberFormat.simpleCurrency(decimalDigits: 8).format(changeInPeriod.abs()) : formatCurrency.format(changeInPeriod.abs())}",
+                            style: TextStyle(fontSize: 20.0, color: textColor)),
+                      ],
+                    ),
+                    Text(
+                        '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} - ${formatMediumDate.format(selection != null ? selection.beginsAt!.toLocal() : lastHistorical!.beginsAt!.toLocal())}',
+                        style: TextStyle(fontSize: 10, color: textColor)),
+                  ],
+                ))));
+      }));
 
       slivers.add(SliverToBoxAdapter(
           child: SizedBox(
-              height: 240,
+              height: 340,
               child: Padding(
                 //padding: EdgeInsets.symmetric(horizontal: 12.0),
                 padding: const EdgeInsets.all(10.0),
@@ -519,10 +548,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
               ))));
     }
     //if (holding != null) {
-    slivers.add(const SliverToBoxAdapter(
-        child: SizedBox(
-      height: 25.0,
-    )));
     slivers.add(SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -596,10 +621,12 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     //}
 
     if (holding.quoteObj != null) {
-      slivers.add(const SliverToBoxAdapter(
-          child: SizedBox(
-        height: 25.0,
-      )));
+      // slivers.add(
+      //   const SliverToBoxAdapter(
+      //       child: SizedBox(
+      //     height: 8.0,
+      //   )),
+      // );
       slivers.add(const SliverToBoxAdapter(
           child: ListTile(
         title: Text(
@@ -615,6 +642,10 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       height: 25.0,
     )));
     slivers.add(const SliverToBoxAdapter(child: DisclaimerWidget()));
+    slivers.add(const SliverToBoxAdapter(
+        child: SizedBox(
+      height: 25.0,
+    )));
 
     return RefreshIndicator(
         onRefresh: _pullRefresh, child: CustomScrollView(slivers: slivers));
@@ -639,6 +670,9 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
               futureHistoricals = null;
             });
           }
+          await widget.service.refreshNummusHoldings(widget.user,
+              Provider.of<ForexHoldingStore>(context, listen: false));
+
           /*
           var refreshForex = await widget.service.refreshNummusHoldings(
               widget.user, nummusHoldings!);
@@ -654,27 +688,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
   void _stopRefreshTimer() {
     if (refreshTriggerTime != null) {
       refreshTriggerTime!.cancel();
-    }
-  }
-
-  _onChartSelection(dynamic historical) {
-    if (selection != historical) {
-      setState(() {
-        selection = historical;
-      });
-    }
-    if (historical != null) {
-      if (selection != historical as InstrumentHistorical) {
-        setState(() {
-          selection = historical;
-        });
-      }
-    } else {
-      if (selection != null) {
-        setState(() {
-          selection = null;
-        });
-      }
     }
   }
 

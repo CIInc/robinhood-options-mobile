@@ -346,12 +346,10 @@ class _UserWidgetState extends State<UserWidget> {
                                   leading: CircleAvatar(
                                       //backgroundColor: Colors.amber,
                                       child: Text(
-                                    brokerageUser.userName != null &&
-                                            brokerageUser.userName!.isNotEmpty
-                                        ? brokerageUser.userName!
-                                            .substring(0, 1)
-                                            .toUpperCase()
-                                        : '',
+                                    brokerageUser.source
+                                        .enumValue()
+                                        .substring(0, 1)
+                                        .toUpperCase(),
                                   )),
                                   title: Text(brokerageUser.userName!),
                                   subtitle: Text(brokerageUser.source
@@ -479,8 +477,8 @@ class _UserWidgetState extends State<UserWidget> {
                                   SwitchListTile(
                                     //leading: Icon(Icons.functions),
                                     title: const Text("Refresh Market Data"),
-                                    subtitle:
-                                        const Text("Occurs every 15 seconds"),
+                                    subtitle: const Text(
+                                        "Periodically update latest prices"),
                                     value: widget.brokerageUser
                                         .refreshEnabled, // user.refreshQuotes,
                                     onChanged: (bool value) async {

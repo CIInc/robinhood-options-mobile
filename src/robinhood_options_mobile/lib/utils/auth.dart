@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -64,7 +66,10 @@ class AuthUtil {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text("Logged in ${result.userName}")));
+        ..showSnackBar(SnackBar(
+          content: Text("Logged in ${result.userName}"),
+          behavior: SnackBarBehavior.floating,
+        ));
     }
   }
 
@@ -336,5 +341,10 @@ class AuthUtil {
       'releaseId': data.releaseId,
       'deviceId': data.deviceId,
     };
+  }
+
+  static String basicAuthHeader(String identifier, String secret) {
+    var userPass = '${Uri.encodeFull(identifier)}:${Uri.encodeFull(secret)}';
+    return 'Basic ${base64Encode(ascii.encode(userPass))}';
   }
 }

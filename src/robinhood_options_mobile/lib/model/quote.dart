@@ -41,22 +41,22 @@ class Quote {
   final String instrumentId;
 
   const Quote(
-      this.askPrice,
-      this.askSize,
+      {this.askPrice,
+      required this.askSize,
       this.bidPrice,
-      this.bidSize,
+      required this.bidSize,
       this.lastTradePrice,
       this.lastExtendedHoursTradePrice,
       this.previousClose,
       this.adjustedPreviousClose,
       this.previousCloseDate,
-      this.symbol,
-      this.tradingHalted,
-      this.hasTraded,
-      this.lastTradePriceSource,
+      required this.symbol,
+      required this.tradingHalted,
+      required this.hasTraded,
+      required this.lastTradePriceSource,
       this.updatedAt,
-      this.instrument,
-      this.instrumentId);
+      required this.instrument,
+      required this.instrumentId});
 
   Quote.fromJson(dynamic json)
       : askPrice = json['ask_price'] is double

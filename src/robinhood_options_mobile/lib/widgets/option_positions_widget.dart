@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:collection/collection.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:intl/intl.dart';
 //import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:community_charts_flutter/community_charts_flutter.dart'
@@ -432,10 +433,27 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   child: Wrap(spacing: 8, children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                      child: Text(
-                        marketValueText,
-                        style: const TextStyle(fontSize: 21.0),
-                        textAlign: TextAlign.right,
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 200),
+                        // transitionBuilder:
+                        //     (Widget child, Animation<double> animation) {
+                        //   return SlideTransition(
+                        //       position: (Tween<Offset>(
+                        //               begin: Offset(0, -0.25), end: Offset.zero))
+                        //           .animate(animation),
+                        //       child: child);
+                        // },
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                          return ScaleTransition(
+                              scale: animation, child: child);
+                        },
+                        child: Text(
+                          key: ValueKey<String>(marketValueText),
+                          marketValueText,
+                          style: const TextStyle(fontSize: assetValueFontSize),
+                          textAlign: TextAlign.right,
+                        ),
                       ),
                     )
                   ]),
@@ -577,7 +595,11 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   child: SizedBox(
                 height: 25.0,
               )),
-              SliverToBoxAdapter(child: AdBannerWidget()),
+              SliverToBoxAdapter(
+                  child: AdBannerWidget(
+                size: AdSize.mediumRectangle,
+                // searchBanner: true,
+              )),
             ],
             const SliverToBoxAdapter(
                 child: SizedBox(
@@ -1186,7 +1208,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
             if (trailingText != null) ...[
               Text(
                 trailingText,
-                style: const TextStyle(fontSize: 21.0),
+                style: const TextStyle(fontSize: positionValueFontSize),
                 textAlign: TextAlign.right,
               )
             ]

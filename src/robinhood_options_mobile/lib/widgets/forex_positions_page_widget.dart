@@ -7,7 +7,6 @@ import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
-import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class ForexPositionsPageWidget extends StatefulWidget {
