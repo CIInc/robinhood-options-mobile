@@ -1,1 +1,0 @@
-/Users/aymericgrassart/Documents/Repos/github.com/CIInc/robinhood-options-mobile/src/robinhood_options_mobile/build/app/intermediates/cxx/RelWithDebInfo/6k553420/obj/x86_64

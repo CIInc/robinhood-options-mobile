@@ -96,6 +96,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     // (DateTime.now().year - 2).toString(),
     // '<= ${(DateTime.now().year - 3).toString()}'
   ];
+  String dateFilter = 'Year';
   List<String> transactionSymbolFilters = [];
 
   @override
@@ -272,7 +273,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       // e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null);
       Map<String, dynamic>? prevTransaction;
       if (incomeTransactions.length > 1) {
-        prevTransaction = incomeTransactions[1]; //.firstWhereOrNull((e) =>
+        prevTransaction = incomeTransactions.firstWhereOrNull((e) =>
+            e["payable_date"] != null &&
+            transaction["payable_date"] != null &&
+            DateTime.parse(e["payable_date"])
+                .isBefore(DateTime.parse(transaction["payable_date"]))); // [1];
       }
       instrument = transaction["instrumentObj"] as Instrument?;
       if (instrument != null && instrument.quoteObj != null) {
@@ -297,7 +302,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 (instrument.quoteObj!.lastExtendedHoursTradePrice ??
                     instrument.quoteObj!.lastTradePrice!);
         var currDate = DateTime.parse(transaction["payable_date"]);
-        if (prevTransaction != null) {
+        if (prevTransaction != null &&
+            prevTransaction["payable_date"] != null) {
           var prevDate = DateTime.parse(prevTransaction["payable_date"]);
           const errorMargin = 2;
           int multiplier = 1;
@@ -491,7 +497,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          viewport: transactionSymbolFilters.isNotEmpty
+          viewport: dateFilter == 'All'
               ? null
               : charts.DateTimeExtents(
                   start:
@@ -896,6 +902,43 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 itemBuilder: (context, index) {
                   return Row(
                     children: [
+                      Divider(indent: 12),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('Year'), // Positions
+                          selected: dateFilter == 'Year',
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                dateFilter = 'Year';
+                              } else {
+                                // dateFilter = 'All';
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('All'),
+                          selected: dateFilter == 'All',
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                dateFilter = 'All';
+                              } else {
+                                // dateFilter = 'Year';
+                              }
+                            });
+                          },
+                        ),
+                      ),
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: FilterChip(
@@ -931,6 +974,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                 transactionFilters.removeWhere((String name) {
                                   return name == "dividend";
                                 });
+                                transactionSymbolFilters.clear();
                               }
                             });
                           },
@@ -1040,6 +1084,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               transactionSymbolFilters.clear();
                                               transactionSymbolFilters
                                                   .add(dividendSymbol);
+                                              dateFilter = 'All';
                                             } else {
                                               transactionFilters
                                                   .add("interest");
@@ -1047,6 +1092,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                   .removeWhere((String name) {
                                                 return name == dividendSymbol;
                                               });
+                                              dateFilter = 'Year';
                                             }
                                           });
                                         },

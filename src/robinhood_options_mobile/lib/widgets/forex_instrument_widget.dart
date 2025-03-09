@@ -627,13 +627,6 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
       //     height: 8.0,
       //   )),
       // );
-      slivers.add(const SliverToBoxAdapter(
-          child: ListTile(
-        title: Text(
-          "Quote",
-          style: TextStyle(fontSize: 19.0),
-        ),
-      )));
       slivers.add(quoteWidget(holding));
     }
 
@@ -761,6 +754,12 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     return SliverToBoxAdapter(
         child: Card(
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+      ListTile(
+        title: Text(
+          "Quote",
+          style: TextStyle(fontSize: 19.0),
+        ),
+      ),
       ListTile(
           minTileHeight: 10,
           title: const Text("Last Trade Price"),

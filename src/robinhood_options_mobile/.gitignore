@@ -8,6 +8,9 @@
 .buildlog/
 .history
 .svn/
+# Added when doing an android build (in android/app)
+android/app/.cxx
+
 
 # IntelliJ related
 *.iml
