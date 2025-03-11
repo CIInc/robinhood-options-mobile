@@ -583,7 +583,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // leading: Icon(Icons.payments),
           title: Wrap(children: [
             Text(
-              "Income",
+              "${instrument != null ? '${instrument.symbol} ' : ''}Income",
               style: TextStyle(fontSize: 19.0),
             ),
             if (!widget.showList) ...[
@@ -637,148 +637,420 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         if (incomeTransactions.isNotEmpty &&
             transactionSymbolFilters.isNotEmpty &&
             widget.showYield &&
+            position != null &&
             yield != null) ...[
-          ExpansionTile(
-            shape: const Border(),
-            // dense: true,
-            // controlAffinity: ListTileControlAffinity.leading,
-            minTileHeight: 60,
-            // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
-            enabled: position != null,
-            title: Wrap(children: [
-              const Text(
-                "Dividend Yield",
-                style: TextStyle(fontSize: 19.0),
-              ),
-              if (position != null) ...[
-                SizedBox(
-                  height: 28,
-                  child: IconButton(
-                    iconSize: 18,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.info_outline),
-                    onPressed: () {
-                      showDialog<String>(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                                // context: context,
-                                title: Text('Dividend Yield'),
-                                content: Text(
-                                    'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
-                                    },
-                                    child: const Text('OK'),
-                                  ),
-                                ],
-                              ));
-                    },
-                  ),
-                )
-              ]
-            ]),
-            // subtitle:
-            //     yield != null ? Text(formatPercentage.format(yield)) : null,
-            subtitle: Text(
-                "last${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-            trailing: Wrap(spacing: 8, children: [
-              Text(
-                formatPercentage.format(yield),
-                style: const TextStyle(fontSize: 20.0),
-                textAlign: TextAlign.right,
-              ),
-            ]),
-            children: [
-              if (yieldOnCost != null) ...[
-                ListTile(
-                  // dense: true,
-                  minTileHeight: 60,
-                  // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
-                  title: Wrap(children: [
-                    const Text(
-                      "Yield on cost",
-                      style: TextStyle(fontSize: 18.0),
-                    ),
-                  ]),
-                  subtitle: Text(
-                      "average cost basis ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(
-                      formatPercentage.format(yieldOnCost),
-                      style: const TextStyle(fontSize: 20.0),
-                      textAlign: TextAlign.right,
-                    ),
-                  ]),
-                ),
-              ],
-              if (adjustedCost != null) ...[
-                ListTile(
-                  title: Wrap(children: [
-                    const Text(
-                      "Adjusted cost basis",
-                      style: TextStyle(fontSize: 18.0),
-                    ),
-                  ]),
-                  subtitle: Text(// • ${instrument!.symbol}
-                      'last price ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
-                  trailing: Wrap(spacing: 8, children: [
-                    Text(
-                      formatCurrency.format(adjustedCost),
-                      style: const TextStyle(fontSize: 20.0),
-                      textAlign: TextAlign.right,
-                    ),
-                    // if (pastYearYield != null) ...[
-                    //   Text('${formatPercentage.format(pastYearYield)} yield',
-                    //       style: const TextStyle(fontSize: 14)),
-                    // ]
-                  ]),
-                ),
-              ],
-              if (marketValue != null) ...[
-                ListTile(
-                  title: Wrap(children: [
-                    const Text(
-                      "Adjusted return",
-                      style: TextStyle(fontSize: 18.0),
-                    ),
-                  ]),
-                  subtitle: Text(
-                      // ${instrument!.symbol}  // ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)}
-                      'total return ${gainLossPercent! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}'), // ${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}
-                  trailing: Wrap(spacing: 8, children: [
-                    // Text(
-                    //   formatCurrency.format(marketValue),
-                    //   style: const TextStyle(fontSize: positionValueFontSize),
-                    //   textAlign: TextAlign.right,
-                    // ),
-                    if (adjustedReturnPercent! != 0) ...[
-                      // widget.user.getDisplayIcon(profitAndLoss)
-                      Icon(
-                          adjustedReturnPercent > 0
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                          color: adjustedReturnPercent > 0
-                              ? Colors.green
-                              : Colors.red,
-                          size: 28),
-                    ],
-                    Text(
-                      // formatCurrency.format(adjustedReturn),
-                      formatPercentage.format(adjustedReturnPercent),
-                      style: const TextStyle(fontSize: 20.0),
-                      textAlign: TextAlign.right,
-                    ),
-                    // if (pastYearYield != null) ...[
-                    //   Text('${formatPercentage.format(pastYearYield)} yield',
-                    //       style: const TextStyle(fontSize: 14)),
-                    // ]
-                  ]),
-                ),
-              ],
-            ],
-          ),
+          SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ConstrainedBox(
+                            //     constraints: BoxConstraints(maxHeight: 60), // 320
+                            //     child: CarouselView.weighted(
+                            //         padding: EdgeInsets.all(0),
+                            //         // shape: RoundedRectangleBorder(),
+                            //         scrollDirection: Axis.horizontal,
+                            //         itemSnapping: true,
+                            //         // itemExtent: 140,
+                            //         flexWeights: [1, 1, 1, 1],
+                            //         // shrinkExtent: 140,
+                            //         enableSplash: false,
+                            //         children: [
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                      formatPercentage.format(yield),
+                                      overflow: TextOverflow.fade,
+                                      softWrap: false,
+                                      style: const TextStyle(
+                                          fontSize:
+                                              summaryValueFontSize), //20.0
+                                      textAlign: TextAlign.right,
+                                    ),
+
+                                    //Container(height: 5),
+                                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+
+                                    Row(
+                                      children: [
+                                        Text("Div Yield",
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: TextStyle(
+                                                fontSize:
+                                                    summaryLabelFontSize)),
+                                        SizedBox(
+                                          height: 13,
+                                          width: 30,
+                                          child: IconButton(
+                                            iconSize: 12,
+                                            padding: EdgeInsets.zero,
+                                            icon: Icon(Icons.info_outline),
+                                            onPressed: () {
+                                              showDialog<String>(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) =>
+                                                          AlertDialog(
+                                                            // context: context,
+                                                            title: Text(
+                                                                'Dividend Yield'),
+                                                            content: Text(
+                                                                'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
+                                                            actions: [
+                                                              TextButton(
+                                                                onPressed: () {
+                                                                  Navigator.of(
+                                                                          context)
+                                                                      .pop();
+                                                                },
+                                                                child:
+                                                                    const Text(
+                                                                        'OK'),
+                                                              ),
+                                                            ],
+                                                          ));
+                                            },
+                                          ),
+                                        )
+                                      ],
+                                    ),
+                                  ]),
+                            ),
+                            if (yieldOnCost != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                        formatPercentage.format(yieldOnCost),
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                        style: const TextStyle(
+                                            fontSize:
+                                                summaryValueFontSize), //20.0
+                                        textAlign: TextAlign.right,
+                                      ),
+                                      Text("Yield on cost",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (adjustedCost != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(formatCurrency.format(adjustedCost),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryValueFontSize)),
+                                      Text("Adjusted cost basis",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (adjustedReturnPercent != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          if (adjustedReturnPercent != 0) ...[
+                                            // widget.user.getDisplayIcon(profitAndLoss)
+                                            Icon(
+                                                adjustedReturnPercent > 0
+                                                    ? Icons.arrow_drop_up
+                                                    : Icons.arrow_drop_down,
+                                                color: adjustedReturnPercent > 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                                size: 27),
+                                          ],
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatPercentage
+                                                .format(adjustedReturnPercent),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Adjusted return",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ]
+                          ])),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        double.parse(incomeTransactions[0]
+                                                    ["rate"]) <
+                                                0.005
+                                            ? formatPreciseCurrency.format(
+                                                double.parse(
+                                                    incomeTransactions[0]
+                                                        ["rate"]))
+                                            : formatCurrency.format(
+                                                double.parse(
+                                                    incomeTransactions[0]
+                                                        ["rate"])),
+                                        style: TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    Text(
+                                        "Last distribution", // ${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        widget.user.getDisplayText(
+                                            position.instrumentObj!.quoteObj!
+                                                    .lastExtendedHoursTradePrice ??
+                                                position.instrumentObj!
+                                                    .quoteObj!.lastTradePrice!,
+                                            displayValue:
+                                                DisplayValue.lastPrice),
+                                        style: TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    Text("Last price",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                        widget.user.getDisplayText(
+                                            position.averageBuyPrice!,
+                                            displayValue:
+                                                DisplayValue.lastPrice),
+                                        style: TextStyle(
+                                            fontSize: summaryValueFontSize)),
+                                    Text("Average cost basis",
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            if (gainLossPercent != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(children: [
+                                        if (gainLossPercent != 0) ...[
+                                          // widget.user.getDisplayIcon(profitAndLoss)
+                                          Icon(
+                                              gainLossPercent > 0
+                                                  ? Icons.arrow_drop_up
+                                                  : Icons.arrow_drop_down,
+                                              color: gainLossPercent > 0
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              size: 27),
+                                        ],
+                                        Text(
+                                            "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
+                                            style: TextStyle(
+                                                fontSize:
+                                                    summaryValueFontSize)),
+                                      ]),
+                                      Text("NAV return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                          ]))
+                ],
+              )),
+          // ExpansionTile(
+          //   shape: const Border(),
+          //   // dense: true,
+          //   // controlAffinity: ListTileControlAffinity.leading,
+          //   minTileHeight: 60,
+          //   // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
+          //   enabled: position != null,
+          //   title: Wrap(children: [
+          //     const Text(
+          //       "Dividend Yield",
+          //       style: TextStyle(fontSize: 19.0),
+          //     ),
+          //     if (position != null) ...[
+          //       SizedBox(
+          //         height: 28,
+          //         child: IconButton(
+          //           iconSize: 18,
+          //           padding: EdgeInsets.zero,
+          //           icon: Icon(Icons.info_outline),
+          //           onPressed: () {
+          //             showDialog<String>(
+          //                 context: context,
+          //                 builder: (BuildContext context) => AlertDialog(
+          //                       // context: context,
+          //                       title: Text('Dividend Yield'),
+          //                       content: Text(
+          //                           'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
+          //                       actions: [
+          //                         TextButton(
+          //                           onPressed: () {
+          //                             Navigator.of(context).pop();
+          //                           },
+          //                           child: const Text('OK'),
+          //                         ),
+          //                       ],
+          //                     ));
+          //           },
+          //         ),
+          //       )
+          //     ]
+          //   ]),
+          //   // subtitle:
+          //   //     yield != null ? Text(formatPercentage.format(yield)) : null,
+          //   subtitle: Text(
+          //       "last${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
+          //   trailing: Wrap(spacing: 8, children: [
+          //     Text(
+          //       formatPercentage.format(yield),
+          //       style: const TextStyle(fontSize: 20.0),
+          //       textAlign: TextAlign.right,
+          //     ),
+          //   ]),
+          //   children: [
+          //     if (yieldOnCost != null) ...[
+          //       ListTile(
+          //         // dense: true,
+          //         minTileHeight: 60,
+          //         // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
+          //         title: Wrap(children: [
+          //           const Text(
+          //             "Yield on cost",
+          //             style: TextStyle(fontSize: 18.0),
+          //           ),
+          //         ]),
+          //         subtitle: Text(
+          //             "average cost basis ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
+          //         trailing: Wrap(spacing: 8, children: [
+          //           Text(
+          //             formatPercentage.format(yieldOnCost),
+          //             style: const TextStyle(fontSize: 20.0),
+          //             textAlign: TextAlign.right,
+          //           ),
+          //         ]),
+          //       ),
+          //     ],
+          //     if (adjustedCost != null) ...[
+          //       ListTile(
+          //         title: Wrap(children: [
+          //           const Text(
+          //             "Adjusted cost basis",
+          //             style: TextStyle(fontSize: 18.0),
+          //           ),
+          //         ]),
+          //         subtitle: Text(// • ${instrument!.symbol}
+          //             'last price ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
+          //         trailing: Wrap(spacing: 8, children: [
+          //           Text(
+          //             formatCurrency.format(adjustedCost),
+          //             style: const TextStyle(fontSize: 20.0),
+          //             textAlign: TextAlign.right,
+          //           ),
+          //           // if (pastYearYield != null) ...[
+          //           //   Text('${formatPercentage.format(pastYearYield)} yield',
+          //           //       style: const TextStyle(fontSize: 14)),
+          //           // ]
+          //         ]),
+          //       ),
+          //     ],
+          //     if (marketValue != null) ...[
+          //       ListTile(
+          //         title: Wrap(children: [
+          //           const Text(
+          //             "Adjusted return",
+          //             style: TextStyle(fontSize: 18.0),
+          //           ),
+          //         ]),
+          //         subtitle: Text(
+          //             // ${instrument!.symbol}  // ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)}
+          //             'total return ${gainLossPercent! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}'), // ${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}
+          //         trailing: Wrap(spacing: 8, children: [
+          //           // Text(
+          //           //   formatCurrency.format(marketValue),
+          //           //   style: const TextStyle(fontSize: positionValueFontSize),
+          //           //   textAlign: TextAlign.right,
+          //           // ),
+          //           if (adjustedReturnPercent! != 0) ...[
+          //             // widget.user.getDisplayIcon(profitAndLoss)
+          //             Icon(
+          //                 adjustedReturnPercent > 0
+          //                     ? Icons.arrow_drop_up
+          //                     : Icons.arrow_drop_down,
+          //                 color: adjustedReturnPercent > 0
+          //                     ? Colors.green
+          //                     : Colors.red,
+          //                 size: 28),
+          //           ],
+          //           Text(
+          //             // formatCurrency.format(adjustedReturn),
+          //             formatPercentage.format(adjustedReturnPercent),
+          //             style: const TextStyle(fontSize: 20.0),
+          //             textAlign: TextAlign.right,
+          //           ),
+          //           // if (pastYearYield != null) ...[
+          //           //   Text('${formatPercentage.format(pastYearYield)} yield',
+          //           //       style: const TextStyle(fontSize: 14)),
+          //           // ]
+          //         ]),
+          //       ),
+          //     ],
+          //   ],
+          // ),
         ],
         SizedBox(
             height: 340,
@@ -939,6 +1211,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                           },
                         ),
                       ),
+                      Divider(indent: 12),
                       Padding(
                         padding: const EdgeInsets.all(4.0),
                         child: FilterChip(
