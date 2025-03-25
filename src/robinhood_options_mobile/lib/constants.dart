@@ -66,6 +66,8 @@ class Constants {
   }
 }
 
+const listTileTitleFontSize = 19.0;
+
 const totalValueFontSize = 24.0;
 const assetValueFontSize = 22.0;
 const positionValueFontSize = 21.0;

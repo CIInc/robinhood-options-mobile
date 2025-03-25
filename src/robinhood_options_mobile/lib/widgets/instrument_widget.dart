@@ -948,47 +948,44 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               return SliverToBoxAdapter(child: Container());
             }
             return SliverToBoxAdapter(
-                child: Card(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                  ListTile(
-                      title: Text("Position", style: TextStyle(fontSize: 19)),
-                      subtitle: Text(
-                          '${formatNumber.format(position.quantity!)} shares'),
-                      trailing: Text(
-                          formatCurrency.format(position.marketValue),
-                          style: const TextStyle(fontSize: 21))),
-                  _buildDetailScrollRow(
-                      position, summaryValueFontSize, summaryLabelFontSize,
-                      iconSize: 27.0),
-                  // ListTile(
-                  //   minTileHeight: 10,
-                  //   title: const Text("Cost"),
-                  //   trailing: Text(formatCurrency.format(position.totalCost),
-                  //       style: const TextStyle(fontSize: 18)),
-                  // ),
-                  // ListTile(
-                  //   minTileHeight: 10,
-                  //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
-                  //   // title: const Text("Average Cost"),
-                  //   trailing: Text(
-                  //       formatCurrency.format(position.averageBuyPrice),
-                  //       style: const TextStyle(fontSize: 18)),
-                  // ),
-                  // ListTile(
-                  //   minTileHeight: 10,
-                  //   title: const Text("Created"),
-                  //   trailing: Text(formatDate.format(position.createdAt!),
-                  //       style: const TextStyle(fontSize: 15)),
-                  // ),
-                  // ListTile(
-                  //   minTileHeight: 10,
-                  //   title: const Text("Updated"),
-                  //   trailing: Text(formatDate.format(position.updatedAt!),
-                  //       style: const TextStyle(fontSize: 15)),
-                  // ),
-                ])));
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              ListTile(
+                  title: Text("Position", style: TextStyle(fontSize: 19)),
+                  subtitle:
+                      Text('${formatNumber.format(position.quantity!)} shares'),
+                  trailing: Text(formatCurrency.format(position.marketValue),
+                      style: const TextStyle(fontSize: 21))),
+              _buildDetailScrollRow(
+                  position, summaryValueFontSize, summaryLabelFontSize,
+                  iconSize: 27.0),
+              // ListTile(
+              //   minTileHeight: 10,
+              //   title: const Text("Cost"),
+              //   trailing: Text(formatCurrency.format(position.totalCost),
+              //       style: const TextStyle(fontSize: 18)),
+              // ),
+              // ListTile(
+              //   minTileHeight: 10,
+              //   contentPadding: const EdgeInsets.fromLTRB(0, 0, 24, 8),
+              //   // title: const Text("Average Cost"),
+              //   trailing: Text(
+              //       formatCurrency.format(position.averageBuyPrice),
+              //       style: const TextStyle(fontSize: 18)),
+              // ),
+              // ListTile(
+              //   minTileHeight: 10,
+              //   title: const Text("Created"),
+              //   trailing: Text(formatDate.format(position.createdAt!),
+              //       style: const TextStyle(fontSize: 15)),
+              // ),
+              // ListTile(
+              //   minTileHeight: 10,
+              //   title: const Text("Updated"),
+              //   trailing: Text(formatDate.format(position.updatedAt!),
+              //       style: const TextStyle(fontSize: 15)),
+              // ),
+            ]));
           }),
           Consumer<OptionPositionStore>(
               builder: (context, optionPositionStore, child) {
@@ -1566,28 +1563,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       SliverToBoxAdapter(
-          child: Card(
-        child: Column(children: [
-          ListTile(
-            title: Text(
-              "Quote",
-              style: TextStyle(fontSize: 19.0),
-            ),
-            subtitle: Text(
-                instrument.quoteObj!.lastExtendedHoursTradePrice != null
-                    ? 'Extended hours'
-                    : ''),
-            trailing: Text(
-                formatCurrency.format(
-                    instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                        instrument.quoteObj!.lastTradePrice),
-                style: const TextStyle(fontSize: 21)),
+          child: Column(children: [
+        ListTile(
+          title: Text(
+            "Quote",
+            style: TextStyle(fontSize: 19.0),
           ),
-          _buildQuoteScrollRow(
-              instrument, summaryValueFontSize, summaryLabelFontSize,
-              iconSize: 27.0),
-        ]),
-      )),
+          subtitle: Text(
+              instrument.quoteObj!.lastExtendedHoursTradePrice != null
+                  ? 'Extended hours'
+                  : ''),
+          trailing: Text(
+              formatCurrency.format(
+                  instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                      instrument.quoteObj!.lastTradePrice),
+              style: const TextStyle(fontSize: 21)),
+        ),
+        _buildQuoteScrollRow(
+            instrument, summaryValueFontSize, summaryLabelFontSize,
+            iconSize: 27.0),
+      ])),
       SliverToBoxAdapter(
           child: Card(
               child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[

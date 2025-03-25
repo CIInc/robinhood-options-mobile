@@ -109,7 +109,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   Widget build(BuildContext context) {
     var dividendSymbols = widget.dividendStore.items
         .where((e) =>
-            e["instrumentObj"] != null && e["instrumentObj"].quoteObj != null)
+            e["instrumentObj"] != null &&
+            e["instrumentObj"].quoteObj != null &&
+            e["state"] == "paid")
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
@@ -260,9 +262,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     double? yield;
     double? yieldOnCost;
     double? marketValue;
-    // double? gainLoss;
+    double? totalCost;
+    double? gainLoss;
     double? gainLossPercent;
-    // double? adjustedReturn;
+    double? adjustedReturn;
     double? adjustedReturnPercent;
     double? adjustedCost;
     Instrument? instrument;
@@ -285,9 +288,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
         if (position != null) {
           marketValue = position.marketValue;
-          // gainLoss = position.gainLoss;
+          totalCost = position.totalCost;
+          gainLoss = position.gainLoss;
           gainLossPercent = position.gainLossPercent;
-          // adjustedReturn = position.gainLoss + totalIncome;
+          adjustedReturn = position.gainLoss + totalIncome;
           adjustedReturnPercent =
               ((marketValue + totalIncome) / position.totalCost) - 1;
 
@@ -583,7 +587,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // leading: Icon(Icons.payments),
           title: Wrap(children: [
             Text(
-              "${instrument != null ? '${instrument.symbol} ' : ''}Income",
+              "${instrument != null && widget.showFooter ? '${instrument.symbol} ' : ''}Income",
               style: TextStyle(fontSize: 19.0),
             ),
             if (!widget.showList) ...[
@@ -681,7 +685,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
 
                                     Row(
                                       children: [
-                                        Text("Div Yield",
+                                        Text("Last yield",
                                             overflow: TextOverflow.fade,
                                             softWrap: false,
                                             style: TextStyle(
@@ -801,6 +805,36 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Adjusted return %",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (adjustedReturn != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            formatCurrency
+                                                .format(adjustedReturn),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
                                       Text("Adjusted return",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
@@ -808,7 +842,37 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               fontSize: summaryLabelFontSize)),
                                     ]),
                               ),
-                            ]
+                            ],
+                            if (marketValue != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(marketValue),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Market Value",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                           ])),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -896,7 +960,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               size: 27),
                                         ],
                                         Text(
-                                            "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
+                                            widget.user.getDisplayText(
+                                                gainLossPercent,
+                                                displayValue: DisplayValue
+                                                    .totalReturnPercent),
+                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
                                             style: TextStyle(
                                                 fontSize:
                                                     summaryValueFontSize)),
@@ -907,6 +975,58 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            if (gainLoss != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(children: [
+                                        Text(
+                                            widget.user.getDisplayText(gainLoss,
+                                                displayValue:
+                                                    DisplayValue.totalReturn),
+                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
+                                            style: TextStyle(
+                                                fontSize:
+                                                    summaryValueFontSize)),
+                                      ]),
+                                      Text("NAV return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (totalCost != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(totalCost),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Total Cost",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ]
                           ]))
                 ],
               )),
@@ -1357,7 +1477,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               transactionSymbolFilters.clear();
                                               transactionSymbolFilters
                                                   .add(dividendSymbol);
-                                              dateFilter = 'All';
+                                              // dateFilter = 'All';
                                             } else {
                                               transactionFilters
                                                   .add("interest");
@@ -1365,7 +1485,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                   .removeWhere((String name) {
                                                 return name == dividendSymbol;
                                               });
-                                              dateFilter = 'Year';
+                                              // dateFilter = 'Year';
                                             }
                                           });
                                         },

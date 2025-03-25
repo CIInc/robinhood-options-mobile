@@ -9,6 +9,8 @@ class Account {
   final double? buyingPower;
   final String optionLevel;
   final double? cashHeldForOptionsCollateral;
+  final double? unsettledDebit;
+  final double? settledAmountBorrowed;
 
   Account(
       // this.userId,
@@ -18,7 +20,9 @@ class Account {
       this.type,
       this.buyingPower,
       this.optionLevel,
-      this.cashHeldForOptionsCollateral);
+      this.cashHeldForOptionsCollateral,
+      this.unsettledDebit,
+      this.settledAmountBorrowed);
 
   Account.fromJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -35,7 +39,19 @@ class Account {
         cashHeldForOptionsCollateral =
             json['cash_held_for_options_collateral'] is double
                 ? json['cash_held_for_options_collateral']
-                : double.tryParse(json['cash_held_for_options_collateral']);
+                : double.tryParse(json['cash_held_for_options_collateral']),
+        unsettledDebit = json['unsettled_debit'] != null
+            ? json['unsettled_debit'] is double
+                ? json['unsettled_debit']
+                : double.tryParse(json['unsettled_debit'])
+            : null,
+        settledAmountBorrowed = json['margin_balances'] != null
+            ? double.tryParse(
+                json['margin_balances']['settled_amount_borrowed'])
+            : json['settled_amount_borrowed'] != null &&
+                    json['settled_amount_borrowed'] is double
+                ? json['settled_amount_borrowed']
+                : null;
 
   Account.fromSchwabJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -50,7 +66,9 @@ class Account {
             .toString()),
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
-        cashHeldForOptionsCollateral = 0.0; // TODO
+        cashHeldForOptionsCollateral = 0.0,
+        unsettledDebit = 0.0,
+        settledAmountBorrowed = 0.0; // TODO
 
   Account.fromPlaidJson(dynamic json) //, BrokerageUser user
       : // userId = user.id,
@@ -61,7 +79,9 @@ class Account {
         buyingPower = json['accounts'][0]['balances']['current'] as double,
         optionLevel =
             '', // TODO: From getUser() /userprincipals/. Use .authorizations.optionTradingLevel
-        cashHeldForOptionsCollateral = 0.0; // TODO
+        cashHeldForOptionsCollateral = 0.0,
+        unsettledDebit = 0.0,
+        settledAmountBorrowed = 0.0; // TODO
 
   Map<String, Object?> toJson() {
     return {
@@ -72,7 +92,9 @@ class Account {
       'type': type,
       'buying_power': buyingPower,
       'option_level': optionLevel,
-      'cash_held_for_options_collateral': cashHeldForOptionsCollateral
+      'cash_held_for_options_collateral': cashHeldForOptionsCollateral,
+      'unsettled_debit': unsettledDebit,
+      'settled_amount_borrowed': settledAmountBorrowed
     };
   }
 

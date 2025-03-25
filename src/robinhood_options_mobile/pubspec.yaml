@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.8.5+34
+version: 0.9.1+36
 
 environment:
 #  sdk: '>=3.0.0-85.0.dev <4.0.0'
@@ -26,7 +26,7 @@ dependencies:
     sdk: flutter
 
   # Used by all Firebase services
-  firebase_core: ^3.10.1
+  firebase_core: ^3.12.1
   # Analyze usage with Firebase/Google Analytics
   firebase_analytics: ^11.4.1
   # Plaid functions
@@ -91,6 +91,9 @@ dependencies:
   async: ^2.11.0
   # Used to cache user image in SliverAppBar 
   cached_network_image: ^3.4.1
+  # Used for AI Assistant
+  firebase_vertexai: ^1.4.0
+  flutter_markdown: ^0.7.6+2
 
 dev_dependencies:
   flutter_test:

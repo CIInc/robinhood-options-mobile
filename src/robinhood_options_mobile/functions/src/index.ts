@@ -16,6 +16,7 @@ initializeApp();
 import * as plaidfunc from "./plaid";
 import * as authfunc from "./auth";
 import * as messagingfunc from "./messaging";
+import * as gemini from "./gemini";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -34,3 +35,5 @@ export const getInvestmentsTransactions =
   plaidfunc.getInvestmentsTransactions;
 export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
+export const generateContent = gemini.generateContent;
+export const generateContent2 = gemini.generateContent2;

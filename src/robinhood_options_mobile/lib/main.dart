@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
+import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/logo_provider.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
@@ -219,6 +220,9 @@ class MyApp extends StatelessWidget {
             ),
             ChangeNotifierProvider(
               create: (context) => LogoProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => GenerativeProvider(),
             ),
           ],
           child: MaterialApp(

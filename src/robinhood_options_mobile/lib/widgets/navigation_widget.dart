@@ -23,6 +23,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
@@ -68,6 +69,7 @@ class NavigationStatefulWidget extends StatefulWidget {
 /// This is the private State class that goes with NavigationStatefulWidget.
 class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   final FirestoreService _firestoreService = FirestoreService();
+  final GenerativeService _generativeService = GenerativeService();
 
   late IBrokerageService service;
 
@@ -421,6 +423,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       HomePage(
         userStore.currentUser!, userInfo!,
         service,
+        generativeService: _generativeService,
         user: user,
         userDoc:
             userDoc, // _firestoreService.userCollection.doc(auth.currentUser!.uid),

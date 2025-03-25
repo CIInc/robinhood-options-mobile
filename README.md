@@ -208,6 +208,14 @@ Functions will automatically deploy with hosting deployments with `firebase depl
 firebase deploy --only functions
 ```
 
+The following secrets should be configured to prevent storing sensitive passwords and tokens in source control.
+
+```bash
+# Change the value of an existing secret
+firebase functions:secrets:set GEMINI_API_KEY
+# View the value of a secret
+firebase functions:secrets:access GEMINI_API_KEY
+```
 
 ### Android Play Store
 

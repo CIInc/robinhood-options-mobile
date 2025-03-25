@@ -243,13 +243,14 @@ class InstrumentPosition {
         quantity!;
   }
 
-  double get extendedHoursMarketValue {
-    if (instrumentObj == null || instrumentObj!.quoteObj == null) {
-      return 0;
-    }
+  // Deprecated for marketValue which automatically uses extended hours when available.
+  // double get extendedHoursMarketValue {
+  //   if (instrumentObj == null || instrumentObj!.quoteObj == null) {
+  //     return 0;
+  //   }
 
-    return instrumentObj!.quoteObj!.lastExtendedHoursTradePrice! * quantity!;
-  }
+  //   return instrumentObj!.quoteObj!.lastExtendedHoursTradePrice! * quantity!;
+  // }
 
   double get totalCost {
     return averageBuyPrice! * quantity!;
