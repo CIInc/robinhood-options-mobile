@@ -699,7 +699,7 @@ Response: {
           // Update Instrument
           instrumentStore.update(position.instrumentObj!);
           if (userDoc != null) {
-            await _firestoreService.upsertInstrument(position.instrumentObj!);
+            _firestoreService.upsertInstrument(position.instrumentObj!);
             debugPrint(
                 'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
           }
@@ -777,7 +777,7 @@ Response: {
           position.instrumentObj!.quoteObj = quoteObj;
           // Update store
           store.update(position);
-          await _firestoreService.upsertInstrument(position.instrumentObj!);
+          _firestoreService.upsertInstrument(position.instrumentObj!);
           debugPrint(
               'RobinhoodService.refreshPositionQuote: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
         }
@@ -826,7 +826,7 @@ Response: {
         // for (var chunk in chunks) {
         //   await _firestoreService.upsertInstrumentOrders(chunk, userDoc);
         // }
-        await _firestoreService.upsertInstrumentOrders(list, userDoc);
+        _firestoreService.upsertInstrumentOrders(list, userDoc);
       }
 
       var instrumentIds = list.map((e) => e.instrumentId).toSet().toList();
@@ -887,7 +887,7 @@ Response: {
       yield list;
 
       if (userDoc != null) {
-        await _firestoreService.upsertDividends(results, userDoc);
+        _firestoreService.upsertDividends(results, userDoc);
       }
 
       var instrumentIds = list
@@ -975,7 +975,7 @@ Response: {
       //     .compareTo(DateTime.parse(a["record_date"]!)));
       // yield list;
       if (userDoc != null) {
-        await _firestoreService.upsertInterests(results, userDoc);
+        _firestoreService.upsertInterests(results, userDoc);
       }
     }
   }
@@ -1132,10 +1132,6 @@ Response: {
     var i = Instrument.fromJson(resultJson);
     // Using addOrUpdate for concurrency reasons.
     store.addOrUpdate(i);
-    // Don't add the instrument without a FundamentalObj (or QuoteObj).
-    // await _firestoreService.upsertInstrument(i);
-    // debugPrint(
-    //     'getInstrument: Stored instrument into Firestore $symbol');
     return i;
   }
 
@@ -1170,10 +1166,6 @@ Response: {
       var i = Instrument.fromJson(resultJson["results"][0]);
       // Using addOrUpdate for concurrency reasons.
       store.addOrUpdate(i);
-      // Don't add the instrument without a FundamentalObj (or QuoteObj).
-      // await _firestoreService.upsertInstrument(i);
-      // debugPrint(
-      //     'getInstrumentBySymbol: Stored instrument into Firestore $symbol');
       return i;
     } else {
       return Future.value(null);
@@ -2303,7 +2295,7 @@ Response: {
       // for (var chunk in chunks) {
       //   await _firestoreService.upsertOptionOrders(chunk, userDoc);
       // }
-      await _firestoreService.upsertOptionOrders(list, userDoc);
+      _firestoreService.upsertOptionOrders(list, userDoc);
     }
     //optionOrders = list;
   }
@@ -2371,7 +2363,7 @@ Response: {
       // for (var chunk in chunks) {
       //   await _firestoreService.upsertOptionEvents(chunk, userDoc);
       // }
-      await _firestoreService.upsertOptionEvents(list, userDoc);
+      _firestoreService.upsertOptionEvents(list, userDoc);
     }
   }
 
