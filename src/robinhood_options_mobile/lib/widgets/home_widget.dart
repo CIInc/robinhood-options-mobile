@@ -2002,10 +2002,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   if (portfolioHistoricals != null) {
                     final DateTime now = DateTime.now();
                     final DateTime newYearsDay = DateTime(now.year, 1, 1);
-                    var ytdportfolio = portfolioHistoricals.equityHistoricals
-                        // .where((element) =>
-                        //     element.beginsAt!.compareTo(newYearsDay) >= 0)
-                        .toList();
+                    // var ytdportfolio = portfolioHistoricals.equityHistoricals
+                    //     // .where((element) =>
+                    //     //     element.beginsAt!.compareTo(newYearsDay) >= 0)
+                    //     .toList();
                     // Update last historical from day span to deal with the issue that
                     // lastHistorical return different values at different increment spans.
                     var portfolioHistoricalsStore =
@@ -2013,8 +2013,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             listen: true);
                     var dayHistoricals = portfolioHistoricalsStore.items
                         .singleWhereOrNull((e) => e.span == 'day');
-                    if (dayHistoricals != null) {
-                      ytdportfolio.add(dayHistoricals.equityHistoricals.last);
+                    if (dayHistoricals != null &&
+                        !portfolioHistoricals.equityHistoricals.any((e) =>
+                            e.beginsAt ==
+                            dayHistoricals.equityHistoricals.last.beginsAt)) {
+                      portfolioHistoricals.equityHistoricals
+                          .add(dayHistoricals.equityHistoricals.last);
                     }
 
                     // var portfolioStore =
@@ -2094,18 +2098,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             .toList();
                     seriesDatadow
                         .insert(0, {'date': newYearsDay, 'value': 0.0});
-                    var seriesOpenportfolio =
-                        ytdportfolio[0].adjustedOpenEquity;
-                    var seriesDataportfolio = ytdportfolio
-                        .mapIndexed((index, e) => {
-                              'date': e.beginsAt,
-                              'value':
-                                  // index == 0 ? 0.0 :
-                                  e.adjustedCloseEquity! /
-                                          seriesOpenportfolio! -
-                                      1
-                            })
-                        .toList();
+                    var seriesOpenportfolio = portfolioHistoricals
+                        .equityHistoricals[0].adjustedOpenEquity;
+                    var seriesDataportfolio =
+                        portfolioHistoricals.equityHistoricals
+                            .mapIndexed((index, e) => {
+                                  'date': e.beginsAt,
+                                  'value':
+                                      // index == 0 ? 0.0 :
+                                      e.adjustedCloseEquity! /
+                                              seriesOpenportfolio! -
+                                          1
+                                })
+                            .toList();
                     // seriesDataportfolio
                     //     .insert(0, {'date': newYearsDay, 'value': 0});
                     // var portfoliodiffsp500 =
@@ -2128,7 +2133,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     if (brightness == Brightness.light) {
                       axisLabelColor = charts.MaterialPalette.gray.shade700;
                     }
-                    var provider = Provider.of<ChartSelectionStore>(context,
+                    var chartSelectionStore = Provider.of<ChartSelectionStore>(
+                        context,
                         listen: false);
                     // provider.selectionChanged(MapEntry(
                     //     seriesDataportfolio.first['date'] as DateTime,
@@ -2139,12 +2145,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     //         .map((e) => (e as Timestamp).toDate()),
                     //     snapshot.data['chart']['result'][0]['indicators']
                     //         ['adjClose'][0]['adjClose'] as List<double>);
-                    provider.selection = MapEntry(
-                        seriesDatasp500.last['date'] as DateTime,
-                        seriesDatasp500.last['value'] as double);
-                    // provider.selectionChanged(MapEntry(
-                    //     seriesDataportfolio.last['date'] as DateTime,
-                    //     seriesDataportfolio.last['value'] as double));
+                    // WidgetsBinding.instance.addPostFrameCallback((_) {
+                    // chartSelectionStore.selection = MapEntry(
+                    //     seriesDatasp500.last['date'] as DateTime,
+                    //     seriesDatasp500.last['value'] as double);
+                    // In order to highlight the last data point domain (date).
+                    chartSelectionStore.selectionChanged(MapEntry(
+                        seriesDataportfolio.last['date'] as DateTime,
+                        seriesDataportfolio.last['value'] as double));
+                    // });
                     TimeSeriesChart marketIndicesChart = TimeSeriesChart(
                       [
                         charts.Series<dynamic, DateTime>(
@@ -2213,20 +2222,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         cellPadding: EdgeInsets.fromLTRB(8, 4, 8, 4),
                         position: charts.BehaviorPosition.top,
                         defaultHiddenSeries: const [
-                          'Dow 30',
-                          'Nasdaq',
-                          'S&P 500'
+                          // 'Dow 30',
+                          // 'Nasdaq',
+                          // 'S&P 500'
                         ],
                         // To show value on legend upon selection
                         showMeasures: true,
                         measureFormatter: (measure) => measure != null
                             ? formatPercentage.format(measure)
                             : '',
+                        // Causes null exception when series are toggled from visible to hidden.
                         // legendDefaultMeasure:
                         //     charts.LegendDefaultMeasure.lastValue
                       ),
                       onSelected: (charts.SelectionModel? model) {
-                        provider.selectionChanged(model != null
+                        chartSelectionStore.selectionChanged(model != null
                             ? MapEntry(model.selectedDatum.first.datum['date'],
                                 model.selectedDatum.first.datum['value'])
                             : null); //?.first
@@ -2241,12 +2251,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             seriesDatanasdaq.last['date'] as DateTime),
                         charts.SeriesDatumConfig<DateTime>(
                             'Dow 30', seriesDatadow.last['date'] as DateTime)
-                      ]),
+                      ], shouldPreserveSelectionOnDraw: true),
                       symbolRenderer: TextSymbolRenderer(() {
-                        return provider.selection != null
+                        return chartSelectionStore.selection != null
                             // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
                             ? formatCompactDateTimeWithHour.format(
-                                (provider.selection as MapEntry).key.toLocal())
+                                (chartSelectionStore.selection as MapEntry)
+                                    .key
+                                    .toLocal())
                             : '';
                       }, marginBottom: 16),
                     );

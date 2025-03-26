@@ -491,7 +491,18 @@ class _LoginWidgetState extends State<LoginWidget> {
   }
 
   void _login() async {
-    if (source == BrokerageSource.schwab) {
+    if (source == BrokerageSource.demo ||
+        (userCtl.text == 'demo' && passCtl.text == 'demo')) {
+      DemoService().login();
+      var user = BrokerageUser(source, "Demo Account", null, null);
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+      if (mounted) {
+        Navigator.pop(context, user);
+      }
+    } else if (source == BrokerageSource.schwab) {
       var user = await SchwabService().login();
       debugPrint('SchwabService().login(): $user');
       // Handled by deep links & oauth redirect flow.
@@ -510,16 +521,6 @@ class _LoginWidgetState extends State<LoginWidget> {
         if (mounted) {
           Navigator.pop(context, user);
         }
-      }
-    } else if (source == BrokerageSource.demo) {
-      DemoService().login();
-      var user = BrokerageUser(source, "Demo Account", null, null);
-      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
-      userStore.addOrUpdate(user);
-      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
-      await userStore.save();
-      if (mounted) {
-        Navigator.pop(context, user);
       }
     } else if (source == BrokerageSource.robinhood) {
       setState(() {
