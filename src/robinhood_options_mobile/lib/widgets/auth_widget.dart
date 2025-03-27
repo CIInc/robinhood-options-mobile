@@ -62,7 +62,8 @@ extension on AuthMode {
 /// Entrypoint example for various sign-in flows with Firebase.
 class AuthGate extends StatefulWidget {
   final Function(User?)? onSignin;
-  const AuthGate({super.key, this.onSignin});
+  final ScrollController? scrollController;
+  const AuthGate({super.key, this.onSignin, this.scrollController});
   static String? appleAuthorizationCode;
   @override
   State<StatefulWidget> createState() => _AuthGateState();
@@ -138,6 +139,7 @@ class _AuthGateState extends State<AuthGate> {
       child: Scaffold(
         body: Center(
           child: SingleChildScrollView(
+            controller: widget.scrollController,
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -203,53 +205,104 @@ class _AuthGateState extends State<AuthGate> {
                             },
                           ),
                           const SizedBox(height: 20),
-                          if (mode != AuthMode.phone)
-                            Column(
-                              children: [
-                                TextFormField(
-                                  controller: emailController,
-                                  autofocus: true,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Email',
-                                    border: OutlineInputBorder(),
+                          AnimatedCrossFade(
+                              // excludeBottomFocus: false,
+                              firstChild: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: emailController,
+                                    autofocus: true,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Email',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    keyboardType: TextInputType.emailAddress,
+                                    autofillHints: const [AutofillHints.email],
+                                    validator: (value) =>
+                                        value != null && value.isNotEmpty
+                                            ? null
+                                            : 'Required',
                                   ),
-                                  keyboardType: TextInputType.emailAddress,
-                                  autofillHints: const [AutofillHints.email],
-                                  validator: (value) =>
-                                      value != null && value.isNotEmpty
-                                          ? null
-                                          : 'Required',
-                                ),
-                                const SizedBox(height: 20),
-                                TextFormField(
-                                  controller: passwordController,
-                                  obscureText: true,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Password',
-                                    border: OutlineInputBorder(),
+                                  const SizedBox(height: 20),
+                                  TextFormField(
+                                    controller: passwordController,
+                                    obscureText: true,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Password',
+                                      border: OutlineInputBorder(),
+                                    ),
+                                    validator: (value) =>
+                                        value != null && value.isNotEmpty
+                                            ? null
+                                            : 'Required',
                                   ),
-                                  validator: (value) =>
-                                      value != null && value.isNotEmpty
-                                          ? null
-                                          : 'Required',
-                                ),
-                              ],
-                            ),
-                          if (mode == AuthMode.phone)
-                            TextFormField(
-                              controller: phoneController,
-                              autofocus: true,
-                              decoration: const InputDecoration(
-                                hintText: '+12345678910',
-                                labelText: 'Phone number',
-                                border: OutlineInputBorder(),
+                                ],
                               ),
-                              keyboardType: TextInputType.phone,
-                              validator: (value) =>
-                                  value != null && value.isNotEmpty
-                                      ? null
-                                      : 'Required',
-                            ),
+                              secondChild: TextFormField(
+                                controller: phoneController,
+                                autofocus: true,
+                                decoration: const InputDecoration(
+                                  hintText: '+12345678910',
+                                  // labelText: 'Phone number',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.phone,
+                                validator: (value) =>
+                                    value != null && value.isNotEmpty
+                                        ? null
+                                        : 'Required',
+                              ),
+                              crossFadeState: mode != AuthMode.phone
+                                  ? CrossFadeState.showFirst
+                                  : CrossFadeState.showSecond,
+                              duration: Duration(milliseconds: 200)),
+                          // if (mode != AuthMode.phone)
+                          //   Column(
+                          //     children: [
+                          //       TextFormField(
+                          //         controller: emailController,
+                          //         autofocus: true,
+                          //         decoration: const InputDecoration(
+                          //           hintText: 'Email',
+                          //           border: OutlineInputBorder(),
+                          //         ),
+                          //         keyboardType: TextInputType.emailAddress,
+                          //         autofillHints: const [AutofillHints.email],
+                          //         validator: (value) =>
+                          //             value != null && value.isNotEmpty
+                          //                 ? null
+                          //                 : 'Required',
+                          //       ),
+                          //       const SizedBox(height: 20),
+                          //       TextFormField(
+                          //         controller: passwordController,
+                          //         obscureText: true,
+                          //         decoration: const InputDecoration(
+                          //           hintText: 'Password',
+                          //           border: OutlineInputBorder(),
+                          //         ),
+                          //         validator: (value) =>
+                          //             value != null && value.isNotEmpty
+                          //                 ? null
+                          //                 : 'Required',
+                          //       ),
+                          //     ],
+                          //   ),
+                          // if (mode == AuthMode.phone)
+                          //   TextFormField(
+                          //     controller: phoneController,
+                          //     autofocus: true,
+                          //     decoration: const InputDecoration(
+                          //       hintText: '+12345678910',
+                          //       labelText: 'Phone number',
+                          //       border: OutlineInputBorder(),
+                          //     ),
+                          //     keyboardType: TextInputType.phone,
+                          //     validator: (value) =>
+                          //         value != null && value.isNotEmpty
+                          //             ? null
+                          //             : 'Required',
+                          //   ),
                           const SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
@@ -265,22 +318,29 @@ class _AuthGateState extends State<AuthGate> {
                                   : Text(mode.label),
                             ),
                           ),
-                          if (mode != AuthMode.phone) ...[
-                            TextButton(
-                              onPressed: _resetPassword,
-                              child: const Text('Forgot password?'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  mode = mode == AuthMode.login
-                                      ? AuthMode.register
-                                      : AuthMode.login;
-                                });
-                              },
-                              child: const Text('Register New Account'),
-                            ),
-                          ],
+                          AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: mode != AuthMode.phone
+                                  ? Column(
+                                      children: [
+                                        TextButton(
+                                          onPressed: _resetPassword,
+                                          child: const Text('Forgot password?'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              mode = mode == AuthMode.login
+                                                  ? AuthMode.register
+                                                  : AuthMode.login;
+                                            });
+                                          },
+                                          child: const Text(
+                                              'Register New Account'),
+                                        ),
+                                      ],
+                                    )
+                                  : null),
                           // SizedBox(
                           //   width: double.infinity,
                           //   height: 50,
@@ -368,48 +428,48 @@ class _AuthGateState extends State<AuthGate> {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          if (mode != AuthMode.phone)
-                            RichText(
-                              text: TextSpan(
-                                style: Theme.of(context).textTheme.bodyLarge,
-                                children: [
-                                  TextSpan(
-                                    text: mode == AuthMode.login
-                                        ? "Don't have an account? "
-                                        : 'You have an account? ',
-                                  ),
-                                  TextSpan(
-                                    text: mode == AuthMode.login
-                                        ? 'Register now'
-                                        : 'Click to login',
-                                    style: const TextStyle(color: Colors.blue),
-                                    recognizer: TapGestureRecognizer()
-                                      ..onTap = () {
-                                        setState(() {
-                                          mode = mode == AuthMode.login
-                                              ? AuthMode.register
-                                              : AuthMode.login;
-                                        });
-                                      },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          // const SizedBox(height: 10),
-                          // RichText(
-                          //   text: TextSpan(
-                          //     style: Theme.of(context).textTheme.bodyLarge,
-                          //     children: [
-                          //       const TextSpan(text: 'Or '),
-                          //       TextSpan(
-                          //         text: 'continue as guest',
-                          //         style: const TextStyle(color: Colors.blue),
-                          //         recognizer: TapGestureRecognizer()
-                          //           ..onTap = _anonymousAuth,
-                          //       ),
-                          //     ],
+                          // if (mode != AuthMode.phone)
+                          //   RichText(
+                          //     text: TextSpan(
+                          //       style: Theme.of(context).textTheme.bodyLarge,
+                          //       children: [
+                          //         TextSpan(
+                          //           text: mode == AuthMode.login
+                          //               ? "Don't have an account? "
+                          //               : 'You have an account? ',
+                          //         ),
+                          //         TextSpan(
+                          //           text: mode == AuthMode.login
+                          //               ? 'Register now'
+                          //               : 'Click to login',
+                          //           style: const TextStyle(color: Colors.blue),
+                          //           recognizer: TapGestureRecognizer()
+                          //             ..onTap = () {
+                          //               setState(() {
+                          //                 mode = mode == AuthMode.login
+                          //                     ? AuthMode.register
+                          //                     : AuthMode.login;
+                          //               });
+                          //             },
+                          //         ),
+                          //       ],
+                          //     ),
                           //   ),
-                          // ),
+                          // const SizedBox(height: 10),
+                          RichText(
+                            text: TextSpan(
+                              style: Theme.of(context).textTheme.bodyLarge,
+                              children: [
+                                const TextSpan(text: 'Or '),
+                                TextSpan(
+                                  text: 'continue as guest',
+                                  style: const TextStyle(color: Colors.blue),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = _anonymousAuth,
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -468,26 +528,26 @@ class _AuthGateState extends State<AuthGate> {
     }
   }
 
-  // Future<void> _anonymousAuth() async {
-  //   setIsLoading();
+  Future<void> _anonymousAuth() async {
+    setIsLoading();
 
-  //   try {
-  //     await auth.signInAnonymously();
-  //     if (widget.onSignin != null && auth.currentUser != null) {
-  //       widget.onSignin!(auth.currentUser!);
-  //     }
-  //   } on FirebaseAuthException catch (e) {
-  //     setState(() {
-  //       error = '${e.message}';
-  //     });
-  //   } catch (e) {
-  //     setState(() {
-  //       error = '$e';
-  //     });
-  //   } finally {
-  //     setIsLoading();
-  //   }
-  // }
+    try {
+      await auth.signInAnonymously();
+      if (widget.onSignin != null && auth.currentUser != null) {
+        widget.onSignin!(auth.currentUser!);
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        error = '${e.message}';
+      });
+    } catch (e) {
+      setState(() {
+        error = '$e';
+      });
+    } finally {
+      setIsLoading();
+    }
+  }
 
   Future<void> _handleMultiFactorException(
     Future<void> Function() authFunction,

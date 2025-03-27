@@ -2145,15 +2145,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     //         .map((e) => (e as Timestamp).toDate()),
                     //     snapshot.data['chart']['result'][0]['indicators']
                     //         ['adjClose'][0]['adjClose'] as List<double>);
-                    // WidgetsBinding.instance.addPostFrameCallback((_) {
-                    // chartSelectionStore.selection = MapEntry(
-                    //     seriesDatasp500.last['date'] as DateTime,
-                    //     seriesDatasp500.last['value'] as double);
-                    // In order to highlight the last data point domain (date).
-                    chartSelectionStore.selectionChanged(MapEntry(
-                        seriesDataportfolio.last['date'] as DateTime,
-                        seriesDataportfolio.last['value'] as double));
-                    // });
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      // chartSelectionStore.selection = MapEntry(
+                      //     seriesDatasp500.last['date'] as DateTime,
+                      //     seriesDatasp500.last['value'] as double);
+                      // In order to highlight the last data point domain (date).
+                      chartSelectionStore.selectionChanged(MapEntry(
+                          seriesDataportfolio.last['date'] as DateTime,
+                          seriesDataportfolio.last['value'] as double));
+                    });
                     TimeSeriesChart marketIndicesChart = TimeSeriesChart(
                       [
                         charts.Series<dynamic, DateTime>(

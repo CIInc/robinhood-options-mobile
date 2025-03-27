@@ -125,28 +125,40 @@ class ExpandedSliverAppBar extends StatelessWidget {
                         await showModalBottomSheet<void>(
                             context: context,
                             showDragHandle: true,
-                            //isScrollControlled: true,
+                            isScrollControlled: true,
+                            useSafeArea: true,
                             //useRootNavigator: true,
                             //constraints: const BoxConstraints(maxHeight: 200),
-                            builder: (_) => MoreMenuBottomSheet(user,
-                                    analytics: analytics,
-                                    observer: observer,
-                                    showMarketSettings: true,
-                                    chainSymbols: null,
-                                    positionSymbols: null,
-                                    cryptoSymbols: null,
-                                    optionSymbolFilters: null,
-                                    stockSymbolFilters: null,
-                                    cryptoFilters: null,
-                                    onSettingsChanged: (value) {
-                                  // debugPrint(
-                                  //     "Settings changed ${jsonEncode(value)}");
-                                  debugPrint(
-                                      "showPositionDetails: ${user.showPositionDetails.toString()}");
-                                  debugPrint(
-                                      "displayValue: ${user.displayValue.toString()}");
-                                  // setState(() {});
-                                }));
+                            builder: (_) {
+                              return DraggableScrollableSheet(
+                                  expand: false,
+                                  snap: true,
+                                  // minChildSize: 0.5,
+                                  builder: (context, scrollController) {
+                                    return MoreMenuBottomSheet(
+                                      user,
+                                      analytics: analytics,
+                                      observer: observer,
+                                      showMarketSettings: true,
+                                      chainSymbols: null,
+                                      positionSymbols: null,
+                                      cryptoSymbols: null,
+                                      optionSymbolFilters: null,
+                                      stockSymbolFilters: null,
+                                      cryptoFilters: null,
+                                      onSettingsChanged: (value) {
+                                        // debugPrint(
+                                        //     "Settings changed ${jsonEncode(value)}");
+                                        debugPrint(
+                                            "showPositionDetails: ${user.showPositionDetails.toString()}");
+                                        debugPrint(
+                                            "displayValue: ${user.displayValue.toString()}");
+                                        // setState(() {});
+                                      },
+                                      scrollController: scrollController,
+                                    );
+                                  });
+                            });
                         // Navigator.pop(context);
                       })
               ]);
@@ -163,51 +175,56 @@ Future<String?> showProfile(
     BrokerageUser brokerageUser) async {
   return await showModalBottomSheet<String>(
       context: context,
-      // isScrollControlled: true,
+      isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
       builder: (context) {
-        // return DraggableScrollableSheet(
-        //   builder: (context, scrollController) {
-        return auth.currentUser != null
-            ? UserWidget(auth,
-                userId: auth.currentUser!.uid,
-                isProfileView: true, onSignout: () async {
-                // Reset userRole
-                final authUtil = AuthUtil(auth);
-                userRole = await authUtil.userRole();
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Signed out'),
-                      behavior: SnackBarBehavior.floating));
-                  Navigator.pop(context);
-                }
-              },
-                analytics: analytics,
-                observer: observer,
-                brokerageUser: brokerageUser)
-            : AuthGate(onSignin: (User? firebaseUser) async {
-                if (firebaseUser == null) {
-                  return;
-                }
-                var userStore =
-                    Provider.of<BrokerageUserStore>(context, listen: false);
-                if (auth.currentUser != null) {
-                  final authUtil = AuthUtil(auth);
-                  var user = await authUtil.setUser(firestoreService,
-                      brokerageUserStore: userStore); // firebaseUser,
-                  userRole = user.role; // authUtil.userRole();
-                }
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(
-                          'Signed in ${firebaseUser.displayName != null ? 'as ${firebaseUser.displayName}' : ''}'),
-                      behavior: SnackBarBehavior.floating));
-                  Navigator.pop(context);
-                }
-              });
-        //   },
-        // );
+        return DraggableScrollableSheet(
+          expand: false,
+          snap: true,
+          // minChildSize: 0.5,
+          builder: (context, scrollController) {
+            return auth.currentUser != null
+                ? UserWidget(auth,
+                    userId: auth.currentUser!.uid,
+                    isProfileView: true, onSignout: () async {
+                    // Reset userRole
+                    final authUtil = AuthUtil(auth);
+                    userRole = await authUtil.userRole();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Signed out'),
+                          behavior: SnackBarBehavior.floating));
+                      Navigator.pop(context);
+                    }
+                  },
+                    analytics: analytics,
+                    observer: observer,
+                    brokerageUser: brokerageUser)
+                : AuthGate(
+                    scrollController: scrollController,
+                    onSignin: (User? firebaseUser) async {
+                      if (firebaseUser == null) {
+                        return;
+                      }
+                      var userStore = Provider.of<BrokerageUserStore>(context,
+                          listen: false);
+                      if (auth.currentUser != null) {
+                        final authUtil = AuthUtil(auth);
+                        var user = await authUtil.setUser(firestoreService,
+                            brokerageUserStore: userStore); // firebaseUser,
+                        userRole = user.role; // authUtil.userRole();
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(
+                                'Signed in ${firebaseUser.displayName != null ? 'as ${firebaseUser.displayName}' : ''}'),
+                            behavior: SnackBarBehavior.floating));
+                        Navigator.pop(context);
+                      }
+                    });
+          },
+        );
         // return Scaffold(
         //     // appBar: AppBar(
         //     //     leading:

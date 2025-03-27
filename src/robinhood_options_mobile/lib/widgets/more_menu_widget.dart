@@ -24,13 +24,15 @@ class MoreMenuBottomSheet extends StatefulWidget {
       this.stockSymbolFilters,
       this.cryptoFilters,
       required this.onSettingsChanged,
-      this.physics});
+      this.physics,
+      this.scrollController});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final ValueChanged<dynamic> onSettingsChanged;
   final ScrollPhysics? physics;
+  final ScrollController? scrollController;
 
   final bool showMarketSettings;
   final bool showStockSettings;
@@ -73,6 +75,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
         // appBar:
         //     AppBar(leading: const CloseButton(), title: const Text('Settings')),
         body: ListView(
+      controller: widget.scrollController,
       physics: widget.physics,
       //Column(
       //mainAxisAlignment: MainAxisAlignment.start,
