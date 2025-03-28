@@ -96,9 +96,11 @@ class Fundamentals {
                 ? json['average_volume']
                 : double.tryParse(json['average_volume']))
             : null,
-        high52Weeks = json['high_52_weeks'] is double
-            ? json['high_52_weeks']
-            : double.tryParse(json['high_52_weeks']),
+        high52Weeks = json['high_52_weeks'] != null
+            ? json['high_52_weeks'] is double
+                ? json['high_52_weeks']
+                : double.tryParse(json['high_52_weeks'])
+            : null,
         dividendYield = json['dividend_yield'] != null
             ? (json['dividend_yield'] is double
                 ? json['dividend_yield']
@@ -109,9 +111,11 @@ class Fundamentals {
                 ? json['float']
                 : double.tryParse(json['float']))
             : null,
-        low52Weeks = json['low_52_weeks'] is double
-            ? json['low_52_weeks']
-            : double.tryParse(json['low_52_weeks']),
+        low52Weeks = json['low_52_weeks'] != null
+            ? json['low_52_weeks'] is double
+                ? json['low_52_weeks']
+                : double.tryParse(json['low_52_weeks'])
+            : null,
         marketCap = json['market_cap'] != null
             ? (json['market_cap'] is double
                 ? json['market_cap']

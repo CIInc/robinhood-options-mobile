@@ -714,4 +714,10 @@ class PlaidService implements IBrokerageService {
     // TODO: implement getInterests
     throw UnimplementedError();
   }
+
+  @override
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
+    // TODO: implement
+    throw UnimplementedError();
+  }
 }

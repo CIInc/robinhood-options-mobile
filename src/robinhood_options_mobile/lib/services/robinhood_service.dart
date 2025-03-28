@@ -2588,7 +2588,7 @@ Response: {
       'override_dtbp_checks': false,
       // 'ref_id': uuid.v4(),
     };
-    var url = "$endpoint/options/orders/";
+    var url = "$endpoint/orders/";
     debugPrint(url);
     var result = await user.oauth2Client!.post(Uri.parse(url),
         body: jsonEncode(payload),
@@ -2652,6 +2652,19 @@ Response: {
           "accept": "application/json"
         });
 
+    return result;
+  }
+
+  @override
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancelUrl) async {
+    var result = await user.oauth2Client!.post(
+      Uri.parse(cancelUrl),
+      // body: jsonEncode(payload),
+      // headers: {
+      //   "content-type": "application/json",
+      //   "accept": "application/json"
+      // }
+    );
     return result;
   }
 

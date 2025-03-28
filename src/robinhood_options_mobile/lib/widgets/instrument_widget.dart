@@ -34,6 +34,7 @@ import 'package:robinhood_options_mobile/widgets/instrument_option_chain_widget.
 import 'package:robinhood_options_mobile/widgets/list_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_orders_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/position_order_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_instrument_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -105,7 +106,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   List<String> positionFilters = <String>[];
   List<bool> hasQuantityFilters = [true, false];
 
-  final List<String> orderFilters = <String>["confirmed", "filled"];
+  final List<String> orderFilters = <String>["confirmed", "filled", "queued"];
 
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
@@ -517,22 +518,20 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           SliverToBoxAdapter(
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Stack(children: [
-                    if (done == false) ...[
-                      SizedBox(
-                        height: 3, //150.0,
-                        child: Center(
-                            child: LinearProgressIndicator(
-                                //value: controller.value,
-                                //semanticsLabel: 'Linear progress indicator',
-                                ) //CircularProgressIndicator(),
-                            ),
-                      ),
-                    ],
-                    buildOverview(instrument)
-                  ]))),
+              child: Stack(children: [
+            if (done == false) ...[
+              SizedBox(
+                height: 3, //150.0,
+                child: Center(
+                    child: LinearProgressIndicator(
+                        //value: controller.value,
+                        //semanticsLabel: 'Linear progress indicator',
+                        ) //CircularProgressIndicator(),
+                    ),
+              ),
+            ],
+            buildOverview(instrument)
+          ])),
           Consumer<InstrumentHistoricalsStore>(builder: //, QuoteStore
               (context, instrumentHistoricalsStore, child) {
             //, quoteStore
@@ -1096,7 +1095,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             )),
             _buildSimilarWidget(instrument)
           ],
-          if (instrument.listsObj != null) ...[
+          if (instrument.listsObj != null &&
+              instrument.listsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
                 child: SizedBox(
               height: 8.0,
@@ -1192,99 +1192,96 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
   */
 
-  Card buildOverview(Instrument instrument) {
+  Widget buildOverview(Instrument instrument) {
     if (instrument.quoteObj == null) {
-      return const Card();
+      return Container();
     }
-    return Card(
-        child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            const SizedBox(width: 8),
-            if (instrument.tradeableChainId != null) ...[
-              TextButton(
-                child: const Text('OPTION CHAIN'),
-                onPressed: () {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: <Widget>[
+          // const SizedBox(width: 8),
+          if (instrument.tradeableChainId != null) ...[
+            FilledButton.tonal(
+              child: const Text('OPTION CHAIN'),
+              onPressed: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentOptionChainWidget(
+                              widget.user,
+                              widget.service,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                            )));
+              },
+            ),
+          ],
+          // const Expanded(child: SizedBox()),
+          const SizedBox(width: 8),
+          FilledButton(
+              child: const Text('TRADE'),
+              onPressed: () =>
+                  // showDialog<String>(
+                  //   context: context,
+                  //   builder: (BuildContext context) => AlertDialog(
+                  //     title: const Text('Alert'),
+                  //     content: const Text('This feature is not implemented.'),
+                  //     actions: <Widget>[
+                  //       TextButton(
+                  //         onPressed: () => Navigator.pop(context, 'OK'),
+                  //         child: const Text('OK'),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => InstrumentOptionChainWidget(
-                                widget.user,
-                                widget.service,
-                                instrument,
+                          builder: (context) => TradeInstrumentWidget(
+                                widget.user, widget.service,
+                                //widget.account,
+                                // stockPosition: positi,
+                                instrument: instrument,
+                                positionType: "Buy",
                                 analytics: widget.analytics,
                                 observer: widget.observer,
-                              )));
-                },
-              ),
-            ],
-            const Expanded(child: SizedBox()),
-            //const SizedBox(width: 8),
-            TextButton(
-                child: const Text('BUY'),
-                onPressed: () =>
-                    // showDialog<String>(
-                    //   context: context,
-                    //   builder: (BuildContext context) => AlertDialog(
-                    //     title: const Text('Alert'),
-                    //     content: const Text('This feature is not implemented.'),
-                    //     actions: <Widget>[
-                    //       TextButton(
-                    //         onPressed: () => Navigator.pop(context, 'OK'),
-                    //         child: const Text('OK'),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeInstrumentWidget(
-                                  widget.user, widget.service,
-                                  //widget.account,
-                                  // stockPosition: positi,
-                                  instrument: instrument,
-                                  positionType: "Buy",
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                )))),
-            const SizedBox(width: 8),
-            TextButton(
-                child: const Text('SELL'),
-                onPressed: () =>
-                    // showDialog<String>(
-                    //   context: context,
-                    //   builder: (BuildContext context) => AlertDialog(
-                    //     title: const Text('Alert'),
-                    //     content: const Text('This feature is not implemented.'),
-                    //     actions: <Widget>[
-                    //       TextButton(
-                    //         onPressed: () => Navigator.pop(context, 'OK'),
-                    //         child: const Text('OK'),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => TradeInstrumentWidget(
-                                  widget.user, widget.service,
-                                  //widget.account,
-                                  // stockPosition: positi,
-                                  instrument: instrument,
-                                  positionType: "Sell",
-                                  analytics: widget.analytics,
-                                  observer: widget.observer,
-                                )))),
-            const SizedBox(width: 8),
-          ],
-        ),
-      ],
-    ));
+                              )))),
+          // const SizedBox(width: 8),
+          // TextButton(
+          //     child: const Text('SELL'),
+          //     onPressed: () =>
+          //         // showDialog<String>(
+          //         //   context: context,
+          //         //   builder: (BuildContext context) => AlertDialog(
+          //         //     title: const Text('Alert'),
+          //         //     content: const Text('This feature is not implemented.'),
+          //         //     actions: <Widget>[
+          //         //       TextButton(
+          //         //         onPressed: () => Navigator.pop(context, 'OK'),
+          //         //         child: const Text('OK'),
+          //         //       ),
+          //         //     ],
+          //         //   ),
+          //         // ),
+          //         Navigator.push(
+          //             context,
+          //             MaterialPageRoute(
+          //                 builder: (context) => TradeInstrumentWidget(
+          //                       widget.user, widget.service,
+          //                       //widget.account,
+          //                       // stockPosition: positi,
+          //                       instrument: instrument,
+          //                       positionType: "Sell",
+          //                       analytics: widget.analytics,
+          //                       observer: widget.observer,
+          //                     )))),
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
   }
 
   SingleChildScrollView _buildDetailScrollRow(
@@ -2759,7 +2756,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     child: Text('${positionOrders[index].quantity!.round()}',
                         style: const TextStyle(fontSize: 18))),
                 title: Text(
-                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${positionOrders[index].averagePrice != null ? formatCompactNumber.format(positionOrders[index].averagePrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
+                    "${positionOrders[index].side == "buy" ? "Buy" : positionOrders[index].side == "sell" ? "Sell" : positionOrders[index].side} ${positionOrders[index].quantity} at \$${positionOrders[index].averagePrice != null ? formatCompactNumber.format(positionOrders[index].averagePrice) : (positionOrders[index].price != null ? formatCompactNumber.format(positionOrders[index].price) : "")}"), // , style: TextStyle(fontSize: 18.0)),
                 subtitle: Text(
                     "${positionOrders[index].state} ${formatDate.format(positionOrders[index].updatedAt!)}"),
                 trailing: Wrap(spacing: 8, children: [
@@ -2807,15 +2804,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ],
           ),*/
                 //isThreeLine: true,
-                /*
                 onTap: () {
+                  positionOrders[index].instrumentObj = widget.instrument;
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) =>
-                              PositionOrderWidget(user, positionOrders[index])));
+                          builder: (context) => PositionOrderWidget(
+                                widget.user,
+                                widget.service,
+                                positionOrders[index],
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                              )));
                 },
-                */
               ),
             ],
           ));
@@ -3066,6 +3067,26 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           scrollDirection: Axis.horizontal,
           itemBuilder: (context, index) {
             return Row(children: [
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Queued'),
+                  selected: orderFilters.contains("queued"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("queued");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "queued";
+                        });
+                      }
+                    });
+                  },
+                ),
+              ),
               Padding(
                 padding: const EdgeInsets.all(4.0),
                 child: FilterChip(

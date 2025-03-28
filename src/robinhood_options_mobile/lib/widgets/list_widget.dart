@@ -388,7 +388,11 @@ class _ListWidgetState extends State<ListWidget>
               child: SizedBox(
             height: 25.0,
           )),
-          const SliverToBoxAdapter(child: DisclaimerWidget())
+          const SliverToBoxAdapter(child: DisclaimerWidget()),
+          const SliverToBoxAdapter(
+              child: SizedBox(
+            height: 25.0,
+          )),
         ])
 
         /*body: Builder(builder: (context) {

@@ -1689,4 +1689,10 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
     // TODO: implement getInterests
     throw UnimplementedError();
   }
+
+  @override
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
+    // TODO: implement
+    throw UnimplementedError();
+  }
 }

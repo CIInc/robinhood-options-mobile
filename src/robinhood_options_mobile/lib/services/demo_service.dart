@@ -1544,4 +1544,10 @@ class DemoService implements IBrokerageService {
     }
     return list; // Future.value([]);
   }
+
+  @override
+  Future<dynamic> cancelOrder(BrokerageUser user, String? cancel) {
+    // TODO: implement
+    throw UnimplementedError();
+  }
 }

@@ -241,4 +241,6 @@ abstract class IBrokerageService {
       String timeInForce =
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       });
+
+  cancelOrder(BrokerageUser user, String cancel) {}
 }

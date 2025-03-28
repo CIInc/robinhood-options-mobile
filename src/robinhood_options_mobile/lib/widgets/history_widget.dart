@@ -100,7 +100,7 @@ class _HistoryPageState extends State<HistoryPage>
 
   final List<String> optionSymbolFilters = <String>[];
 
-  final List<String> orderFilters = <String>["confirmed", "filled"];
+  final List<String> orderFilters = <String>["confirmed", "filled", "queued"];
   final List<String> stockSymbolFilters = <String>[];
   final List<String> cryptoFilters = <String>[];
 
@@ -2058,6 +2058,27 @@ class _HistoryPageState extends State<HistoryPage>
                       } else {
                         orderFilters.removeWhere((String name) {
                           return name == "confirmed";
+                        });
+                      }
+                    });
+                    Navigator.pop(context, 'dialog');
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: FilterChip(
+                  //avatar: const Icon(Icons.history_outlined),
+                  //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                  label: const Text('Queued'),
+                  selected: orderFilters.contains("queued"),
+                  onSelected: (bool value) {
+                    setState(() {
+                      if (value) {
+                        orderFilters.add("queued");
+                      } else {
+                        orderFilters.removeWhere((String name) {
+                          return name == "queued";
                         });
                       }
                     });

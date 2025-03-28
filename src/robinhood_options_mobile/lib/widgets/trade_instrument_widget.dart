@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +44,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
   var priceCtl = TextEditingController();
   var deviceCtl = TextEditingController();
 
+  bool placingOrder = false;
+
   // Loaded with option_positions parent widget
   //Future<OptionInstrument> futureOptionInstrument;
 
@@ -52,68 +56,13 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
     super.initState();
     positionType = widget.positionType;
     widget.analytics.logScreenView(screenName: 'Trade Option');
+    priceCtl.text = (widget.instrument!.quoteObj!.lastExtendedHoursTradePrice ??
+            widget.instrument!.quoteObj!.lastTradePrice)
+        .toString();
   }
 
   @override
   Widget build(BuildContext context) {
-    var floatBtn = SizedBox(
-        width: 340.0,
-        child: ElevatedButton.icon(
-          label: Text(positionType!),
-          //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
-          icon: const Icon(Icons.attach_money),
-          onPressed: () async {
-            var accountStore =
-                Provider.of<AccountStore>(context, listen: false);
-
-            var orderJson = await widget.service.placeInstrumentOrder(
-              widget.user,
-              accountStore.items[0],
-              widget.instrument!,
-              widget.instrument!.symbol,
-              positionType == "Buy" ? "buy" : "sell", // side
-              double.parse(priceCtl.text),
-              int.parse(quantityCtl.text),
-            );
-            debugPrint(orderJson);
-
-            var newOrder = InstrumentOrder.fromJson(orderJson);
-
-            // widget.analytics.logPurchase(
-            //     currency: widget.instrument!.chainSymbol,
-            //     value:
-            //         double.parse(priceCtl.text) + int.parse(quantityCtl.text),
-            //     transactionId: newOrder.id,
-            //     affiliation: positionType);
-
-            if (newOrder.state == "confirmed" ||
-                newOrder.state == "unconfirmed") {
-              if (context.mounted) {
-                Navigator.pop(context);
-
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                    content: Text(
-                        "Order to $positionType ${quantityCtl.text} shares of ${widget.instrument!.symbol} at \$${priceCtl.text} placed."),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-              }
-            } else {
-              setState(() {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(SnackBar(
-                    content: Text("Error placing order. $orderJson"),
-                    behavior: SnackBarBehavior.floating,
-                  ));
-              });
-            }
-          },
-        ));
-    priceCtl.text = (widget.instrument!.quoteObj!.lastExtendedHoursTradePrice ??
-            widget.instrument!.quoteObj!.lastTradePrice)
-        .toString();
     return Scaffold(
         appBar: AppBar(
           title: Wrap(
@@ -123,7 +72,8 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
               spacing: 20,
               //runSpacing: 5,
               children: [
-                Text('${widget.instrument!.symbol} ${widget.instrument!.type}',
+                Text(
+                    'Trade ${widget.instrument!.symbol} stock', //  ${widget.instrument!.type.toUpperCase()}
                     style: const TextStyle(fontSize: 20.0)),
                 // Text(
                 //     formatDate.format(widget.instrument!.expirationDate!),
@@ -135,7 +85,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
             padding: const EdgeInsets.all(15.0),
             children: [
               ListTile(
-                title: const Text("Position Type"),
+                title: const Text("Trade Type"),
                 trailing: ToggleButtons(
                   onPressed: (int index) {
                     setState(() {
@@ -187,22 +137,140 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
                 ),
               ),
               ListTile(
-                title: TextField(
-                  controller: quantityCtl,
+                title: const Text("Shares"),
+                trailing: SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: quantityCtl,
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(fontSize: 21),
+                    textAlign: TextAlign.right,
+                  ),
                 ),
-                subtitle: const Text("Shares"),
+                // subtitle: const Text("Shares"),
               ),
               ListTile(
-                title: TextField(
-                  controller: priceCtl,
-                  //obscureText: true,
+                title: const Text("Limit Price"),
+                trailing: SizedBox(
+                  width: 120,
+                  child: TextField(
+                    controller: priceCtl,
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(fontSize: 21),
+                    textAlign: TextAlign.right,
+                    //obscureText: true,
+                  ),
                 ),
-                subtitle: const Text("Price"),
+                // subtitle: const Text("Price"),
               ),
               Container(
                 height: 20,
               ),
-              Center(child: floatBtn)
+              Center(
+                  child: SizedBox(
+                      width: 340.0,
+                      child: FilledButton.icon(
+                        label: Text(
+                          "Place Order", // positionType!,
+                          style: TextStyle(fontSize: 19),
+                        ),
+                        //isSelected[0] ? "Buy" : "Sell"), // ${snapshot.connectionState}
+                        icon: placingOrder
+                            ? SizedBox(
+                                width: 19,
+                                height: 19,
+                                child: const CircularProgressIndicator())
+                            : null, //const Icon(Icons.send, size: 19),
+                        onPressed: placingOrder
+                            ? null
+                            : () async {
+                                setState(() {
+                                  placingOrder = true;
+                                });
+                                var accountStore = Provider.of<AccountStore>(
+                                    context,
+                                    listen: false);
+
+                                var orderJson =
+                                    await widget.service.placeInstrumentOrder(
+                                  widget.user,
+                                  accountStore.items[0],
+                                  widget.instrument!,
+                                  widget.instrument!.symbol,
+                                  positionType == "Buy"
+                                      ? "buy"
+                                      : "sell", // side
+                                  double.parse(priceCtl.text),
+                                  int.parse(quantityCtl.text),
+                                );
+                                debugPrint(orderJson.body);
+                                if (orderJson.statusCode != 200 &&
+                                    orderJson.statusCode != 201) {
+                                  setState(() {
+                                    placingOrder = false;
+                                  });
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                      ..removeCurrentSnackBar()
+                                      ..showSnackBar(SnackBar(
+                                        showCloseIcon: true,
+                                        duration: const Duration(days: 1),
+                                        // action: SnackBarAction(
+                                        //   label: 'Ok',
+                                        //   onPressed: () {},
+                                        // ),
+                                        content:
+                                            Text(jsonEncode(orderJson.body)),
+                                        behavior: SnackBarBehavior.floating,
+                                      ));
+                                  }
+                                } else {
+                                  var newOrder = InstrumentOrder.fromJson(
+                                      jsonDecode(orderJson.body));
+
+                                  // widget.analytics.logPurchase(
+                                  //     currency: widget.instrument!.chainSymbol,
+                                  //     value:
+                                  //         double.parse(priceCtl.text) + int.parse(quantityCtl.text),
+                                  //     transactionId: newOrder.id,
+                                  //     affiliation: positionType);
+                                  placingOrder = false;
+
+                                  if (newOrder.state == "confirmed" ||
+                                      newOrder.state == "queued" ||
+                                      newOrder.state == "unconfirmed") {
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+
+                                      ScaffoldMessenger.of(context)
+                                        ..removeCurrentSnackBar()
+                                        ..showSnackBar(SnackBar(
+                                          duration: const Duration(days: 1),
+                                          showCloseIcon: true,
+                                          // action: SnackBarAction(
+                                          //   label: 'Ok',
+                                          //   onPressed: () {},
+                                          // ),
+                                          content: Text(
+                                              "Order to $positionType ${quantityCtl.text} shares of ${widget.instrument!.symbol} at \$${priceCtl.text} ${newOrder.state}."),
+                                          behavior: SnackBarBehavior.floating,
+                                        ));
+                                    }
+                                  } else {
+                                    setState(() {
+                                      ScaffoldMessenger.of(context)
+                                        ..removeCurrentSnackBar()
+                                        ..showSnackBar(SnackBar(
+                                          content: Text("Error placing order."),
+                                          behavior: SnackBarBehavior.floating,
+                                        ));
+                                    });
+                                  }
+                                }
+                              },
+                      )))
             ],
           );
         })

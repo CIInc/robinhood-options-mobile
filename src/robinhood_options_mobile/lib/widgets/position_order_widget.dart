@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
@@ -10,6 +14,8 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 
 class PositionOrderWidget extends StatefulWidget {
@@ -151,123 +157,198 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
         ),
       ],
       SliverToBoxAdapter(
-          child: Card(
-              child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const ListTile(
-              title: Text("Order Detail", style: TextStyle(fontSize: 20))),
-          ListTile(
-            title: const Text("Created"),
-            trailing: Text(
-              formatDate.format(positionOrder.createdAt!),
-              style: const TextStyle(fontSize: 18),
-            ),
+        child: Card(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const ListTile(
+                  title: Text("Order Detail", style: TextStyle(fontSize: 20))),
+              ListTile(
+                title: const Text("Created"),
+                minTileHeight: 10,
+                trailing: Text(
+                  formatDate.format(positionOrder.createdAt!),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Updated"),
+                minTileHeight: 10,
+                trailing: Text(
+                  formatDate.format(positionOrder.updatedAt!),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Quantity"),
+                minTileHeight: 10,
+                trailing: Text(
+                  formatCompactNumber.format(positionOrder.quantity),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Cumulative Quantity"),
+                minTileHeight: 10,
+                trailing: Text(
+                  formatCompactNumber.format(positionOrder.cumulativeQuantity),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Price"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.price != null
+                      ? formatCurrency.format(positionOrder.price)
+                      : '',
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Average Price"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.averagePrice != null
+                      ? formatCurrency.format(positionOrder.averagePrice)
+                      : "-",
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Stop Price"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.stopPrice != null
+                      ? formatCurrency.format(positionOrder.stopPrice)
+                      : "",
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Fees"),
+                minTileHeight: 10,
+                trailing: Text(
+                  formatCurrency.format(positionOrder.fees),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("State"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.state,
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Side"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.side,
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Time in Force"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.timeInForce,
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Trigger"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.trigger,
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              ListTile(
+                title: const Text("Type"),
+                minTileHeight: 10,
+                trailing: Text(
+                  positionOrder.type,
+                  style: const TextStyle(fontSize: summaryValueFontSize),
+                ),
+              ),
+              if (positionOrder.rejectReason != null) ...[
+                ListTile(
+                  title: const Text("Reject Reason"),
+                  minTileHeight: 10,
+                  trailing: Text(
+                    positionOrder.rejectReason ?? "-",
+                    style: const TextStyle(fontSize: summaryValueFontSize),
+                  ),
+                ),
+              ],
+              // ListTile(
+              //   title: const Text("Cancel"),
+              //   minTileHeight: 10,
+              //   trailing: Text(
+              //     positionOrder.cancel ?? "-",
+              //     style: const TextStyle(fontSize: summaryValueFontSize),
+              //   ),
+              // ),
+            ],
           ),
-          ListTile(
-            title: const Text("Updated"),
-            trailing: Text(
-              formatDate.format(positionOrder.updatedAt!),
-              style: const TextStyle(fontSize: 18),
-            ),
+        ),
+      ),
+      if (positionOrder.cancel != null) ...[
+        SliverToBoxAdapter(
+            child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              FilledButton(
+                  child: const Text('CANCEL'),
+                  onPressed: () async {
+                    var response = await widget.service
+                        .cancelOrder(widget.user, positionOrder.cancel!);
+                    // debugPrint(jsonEncode(response.body));
+
+                    if (mounted) {
+                      showDialog<String>(
+                        context: context,
+                        builder: (BuildContext context) => AlertDialog(
+                          title: const Text('Cancel'),
+                          content: Text(response.statusCode == 200
+                              ? 'Order has been cancelled.'
+                              : 'Error: Order could not be cancelled.'),
+                          // actions: <Widget>[
+                          //   TextButton(
+                          //     onPressed: () => Navigator.pop(context, 'OK'),
+                          //     child: const Text('OK'),
+                          //   ),
+                          // ],
+                        ),
+                      );
+                      Navigator.pop(context);
+                    }
+                  }),
+              const SizedBox(width: 4),
+            ],
           ),
-          ListTile(
-            title: const Text("Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(positionOrder.quantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Cumulative Quantity"),
-            trailing: Text(
-              formatCompactNumber.format(positionOrder.cumulativeQuantity),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Price"),
-            trailing: Text(
-              positionOrder.price != null
-                  ? formatCurrency.format(positionOrder.price)
-                  : '',
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Average Price"),
-            trailing: Text(
-              formatCurrency.format(positionOrder.averagePrice),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Stop Price"),
-            trailing: Text(
-              positionOrder.stopPrice != null
-                  ? formatCurrency.format(positionOrder.stopPrice)
-                  : "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Fees"),
-            trailing: Text(
-              formatCurrency.format(positionOrder.fees),
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("State"),
-            trailing: Text(
-              positionOrder.state,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Side"),
-            trailing: Text(
-              positionOrder.side,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Time in Force"),
-            trailing: Text(
-              positionOrder.timeInForce,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Trigger"),
-            trailing: Text(
-              positionOrder.trigger,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Type"),
-            trailing: Text(
-              positionOrder.type,
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Reject Reason"),
-            trailing: Text(
-              positionOrder.rejectReason ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-          ListTile(
-            title: const Text("Cancel"),
-            trailing: Text(
-              positionOrder.cancel ?? "",
-              style: const TextStyle(fontSize: 18),
-            ),
-          ),
-        ],
-      ))),
+        )),
+      ],
+      if (!kIsWeb) ...[
+        const SliverToBoxAdapter(
+            child: SizedBox(
+          height: 25.0,
+        )),
+        SliverToBoxAdapter(child: AdBannerWidget(size: AdSize.mediumRectangle)),
+      ],
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      )),
+      const SliverToBoxAdapter(child: DisclaimerWidget()),
+      const SliverToBoxAdapter(
+          child: SizedBox(
+        height: 25.0,
+      ))
       /*
       SliverToBoxAdapter(
           child: Card(
@@ -292,7 +373,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
       children: <Widget>[
         ListTile(
           // leading: const Icon(Icons.album),
-          title: Text('${instrument.simpleName}'),
+          title: Text(instrument.simpleName ?? instrument.symbol),
           subtitle: Text(instrument.name),
           trailing: Wrap(
             spacing: 8,
@@ -313,7 +394,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                   formatCurrency.format(
                       instrument.quoteObj!.lastExtendedHoursTradePrice ??
                           instrument.quoteObj!.lastTradePrice),
-                  style: const TextStyle(fontSize: 18.0),
+                  style: const TextStyle(fontSize: summaryValueFontSize),
                   textAlign: TextAlign.right,
                 ),
               ]
