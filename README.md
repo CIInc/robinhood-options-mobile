@@ -1,6 +1,6 @@
 # RealizeAlpha
 
-This repository implements the Robinhood API to provide an options focused Android and iOS mobile app using the Flutter SDK.
+This repository implements brokerage APIs like Robinhood to provide an options focused Android and iOS mobile app using the Flutter SDK.
 
 ## Getting Started
 
@@ -23,9 +23,10 @@ TODO
 
 In order to build and debug locally, you must install the following dependencies:
 
-- Android Studio (includes SDK Manager)
+- Android Studio (for Android deployment)
+- XCode (for iOS deployment)
+- Flutter SDK
 - VS Code
-- Flutter SDK (includes Dart SDK)
 - Dart & Flutter VS Code extensions
 
 To ensure your installation was successful, run this command: 
@@ -124,12 +125,24 @@ Select a mobile emulator from the device selector. *Note that this is not workin
 
 ### Upgrade dependencies
 
+#### Flutter upgrades
+
 To ensure you are using the latest packages, run these commands to check and upgrade them: 
 ```bash
 flutter pub outdated
 flutter pub upgrade --major-versions
 flutter pub upgrade --tighten
 ```
+
+#### Firebase upgrades
+
+Run these commands in both `functions` and `firebase` folders for Firebase function deployment and running admin tools respectively.
+```bash
+npm install -g npm-check-updates
+ncu -u
+npm install
+```
+
 ### Generate App Icons & Launch Images
 
 1. Replace src/robinhood_options_mobile/icon.png with latest icon PNG image at the maximum possible resolution (1024x1024?).
