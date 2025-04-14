@@ -44,7 +44,7 @@ class UserListTile extends StatelessWidget {
               return heroAsset;
             },
             child: heroAsset),
-        title: Text(user.name ?? user.providerId?.capitalize() ?? ''),
+        title: Text(user.name ?? user.providerId?.capitalize() ?? 'Guest'),
         subtitle: Text(
             user.email ?? user.phoneNumber ?? ''), // (${user.role.getValue()})
         trailing: showNavigation ? const Icon(Icons.chevron_right) : null,

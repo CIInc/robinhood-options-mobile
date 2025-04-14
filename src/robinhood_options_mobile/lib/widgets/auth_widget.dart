@@ -219,7 +219,7 @@ class _AuthGateState extends State<AuthGate> {
                                     keyboardType: TextInputType.emailAddress,
                                     autofillHints: const [AutofillHints.email],
                                     validator: (value) =>
-                                        value != null && value.isNotEmpty
+                                        mode == AuthMode.phone || value != null && value.isNotEmpty
                                             ? null
                                             : 'Required',
                                   ),
@@ -232,7 +232,7 @@ class _AuthGateState extends State<AuthGate> {
                                       border: OutlineInputBorder(),
                                     ),
                                     validator: (value) =>
-                                        value != null && value.isNotEmpty
+                                        mode == AuthMode.phone || value != null && value.isNotEmpty
                                             ? null
                                             : 'Required',
                                   ),
@@ -248,7 +248,7 @@ class _AuthGateState extends State<AuthGate> {
                                 ),
                                 keyboardType: TextInputType.phone,
                                 validator: (value) =>
-                                    value != null && value.isNotEmpty
+                                    mode != AuthMode.phone || value != null && value.isNotEmpty
                                         ? null
                                         : 'Required',
                               ),
