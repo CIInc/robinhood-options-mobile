@@ -428,6 +428,17 @@ class PlaidService implements IBrokerageService {
     throw UnimplementedError();
   }
 
+    @override
+  Future<PortfolioHistoricals> getPortfolioPerformance(
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account,
+      { Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+    throw UnimplementedError();
+    }
+
+
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
       BrokerageUser user,

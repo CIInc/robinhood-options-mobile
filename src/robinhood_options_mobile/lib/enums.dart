@@ -64,7 +64,7 @@ String convertChartSpanFilter(ChartDateSpan chartDateSpanFilter) {
       span = "3month";
       break;
     case ChartDateSpan.ytd:
-      span = "year";
+      span = "ytd";
       break;
     case ChartDateSpan.year:
       span = "year";

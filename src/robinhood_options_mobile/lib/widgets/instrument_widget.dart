@@ -2326,6 +2326,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           widget.service,
           Provider.of<DividendStore>(context, listen: false),
           Provider.of<InstrumentPositionStore>(context, listen: false),
+          Provider.of<InstrumentOrderStore>(context, listen: false),
           Provider.of<ChartSelectionStore>(context, listen: false),
           transactionSymbolFilters: [instrument.symbol],
           showChips: false,

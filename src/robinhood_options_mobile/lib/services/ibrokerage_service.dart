@@ -140,6 +140,12 @@ abstract class IBrokerageService {
       String account,
       Bounds chartBoundsFilter,
       ChartDateSpan chartDateSpanFilter);
+  Future<PortfolioHistoricals> getPortfolioPerformance(
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      { Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});      
   Future<OptionHistoricals> getOptionHistoricals(
       BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
       {Bounds chartBoundsFilter = Bounds.regular,

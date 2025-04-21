@@ -1273,6 +1273,16 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
   }
 
   @override
+  Future<PortfolioHistoricals> getPortfolioPerformance(
+    BrokerageUser user,
+    PortfolioHistoricalsStore store,
+    String account,
+      { Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+    throw UnimplementedError();
+    }
+
+  @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(
       BrokerageUser user,
       PortfolioHistoricalsStore store,

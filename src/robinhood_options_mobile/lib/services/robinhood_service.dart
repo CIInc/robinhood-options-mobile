@@ -607,6 +607,21 @@ Response: {
 
   // TODO: Implement YTD portfolio historicals with
   // https://bonfire.robinhood.com/portfolio/performance/1234567?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
+  @override
+  Future<PortfolioHistoricals> getPortfolioPerformance(
+      BrokerageUser user,
+      PortfolioHistoricalsStore store,
+      String account,
+      { Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+    var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
+    String? span = rtn[0];
+    var url = "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
+    var result = await RobinhoodService.getJson(user, url);
+    var historicals = PortfolioHistoricals.fromPerformanceJson(result);
+    store.set(historicals);
+    return historicals;
+  }
 
   /*
   // Bounds options     [24_7, regular]
@@ -632,8 +647,6 @@ Response: {
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
     String? interval = rtn[1];
-
-    // TODO: https://bonfire.robinhood.com/portfolio/performance/5QR24141?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
     // https://api.robinhood.com/portfolios/historicals/1AB23456/?account=1AB23456&bounds=24_7&interval=5minute&span=day
     var result = await RobinhoodService.getJson(user,
         "$endpoint/portfolios/historicals/$account/?&bounds=$bounds&span=$span&interval=$interval"); //${account}/
@@ -1413,6 +1426,8 @@ Response: {
         //https://api.robinhood.com/marketdata/historicals/943c5009-a0bb-4665-8cf4-a95dab5874e4/?bounds=trading&include_inactive=true&interval=5minute&span=day
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=regular&include_inactive=true&interval=10minute&span=week
         //https://api.robinhood.com/marketdata/historicals/GOOG/?bounds=trading&include_inactive=true&interval=5minute&span=day
+        // For multiple instruments:
+        // https://api.robinhood.com/marketdata/historicals/?bounds=24_5&ids=8f92e76f-1e0e-4478-8580-16a6ffcfaef5%2C943c5009-a0bb-4665-8cf4-a95dab5874e4%2Cc0bb3aec-bd1e-471e-a4f0-ca011cbec711&interval=5minute&span=day
         "$endpoint/marketdata/historicals/$symbolOrInstrumentId/?bounds=$bounds&include_inactive=$includeInactive&interval=$interval&span=$span"); //${account}/
     var instrumentHistorical = InstrumentHistoricals.fromJson(result);
     store.set(instrumentHistorical);
@@ -2242,6 +2257,10 @@ Response: {
           var splits = element.legs.first.option.split("/");
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
+        if (optionPosition.optionInstrument == null) {
+          // We may want to handle this, by looking it up from optionInstrumentStore 
+          continue;
+        }
         if (optionPosition.optionInstrument!.optionMarketData == null ||
             optionPosition.optionInstrument!.optionMarketData!.updatedAt!
                 .isBefore(optionMarketDatum.updatedAt!)) {

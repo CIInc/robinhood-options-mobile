@@ -25,6 +25,7 @@ import 'package:robinhood_options_mobile/model/equity_historical.dart';
 import 'package:robinhood_options_mobile/model/forex_holding.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
@@ -356,21 +357,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
           if (widget.brokerageUser.source == BrokerageSource.robinhood ||
               widget.brokerageUser.source == BrokerageSource.demo) {
-            futurePortfolioHistoricals = widget.service.getPortfolioHistoricals(
+            // futurePortfolioHistoricals = widget.service.getPortfolioHistoricals(
+            //     widget.brokerageUser,
+            //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+            //     account!.accountNumber,
+            //     chartBoundsFilter,
+            //     chartDateSpanFilter);
+
+            futurePortfolioHistoricals = widget.service.getPortfolioPerformance(
                 widget.brokerageUser,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
-                chartBoundsFilter,
-                chartDateSpanFilter);
+                chartBoundsFilter: chartBoundsFilter,
+                chartDateSpanFilter: chartDateSpanFilter);
+
+            // futurePortfolioHistoricalsYear = widget.service
+            //     .getPortfolioHistoricals(
+            //         widget.brokerageUser,
+            //         Provider.of<PortfolioHistoricalsStore>(context,
+            //             listen: false),
+            //         account!.accountNumber,
+            //         chartBoundsFilter,
+            //         ChartDateSpan.ytd);
 
             futurePortfolioHistoricalsYear = widget.service
-                .getPortfolioHistoricals(
+                .getPortfolioPerformance(
                     widget.brokerageUser,
                     Provider.of<PortfolioHistoricalsStore>(context,
                         listen: false),
                     account!.accountNumber,
-                    chartBoundsFilter,
-                    ChartDateSpan.ytd);
+                chartBoundsFilter: chartBoundsFilter,
+                chartDateSpanFilter: ChartDateSpan.ytd);
 
             // Future.delayed(Duration(seconds: 1), () {
             //   if (mounted) {
@@ -848,26 +865,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 portfolioHistoricals = portfolioHistoricalsStore.items
                     .firstWhereOrNull((element) =>
                             element.span ==
-                                convertChartSpanFilter(chartDateSpanFilter) &&
-                            element.bounds ==
-                                convertChartBoundsFilter(chartBoundsFilter)
+                            convertChartSpanFilter(chartDateSpanFilter)
+                        //      &&
+                        // element.bounds ==
+                        //     convertChartBoundsFilter(chartBoundsFilter)
                         //&& element.interval == element.interval
                         );
                 if (portfolioHistoricals == null) {
-                  portfolioHistoricals = portfolioHistoricalsStore.items
-                      .firstWhereOrNull((element) =>
-                              element.span ==
-                                  convertChartSpanFilter(
-                                      prevChartDateSpanFilter) &&
-                              element.bounds ==
-                                  convertChartBoundsFilter(
-                                      prevChartBoundsFilter)
-                          //&& element.interval == element.interval
-                          );
+                  // portfolioHistoricals = portfolioHistoricalsStore.items
+                  //     .firstWhereOrNull((element) =>
+                  //             element.span ==
+                  //             convertChartSpanFilter(prevChartDateSpanFilter)
+                  //         //         &&
+                  //         // element.bounds ==
+                  //         //     convertChartBoundsFilter(
+                  //         //         prevChartBoundsFilter)
+                  //         //&& element.interval == element.interval
+                  //         );
 
-                  if (portfolioHistoricals == null) {
+                  // if (portfolioHistoricals == null) {
                     return SliverToBoxAdapter(child: Container());
-                  }
+                  // }
                 }
 
                 /* Removed because it was causing PortfolioHistoricalStore to updateListeners when the next http request was no different.  
@@ -892,36 +910,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
                 firstHistorical = portfolioHistoricals!.equityHistoricals.first;
                 lastHistorical = portfolioHistoricals!.equityHistoricals.last;
-
+                var allHistoricals = portfolioHistoricals!.equityHistoricals;
                 // Update last historical from day span to deal with the issue that
                 // lastHistorical return different values at different increment spans.
-                var hourHistoricals = portfolioHistoricalsStore.items
-                    .singleWhereOrNull((e) => e.span == 'hour');
-                var dayHistoricals = portfolioHistoricalsStore.items
-                    .singleWhereOrNull((e) => e.span == 'day');
-                final DateTime now = DateTime.now();
-                final DateTime today = DateTime(now.year, now.month, now.day);
-                final maxDate = portfolioHistoricals!.equityHistoricals
-                    .map((e) => e.beginsAt!)
-                    .reduce((a, b) => a.isAfter(b) ? a : b);
-                var allHistoricals = (portfolioHistoricals!.span == "day"
-                        // || portfolioHistoricals!.span == "hour"
-                        ? portfolioHistoricals!.equityHistoricals
-                            .where((element) =>
-                                element.beginsAt!.compareTo(today) >= 0)
-                            .toList()
-                        : portfolioHistoricals!.equityHistoricals) +
-                    (hourHistoricals != null
-                        ? hourHistoricals.equityHistoricals
-                            .where((element) =>
-                                element.beginsAt!.compareTo(today) >= 0 &&
-                                element.beginsAt!.compareTo(maxDate) >= 0)
-                            .toList()
-                        : [dayHistoricals!.equityHistoricals.last]);
-                if (allHistoricals.isNotEmpty) {
-                  firstHistorical = allHistoricals.first;
-                  lastHistorical = allHistoricals.last;
-                }
+                // var hourHistoricals = portfolioHistoricalsStore.items
+                //     .singleWhereOrNull((e) => e.span == 'hour');
+                // var dayHistoricals = portfolioHistoricalsStore.items
+                //     .singleWhereOrNull((e) => e.span == 'day');
+                // final DateTime now = DateTime.now();
+                // final DateTime today = DateTime(now.year, now.month, now.day);
+                // final maxDate = portfolioHistoricals!.equityHistoricals
+                //     .map((e) => e.beginsAt!)
+                //     .reduce((a, b) => a.isAfter(b) ? a : b);
+                // var allHistoricals = (portfolioHistoricals!.span == "day"
+                //         // || portfolioHistoricals!.span == "hour"
+                //         ? portfolioHistoricals!.equityHistoricals
+                //             .where((element) =>
+                //                 element.beginsAt!.compareTo(today) >= 0)
+                //             .toList()
+                //         : portfolioHistoricals!.equityHistoricals) +
+                //     (hourHistoricals != null
+                //         ? hourHistoricals.equityHistoricals
+                //             .where((element) =>
+                //                 element.beginsAt!.compareTo(today) >= 0 &&
+                //                 element.beginsAt!.compareTo(maxDate) >= 0)
+                //             .toList()
+                //         : [dayHistoricals!.equityHistoricals.last]);
+                // if (allHistoricals.isNotEmpty) {
+                //   firstHistorical = allHistoricals.first;
+                //   lastHistorical = allHistoricals.last;
+                // }
 
                 open = firstHistorical
                     .adjustedOpenEquity!; // .adjustedOpenEquity!; // portfolioHistoricals!.adjustedPreviousCloseEquity ??
@@ -944,45 +962,45 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
                 // Since the chart is not candlesticks, each point is the opening value of the time span,
                 // so add a final point at an extra increment of time span to account for the closing value.
-                Duration intervalDuration = Duration.zero;
-                switch (portfolioHistoricals!.interval) {
-                  case 'month':
-                    intervalDuration = Duration(days: 30);
-                    break;
-                  case 'week':
-                    intervalDuration = Duration(days: 7);
-                    break;
-                  case 'day':
-                    intervalDuration = Duration(days: 1);
-                    break;
-                  case 'hour':
-                    intervalDuration = Duration(hours: 1);
-                    break;
-                  case '10minute':
-                    intervalDuration = Duration(minutes: 10);
-                    break;
-                  case '5minute':
-                    intervalDuration = Duration(minutes: 5);
-                    break;
-                  case '15second':
-                    intervalDuration = Duration(seconds: 15);
-                    break;
-                }
-                var adjDate =
-                    allHistoricals.last.beginsAt!.add(intervalDuration);
-                if (adjDate.compareTo(now) >= 0) {
-                  adjDate = now;
-                }
-                allHistoricals.add(EquityHistorical(
-                    allHistoricals.last.adjustedCloseEquity,
-                    allHistoricals.last.adjustedCloseEquity,
-                    allHistoricals.last.closeEquity,
-                    allHistoricals.last.closeEquity,
-                    allHistoricals.last.closeMarketValue,
-                    allHistoricals.last.closeMarketValue,
-                    adjDate,
-                    allHistoricals.last.netReturn,
-                    allHistoricals.last.session));
+                // Duration intervalDuration = Duration.zero;
+                // switch (portfolioHistoricals!.interval) {
+                //   case 'month':
+                //     intervalDuration = Duration(days: 30);
+                //     break;
+                //   case 'week':
+                //     intervalDuration = Duration(days: 7);
+                //     break;
+                //   case 'day':
+                //     intervalDuration = Duration(days: 1);
+                //     break;
+                //   case 'hour':
+                //     intervalDuration = Duration(hours: 1);
+                //     break;
+                //   case '10minute':
+                //     intervalDuration = Duration(minutes: 10);
+                //     break;
+                //   case '5minute':
+                //     intervalDuration = Duration(minutes: 5);
+                //     break;
+                //   case '15second':
+                //     intervalDuration = Duration(seconds: 15);
+                //     break;
+                // }
+                // var adjDate =
+                //     allHistoricals.last.beginsAt!.add(intervalDuration);
+                // if (adjDate.compareTo(now) >= 0) {
+                //   adjDate = now;
+                // }
+                // allHistoricals.add(EquityHistorical(
+                //     allHistoricals.last.adjustedCloseEquity,
+                //     allHistoricals.last.adjustedCloseEquity,
+                //     allHistoricals.last.closeEquity,
+                //     allHistoricals.last.closeEquity,
+                //     allHistoricals.last.closeMarketValue,
+                //     allHistoricals.last.closeMarketValue,
+                //     adjDate,
+                //     allHistoricals.last.netReturn,
+                //     allHistoricals.last.session));
 
                 /*
               var brightness = MediaQuery.of(context).platformBrightness;
@@ -1498,22 +1516,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     },
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(4.0),
-                                  child: ChoiceChip(
-                                    //avatar: const Icon(Icons.history_outlined),
-                                    //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                    label: const Text('5 Years'),
-                                    selected: chartDateSpanFilter ==
-                                        ChartDateSpan.year_5,
-                                    onSelected: (bool value) {
-                                      if (value) {
-                                        resetChart(ChartDateSpan.year_5,
-                                            chartBoundsFilter);
-                                      }
-                                    },
-                                  ),
-                                ),
+                                // Padding(
+                                //   padding: const EdgeInsets.all(4.0),
+                                //   child: ChoiceChip(
+                                //     //avatar: const Icon(Icons.history_outlined),
+                                //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                                //     label: const Text('5 Years'),
+                                //     selected: chartDateSpanFilter ==
+                                //         ChartDateSpan.year_5,
+                                //     onSelected: (bool value) {
+                                //       if (value) {
+                                //         resetChart(ChartDateSpan.year_5,
+                                //             chartBoundsFilter);
+                                //       }
+                                //     },
+                                //   ),
+                                // ),
                                 Padding(
                                   padding: const EdgeInsets.all(4.0),
                                   child: ChoiceChip(
@@ -1967,6 +1985,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 var instrumentPositionStore =
                     Provider.of<InstrumentPositionStore>(context,
                         listen: false);
+                var instrumentOrderStore =
+                    Provider.of<InstrumentOrderStore>(context, listen: false);
                 var chartSelectionStore =
                     Provider.of<ChartSelectionStore>(context, listen: false);
                 return IncomeTransactionsWidget(
@@ -1974,6 +1994,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     widget.service,
                     dividendStore,
                     instrumentPositionStore,
+                    instrumentOrderStore,
                     chartSelectionStore,
                     interestStore: interestStore,
                     showChips: false,
@@ -2021,22 +2042,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           .add(dayHistoricals.equityHistoricals.last);
                     }
 
-                    // var portfolioStore =
-                    //     Provider.of<PortfolioStore>(context, listen: false);
-                    // var forexHoldingStore =
-                    //     Provider.of<ForexHoldingStore>(context, listen: false);
-                    // var close = (portfolioStore.items[0].equity ?? 0) +
-                    //     forexHoldingStore.equity;
-                    // ytdportfolio.add(EquityHistorical(
-                    //     close,
-                    //     close,
-                    //     close,
-                    //     close,
-                    //     close,
-                    //     close,
-                    //     portfolioStore.items.first.updatedAt,
-                    //     0,
-                    //     ''));
                     var regularsp500 = sp500['chart']['result'][0]['meta']
                         ['currentTradingPeriod']['regular'];
                     // var postsp500 = sp500['chart']['result'][0]['meta']
@@ -2297,6 +2302,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         ]));
                   }
                 }
+                debugPrint("${snapshot.error}");
+
                 return SliverToBoxAdapter(
                   child: Container(),
                 );
@@ -2523,15 +2530,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
           debugPrint('getPortfolioHistoricals scheduled in $newRandom');
           Future.delayed(Duration(milliseconds: newRandom), () async {
             if (!mounted) return;
-            await widget.service.getPortfolioHistoricals(
+            await widget.service.getPortfolioPerformance(
                 widget.brokerageUser,
                 Provider.of<PortfolioHistoricalsStore>(context, listen: false),
                 account!.accountNumber,
-                chartBoundsFilter,
-                // Use the faster increment hour chart to append to the day chart.
-                chartDateSpanFilter == ChartDateSpan.day
+                chartBoundsFilter: chartBoundsFilter,
+                chartDateSpanFilter: chartDateSpanFilter == ChartDateSpan.day
                     ? ChartDateSpan.hour
                     : chartDateSpanFilter);
+            // await widget.service.getPortfolioHistoricals(
+            //     widget.brokerageUser,
+            //     Provider.of<PortfolioHistoricalsStore>(context, listen: false),
+            //     account!.accountNumber,
+            //     chartBoundsFilter,
+            //     // Use the faster increment hour chart to append to the day chart.
+            //     chartDateSpanFilter == ChartDateSpan.day
+            //         ? ChartDateSpan.hour
+            //         : chartDateSpanFilter);
           });
         }
         var newRandom = (random.nextDouble() * maxDelay).toInt();
@@ -2603,12 +2618,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     var portfolioHistoricalStore =
         Provider.of<PortfolioHistoricalsStore>(context, listen: false);
     // futurePortfolioHistoricals =
-    await widget.service.getPortfolioHistoricals(
-        widget.brokerageUser,
-        portfolioHistoricalStore,
-        account!.accountNumber,
-        chartBoundsFilter,
-        chartDateSpanFilter);
+    await widget.service.getPortfolioPerformance(widget.brokerageUser,
+        portfolioHistoricalStore, account!.accountNumber, chartBoundsFilter: chartBoundsFilter, chartDateSpanFilter: chartDateSpanFilter);
+    // await widget.service.getPortfolioHistoricals(
+    //     widget.brokerageUser,
+    //     portfolioHistoricalStore,
+    //     account!.accountNumber,
+    //     chartBoundsFilter,
+    //     chartDateSpanFilter);
     portfolioHistoricalStore.notify();
   }
 

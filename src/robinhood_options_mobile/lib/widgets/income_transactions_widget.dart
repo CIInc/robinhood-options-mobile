@@ -26,6 +26,7 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
@@ -52,6 +53,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
     //this.account,
     this.dividendStore,
     this.instrumentPositionStore,
+    this.instrumentOrderStore,
     this.chartSelectionStore, {
     this.interestStore,
     this.transactionSymbolFilters = const <String>[],
@@ -71,6 +73,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
   final DividendStore dividendStore;
   final InterestStore? interestStore;
   final InstrumentPositionStore instrumentPositionStore;
+  final InstrumentOrderStore instrumentOrderStore;
   final List<String> transactionSymbolFilters;
   final ChartSelectionStore chartSelectionStore;
   final bool showList;
@@ -111,7 +114,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         .where((e) =>
             e["instrumentObj"] != null &&
             e["instrumentObj"].quoteObj != null &&
-            e["state"] == "paid")
+            (e["state"] == "paid" || e["state"] == "reinvesting"))
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
@@ -179,10 +182,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         // .take(5)
         .toList();
 
-    final groupedDividends = dividendItems
-        // .where((d) =>
-        //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
-        .groupListsBy((element) {
+    final groupedDividends = dividendItems.groupListsBy((element) {
       var dt = DateTime.parse(element["payable_date"]);
       return DateTime(dt.year, dt.month);
     });
@@ -194,10 +194,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         .entries
         .toList()
         .sortedBy<DateTime>((e) => e.key);
-    final Map<DateTime, List> groupedInterests = interestItems
-        // .where((d) =>
-        //     DateTime.parse(d["payable_date"]).year >= DateTime.now().year - 1)
-        .groupListsBy((element) {
+    final Map<DateTime, List> groupedInterests =
+        interestItems.groupListsBy((element) {
       var dt = DateTime.parse(element["pay_date"]);
       return DateTime(dt.year, dt.month);
     });
@@ -225,28 +223,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               ..add(MapEntry(element.key,
                   element.value + (sums.isEmpty ? 0 : sums.last.value))));
 
-    // var pastYearDividends = groupedDividendsData.take(12).toList() +
-    //     groupedInterestsData.take(12).toList();
-    // // var pastYearDividends = (groupedDividendsData + groupedInterestsData).where(
-    // //     (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 365))));
-    // // var pastMonthDividends = groupedDividendsData.take(1).toList() +
-    // //     groupedInterestsData.take(1).toList();
-    // // var pastMonthDividends = (groupedDividendsData + groupedInterestsData)
-    // //     .where(
-    // //         (e) => e.key.isAfter(DateTime.now().subtract(Duration(days: 30))));
-    // var pastYearTotalIncome =
-    //     (groupedDividendsData.isNotEmpty || groupedInterestsData.isNotEmpty) &&
-    //             pastYearDividends.isNotEmpty
-    //         ? pastYearDividends
-    //             .where((e) => e.key.isAfter(
-    //                 DateTime(DateTime.now().year - 1, DateTime.now().month, 1)))
-    //             .map((e) => e.value ?? 0.0)
-    //             .reduce((a, b) => a + b)
-    //         : 0.0;
-    var pastYearInterest = groupedInterestsData.where((e) => e.key
-        .isAfter(DateTime(DateTime.now().year - 1, DateTime.now().month, 1)));
-    var pastYearDividend = groupedDividendsData.where((e) => e.key
-        .isAfter(DateTime(DateTime.now().year - 1, DateTime.now().month, 1)));
+    var pastYearDate =
+        DateTime(DateTime.now().year - 1, DateTime.now().month, 1);
+    var pastYearInterest = groupedInterestsData.where((e) =>
+        e.key.isAtSameMomentAs(pastYearDate) || e.key.isAfter(pastYearDate));
+    var pastYearDividend = groupedDividendsData.where((e) =>
+        e.key.isAtSameMomentAs(pastYearDate) | e.key.isAfter(pastYearDate));
     var pastYearTotalIncome = (pastYearInterest.isNotEmpty
             ? pastYearInterest.map((e) => e.value).reduce((a, b) => a + b)
             : 0.0) +
@@ -261,12 +243,21 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             : 0.0);
     double? yield;
     double? yieldOnCost;
+    int multiplier = 1;
     double? marketValue;
     double? totalCost;
+    int? countBuys;
+    double? positionCost;
+    double? totalSells;
+    int? countSells;
     double? gainLoss;
     double? gainLossPercent;
     double? adjustedReturn;
     double? adjustedReturnPercent;
+    double? positionGainLoss;
+    double? positionGainLossPercent;
+    // double? positionAdjustedReturn;
+    // double? positionAdjustedReturnPercent;
     double? adjustedCost;
     Instrument? instrument;
     InstrumentPosition? position;
@@ -284,24 +275,47 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       }
       instrument = transaction["instrumentObj"] as Instrument?;
       if (instrument != null && instrument.quoteObj != null) {
+        
         position = widget.instrumentPositionStore.items
             .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
-        if (position != null) {
-          marketValue = position.marketValue;
-          totalCost = position.totalCost;
-          gainLoss = position.gainLoss;
-          gainLossPercent = position.gainLossPercent;
-          adjustedReturn = position.gainLoss + totalIncome;
-          adjustedReturnPercent =
-              ((marketValue + totalIncome) / position.totalCost) - 1;
+            if (position != null) {
+        marketValue = position.marketValue;
+            }
 
-          adjustedCost =
-              (position.totalCost - totalIncome) / position.quantity!;
+          var positionOrders = widget.instrumentOrderStore.items.where((o) =>
+              o.instrumentId == instrument!.id && o.state != 'cancelled');
+          var buys = positionOrders.where((o) => o.side == 'buy');
+          countBuys = buys.length;
+          double buyTotal = buys.isEmpty
+              ? 0
+              : buys
+                  .map((o) => o.quantity! * o.averagePrice!)
+                  .reduce((a, b) => a + b);
+          var sells = positionOrders.where((o) => o.side == 'sell');
+          countSells = sells.length;
+          double sellTotal = sells.isEmpty
+              ? 0
+              : sells
+                  .map((o) => o.quantity! * o.averagePrice!)
+                  .reduce((a, b) => a + b);
+          totalCost = buyTotal;
+          totalSells = sellTotal;
+          gainLoss = (marketValue ?? 0) + sellTotal - totalCost;
+          gainLossPercent = gainLoss / totalCost;
+          adjustedReturn = (marketValue ?? 0) + sellTotal - totalCost + totalIncome;
+          adjustedReturnPercent = adjustedReturn / totalCost;
+
+        if (position != null) {
+          positionCost = position.totalCost;
+          positionGainLoss = position.gainLoss;
+          positionGainLossPercent = position.gainLossPercent;
+          // positionAdjustedReturn = position.gainLoss + totalIncome;
+          // positionAdjustedReturnPercent = ((marketValue + totalIncome) / position.totalCost) - 1;
+          adjustedCost = (totalCost - totalIncome) / position.quantity!;
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
         yield =
-            // totalDividends / double.parse(transaction!["position"])
             double.parse(transaction!["rate"]) /
                 (instrument.quoteObj!.lastExtendedHoursTradePrice ??
                     instrument.quoteObj!.lastTradePrice!);
@@ -309,16 +323,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         if (prevTransaction != null &&
             prevTransaction["payable_date"] != null) {
           var prevDate = DateTime.parse(prevTransaction["payable_date"]);
-          const errorMargin = 2;
-          int multiplier = 1;
-          if (currDate.difference(prevDate).inDays <= 7 + errorMargin) {
+          const weeklyErrorMargin = 2;
+          const monthlyErrorMargin = 2;
+          const quarterlyErrorMargin = 4;
+          if (currDate.difference(prevDate).inDays <= 7 + weeklyErrorMargin) {
             multiplier = 52;
             dividendInterval = 'weekly';
-          } else if (currDate.difference(prevDate).inDays <= 31 + errorMargin) {
+          } else if (currDate.difference(prevDate).inDays <= 31 + monthlyErrorMargin) {
             multiplier = 12;
             dividendInterval = 'monthly';
           } else if (currDate.difference(prevDate).inDays <=
-              31 * 3 + errorMargin) {
+              31 * 3 + quarterlyErrorMargin) {
             multiplier = 4;
             dividendInterval = 'quarterly';
           }
@@ -501,7 +516,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // showAxisLine: true,
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
-          viewport: dateFilter == 'All'
+          viewport: dateFilter == 'All' ||
+                  (groupedDividendsData.length > 1 &&
+                      groupedDividendsData.last.key
+                              .difference(groupedDividendsData.first.key)
+                              .inDays <
+                          365)
               ? null
               : charts.DateTimeExtents(
                   start:
@@ -641,7 +661,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         if (incomeTransactions.isNotEmpty &&
             transactionSymbolFilters.isNotEmpty &&
             widget.showYield &&
-            position != null &&
+            // position != null &&
             yield != null) ...[
           SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -708,7 +728,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                             title: Text(
                                                                 'Dividend Yield'),
                                                             content: Text(
-                                                                'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
+                                                                """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
+                                                                Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
+                                                                Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.user.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
+                                                                Adjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
+                                                            // Yields are annualized from the $dividendInterval distribution period.
                                                             actions: [
                                                               TextButton(
                                                                 onPressed: () {
@@ -763,7 +787,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           softWrap: false,
                                           style: TextStyle(
                                               fontSize: summaryValueFontSize)),
-                                      Text("Adjusted cost basis",
+                                      Text("Adj. cost basis",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -805,7 +829,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Adjusted return %",
+                                      Text("Adj. return %",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -835,7 +859,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Adjusted return",
+                                      Text("Adj. return",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -843,6 +867,62 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Row(
+                                      children: [
+                                        Text(
+                                          // formatCurrency.format(adjustedReturn),
+                                          formatCurrency.format(totalIncome),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: const TextStyle(
+                                              fontSize: summaryValueFontSize),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ],
+                                    ),
+                                    // Text(formatCurrency.format(adjustedReturnPercent),
+                                    //     style:
+                                    //         TextStyle(fontSize: summaryValueFontSize)),
+                                    Text("Total Income",
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Row(
+                                      children: [
+                                        Text(
+                                          // formatCurrency.format(adjustedReturn),
+                                          formatCurrency.format(totalSells),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: const TextStyle(
+                                              fontSize: summaryValueFontSize),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ],
+                                    ),
+                                    // Text(formatCurrency.format(adjustedReturnPercent),
+                                    //     style:
+                                    //         TextStyle(fontSize: summaryValueFontSize)),
+                                    Text("Total Sells",
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
                             if (marketValue != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -873,6 +953,67 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            // if (position?.quantity != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatNumber
+                                                .format(position?.quantity ?? 0),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Shares",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            // ],
+                            if (dividendInterval.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            dividendInterval.capitalize(),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Distributions",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ]
                           ])),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -904,43 +1045,49 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        widget.user.getDisplayText(
-                                            position.instrumentObj!.quoteObj!
-                                                    .lastExtendedHoursTradePrice ??
-                                                position.instrumentObj!
-                                                    .quoteObj!.lastTradePrice!,
-                                            displayValue:
-                                                DisplayValue.lastPrice),
-                                        style: TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                    Text("Last price",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Text(
-                                        widget.user.getDisplayText(
-                                            position.averageBuyPrice!,
-                                            displayValue:
-                                                DisplayValue.lastPrice),
-                                        style: TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                    Text("Average cost basis",
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
+                            if (position?.averageBuyPrice != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          widget.user.getDisplayText(
+                                              position!.averageBuyPrice!,
+                                              displayValue:
+                                                  DisplayValue.lastPrice),
+                                          style: TextStyle(
+                                              fontSize: summaryValueFontSize)),
+                                      Text("Avg. cost basis",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (position?.instrumentObj != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          widget.user.getDisplayText(
+                                              position!.instrumentObj!.quoteObj!
+                                                      .lastExtendedHoursTradePrice ??
+                                                  position
+                                                      .instrumentObj!
+                                                      .quoteObj!
+                                                      .lastTradePrice!,
+                                              displayValue:
+                                                  DisplayValue.lastPrice),
+                                          style: TextStyle(
+                                              fontSize: summaryValueFontSize)),
+                                      Text("Last price",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (gainLossPercent != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -1026,7 +1173,134 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               fontSize: summaryLabelFontSize)),
                                     ]),
                               ),
-                            ]
+                            ],
+                            if (countBuys != null && countSells != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatNumber.format(countBuys),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            ' / ${formatNumber.format(countSells)}',
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Buys / Sells",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (positionGainLossPercent != null &&
+                                countSells! > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(children: [
+                                        if (gainLossPercent != 0) ...[
+                                          // widget.user.getDisplayIcon(profitAndLoss)
+                                          Icon(
+                                              positionGainLossPercent > 0
+                                                  ? Icons.arrow_drop_up
+                                                  : Icons.arrow_drop_down,
+                                              color: positionGainLossPercent > 0
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              size: 27),
+                                        ],
+                                        Text(
+                                            widget.user.getDisplayText(
+                                                positionGainLossPercent,
+                                                displayValue: DisplayValue
+                                                    .totalReturnPercent),
+                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
+                                            style: TextStyle(
+                                                fontSize:
+                                                    summaryValueFontSize)),
+                                      ]),
+                                      Text("Position NAV return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (positionGainLoss != null &&
+                                countSells! > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(children: [
+                                        Text(
+                                            widget.user.getDisplayText(
+                                                positionGainLoss,
+                                                displayValue:
+                                                    DisplayValue.totalReturn),
+                                            // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
+                                            style: TextStyle(
+                                                fontSize:
+                                                    summaryValueFontSize)),
+                                      ]),
+                                      Text("Position NAV return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (positionCost != null && countSells! > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            formatCurrency.format(positionCost),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Position Cost",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                           ]))
                 ],
               )),
@@ -1467,7 +1741,41 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             Text(dividendSymbol), // Positions
                                         selected: transactionSymbolFilters
                                             .contains(dividendSymbol),
-                                        onSelected: (bool value) {
+                                        onSelected: (bool value) async {
+                                          if (value) {
+                                            var dividend = widget.dividendStore.items
+                                                .where((d) =>
+                                                    d['instrumentObj'] != null && d['instrumentObj']!.symbol ==
+                                                    dividendSymbol)
+                                                .firstOrNull;
+
+                                            // var transaction = widget.instrumentOrderStore.items.where((o) =>
+                                            //         o.instrumentObj!.symbol ==
+                                            //         dividendSymbol).firstOrNull;
+
+                                            // var positions = widget
+                                            //     .instrumentPositionStore.items
+                                            //     .where((p) =>
+                                            //         p.instrumentObj!.symbol ==
+                                            //         dividendSymbol);
+                                            if (dividend != null && // positions.isNotEmpty &&
+                                                !widget
+                                                    .instrumentOrderStore.items
+                                                    .any((o) =>
+                                                        o.instrument == dividend['instrument']
+                                                        // positions.first.instrument
+                                                        )) {
+                                              await widget.service
+                                                  .getInstrumentOrders(
+                                                      widget.user,
+                                                      widget
+                                                          .instrumentOrderStore,
+                                                      [
+                                                        dividend['instrument']
+                                                    // positions.first.instrument
+                                                  ]);
+                                            }
+                                          }
                                           setState(() {
                                             if (value) {
                                               transactionFilters
@@ -1821,6 +2129,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   widget.service,
                   widget.dividendStore,
                   widget.instrumentPositionStore,
+                  widget.instrumentOrderStore,
                   widget.chartSelectionStore,
                   interestStore: widget.interestStore,
                   analytics: widget.analytics,

@@ -28,7 +28,7 @@ class InstrumentOrderStore extends ChangeNotifier {
 
   bool update(InstrumentOrder item) {
     var index =
-        _items.indexWhere((element) => element.instrument == item.instrument);
+        _items.indexWhere((element) => element.id == item.id);
     if (index == -1) {
       return false;
     }
