@@ -40,6 +40,7 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 //import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
+final ScrollController scrollController = ScrollController();
 /*
 final ItemScrollController itemScrollController = ItemScrollController();
 final ItemPositionsListener itemPositionListener =
@@ -118,6 +119,15 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
+        // .sortedBy<num>((e) {
+        //   if (e["instrumentObj"] != null &&
+        //       e["instrumentObj"].quoteObj != null) {
+        //     return double.parse(e!["rate"]) /
+        //         (e["instrumentObj"].quoteObj!.lastExtendedHoursTradePrice ??
+        //             e["instrumentObj"].quoteObj!.lastTradePrice!);
+        //   }
+        //   return 0;
+        // })
         .reversed
         .map((e) => e["instrumentObj"].symbol as String)
         .toSet()
@@ -275,35 +285,37 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       }
       instrument = transaction["instrumentObj"] as Instrument?;
       if (instrument != null && instrument.quoteObj != null) {
-        
         position = widget.instrumentPositionStore.items
             .firstWhereOrNull((p) => p.instrumentId == instrument!.id);
-            if (position != null) {
-        marketValue = position.marketValue;
-            }
+        if (position != null) {
+          marketValue = position.marketValue;
+        }
 
-          var positionOrders = widget.instrumentOrderStore.items.where((o) =>
-              o.instrumentId == instrument!.id && o.state != 'cancelled');
-          var buys = positionOrders.where((o) => o.side == 'buy');
-          countBuys = buys.length;
-          double buyTotal = buys.isEmpty
-              ? 0
-              : buys
-                  .map((o) => o.quantity! * o.averagePrice!)
-                  .reduce((a, b) => a + b);
-          var sells = positionOrders.where((o) => o.side == 'sell');
-          countSells = sells.length;
-          double sellTotal = sells.isEmpty
-              ? 0
-              : sells
-                  .map((o) => o.quantity! * o.averagePrice!)
-                  .reduce((a, b) => a + b);
-          totalCost = buyTotal;
-          totalSells = sellTotal;
-          gainLoss = (marketValue ?? 0) + sellTotal - totalCost;
-          gainLossPercent = gainLoss / totalCost;
-          adjustedReturn = (marketValue ?? 0) + sellTotal - totalCost + totalIncome;
-          adjustedReturnPercent = adjustedReturn / totalCost;
+        var positionOrders = widget.instrumentOrderStore.items.where((o) =>
+            o.instrumentId == instrument!.id &&
+            o.state != 'cancelled' &&
+            o.state != 'unconfirmed');
+        var buys = positionOrders.where((o) => o.side == 'buy');
+        countBuys = buys.length;
+        double buyTotal = buys.isEmpty
+            ? 0
+            : buys
+                .map((o) => o.quantity! * o.averagePrice!)
+                .reduce((a, b) => a + b);
+        var sells = positionOrders.where((o) => o.side == 'sell');
+        countSells = sells.length;
+        double sellTotal = sells.isEmpty
+            ? 0
+            : sells
+                .map((o) => o.quantity! * o.averagePrice!)
+                .reduce((a, b) => a + b);
+        totalCost = buyTotal;
+        totalSells = sellTotal;
+        gainLoss = (marketValue ?? 0) + sellTotal - totalCost;
+        gainLossPercent = gainLoss / totalCost;
+        adjustedReturn =
+            (marketValue ?? 0) + sellTotal - totalCost + totalIncome;
+        adjustedReturnPercent = adjustedReturn / totalCost;
 
         if (position != null) {
           positionCost = position.totalCost;
@@ -315,21 +327,21 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
-        yield =
-            double.parse(transaction!["rate"]) /
-                (instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                    instrument.quoteObj!.lastTradePrice!);
+        yield = double.parse(transaction!["rate"]) /
+            (instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                instrument.quoteObj!.lastTradePrice!);
         var currDate = DateTime.parse(transaction["payable_date"]);
         if (prevTransaction != null &&
             prevTransaction["payable_date"] != null) {
           var prevDate = DateTime.parse(prevTransaction["payable_date"]);
-          const weeklyErrorMargin = 2;
+          const weeklyErrorMargin = 3;
           const monthlyErrorMargin = 2;
           const quarterlyErrorMargin = 4;
           if (currDate.difference(prevDate).inDays <= 7 + weeklyErrorMargin) {
             multiplier = 52;
             dividendInterval = 'weekly';
-          } else if (currDate.difference(prevDate).inDays <= 31 + monthlyErrorMargin) {
+          } else if (currDate.difference(prevDate).inDays <=
+              31 + monthlyErrorMargin) {
             multiplier = 12;
             dividendInterval = 'monthly';
           } else if (currDate.difference(prevDate).inDays <=
@@ -954,6 +966,36 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               ),
                             ],
                             // if (position?.quantity != null) ...[
+                            Padding(
+                              padding: const EdgeInsets.all(summaryEgdeInset),
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Row(
+                                      children: [
+                                        Text(
+                                          // formatCurrency.format(adjustedReturn),
+                                          formatNumber
+                                              .format(position?.quantity ?? 0),
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: const TextStyle(
+                                              fontSize: summaryValueFontSize),
+                                          textAlign: TextAlign.right,
+                                        ),
+                                      ],
+                                    ),
+                                    // Text(formatCurrency.format(adjustedReturnPercent),
+                                    //     style:
+                                    //         TextStyle(fontSize: summaryValueFontSize)),
+                                    Text("Shares",
+                                        overflow: TextOverflow.fade,
+                                        softWrap: false,
+                                        style: TextStyle(
+                                            fontSize: summaryLabelFontSize)),
+                                  ]),
+                            ),
+                            if (positionCost != null && countSells! > 0) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
                                 child: Column(
@@ -962,9 +1004,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       Row(
                                         children: [
                                           Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            formatNumber
-                                                .format(position?.quantity ?? 0),
+                                            formatCurrency.format(positionCost),
                                             overflow: TextOverflow.fade,
                                             softWrap: false,
                                             style: const TextStyle(
@@ -976,44 +1016,16 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Shares",
+                                      Text("Position Cost",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
                               ),
+                            ],
+
                             // ],
-                            if (dividendInterval.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            dividendInterval.capitalize(),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Distributions",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ]
                           ])),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1045,6 +1057,36 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
+                            if (dividendInterval.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            dividendInterval.capitalize(),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Distributions",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (position?.averageBuyPrice != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -1116,7 +1158,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("NAV return",
+                                      Text("Total NAV return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1138,7 +1180,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("NAV return",
+                                      Text("Total NAV return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1267,35 +1309,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                     summaryValueFontSize)),
                                       ]),
                                       Text("Position NAV return",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (positionCost != null && countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatCurrency.format(positionCost),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Position Cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1565,6 +1578,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               child: ListView.builder(
                 padding: const EdgeInsets.all(4.0),
                 scrollDirection: Axis.horizontal,
+                controller: scrollController,
                 itemBuilder: (context, index) {
                   return Row(
                     children: [
@@ -1743,10 +1757,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             .contains(dividendSymbol),
                                         onSelected: (bool value) async {
                                           if (value) {
-                                            var dividend = widget.dividendStore.items
+                                            var dividend = widget
+                                                .dividendStore.items
                                                 .where((d) =>
-                                                    d['instrumentObj'] != null && d['instrumentObj']!.symbol ==
-                                                    dividendSymbol)
+                                                    d['instrumentObj'] !=
+                                                        null &&
+                                                    d['instrumentObj']!
+                                                            .symbol ==
+                                                        dividendSymbol)
                                                 .firstOrNull;
 
                                             // var transaction = widget.instrumentOrderStore.items.where((o) =>
@@ -1758,11 +1776,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             //     .where((p) =>
                                             //         p.instrumentObj!.symbol ==
                                             //         dividendSymbol);
-                                            if (dividend != null && // positions.isNotEmpty &&
+                                            if (dividend !=
+                                                    null && // positions.isNotEmpty &&
                                                 !widget
                                                     .instrumentOrderStore.items
                                                     .any((o) =>
-                                                        o.instrument == dividend['instrument']
+                                                            o.instrument ==
+                                                            dividend[
+                                                                'instrument']
                                                         // positions.first.instrument
                                                         )) {
                                               await widget.service
@@ -1771,7 +1792,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                       widget
                                                           .instrumentOrderStore,
                                                       [
-                                                        dividend['instrument']
+                                                    dividend['instrument']
                                                     // positions.first.instrument
                                                   ]);
                                             }
@@ -1971,43 +1992,59 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               style: const TextStyle(fontSize: 18))
                         ])
                       ]),
-                      //   onTap: () {
-                      //     /* For navigation within this tab, uncomment
-                      // widget.navigatorKey!.currentState!.push(
-                      //     MaterialPageRoute(
-                      //         builder: (context) => PositionOrderWidget(
-                      //             widget.user,
-                      //             filteredDividends![index])));
-                      //             */
-                      //     showDialog<String>(
-                      //       context: context,
-                      //       builder: (BuildContext context) =>
-                      //           AlertDialog(
-                      //         title: const Text('Alert'),
-                      //         content: const Text(
-                      //             'This feature is not implemented.\n'),
-                      //         actions: <Widget>[
-                      //           TextButton(
-                      //             onPressed: () =>
-                      //                 Navigator.pop(context, 'OK'),
-                      //             child: const Text('OK'),
-                      //           ),
-                      //         ],
-                      //       ),
-                      //     );
+                      onTap: () {
+                        if (transaction["instrumentObj"] != null) {
+                          setState(() {
+                            transactionFilters.removeWhere((String name) {
+                              return name == "interest";
+                            });
+                            transactionSymbolFilters.clear();
+                            transactionSymbolFilters
+                                .add(transaction["instrumentObj"].symbol);
+                          });
+                        }
+                        scrollController.animateTo(
+                          750, // scrollController.position.minScrollExtent,
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.easeInOut,
+                        );
 
-                      //     // Navigator.push(
-                      //     //     context,
-                      //     //     MaterialPageRoute(
-                      //     //         builder: (context) => PositionOrderWidget(
-                      //     //               widget.user,
-                      //     //               filteredDividends![index],
-                      //     //               analytics: widget.analytics,
-                      //     //               observer: widget.observer,
-                      //     //             )));
-                      //   },
+                        /* For navigation within this tab, uncomment
+                      widget.navigatorKey!.currentState!.push(
+                          MaterialPageRoute(
+                              builder: (context) => PositionOrderWidget(
+                                  widget.user,
+                                  filteredDividends![index])));
+                                  */
+                        // showDialog<String>(
+                        //   context: context,
+                        //   builder: (BuildContext context) =>
+                        //       AlertDialog(
+                        //     title: const Text('Alert'),
+                        //     content: const Text(
+                        //         'This feature is not implemented.\n'),
+                        //     actions: <Widget>[
+                        //       TextButton(
+                        //         onPressed: () =>
+                        //             Navigator.pop(context, 'OK'),
+                        //         child: const Text('OK'),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // );
 
-                      //isThreeLine: true,
+                        // Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //         builder: (context) => PositionOrderWidget(
+                        //               widget.user,
+                        //               filteredDividends![index],
+                        //               analytics: widget.analytics,
+                        //               observer: widget.observer,
+                        //             )));
+                      },
+
+                      // isThreeLine: true,
                     ),
                   ],
                 ));
