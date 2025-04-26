@@ -211,6 +211,53 @@ class FirestoreService {
     //     snapshot.docs.map((doc) => Instrument.fromJson(doc.data())).toList());
   }
 
+  /// Advanced Stock Screener
+  /// Filters: sector, marketCapMin, marketCapMax, peMin, peMax, dividendYieldMin, dividendYieldMax
+  Future<List<Instrument>> stockScreener({
+    String? sector,
+    double? marketCapMin,
+    double? marketCapMax,
+    double? peMin,
+    double? peMax,
+    double? dividendYieldMin,
+    double? dividendYieldMax,
+    int limit = 100,
+    String sort = 'fundamentalsObj.market_cap',
+    bool sortDescending = true,
+  }) async {
+    Query<Instrument> query = instrumentCollection;
+    if (sector != null && sector.isNotEmpty) {
+      query = query.where('fundamentalsObj.sector', isEqualTo: sector);
+    }
+    if (marketCapMin != null) {
+      query = query.where('fundamentalsObj.market_cap',
+          isGreaterThanOrEqualTo: marketCapMin);
+    }
+    if (marketCapMax != null) {
+      query = query.where('fundamentalsObj.market_cap',
+          isLessThanOrEqualTo: marketCapMax);
+    }
+    if (peMin != null) {
+      query = query.where('fundamentalsObj.pe_ratio',
+          isGreaterThanOrEqualTo: peMin);
+    }
+    if (peMax != null) {
+      query =
+          query.where('fundamentalsObj.pe_ratio', isLessThanOrEqualTo: peMax);
+    }
+    if (dividendYieldMin != null) {
+      query = query.where('fundamentalsObj.dividend_yield',
+          isGreaterThanOrEqualTo: dividendYieldMin);
+    }
+    if (dividendYieldMax != null) {
+      query = query.where('fundamentalsObj.dividend_yield',
+          isLessThanOrEqualTo: dividendYieldMax);
+    }
+    query = query.orderBy(sort, descending: sortDescending).limit(limit);
+    var results = await query.get();
+    return results.docs.map((doc) => doc.data()).toList();
+  }
+
   /// InstrumentPosition Methods
 
   Future<DocumentReference<Map<String, dynamic>>> addInstrumentPosition(

@@ -64,6 +64,17 @@ class _SearchWidgetState extends State<SearchWidget>
 
   InstrumentStore? instrumentStore;
 
+  // Advanced Stock Screener UI state
+  List<Instrument>? screenerResults;
+  String? screenerSector;
+  double? screenerMarketCapMin;
+  double? screenerMarketCapMax;
+  double? screenerPeMin;
+  double? screenerPeMax;
+  double? screenerDividendYieldMin;
+  double? screenerDividendYieldMax;
+  bool screenerLoading = false;
+
   _SearchWidgetState();
 
   @override
@@ -110,6 +121,188 @@ class _SearchWidgetState extends State<SearchWidget>
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
+    return Column(
+      children: [
+        Expanded(child: _buildSearchContent()),
+      ],
+    );
+  }
+
+  Widget _buildScreenerPanel() {
+    final sectors = [
+      'All',
+      'Technology',
+      'Healthcare',
+      'Financials',
+      'Consumer Discretionary',
+      'Consumer Staples',
+      'Energy',
+      'Industrials',
+      'Materials',
+      'Real Estate',
+      'Utilities',
+      'Communication Services',
+    ];
+    return Card(
+      margin: EdgeInsets.all(12),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Stock Screener',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: screenerSector,
+              items: sectors
+                  .map((s) => DropdownMenuItem(
+                        value: s == 'All' ? null : s,
+                        child: Text(s),
+                      ))
+                  .toList(),
+              decoration: InputDecoration(labelText: 'Sector'),
+              onChanged: (v) => setState(() => screenerSector = v),
+            ),
+            SizedBox(height: 12),
+            Row(children: [
+              Flexible(
+                child: TextField(
+                  decoration:
+                      InputDecoration(labelText: 'Market Cap Min (USD)'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => screenerMarketCapMin = double.tryParse(v),
+                ),
+              ),
+              SizedBox(width: 12),
+              Flexible(
+                child: TextField(
+                  decoration:
+                      InputDecoration(labelText: 'Market Cap Max (USD)'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => screenerMarketCapMax = double.tryParse(v),
+                ),
+              ),
+            ]),
+            SizedBox(height: 12),
+            Row(children: [
+              Flexible(
+                child: TextField(
+                  decoration: InputDecoration(labelText: 'P/E Min'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => screenerPeMin = double.tryParse(v),
+                ),
+              ),
+              SizedBox(width: 12),
+              Flexible(
+                child: TextField(
+                  decoration: InputDecoration(labelText: 'P/E Max'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => screenerPeMax = double.tryParse(v),
+                ),
+              ),
+            ]),
+            SizedBox(height: 12),
+            Row(children: [
+              Flexible(
+                child: TextField(
+                  decoration:
+                      InputDecoration(labelText: 'Dividend Yield Min (%)'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      screenerDividendYieldMin = double.tryParse(v),
+                ),
+              ),
+              SizedBox(width: 12),
+              Flexible(
+                child: TextField(
+                  decoration:
+                      InputDecoration(labelText: 'Dividend Yield Max (%)'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) =>
+                      screenerDividendYieldMax = double.tryParse(v),
+                ),
+              ),
+            ]),
+            SizedBox(height: 16),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  icon: Icon(Icons.search),
+                  onPressed: screenerLoading
+                      ? null
+                      : () async {
+                          setState(() {
+                            screenerLoading = true;
+                          });
+                          final results = await _firestoreService.stockScreener(
+                            sector: screenerSector,
+                            marketCapMin: screenerMarketCapMin,
+                            marketCapMax: screenerMarketCapMax,
+                            peMin: screenerPeMin,
+                            peMax: screenerPeMax,
+                            dividendYieldMin: screenerDividendYieldMin,
+                            dividendYieldMax: screenerDividendYieldMax,
+                          );
+                          setState(() {
+                            screenerResults = results;
+                            screenerLoading = false;
+                          });
+                        },
+                  label: Text('Run Screener'),
+                ),
+                if (screenerLoading) ...[
+                  SizedBox(width: 16),
+                  SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+                ]
+              ],
+            ),
+            if (screenerResults != null && screenerResults!.isNotEmpty) ...[
+              SizedBox(height: 16),
+              Text('Results:', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(
+                height: 220,
+                child: ListView.separated(
+                  itemCount: screenerResults!.length,
+                  separatorBuilder: (_, __) => Divider(height: 1),
+                  itemBuilder: (context, idx) {
+                    final inst = screenerResults![idx];
+                    return ListTile(
+                      title: Text(inst.symbol),
+                      subtitle: Text(inst.simpleName ?? inst.name),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => InstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              inst,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ] else if (screenerResults != null && screenerResults!.isEmpty) ...[
+              SizedBox(height: 16),
+              Text('No results found.', style: TextStyle(color: Colors.grey)),
+            ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchContent() {
     return FutureBuilder(
         future: Future.wait([
           futureSearch as Future,
@@ -222,6 +415,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               }
                             })
                       ]),
+                  SliverToBoxAdapter(child: _buildScreenerPanel()),
                   if (done == false) ...[
                     const SliverToBoxAdapter(
                         child: SizedBox(
