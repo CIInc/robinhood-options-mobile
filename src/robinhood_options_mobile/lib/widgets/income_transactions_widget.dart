@@ -323,7 +323,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           positionGainLossPercent = position.gainLossPercent;
           // positionAdjustedReturn = position.gainLoss + totalIncome;
           // positionAdjustedReturnPercent = ((marketValue + totalIncome) / position.totalCost) - 1;
-          adjustedCost = (totalCost - totalIncome) / position.quantity!;
+          double buyTotalQuantity = buys.isEmpty
+              ? 0
+              : buys
+                  .map((o) => o.quantity!)
+                  .reduce((a, b) => a + b);
+          adjustedCost = (totalCost - totalIncome) / buyTotalQuantity; // position.quantity!;
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }

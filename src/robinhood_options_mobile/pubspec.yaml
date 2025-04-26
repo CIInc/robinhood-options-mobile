@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.9.3+38
+version: 0.10.0+39
 
 environment:
 #  sdk: '>=3.0.0-85.0.dev <4.0.0'
@@ -44,7 +44,7 @@ dependencies:
   # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications
   firebase_messaging: ^15.2.2  
   # Device Info, model, etc. 
-  device_info_plus: ^10.1.2
+  device_info_plus: ^11.3.3
   # App Version
   package_info_plus: ^8.0.2
 
@@ -59,7 +59,7 @@ dependencies:
   intl: ^0.20.2
   decimal: ^3.2.1
   csv: ^6.0.0
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.0+1
   # TODO: Check if used
   #open_file: ^3.2.1
   # rxdart: ^0.27.2
@@ -81,7 +81,7 @@ dependencies:
 #  scrollable_positioned_list: ^0.2.3
   collection: ^1.19.0
   http: ^1.3.0
-  google_mobile_ads: ^5.3.1
+  google_mobile_ads: ^6.0.0
   # Schwab login integration.
   flutter_web_auth_2: ^4.1.0
   # uni_links: ^0.5.1
@@ -94,6 +94,8 @@ dependencies:
   # Used for AI Assistant
   firebase_vertexai: ^1.4.0
   flutter_markdown: ^0.7.6+2
+  # Used by option chain lists
+  scrollable_positioned_list: ^0.3.8
 
 dev_dependencies:
   flutter_test:

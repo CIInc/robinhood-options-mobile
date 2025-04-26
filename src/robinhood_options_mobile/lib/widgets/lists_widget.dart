@@ -15,6 +15,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -33,6 +34,7 @@ class ListsWidget extends StatefulWidget {
       {super.key,
       required this.analytics,
       required this.observer,
+      required this.generativeService,
       this.navigatorKey,
       this.user});
 
@@ -41,6 +43,7 @@ class ListsWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   final User? user;
 
   @override
@@ -785,6 +788,7 @@ class _ListsWidgetState extends State<ListsWidget>
                               watchLists[index].instrumentObj as Instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             )));

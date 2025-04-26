@@ -11,8 +11,8 @@ import 'package:robinhood_options_mobile/model/option_position_store.dart';
 class Prompt {
   final String key;
   final String title;
-  String prompt;
-  final bool appendPortfolioToPrompt;
+  final String prompt;
+  bool appendPortfolioToPrompt;
   Prompt(
       {required this.key,
       required this.title,
@@ -40,10 +40,46 @@ class GenerativeService {
         prompt:
             'Summarize the financial markets for ${formatLongDate.format(DateTime.now())}'), // in a single paragraph
     Prompt(
+        key: 'stock-summary',
+        title: 'Stock Summary',
+        prompt: 'Summarize the stock {{symbol}}.'), // in a single paragraph
+    Prompt(
+        key: 'chart-trend',
+        title: 'Chart Trend',
+        prompt:
+            '''Analyze stock symbol {{symbol}} and provide a summary of the trend.
+Use the following chart patterns to identify the trend:
+- Head and Shoulders - A reversal pattern that can signal a change in trend direction.
+- Double Top and Bottom - A reversal pattern that can signal a change in trend direction.
+- Flags and Pennants - Continuation patterns that can signal a continuation of the current trend.
+- Cup and Handle - A continuation pattern that can signal a continuation of the current trend.
+- Ascending and Descending Triangles - Continuation patterns that can signal a continuation of the current trend.
+- Rounding Bottom - A reversal pattern that can signal a change in trend direction.
+- Gaps - A price movement that can signal a change in trend direction.
+- Support and Resistance - Price levels that can signal a change in trend direction.
+- Trend Lines - A line that can signal a change in trend direction.
+- Fibonacci Retracement - A tool that can signal a change in trend direction.
+- Moving Averages - A tool that can signal a change in trend direction.
+- Bollinger Bands - A tool that can signal a change in trend direction.
+- Volume - A tool that can signal a change in trend direction.
+- Candlestick Patterns - A tool that can signal a change in trend direction.
+- Chart Patterns - A tool that can signal a change in trend direction.
+- Price Movement - Use chart patterns to predict price movement - https://www.babypips.com/learn/forex/chart-patterns-cheat-sheet'''),
+    /*
+Momentum - ex: Relative Strength Index (RSI) and other momentum technical indicators
+Overall market direction - Moving averages and trend lines on SPY or QQQ
+Volume - Volume bar or other volume indicators
+            */
+    Prompt(
         key: 'market-predictions',
         title: 'Market Predictions',
         prompt:
             'Analyze the financial markets and provide predictions for ${formatLongDate.format(DateTime.now().add(Duration(days: 1)))}'), // in a single paragraph
+    Prompt(
+        key: 'select-option',
+        title: 'Option Selector',
+        prompt:
+            'Analyze the option chain for symbol {{symbol}} as of ${formatLongDate.format(DateTime.now())} and provide the best {{type}} contracts to {{action}} and explain why.'),
     Prompt(key: 'ask', title: '', prompt: '', appendPortfolioToPrompt: true),
   ];
   // final String _apiKey;
@@ -54,17 +90,19 @@ class GenerativeService {
       :
         // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
-        model = FirebaseVertexAI.instance
-            .generativeModel(model: 'gemini-2.0-flash');
+        model = FirebaseVertexAI.instance.generativeModel(
+            model: 'gemini-2.0-flash'); // gemini-2.5-flash-preview-04-17
 
   Future<String> generateContent(
     Prompt prompt,
-    InstrumentPositionStore stockPositionStore,
-    OptionPositionStore optionPositionStore,
-    ForexHoldingStore forexHoldingStore,
+    InstrumentPositionStore? stockPositionStore,
+    OptionPositionStore? optionPositionStore,
+    ForexHoldingStore? forexHoldingStore,
   ) async {
-    String promptString = """${prompt.prompt}
-${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : ''}""";
+    String promptString =
+        """You are a financial assistant, provide answers in markdown format.
+    ${prompt.prompt}
+    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : '') : ''}""";
     HttpsCallable callable =
         FirebaseFunctions.instance.httpsCallable('generateContent2');
     final resp = await callable.call(<String, dynamic>{
@@ -91,11 +129,15 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
 
   Future<GenerateContentResponse> generatePortfolioContent(
       Prompt prompt,
-      InstrumentPositionStore stockPositionStore,
-      OptionPositionStore optionPositionStore,
-      ForexHoldingStore forexHoldingStore,
+      InstrumentPositionStore? stockPositionStore,
+      OptionPositionStore? optionPositionStore,
+      ForexHoldingStore? forexHoldingStore,
       GenerativeProvider provider) async {
-    String promptString = """${prompt.prompt}
+    String promptString = stockPositionStore == null ||
+            optionPositionStore == null ||
+            forexHoldingStore == null
+        ? prompt.prompt
+        : """${prompt.prompt}
 ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : ''}""";
     final prompts = [
       Content.text(promptString),
@@ -113,7 +155,7 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       //   ])
       // ]
     ); // grounding.GoogleSearchRetrieval()
-    provider.setGenerativeResponse(prompt.key, response.text!);
+    provider.setGenerativeResponse(prompt.prompt, response.text!);
     return response;
   }
 

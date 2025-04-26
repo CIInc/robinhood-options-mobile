@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
@@ -19,12 +20,14 @@ class InstrumentPositionsPageWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    required this.generativeService,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final List<InstrumentPosition> filteredPositions;
 
@@ -100,6 +103,7 @@ class _InstrumentPositionsPageWidgetState
         widget.filteredPositions,
         analytics: widget.analytics,
         observer: widget.observer,
+        generativeService: widget.generativeService,
       )
     ]));
   }

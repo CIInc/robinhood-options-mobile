@@ -6,6 +6,29 @@ This repository implements brokerage APIs like Robinhood to provide an options f
 
 See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases and application requirements.
 
+## Features
+
+*   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data.
+*   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.
+*   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments.
+*   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends).
+*   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
+
+
+## Architecture Overview
+
+RealizeAlpha utilizes a combination of technologies:
+
+*   **Mobile App:** Developed using the Flutter SDK and Dart for cross-platform deployment (iOS, Android).
+*   **Backend Services:** Firebase Functions (written in TypeScript/JavaScript) are used for:
+    *   Securely interacting with brokerage APIs.
+    *   Handling business logic that shouldn't reside on the client.
+    *   Integrating with AI services (e.g., Google AI Gemini API).
+*   **Authentication:** Firebase Authentication manages user sign-in and security.
+*   **Database/Storage:** Firestore or other Firebase services might be used for storing user preferences or other relevant data (if applicable).
+*   **Hosting:** Firebase Hosting is used for deploying web-related components or documentation sites.
+
+
 ### Latest Release
 
 - [RealizeAlpha | Apple App Store](https://testflight.apple.com/join/ARmsGSN8): TestFlight only, production release coming soon.

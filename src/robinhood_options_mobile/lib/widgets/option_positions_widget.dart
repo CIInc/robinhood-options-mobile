@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
@@ -43,12 +44,14 @@ class OptionPositionsWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    required this.generativeService,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   final bool showList;
   final bool showGroupHeader;
   final bool showFooter;
@@ -357,6 +360,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       optionPosition: op,
                       analytics: widget.analytics,
                       observer: widget.observer,
+                      generativeService: widget.generativeService,
                     )));
       } else {
         var op = widget.filteredOptionPositions
@@ -371,6 +375,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                         op.instrumentObj!,
                         analytics: widget.analytics,
                         observer: widget.observer,
+                        generativeService: widget.generativeService
                       )));
         } else {
           ScaffoldMessenger.of(context)
@@ -626,6 +631,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                   widget.filteredOptionPositions,
                   analytics: widget.analytics,
                   observer: widget.observer,
+                  generativeService: widget.generativeService,
                 )));
   }
 
@@ -812,6 +818,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                           heroTag: 'logo_${op.symbol}${op.id}',
                           analytics: widget.analytics,
                           observer: widget.observer,
+                          generativeService: widget.generativeService,
                         )));
           },
         ),
@@ -1239,6 +1246,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                           ops.first.instrumentObj!,
                           analytics: widget.analytics,
                           observer: widget.observer,
+                          generativeService: widget.generativeService,
                         )));
             // Refresh in case settings were updated.
             //futureFromInstrument.then((value) => setState(() {}));
@@ -1350,6 +1358,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                             optionPosition: op,
                             analytics: widget.analytics,
                             observer: widget.observer,
+                            generativeService: widget.generativeService,
                           )));
             },
           ),

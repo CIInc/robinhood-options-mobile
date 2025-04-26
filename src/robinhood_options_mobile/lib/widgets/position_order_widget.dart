@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -25,12 +26,14 @@ class PositionOrderWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    required this.generativeService,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final InstrumentOrder positionOrder;
 
@@ -421,6 +424,7 @@ class _PositionOrderWidgetState extends State<PositionOrderWidget> {
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             ),

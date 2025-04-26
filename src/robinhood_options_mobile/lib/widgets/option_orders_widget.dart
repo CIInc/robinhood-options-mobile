@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
@@ -18,12 +19,14 @@ class OptionOrdersWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    required this.generativeService,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final List<OptionOrder> optionOrders;
   final List<String> orderFilters;
@@ -200,6 +203,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                                 optionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,
+                                generativeService: widget.generativeService,
                               )));
                 },
               ),

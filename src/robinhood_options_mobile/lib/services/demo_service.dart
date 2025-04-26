@@ -1088,7 +1088,7 @@ class DemoService implements IBrokerageService {
     String account,
       { Bounds chartBoundsFilter = Bounds.t24_7,
       ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
-    throw UnimplementedError();
+        return getPortfolioHistoricals(user, store, account, chartBoundsFilter, chartDateSpanFilter);
     }
 
   @override

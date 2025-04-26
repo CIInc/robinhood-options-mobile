@@ -28,6 +28,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/chart_bar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -46,6 +47,7 @@ class OptionInstrumentWidget extends StatefulWidget {
       {super.key,
       required this.analytics,
       required this.observer,
+      required this.generativeService,
       this.optionPosition,
       this.heroTag});
 
@@ -53,6 +55,7 @@ class OptionInstrumentWidget extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final OptionInstrument optionInstrument;
   final OptionAggregatePosition? optionPosition;
@@ -1479,6 +1482,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
               const ["confirmed", "filled"],
               analytics: widget.analytics,
               observer: widget.observer,
+              generativeService: widget.generativeService,
             )
           ],
           const SliverToBoxAdapter(
@@ -2159,6 +2163,7 @@ class _OptionInstrumentWidgetState extends State<OptionInstrumentWidget> {
                               //optionPosition: optionPosition
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             ),

@@ -304,4 +304,83 @@ class Instrument {
         //     ? Map<String, dynamic>.from(etpDetails as Map)
         //     : null //?.toJson()
       };
+
+  /// Generates a markdown table from a list of Instrument,
+  /// including key Instrument fields, selected Fundamentals, and Quote fields if available.
+  static String toMarkdownTable(List<Instrument> instruments) {
+    if (instruments.isEmpty) return 'No instruments available.';
+
+    final headers = [
+      'Symbol',
+      'Name',
+      'Type',
+      'Country',
+      'Tradeable',
+      'Tradability',
+      'RHS Tradability',
+      'Fractional Tradability',
+      'List Date',
+      'Min Tick Size',
+      'Margin Initial Ratio',
+      'Maintenance Ratio',
+      'Is SPAC',
+      'Is Test',
+      // Fundamentals fields
+      'Sector',
+      'Industry',
+      'Market Cap',
+      'P/E Ratio',
+      'Dividend Yield',
+      '52W High',
+      '52W Low',
+      // Quote fields
+      'Last Price',
+      'Bid Price',
+      'Ask Price',
+      'Bid Size',
+      'Ask Size',
+      'Previous Close',
+    ];
+
+    final buffer = StringBuffer();
+    buffer.writeln('| ${headers.join(' | ')} |');
+    buffer.writeln('|${List.filled(headers.length, '---').join('|')}|');
+
+    for (final i in instruments) {
+      final f = i.fundamentalsObj;
+      final q = i.quoteObj;
+      buffer.writeln('| ${[
+        i.symbol,
+        i.name,
+        i.type,
+        i.country,
+        i.tradeable ? 'Yes' : 'No',
+        i.tradability,
+        i.rhsTradability,
+        i.fractionalTradability,
+        i.listDate?.toIso8601String().split('T').first ?? '',
+        i.minTickSize?.toString() ?? '',
+        i.marginInitialRatio?.toString() ?? '',
+        i.maintenanceRatio?.toString() ?? '',
+        i.isSpac ? 'Yes' : 'No',
+        i.isTest ? 'Yes' : 'No',
+        // Fundamentals
+        f?.sector ?? '',
+        f?.industry ?? '',
+        f?.marketCap?.toString() ?? '',
+        f?.peRatio?.toString() ?? '',
+        f?.dividendYield?.toString() ?? '',
+        f?.high52Weeks?.toString() ?? '',
+        f?.low52Weeks?.toString() ?? '',
+        // Quote
+        q?.lastTradePrice?.toString() ?? '',
+        q?.bidPrice?.toString() ?? '',
+        q?.askPrice?.toString() ?? '',
+        q?.bidSize.toString() ?? '',
+        q?.askSize.toString() ?? '',
+        q?.previousClose?.toString() ?? '',
+      ].join(' | ')} |');
+    }
+    return buffer.toString();
+  }      
 }

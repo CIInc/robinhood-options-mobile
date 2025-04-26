@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/constants.dart';
+import 'package:robinhood_options_mobile/model/generative_provider.dart';
 
 import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
@@ -11,8 +12,11 @@ import 'package:robinhood_options_mobile/model/option_instrument.dart';
 import 'package:robinhood_options_mobile/model/option_instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/option_instrument_widget.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class InstrumentOptionChainWidget extends StatefulWidget {
   const InstrumentOptionChainWidget(
@@ -23,12 +27,14 @@ class InstrumentOptionChainWidget extends StatefulWidget {
       {super.key,
       required this.analytics,
       required this.observer,
+      required this.generativeService,
       this.optionPosition});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final Instrument instrument;
   final OptionAggregatePosition? optionPosition;
@@ -55,8 +61,8 @@ class _InstrumentOptionChainWidgetState
   //List<OptionAggregatePosition> optionPositions = [];
 
   ScrollController scrollController = ScrollController();
-
-  double? instrumentPosition;
+  final ItemScrollController itemScrollController = ItemScrollController();
+  int? instrumentPosition;
   //final dataKey = GlobalKey();
 
   _InstrumentOptionChainWidgetState();
@@ -75,7 +81,18 @@ class _InstrumentOptionChainWidgetState
     var instrument = widget.instrument;
     var user = widget.user;
 
-    futureOptionChain ??= widget.service.getOptionChains(user, instrument.id);
+    try {
+      futureOptionChain ??= widget.service.getOptionChains(user, instrument.id);
+    } catch (e) {
+      return Scaffold(
+        body: buildScrollView(instrument, done: true, widgets: [
+        SliverToBoxAdapter(
+          child: Center(
+              child: Text('\n\nError loading option chain. Please try again.')),
+        )
+      ]));
+      debugPrint('Error: $e');
+    }
 
     /*
     var store = Provider.of<OptionPositionStore>(context, listen: false);
@@ -113,7 +130,7 @@ class _InstrumentOptionChainWidgetState
                 if (optionInstrumentsnapshot.hasData) {
                   optionInstruments = optionInstrumentsnapshot.data!;
 
-                  filteredOptionsInstruments = optionInstruments!
+                  var newfilteredOptionsInstruments = optionInstruments!
                       .where((oi) =>
                           (typeFilter == null ||
                               typeFilter!.toLowerCase() ==
@@ -122,32 +139,43 @@ class _InstrumentOptionChainWidgetState
                               expirationDateFilter!
                                   .isAtSameMomentAs(oi.expirationDate!)))
                       .toList();
-                  for (int index = 0;
-                      index < filteredOptionsInstruments!.length;
-                      index++) {
-                    OptionInstrument optionInstrument =
-                        filteredOptionsInstruments![index];
-                    OptionInstrument? prevOptionInstrument = index > 0
-                        ? filteredOptionsInstruments![index - 1]
-                        : null;
-                    if (instrumentPosition == null &&
-                        (instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                                instrument.quoteObj!.lastTradePrice!) <
-                            optionInstrument.strikePrice! &&
-                        (prevOptionInstrument == null ||
-                            (instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                                    instrument.quoteObj!.lastTradePrice!) >=
-                                prevOptionInstrument.strikePrice!)) {
-                      instrumentPosition = index *
-                          59; // 59 - ListTile // 67 - Column //(54 + 27);
-                      scrollController.animateTo(instrumentPosition!,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.ease);
+                  if (newfilteredOptionsInstruments.length !=
+                      filteredOptionsInstruments?.length) {
+                    filteredOptionsInstruments = newfilteredOptionsInstruments;
+                    for (int index = 0;
+                        index < filteredOptionsInstruments!.length;
+                        index++) {
+                      OptionInstrument optionInstrument =
+                          filteredOptionsInstruments![index];
+                      OptionInstrument? prevOptionInstrument = index > 0
+                          ? filteredOptionsInstruments![index - 1]
+                          : null;
+                      if ((instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                                  instrument.quoteObj!.lastTradePrice!) <
+                              optionInstrument.strikePrice! &&
+                          (prevOptionInstrument == null ||
+                              (instrument.quoteObj!
+                                          .lastExtendedHoursTradePrice ??
+                                      instrument.quoteObj!.lastTradePrice!) >=
+                                  prevOptionInstrument.strikePrice!)) {
+                        instrumentPosition = index;
+                        debugPrint('instrumentPosition: $instrumentPosition');
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          itemScrollController.scrollTo(
+                              index: index - 2,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeInOutCubic,
+                              alignment: 0);
+                          // scrollController.animateTo(instrumentPosition!,
+                          //     duration: const Duration(milliseconds: 250),
+                          //     curve: Curves.ease);
+                        });
+                      }
                     }
                   }
 
                   return buildScrollView(instrument,
-                      optionInstruments: optionInstruments,
+                      optionInstruments: filteredOptionsInstruments,
                       done: snapshot.connectionState == ConnectionState.done &&
                           optionInstrumentsnapshot.connectionState ==
                               ConnectionState.done);
@@ -171,7 +199,9 @@ class _InstrumentOptionChainWidgetState
   }
 
   buildScrollView(Instrument instrument,
-      {List<OptionInstrument>? optionInstruments, bool done = false}) {
+      {List<OptionInstrument>? optionInstruments,
+      bool done = false,
+      List<Widget> widgets = const []}) {
     var slivers = <Widget>[];
     slivers.add(SliverAppBar(
       centerTitle: false,
@@ -196,7 +226,7 @@ class _InstrumentOptionChainWidgetState
                 )),
       )));
     }
-
+    slivers.addAll(widgets);
     if (optionInstruments != null) {
       /*
       slivers.add(const SliverToBoxAdapter(
@@ -215,15 +245,242 @@ class _InstrumentOptionChainWidgetState
                     mainAxisAlignment: MainAxisAlignment.start,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Consumer2<OptionPositionStore, GenerativeProvider>(
+                          builder: (context, optionPositionStore,
+                              generativeProvider, child) {
+                        return ExpansionTile(
+                          shape: const Border(),
+                          leading: const CircleAvatar(
+                              // radius: 20,
+                              child: Icon(Icons.lightbulb_circle_outlined)),
+                          title: Text(
+                            'AI Insight',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          // subtitle: Text(metadata != null
+                          //         ? constants
+                          //             .formatLongDateTime
+                          //             .format(metadata
+                          //                 .timeCreated!)
+                          //         : ''
+                          //     // '${metadata != null ? constants.formatLongDateTime.format(metadata.timeCreated!) : ''} extension ${videoRef.name.substring(videoRef.name.lastIndexOf('.'))}',
+                          //     // overflow: TextOverflow.ellipsis,
+                          //     ),
+                          children: [
+                            SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.fromLTRB(
+                                    12.0,
+                                    0, // 16.0,
+                                    16.0,
+                                    0),
+                                // padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(4.0),
+                                            child: ActionChip(
+                                              avatar: generativeProvider
+                                                          .generating &&
+                                                      generativeProvider
+                                                          .promptResponses
+                                                          .containsKey(
+                                                              'select-option') &&
+                                                      generativeProvider
+                                                                  .promptResponses[
+                                                              'select-option'] ==
+                                                          null
+                                                  ? const CircularProgressIndicator()
+                                                  : const Icon(
+                                                      Icons.recommend_outlined),
+                                              label: const Text(
+                                                  'Find Best Contract'),
+                                              onPressed: () async {
+                                                var prompt = widget
+                                                    .generativeService.prompts
+                                                    .firstWhere((p) =>
+                                                        p.key ==
+                                                        'select-option');
+
+                                                // var optionPositions =
+                                                //     optionPositionStore.items
+                                                //         .where((e) =>
+                                                //             e.symbol ==
+                                                //             widget.instrument
+                                                //                 .symbol)
+                                                //         .toList();
+                                                // var optionMarketData =
+                                                //     optionPositions
+                                                //         .map((e) => e
+                                                //             .optionInstrument!
+                                                //             .optionMarketData!)
+                                                //         .toList();
+
+                                                // Format the optionMarketData list into a more readable string for the LLM
+                                                var historicalDataString =
+                                                    OptionInstrument
+                                                        .toMarkdownTable(
+                                                            optionInstruments);
+                                                var historicalDataString2 =
+                                                    Instrument.toMarkdownTable(
+                                                        [instrument]);
+
+                                                var newPrompt = Prompt(
+                                                    key: prompt.key,
+                                                    title: prompt.title,
+                                                    prompt:
+                                                        '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: ${historicalDataString2}\nUse the following option chain data:\n$historicalDataString');
+
+                                                await generateContent(
+                                                    generativeProvider,
+                                                    widget.generativeService,
+                                                    newPrompt,
+                                                    context);
+                                              },
+                                            ),
+                                          ),
+                                          // Padding(
+                                          //   padding: const EdgeInsets.all(4.0),
+                                          //   child: ActionChip(
+                                          //     avatar: generativeProvider
+                                          //                 .generating &&
+                                          //             generativeProvider
+                                          //                 .promptResponses
+                                          //                 .containsKey('ask') &&
+                                          //             generativeProvider
+                                          //                         .promptResponses[
+                                          //                     'ask'] ==
+                                          //                 null
+                                          //         ? const CircularProgressIndicator()
+                                          //         : const Icon(
+                                          //             Icons.question_answer),
+                                          //     label:
+                                          //         const Text('Ask a question'),
+                                          //     onPressed: () async {
+                                          //       var prompt = widget
+                                          //           .generativeService.prompts
+                                          //           .firstWhere(
+                                          //               (p) => p.key == 'ask');
+                                          //       // prompt.prompt += '\n${instrument.symbol}';
+                                          //       prompt.appendPortfolioToPrompt =
+                                          //           false;
+                                          //       await generateContent(
+                                          //           generativeProvider,
+                                          //           widget.generativeService,
+                                          //           prompt,
+                                          //           context);
+                                          //     },
+                                          //   ),
+                                          // ),
+                                        ]),
+                                  ],
+                                )),
+
+                            // ListTile(
+                            //   title: const Text(
+                            //       'Filename'),
+                            //   subtitle: SelectableText(
+                            //     videoRef.name,
+                            //     maxLines: 2,
+                            //     // style: const TextStyle(
+                            //     //   overflow:
+                            //     //       TextOverflow.ellipsis,
+                            //     // )
+                            //   ),
+                            // ),
+                          ],
+                        );
+
+                        // return SliverToBoxAdapter(
+                        //   child: Column(children: [
+                        //     // ListTile(
+                        //     //   title: const Text(
+                        //     //     "Assistant",
+                        //     //     style: TextStyle(fontSize: 19.0),
+                        //     //   ),
+                        //     // ),
+                        //     ListTile(
+                        //       title: Text(
+                        //         "Insight",
+                        //         style: TextStyle(fontSize: listTileTitleFontSize),
+                        //       ),
+                        //       trailing: Wrap(
+                        //         children: [
+                        //           TextButton.icon(
+                        //               onPressed: () async {
+                        //                 generativeProvider
+                        //                     .setGenerativePrompt('portfolio-summary');
+                        //                 await widget.generativeService
+                        //                     .generatePortfolioContent(
+                        //                         widget.generativeService.prompts
+                        //                             .firstWhere((p) =>
+                        //                                 p.key == 'portfolio-summary'),
+                        //                         stockPositionStore,
+                        //                         optionPositionStore,
+                        //                         forexHoldingStore,
+                        //                         generativeProvider);
+                        //               },
+                        //               label: Text("Summary"),
+                        //               icon: generativeProvider.generating &&
+                        //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
+                        //                               generativeProvider.promptResponses['portfolio-summary'] == null
+                        //                   ? CircularProgressIndicator.adaptive()
+                        //                   : const Icon(Icons.summarize)),
+                        //           TextButton.icon(
+                        //               onPressed: () async {
+                        //                 generativeProvider.setGenerativePrompt(
+                        //                     'portfolio-recommendations');
+                        //                 await widget.generativeService
+                        //                     .generatePortfolioContent(
+                        //                         widget.generativeService.prompts
+                        //                             .firstWhere((p) =>
+                        //                                 p.key ==
+                        //                                 'portfolio-recommendations'),
+                        //                         stockPositionStore,
+                        //                         optionPositionStore,
+                        //                         forexHoldingStore,
+                        //                         generativeProvider);
+                        //               },
+                        //               label: Text("Recommendations"),
+                        //               icon: generativeProvider.generating &&
+                        //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
+                        //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
+                        //                   ? CircularProgressIndicator.adaptive()
+                        //                   : const Icon(Icons.recommend)),
+                        //         ],
+                        //       ),
+                        //     ),
+                        //     if (generativeProvider.promptResponses != null) ...[
+                        //       Padding(
+                        //         padding: const EdgeInsets.all(8.0),
+                        //         child: Card(
+                        //             child: SizedBox(
+                        //                 height: 280,
+                        //                 child: Markdown(
+                        //                     data: generativeProvider.response!))),
+                        //       ),
+                        //     ],
+                        //   ]),
+                        // );
+                      }),
                       ListTile(
                           title: const Text('Option Chain'),
                           trailing: IconButton(
                               icon: const Icon(
                                   Icons.arrow_downward), //expand_more
                               onPressed: () {
-                                scrollController.animateTo(instrumentPosition!,
+                                itemScrollController.scrollTo(
+                                    index: instrumentPosition! - 2,
                                     duration: const Duration(milliseconds: 250),
-                                    curve: Curves.ease);
+                                    curve: Curves.easeInOutCubic,
+                                    alignment: 0);
+                                // scrollController.animateTo(instrumentPosition!,
+                                //     duration: const Duration(milliseconds: 250),
+                                //     curve: Curves.ease);
                               })),
                       /*
                       Container(
@@ -361,16 +618,16 @@ class _InstrumentOptionChainWidgetState
   }
 
   Widget optionInstrumentsWidget(
-      List<OptionInstrument> optionInstruments, Instrument instrument,
+      List<OptionInstrument> filteredOptionsInstruments, Instrument instrument,
       {OptionAggregatePosition? optionPosition}) {
-    return SliverList(
-      // delegate: SliverChildListDelegate(widgets),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          var optionInstrument = filteredOptionsInstruments![index];
+    return SliverFillRemaining(
+      child: ScrollablePositionedList.builder(
+        itemCount: filteredOptionsInstruments.length,
+        itemBuilder: (context, index) {
+          var optionInstrument = filteredOptionsInstruments[index];
           OptionInstrument? prevOptionInstrument;
           if (index > 0) {
-            prevOptionInstrument = filteredOptionsInstruments![index - 1];
+            prevOptionInstrument = filteredOptionsInstruments[index - 1];
           }
 
           // TODO: Optimize to batch calls for market data.
@@ -387,8 +644,178 @@ class _InstrumentOptionChainWidgetState
             var optionPositions = optionPositionStore.items
                 .where((e) => e.symbol == widget.instrument.symbol)
                 .toList();
-            var optionPositionsMatchingInstrument = optionPositions
-                .where((e) => e.optionInstrument!.id == optionInstrument.id);
+            var optionPositionsMatchingInstrument = optionPositions.where((e) =>
+                e.optionInstrument != null &&
+                e.optionInstrument!.id == optionInstrument.id);
+            var optionInstrumentQuantity =
+                optionPositionsMatchingInstrument.isNotEmpty
+                    ? optionPositionsMatchingInstrument
+                        .map((e) => e.quantity ?? 0)
+                        .reduce((a, b) => a + b)
+                    : 0;
+            return Column(
+              children: [
+                if ((instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                            instrument.quoteObj!.lastTradePrice!) <
+                        optionInstrument.strikePrice! &&
+                    (prevOptionInstrument == null ||
+                        (instrument.quoteObj!.lastExtendedHoursTradePrice ??
+                                instrument.quoteObj!.lastTradePrice!) >=
+                            prevOptionInstrument.strikePrice!)) ...[
+                  Card(
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                        Row(
+                          children: [
+                            Expanded(
+                                flex: 10,
+                                child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                        15.0, 10, 15, 10),
+                                    child: priceAndChangeWidget(instrument))),
+                          ],
+                        )
+                      ]))
+                ],
+                Card(
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                      ListTile(
+                        //key: index == 0 ? dataKey : null,
+                        /*optionInstrument.id ==
+                            firstOptionsInstrumentsSorted.id
+                        ? dataKey
+                        : null,
+                        */
+                        /*
+                    leading: CircleAvatar(
+                        backgroundColor: optionInstrument.type == 'call'
+                            ? Colors.green
+                            : Colors.amber,
+                        //backgroundImage: AssetImage(user.profilePicture),
+                        child: optionInstrument.type == 'call'
+                            ? const Text('Call')
+                            : const Text('Put')),
+                            */
+                        /*
+                  leading: CircleAvatar(
+                      //backgroundImage: AssetImage(user.profilePicture),
+                      child: Text('${optionOrders[index].quantity!.round()}',
+                          style: const TextStyle(fontSize: 18))),
+                  leading: Icon(Icons.ac_unit),
+                  */
+                        leading: optionInstrumentQuantity > 0
+                            ? CircleAvatar(
+                                //backgroundImage: AssetImage(user.profilePicture),
+                                child: Text(
+                                    formatCompactNumber
+                                        .format(optionInstrumentQuantity),
+                                    style: const TextStyle(fontSize: 18)))
+                            : null, //Icon(Icons.ac_unit),
+                        title: Text(//${optionInstrument.chainSymbol}
+                            '\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type}'), // , style: TextStyle(fontSize: 18.0)),
+                        subtitle: Text(optionInstrument.optionMarketData != null
+                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-"}"
+                            ? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance of profit: ${actionFilter == 'Buy' ? (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-") : (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-")}"
+                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}"
+                            : ""),
+                        //'Issued ${dateFormat.format(optionInstrument.issueDate as DateTime)}'),
+                        trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              optionInstrument.optionMarketData != null
+                                  ? Text(
+                                      formatCurrency.format(optionInstrument
+                                          .optionMarketData!.markPrice),
+                                      //"${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
+                                      style: const TextStyle(fontSize: 18))
+                                  : const Text(""),
+                              Wrap(spacing: 8, children: [
+                                Icon(
+                                    instrument.quoteObj!.changeToday > 0
+                                        ? Icons.trending_up
+                                        : (instrument.quoteObj!.changeToday < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (instrument.quoteObj!.changeToday > 0
+                                        ? Colors.green
+                                        : (instrument.quoteObj!.changeToday < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    size: 16),
+                                Text(
+                                  optionInstrument.optionMarketData != null
+                                      ? formatPercentage.format(optionInstrument
+                                          .optionMarketData!.changePercentToday)
+                                      : "-",
+                                  //style: TextStyle(fontSize: 16),
+                                )
+                              ]),
+                            ]),
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => OptionInstrumentWidget(
+                                        widget.user,
+                                        widget.service,
+                                        optionInstrument,
+                                        optionPosition:
+                                            optionInstrumentQuantity > 0
+                                                ? optionPosition
+                                                : null,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
+                                      )));
+                        },
+                      )
+                    ]))
+              ],
+            );
+          });
+
+          //return Text('\$${optionInstrument.strikePrice}');
+        },
+        itemScrollController: itemScrollController,
+        // itemPositionsListener: itemPositionsListener,
+        // scrollOffsetController: scrollOffsetController,
+        // reverse: reversed,
+        // scrollDirection: orientation == Orientation.portrait
+        //     ? Axis.vertical
+        //     : Axis.horizontal,
+      ),
+    );
+    return SliverList(
+      // delegate: SliverChildListDelegate(widgets),
+      delegate: SliverChildBuilderDelegate(
+        (BuildContext context, int index) {
+          var optionInstrument = filteredOptionsInstruments[index];
+          OptionInstrument? prevOptionInstrument;
+          if (index > 0) {
+            prevOptionInstrument = filteredOptionsInstruments[index - 1];
+          }
+
+          // TODO: Optimize to batch calls for market data.
+          if (optionInstrument.optionMarketData == null) {
+            widget.service
+                .getOptionMarketData(widget.user, optionInstrument)
+                .then((value) => setState(() {
+                      optionInstrument.optionMarketData = value;
+                    }));
+          }
+
+          return Consumer<OptionPositionStore>(
+              builder: (context, optionPositionStore, child) {
+            var optionPositions = optionPositionStore.items
+                .where((e) => e.symbol == widget.instrument.symbol)
+                .toList();
+            var optionPositionsMatchingInstrument = optionPositions.where((e) =>
+                e.optionInstrument != null &&
+                e.optionInstrument!.id == optionInstrument.id);
             var optionInstrumentQuantity =
                 optionPositionsMatchingInstrument.isNotEmpty
                     ? optionPositionsMatchingInstrument
@@ -510,6 +937,8 @@ class _InstrumentOptionChainWidgetState
                                                 : null,
                                         analytics: widget.analytics,
                                         observer: widget.observer,
+                                        generativeService:
+                                            widget.generativeService,
                                       )));
                         },
                       )
@@ -520,7 +949,7 @@ class _InstrumentOptionChainWidgetState
 
           //return Text('\$${optionInstrument.strikePrice}');
         },
-        childCount: filteredOptionsInstruments!.length,
+        childCount: filteredOptionsInstruments.length,
       ),
     );
   }
@@ -544,7 +973,8 @@ class _InstrumentOptionChainWidgetState
   }
 
   Widget priceAndChangeWidget(Instrument instrument,
-      {textStyle = const TextStyle(fontSize: 16.0, color: Colors.white70)}) {
+      {textStyle = const TextStyle(fontSize: 20.0)}) {
+    // , color: Colors.white70
     return Wrap(spacing: 10, children: [
       Text(
           formatCurrency.format(

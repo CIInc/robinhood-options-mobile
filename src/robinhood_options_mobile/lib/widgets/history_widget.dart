@@ -18,6 +18,7 @@ import 'package:robinhood_options_mobile/model/option_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
@@ -47,6 +48,7 @@ class HistoryPage extends StatefulWidget {
       {super.key,
       required this.analytics,
       required this.observer,
+      required this.generativeService,
       this.user,
       this.userDoc,
       this.navigatorKey});
@@ -56,6 +58,7 @@ class HistoryPage extends StatefulWidget {
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   final User? user;
   final DocumentReference? userDoc;
 
@@ -856,6 +859,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                       analytics:
                                                           widget.analytics,
                                                       observer: widget.observer,
+                                                      generativeService: widget.generativeService,
                                                     )));
                                       },
                                     ),
@@ -1063,6 +1067,7 @@ class _HistoryPageState extends State<HistoryPage>
                                                       analytics:
                                                           widget.analytics,
                                                       observer: widget.observer,
+                                                      generativeService: widget.generativeService,
                                                     )));
                                       },
                                     ),

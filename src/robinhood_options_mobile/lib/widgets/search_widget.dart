@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/model/midlands_movers_item.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -28,6 +29,7 @@ class SearchWidget extends StatefulWidget {
   final User? user;
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
+  final GenerativeService generativeService;
 
   const SearchWidget(
     this.brokerageUser,
@@ -35,6 +37,7 @@ class SearchWidget extends StatefulWidget {
     super.key,
     required this.analytics,
     required this.observer,
+    required this.generativeService,
     this.navigatorKey,
     this.user,
   });
@@ -551,6 +554,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             )));
@@ -582,6 +586,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
+                                generativeService: widget.generativeService,
                               )));
                 })));
     /*
@@ -687,6 +692,7 @@ class _SearchWidgetState extends State<SearchWidget>
                               instrumentObj,
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             )));

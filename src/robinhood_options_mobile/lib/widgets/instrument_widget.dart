@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
+import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_selection_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
@@ -25,7 +26,9 @@ import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -62,12 +65,14 @@ class InstrumentWidget extends StatefulWidget {
       {super.key,
       required this.analytics,
       required this.observer,
+      required this.generativeService,
       this.heroTag});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
   final IBrokerageService service;
+  final GenerativeService generativeService;
   //final Account account;
   final Instrument instrument;
   final String? heroTag;
@@ -99,7 +104,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   //charts.TimeSeriesChart? chart;
   TimeSeriesChart? chart;
   ChartDateSpan chartDateSpanFilter = ChartDateSpan.day;
-  Bounds chartBoundsFilter = Bounds.regular;
+  Bounds chartBoundsFilter = Bounds.t24_7;
   InstrumentHistorical? selection;
 
   List<String> optionFilters = <String>[];
@@ -170,7 +175,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     if (widget.instrument.logoUrl == null &&
-        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol)) {
+        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol) && auth.currentUser != null) {
       widget.instrument.logoUrl =
           RobinhoodService.logoUrls[widget.instrument.symbol];
       _firestoreService.upsertInstrument(widget.instrument);
@@ -219,13 +224,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         chartBoundsFilter: chartBoundsFilter,
         chartDateSpanFilter: chartDateSpanFilter);
 
-    futureRsiHistoricals ??= widget.service.getInstrumentHistoricals(
-        user,
-        Provider.of<InstrumentHistoricalsStore>(context, listen: false),
-        instrument.symbol,
-        chartBoundsFilter: Bounds.regular,
-        chartDateSpanFilter: ChartDateSpan.month,
-        chartInterval: 'day');
+    // futureRsiHistoricals ??= widget.service.getInstrumentHistoricals(
+    //     user,
+    //     Provider.of<InstrumentHistoricalsStore>(context, listen: false),
+    //     instrument.symbol,
+    //     chartBoundsFilter: Bounds.t24_7,
+    //     chartDateSpanFilter: ChartDateSpan.month,
+    //     chartInterval: 'day');
 
     if (instrument.type == 'etp' && widget.service is RobinhoodService) {
       futureEtp ??=
@@ -248,7 +253,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         futureEarnings as Future,
         futureSimilar as Future,
         futureSplits as Future,
-        futureRsiHistoricals as Future,
+        futureHistoricals as Future,
         if (futureEtp != null) ...[futureEtp as Future]
       ]),
       builder: (context, snapshot) {
@@ -301,7 +306,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             updateInstrument = true;
           }
           instrument.etpDetails = data.length > 14 ? data[14] : null;
-          if (updateInstrument) {
+          if (updateInstrument && auth.currentUser != null) {
             _firestoreService.upsertInstrument(instrument);
             debugPrint(
                 'InstrumentWidget: Stored instrument into Firestore ${instrument.symbol}');
@@ -517,6 +522,249 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               );
             },
           ),
+          Consumer2<InstrumentHistoricalsStore, GenerativeProvider>(builder:
+              (context, instrumentHistoricalsStore, generativeProvider, child) {
+            return SliverToBoxAdapter(
+              child: ExpansionTile(
+                shape: const Border(),
+                leading: const CircleAvatar(
+                    // radius: 20,
+                    child: Icon(Icons.lightbulb_circle_outlined)),
+                title: Text(
+                  'AI Insight',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // subtitle: Text(metadata != null
+                //         ? constants
+                //             .formatLongDateTime
+                //             .format(metadata
+                //                 .timeCreated!)
+                //         : ''
+                //     // '${metadata != null ? constants.formatLongDateTime.format(metadata.timeCreated!) : ''} extension ${videoRef.name.substring(videoRef.name.lastIndexOf('.'))}',
+                //     // overflow: TextOverflow.ellipsis,
+                //     ),
+                children: [
+                  SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.fromLTRB(
+                          12.0,
+                          0, // 16.0,
+                          16.0,
+                          0),
+                      // padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Column(
+                        children: [
+                          Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ActionChip(
+                                    avatar: generativeProvider.generating &&
+                                            generativeProvider.promptResponses
+                                                .containsKey('chart-trend') &&
+                                            generativeProvider.promptResponses[
+                                                    'chart-trend'] ==
+                                                null
+                                        ? const CircularProgressIndicator()
+                                        : const Icon(Icons.recommend_outlined),
+                                    label: const Text('Trend'),
+                                    onPressed: () async {
+                                      var prompt = widget
+                                          .generativeService.prompts
+                                          .firstWhere(
+                                              (p) => p.key == 'chart-trend');
+                                      // Format the historical data into a more readable string for the LLM
+                                      String historicalDataString = instrument
+                                          .instrumentHistoricalsObj!.historicals
+                                          .where((e) => e.volume > 0)
+                                          .map((e) =>
+                                              'Date: ${e.beginsAt}, Open: ${formatCurrency.format(e.openPrice)}, High: ${formatCurrency.format(e.highPrice)}, Low: ${formatCurrency.format(e.lowPrice)}, Close: ${formatCurrency.format(e.closePrice)}, Volume: ${formatCompactNumber.format(e.volume)}')
+                                          .join(
+                                              "\n"); // Use newline for better separation
+                                      var newPrompt = Prompt(
+                                          key: prompt.key,
+                                          title: prompt.title,
+                                          prompt:
+                                              '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}\nwith the following chart data:\n$historicalDataString');
+
+                                      await generateContent(
+                                          generativeProvider,
+                                          widget.generativeService,
+                                          newPrompt,
+                                          context);
+                                    },
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ActionChip(
+                                    avatar: generativeProvider.generating &&
+                                            generativeProvider.promptResponses
+                                                .containsKey('stock-summary') &&
+                                            generativeProvider.promptResponses[
+                                                    'stock-summary'] ==
+                                                null
+                                        ? const CircularProgressIndicator()
+                                        : const Icon(Icons.summarize),
+                                    label: const Text('Summary'),
+                                    onPressed: () async {
+                                      var prompt = widget
+                                          .generativeService.prompts
+                                          .firstWhere(
+                                              (p) => p.key == 'stock-summary');
+                                      // Format the instrument data (including fundamentalsObj) into a more readable string for the LLM
+//                                       var instrumentDataString = '''
+// Symbol: ${instrument.symbol}
+// Name: ${instrument.name}
+// Type: ${instrument.type}
+// Sector: ${instrument.fundamentalsObj!.sector}
+// Industry: ${instrument.fundamentalsObj!.industry}
+// Market Cap: ${formatCompactNumber.format(instrument.fundamentalsObj!.marketCap ?? 0)}
+// Shares Outstanding: ${formatCompactNumber.format(instrument.fundamentalsObj!.sharesOutstanding ?? 0)}
+// P/E Ratio: ${instrument.fundamentalsObj!.peRatio != null ? formatCompactNumber.format(instrument.fundamentalsObj!.peRatio!) : "-"}
+// Dividend Yield: ${instrument.fundamentalsObj!.dividendYield != null ? formatCompactNumber.format(instrument.fundamentalsObj!.dividendYield!) : "-"}
+// 52 Week High: ${formatCurrency.format(instrument.fundamentalsObj!.high52Weeks ?? 0)}
+// 52 Week Low: ${formatCurrency.format(instrument.fundamentalsObj!.low52Weeks ?? 0)}
+// Average Volume: ${formatCompactNumber.format(instrument.fundamentalsObj!.averageVolume ?? 0)}
+// Description: ${instrument.fundamentalsObj!.description}
+// Headquarters: ${instrument.fundamentalsObj!.headquartersCity}${instrument.fundamentalsObj!.headquartersCity.isNotEmpty ? "," : ""} ${instrument.fundamentalsObj!.headquartersState}
+// CEO: ${instrument.fundamentalsObj!.ceo}
+// Year Founded: ${instrument.fundamentalsObj!.yearFounded ?? ""}
+// ''';
+
+                                      var newPrompt = Prompt(
+                                          key: prompt.key,
+                                          title: prompt.title,
+                                          prompt:
+                                              '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}'); // \nHere is some instrument fundamental data to include:\n$instrumentDataString
+
+                                      await generateContent(
+                                          generativeProvider,
+                                          widget.generativeService,
+                                          newPrompt,
+                                          context);
+                                    },
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: ActionChip(
+                                    avatar: generativeProvider.generating &&
+                                            generativeProvider.promptResponses
+                                                .containsKey('ask') &&
+                                            generativeProvider
+                                                    .promptResponses['ask'] ==
+                                                null
+                                        ? const CircularProgressIndicator()
+                                        : const Icon(Icons.question_answer),
+                                    label: const Text('Ask a question'),
+                                    onPressed: () async {
+                                      var prompt = widget
+                                          .generativeService.prompts
+                                          .firstWhere((p) => p.key == 'ask');
+                                      // prompt.prompt += '\n${instrument.symbol}';
+                                      prompt.appendPortfolioToPrompt = false;
+                                      await generateContent(
+                                          generativeProvider,
+                                          widget.generativeService,
+                                          prompt,
+                                          context);
+                                    },
+                                  ),
+                                ),
+                              ]),
+                        ],
+                      )),
+
+                  // ListTile(
+                  //   title: const Text(
+                  //       'Filename'),
+                  //   subtitle: SelectableText(
+                  //     videoRef.name,
+                  //     maxLines: 2,
+                  //     // style: const TextStyle(
+                  //     //   overflow:
+                  //     //       TextOverflow.ellipsis,
+                  //     // )
+                  //   ),
+                  // ),
+                ],
+              ),
+            );
+
+            // return SliverToBoxAdapter(
+            //   child: Column(children: [
+            //     // ListTile(
+            //     //   title: const Text(
+            //     //     "Assistant",
+            //     //     style: TextStyle(fontSize: 19.0),
+            //     //   ),
+            //     // ),
+            //     ListTile(
+            //       title: Text(
+            //         "Insight",
+            //         style: TextStyle(fontSize: listTileTitleFontSize),
+            //       ),
+            //       trailing: Wrap(
+            //         children: [
+            //           TextButton.icon(
+            //               onPressed: () async {
+            //                 generativeProvider
+            //                     .setGenerativePrompt('portfolio-summary');
+            //                 await widget.generativeService
+            //                     .generatePortfolioContent(
+            //                         widget.generativeService.prompts
+            //                             .firstWhere((p) =>
+            //                                 p.key == 'portfolio-summary'),
+            //                         stockPositionStore,
+            //                         optionPositionStore,
+            //                         forexHoldingStore,
+            //                         generativeProvider);
+            //               },
+            //               label: Text("Summary"),
+            //               icon: generativeProvider.generating &&
+            //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
+            //                               generativeProvider.promptResponses['portfolio-summary'] == null
+            //                   ? CircularProgressIndicator.adaptive()
+            //                   : const Icon(Icons.summarize)),
+            //           TextButton.icon(
+            //               onPressed: () async {
+            //                 generativeProvider.setGenerativePrompt(
+            //                     'portfolio-recommendations');
+            //                 await widget.generativeService
+            //                     .generatePortfolioContent(
+            //                         widget.generativeService.prompts
+            //                             .firstWhere((p) =>
+            //                                 p.key ==
+            //                                 'portfolio-recommendations'),
+            //                         stockPositionStore,
+            //                         optionPositionStore,
+            //                         forexHoldingStore,
+            //                         generativeProvider);
+            //               },
+            //               label: Text("Recommendations"),
+            //               icon: generativeProvider.generating &&
+            //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
+            //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
+            //                   ? CircularProgressIndicator.adaptive()
+            //                   : const Icon(Icons.recommend)),
+            //         ],
+            //       ),
+            //     ),
+            //     if (generativeProvider.promptResponses != null) ...[
+            //       Padding(
+            //         padding: const EdgeInsets.all(8.0),
+            //         child: Card(
+            //             child: SizedBox(
+            //                 height: 280,
+            //                 child: Markdown(
+            //                     data: generativeProvider.response!))),
+            //       ),
+            //     ],
+            //   ]),
+            // );
+          }),
           SliverToBoxAdapter(
               child: Stack(children: [
             if (done == false) ...[
@@ -1030,6 +1278,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       showGroupHeader: false,
                       analytics: widget.analytics,
                       observer: widget.observer,
+                      generativeService: widget.generativeService,
                     )
                   ]
                 ]));
@@ -1142,6 +1391,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       const ["confirmed", "filled"],
                       analytics: widget.analytics,
                       observer: widget.observer,
+                      generativeService: widget.generativeService,
                     )
                   ]));
             }
@@ -1215,6 +1465,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                               instrument,
                               analytics: widget.analytics,
                               observer: widget.observer,
+                              generativeService: widget.generativeService,
                             )));
               },
             ),
@@ -2539,7 +2790,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           [instrument.similarObj![index]["instrument_id"]]);
                   if (instrument.similarObj![index]["logo_url"] != null &&
                       instrument.similarObj![index]["logo_url"] !=
-                          similarInstruments[0].logoUrl) {
+                          similarInstruments[0].logoUrl && auth.currentUser != null) {
                     similarInstruments[0].logoUrl = instrument
                         .similarObj![index]["logo_url"]
                         .toString()
@@ -2557,6 +2808,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   similarInstruments[0],
                                   analytics: widget.analytics,
                                   observer: widget.observer,
+                                  generativeService: widget.generativeService,
                                 )));
                   }
                 },
@@ -2616,6 +2868,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 instrument.listsObj![index]["id"].toString(),
                                 analytics: widget.analytics,
                                 observer: widget.observer,
+                                generativeService: widget.generativeService,
                               )));
                 },
               ),
@@ -2816,6 +3069,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                 positionOrders[index],
                                 analytics: widget.analytics,
                                 observer: widget.observer,
+                                generativeService: widget.generativeService,
                               )));
                 },
               ),

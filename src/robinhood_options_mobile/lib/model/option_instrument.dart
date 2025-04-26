@@ -77,4 +77,83 @@ class OptionInstrument {
         selloutDateTime = DateTime.tryParse(json['sellout_datetime']),
         longStrategyCode = json['long_strategy_code'],
         shortStrategyCode = json['short_strategy_code'];
+
+  // toMarkdownTable generates a markdown table from a list of OptionInstrument populating the table with all the daya including the properties of OptionMarketData.
+  
+    /// Generates a markdown table from a list of OptionInstrument,
+  /// including all OptionInstrument fields and the properties of OptionMarketData.
+  static String toMarkdownTable(List<OptionInstrument> options) {
+    if (options.isEmpty) return 'No option instruments available.';
+
+    // OptionInstrument headers
+    final headers = [
+      'Chain Symbol',
+      'Type',
+      'Strike',
+      'Expiration',
+      'State',
+      'Tradability',
+      'RHS Tradability',
+      'Long Strategy',
+      'Short Strategy',
+      'Min Tick Above',
+      'Min Tick Below',
+      'Min Tick Cutoff',
+    ];
+
+    // OptionMarketData headers (reuse the header row from OptionMarketData)
+    final marketDataHeaderRow = OptionMarketData.toMarkdownTableHeader();
+    final marketDataHeaders = marketDataHeaderRow
+        .split('\n')
+        .first
+        .replaceAll('|', '')
+        .split(' ')
+        .where((h) => h.isNotEmpty)
+        .toList();
+
+    final allHeaders = [...headers, ...marketDataHeaders];
+
+    final buffer = StringBuffer();
+    buffer.writeln('| ${allHeaders.join(' | ')} |');
+    buffer.writeln('|${List.filled(allHeaders.length, '---').join('|')}|');
+
+    for (final o in options) {
+      final row = [
+        o.chainSymbol,
+        o.type,
+        o.strikePrice?.toStringAsFixed(2) ?? '',
+        o.expirationDate?.toIso8601String().split('T').first ?? '',
+        o.state,
+        o.tradability,
+        o.rhsTradability,
+        o.longStrategyCode,
+        o.shortStrategyCode,
+        o.minTicks.aboveTick?.toString() ?? '',
+        o.minTicks.belowTick?.toString() ?? '',
+        o.minTicks.cutoffPrice?.toString() ?? '',
+        ..._optionMarketDataRow(o.optionMarketData, marketDataHeaders.length),
+      ];
+      buffer.writeln('| ${row.join(' | ')} |');
+    }
+    return buffer.toString();
+  }
+
+  /// Helper to get OptionMarketData row as a list of strings, or empty if null.
+  static List<String> _optionMarketDataRow(OptionMarketData? data, int length) {
+    if (data == null) {
+      return List.filled(length, '');
+    }
+    // Use OptionMarketData.toMarkdownTableRow() if available, else fallback to splitting the markdown row
+    // if (data.toMarkdownTableRow != null) {
+      return data.toMarkdownTableRow();
+    // }
+    // fallback: parse the markdown row string
+    // final rowString = OptionMarketData.toMarkdownTable([data]).split('\n')[1];
+    // return rowString
+    //     .split('|')
+    //     .map((s) => s.trim())
+    //     .where((s) => s.isNotEmpty)
+    //     .toList();
+  }
+
 }
