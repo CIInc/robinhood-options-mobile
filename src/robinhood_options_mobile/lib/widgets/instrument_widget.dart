@@ -637,7 +637,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                           key: prompt.key,
                                           title: prompt.title,
                                           prompt:
-                                              '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}'); // \nHere is some instrument fundamental data to include:\n$instrumentDataString
+                                              prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)); // \nHere is some instrument fundamental data to include:\n$instrumentDataString
 
                                       await generateContent(
                                           generativeProvider,

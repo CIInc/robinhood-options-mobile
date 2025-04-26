@@ -165,8 +165,7 @@ class OptionMarketData {
     String table = '| Adjusted Mark Price | Ask Price | Ask Size | Bid Price | Bid Size | Break Even Price | High Price | Instrument | Instrument ID | Last Trade Price | Last Trade Size | Low Price | Mark Price | Open Interest | Previous Close Date | Previous Close Price | Volume | Symbol | OCC Symbol | Chance of Profit Long | Chance of Profit Short | Delta | Gamma | Implied Volatility | Rho | Theta | Vega | High Fill Rate Buy Price | High Fill Rate Sell Price | Low Fill Rate Buy Price | Low Fill Rate Sell Price |\n';
     table += '|---------------------|-----------|----------|-----------|----------|------------------|------------|------------|---------------|------------------|-----------------|-----------|------------|----------------|----------------------|----------------------|--------|--------|------------|---------------------|---------------------|-------|-------|-------------------|-----|-------|------|-------------------------|-------------------------|-----------------------|-----------------------|\n';
     for (var item in data) {
-      table += '| ${item.adjustedMarkPrice}  ' +
-          '| ${item.askPrice}  ' +
+      table += '| ${item.adjustedMarkPrice}  ' '| ${item.askPrice}  ' +
           '| ${item.askSize}  ' +
           '| ${item.bidPrice}  ' +
           '| ${item.bidSize}  ' +

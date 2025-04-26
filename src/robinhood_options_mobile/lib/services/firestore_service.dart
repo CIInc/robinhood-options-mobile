@@ -215,12 +215,12 @@ class FirestoreService {
   /// Filters: sector, marketCapMin, marketCapMax, peMin, peMax, dividendYieldMin, dividendYieldMax
   Future<List<Instrument>> stockScreener({
     String? sector,
-    double? marketCapMin,
-    double? marketCapMax,
-    double? peMin,
-    double? peMax,
-    double? dividendYieldMin,
-    double? dividendYieldMax,
+    int? marketCapMin,
+    int? marketCapMax,
+    int? peMin,
+    int? peMax,
+    int? dividendYieldMin,
+    int? dividendYieldMax,
     int limit = 100,
     String sort = 'fundamentalsObj.market_cap',
     bool sortDescending = true,

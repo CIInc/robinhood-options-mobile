@@ -13,6 +13,38 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.dividend_yield",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.sector",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.pe_ratio",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
