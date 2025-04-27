@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-// import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 
 class YahooService {
   final http.Client httpClient = http.Client();
@@ -345,12 +344,34 @@ class YahooService {
         "https://query1.finance.yahoo.com/v8/finance/chart/${Uri.encodeFull(symbol)}?events=capitalGain%7Cdiv%7Csplit&formatted=true&includeAdjustedClose=true&interval=$interval&range=$range&symbol=${Uri.encodeFull(symbol)}&userYfid=true&lang=en-US&region=US";
     var entryJson = await getJson(url);
     return entryJson;
-    // List<dynamic> list = [];
-    // for (var i = 0; i < entryJson['results'].length; i++) {
-    //   var item = entryJson['results'][i];
-    //   list.add(item);
-    // }
-    // return list;
+  }
+
+  Future<dynamic> getStockScreener({
+    int count = 25,
+    String scrIds = 'most_actives',
+    int start = 0,
+    String lang = 'en-US',
+    String region = 'US',
+    String sortField = '',
+    String sortType = '',
+    bool formatted = true,
+    bool useRecordsResponse = true,
+    bool betaFeatureFlag = true,
+  }) async {
+    final url = Uri.parse(
+        'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved'
+        '?count=$count'
+        '&formatted=$formatted'
+        '&scrIds=$scrIds'
+        '&sortField=$sortField'
+        '&sortType=$sortType'
+        '&start=$start'
+        '&useRecordsResponse=$useRecordsResponse'
+        '&betaFeatureFlag=$betaFeatureFlag'
+        '&lang=$lang'
+        '&region=$region');
+    var responseJson = await getJson(url.toString());
+    return responseJson;
   }
 
   Future<dynamic> getJson(String url) async {
