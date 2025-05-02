@@ -39,6 +39,20 @@
         {
           "fieldPath": "fundamentalsObj.market_cap",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.sector",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
         },
         {
           "fieldPath": "fundamentalsObj.pe_ratio",
