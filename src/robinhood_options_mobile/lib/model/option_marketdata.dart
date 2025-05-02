@@ -162,48 +162,52 @@ class OptionMarketData {
 
   // toMarkdownTable generates a markdown table from a list of OptionMarketData populating the table with all properties of the class
   static String toMarkdownTable(List<OptionMarketData> data) {
-    String table = '| Adjusted Mark Price | Ask Price | Ask Size | Bid Price | Bid Size | Break Even Price | High Price | Instrument | Instrument ID | Last Trade Price | Last Trade Size | Low Price | Mark Price | Open Interest | Previous Close Date | Previous Close Price | Volume | Symbol | OCC Symbol | Chance of Profit Long | Chance of Profit Short | Delta | Gamma | Implied Volatility | Rho | Theta | Vega | High Fill Rate Buy Price | High Fill Rate Sell Price | Low Fill Rate Buy Price | Low Fill Rate Sell Price |\n';
-    table += '|---------------------|-----------|----------|-----------|----------|------------------|------------|------------|---------------|------------------|-----------------|-----------|------------|----------------|----------------------|----------------------|--------|--------|------------|---------------------|---------------------|-------|-------|-------------------|-----|-------|------|-------------------------|-------------------------|-----------------------|-----------------------|\n';
+    String table =
+        '| Adjusted Mark Price | Ask Price | Ask Size | Bid Price | Bid Size | Break Even Price | High Price | Instrument | Instrument ID | Last Trade Price | Last Trade Size | Low Price | Mark Price | Open Interest | Previous Close Date | Previous Close Price | Volume | Symbol | OCC Symbol | Chance of Profit Long | Chance of Profit Short | Delta | Gamma | Implied Volatility | Rho | Theta | Vega | High Fill Rate Buy Price | High Fill Rate Sell Price | Low Fill Rate Buy Price | Low Fill Rate Sell Price |\n';
+    table +=
+        '|---------------------|-----------|----------|-----------|----------|------------------|------------|------------|---------------|------------------|-----------------|-----------|------------|----------------|----------------------|----------------------|--------|--------|------------|---------------------|---------------------|-------|-------|-------------------|-----|-------|------|-------------------------|-------------------------|-----------------------|-----------------------|\n';
     for (var item in data) {
-      table += '| ${item.adjustedMarkPrice}  ' +
-          '| ${item.askPrice}  ' +
-          '| ${item.askSize}  ' +
-          '| ${item.bidPrice}  ' +
-          '| ${item.bidSize}  ' +
-          '| ${item.breakEvenPrice}  ' +
-          '| ${item.highPrice}  ' +
-          '| ${item.instrument}  ' +
-          '| ${item.instrumentId}  ' +
-          '| ${item.lastTradePrice}  ' +
-          '| ${item.lastTradeSize}  ' +
-          '| ${item.lowPrice}  ' +
-          '| ${item.markPrice}  ' +
-          '| ${item.openInterest}  ' +
-          '| ${item.previousCloseDate?.toIso8601String()}  ' +
-          '| ${item.previousClosePrice}  ' +
-          '| ${item.volume}  ' +
-          '| ${item.symbol}  ' +
-          '| ${item.occSymbol}  ' +
-          '| ${item.chanceOfProfitLong}  ' +
-          '| ${item.chanceOfProfitShort}  ' +
-          '| ${item.delta}  ' +
-          '| ${item.gamma}  ' +
-          '| ${item.impliedVolatility}  ' +
-          '| ${item.rho}  ' +
-          '| ${item.theta}  ' +
-          '| ${item.vega}  ' +
-          '| ${item.highFillRateBuyPrice}  ' +
-          '| ${item.highFillRateSellPrice}  ' +
-          '| ${item.lowFillRateBuyPrice}  ' +
-          '| ${item.lowFillRateSellPrice}  ' +
-          '| ${item.updatedAt?.toIso8601String()}  ' +
+      table += '| ${item.adjustedMarkPrice}  '
+          '| ${item.askPrice}  '
+          '| ${item.askSize}  '
+          '| ${item.bidPrice}  '
+          '| ${item.bidSize}  '
+          '| ${item.breakEvenPrice}  '
+          '| ${item.highPrice}  '
+          '| ${item.instrument}  '
+          '| ${item.instrumentId}  '
+          '| ${item.lastTradePrice}  '
+          '| ${item.lastTradeSize}  '
+          '| ${item.lowPrice}  '
+          '| ${item.markPrice}  '
+          '| ${item.openInterest}  '
+          '| ${item.previousCloseDate?.toIso8601String()}  '
+          '| ${item.previousClosePrice}  '
+          '| ${item.volume}  '
+          '| ${item.symbol}  '
+          '| ${item.occSymbol}  '
+          '| ${item.chanceOfProfitLong}  '
+          '| ${item.chanceOfProfitShort}  '
+          '| ${item.delta}  '
+          '| ${item.gamma}  '
+          '| ${item.impliedVolatility}  '
+          '| ${item.rho}  '
+          '| ${item.theta}  '
+          '| ${item.vega}  '
+          '| ${item.highFillRateBuyPrice}  '
+          '| ${item.highFillRateSellPrice}  '
+          '| ${item.lowFillRateBuyPrice}  '
+          '| ${item.lowFillRateSellPrice}  '
+          '| ${item.updatedAt?.toIso8601String()}  '
           '|\n';
     }
     return table;
   }
+
   // toMarkdownTableHeader generates a markdown table header from the class properties
   static String toMarkdownTableHeader() {
-    return '| Adjusted Mark Price | Ask Price | Ask Size | Bid Price | Bid Size | Break Even Price | High Price | Instrument | Instrument ID | Last Trade Price | Last Trade Size | Low Price | Mark Price | Open Interest | Previous Close Date | Previous Close Price | Volume | Symbol | OCC Symbol | Chance of Profit Long | Chance of Profit Short | Delta | Gamma | Implied Volatility | Rho | Theta | Vega | High Fill Rate Buy Price | High Fill Rate Sell Price | Low Fill Rate Buy Price | Low Fill Rate Sell Price |\n' '|---------------------|-----------|----------|-----------|----------|------------------|------------|------------|---------------|------------------|-----------------|-----------|------------|----------------|----------------------|----------------------|--------|--------|------------|---------------------|---------------------|-------|-------|-------------------|-----|-------|------|-------------------------|-------------------------|-----------------------|-----------------------|\n';
+    return '| Adjusted Mark Price | Ask Price | Ask Size | Bid Price | Bid Size | Break Even Price | High Price | Instrument | Instrument ID | Last Trade Price | Last Trade Size | Low Price | Mark Price | Open Interest | Previous Close Date | Previous Close Price | Volume | Symbol | OCC Symbol | Chance of Profit Long | Chance of Profit Short | Delta | Gamma | Implied Volatility | Rho | Theta | Vega | High Fill Rate Buy Price | High Fill Rate Sell Price | Low Fill Rate Buy Price | Low Fill Rate Sell Price |\n'
+        '|---------------------|-----------|----------|-----------|----------|------------------|------------|------------|---------------|------------------|-----------------|-----------|------------|----------------|----------------------|----------------------|--------|--------|------------|---------------------|---------------------|-------|-------|-------------------|-----|-------|------|-------------------------|-------------------------|-----------------------|-----------------------|\n';
   }
 
   // Returns a list of strings representing the row for markdown table
@@ -243,8 +247,8 @@ class OptionMarketData {
       updatedAt?.toIso8601String() ?? '',
     ];
   }
-    
-  // toJson to support Firestore  
+
+  // toJson to support Firestore
   Map<String, dynamic> toJson() {
     return {
       'adjusted_mark_price': adjustedMarkPrice,

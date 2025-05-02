@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
@@ -64,6 +65,33 @@ class _SearchWidgetState extends State<SearchWidget>
 
   InstrumentStore? instrumentStore;
 
+  // Advanced Stock Screener UI state
+  List<Instrument>? screenerResults;
+  String? screenerSector;
+  int? screenerMarketCapMin;
+  int? screenerMarketCapMax;
+  int? screenerPeMin;
+  int? screenerPeMax;
+  int? screenerDividendYieldMin;
+  int? screenerDividendYieldMax;
+  bool screenerLoading = false;
+  String? errorText;
+
+  // Yahoo Screener integration
+  late YahooService yahooService;
+  ScreenerId? selectedYahooScreener;
+  dynamic yahooScreenerResults;
+  bool yahooScreenerLoading = false;
+  String? yahooScreenerError;
+
+  // Controllers for screener fields
+  late TextEditingController marketCapMinCtl;
+  late TextEditingController marketCapMaxCtl;
+  late TextEditingController peMinCtl;
+  late TextEditingController peMaxCtl;
+  late TextEditingController dividendYieldMinCtl;
+  late TextEditingController dividendYieldMaxCtl;
+
   _SearchWidgetState();
 
   @override
@@ -74,11 +102,25 @@ class _SearchWidgetState extends State<SearchWidget>
     super.initState();
 
     searchCtl = TextEditingController();
+    marketCapMinCtl = TextEditingController();
+    marketCapMaxCtl = TextEditingController();
+    peMinCtl = TextEditingController();
+    peMaxCtl = TextEditingController();
+    dividendYieldMinCtl = TextEditingController();
+    dividendYieldMaxCtl = TextEditingController();
+    yahooService = YahooService();
     widget.analytics.logScreenView(screenName: 'Search');
   }
 
   @override
   void dispose() {
+    searchCtl?.dispose();
+    marketCapMinCtl.dispose();
+    marketCapMaxCtl.dispose();
+    peMinCtl.dispose();
+    peMaxCtl.dispose();
+    dividendYieldMinCtl.dispose();
+    dividendYieldMaxCtl.dispose();
     super.dispose();
   }
 
@@ -110,6 +152,479 @@ class _SearchWidgetState extends State<SearchWidget>
     //     widget.service.getListMostPopular(widget.user, instrumentStore!);
     futureSearch ??= Future.value(null);
 
+    return Column(
+      children: [
+        Expanded(child: _buildSearchContent()),
+      ],
+    );
+  }
+
+  Widget _buildScreenerPanel() {
+    final sectors = [
+      'All',
+      'Electronic Technology',
+      'Consumer Durables',
+      'Consumer Non-Durables',
+      'Consumer Services',
+      'Finance',
+      'Health Technology',
+      'Miscellaneous',
+      'Retail Trade',
+      'Technology Services',
+      'Transportation',
+    ];
+
+    // Keep controllers in sync with state
+    marketCapMinCtl.text = screenerMarketCapMin?.toString() ?? '';
+    marketCapMaxCtl.text = screenerMarketCapMax?.toString() ?? '';
+    peMinCtl.text = screenerPeMin?.toString() ?? '';
+    peMaxCtl.text = screenerPeMax?.toString() ?? '';
+    dividendYieldMinCtl.text = screenerDividendYieldMin?.toString() ?? '';
+    dividendYieldMaxCtl.text = screenerDividendYieldMax?.toString() ?? '';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(12, 0, 12, 12), // .all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: screenerSector,
+            items: sectors
+                .map((s) => DropdownMenuItem(
+                      value: s == 'All' ? null : s,
+                      child: Text(s),
+                    ))
+                .toList(),
+            decoration: InputDecoration(labelText: 'Sector'),
+            onChanged: (v) => setState(() => screenerSector = v),
+          ),
+          SizedBox(height: 12),
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: marketCapMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Market Cap Min (USD)',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerMarketCapMin = int.tryParse(v)),
+              ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: marketCapMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Market Cap Max (USD)',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerMarketCapMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
+          SizedBox(height: 12),
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: peMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'P/E Min',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerPeMin = int.tryParse(v)),
+              ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: peMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'P/E Max',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerPeMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
+          SizedBox(height: 12),
+          Row(children: [
+            Flexible(
+              child: TextField(
+                controller: dividendYieldMinCtl,
+                decoration: InputDecoration(
+                  labelText: 'Dividend Yield Min (%)',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerDividendYieldMin = int.tryParse(v)),
+              ),
+            ),
+            SizedBox(width: 12),
+            Flexible(
+              child: TextField(
+                controller: dividendYieldMaxCtl,
+                decoration: InputDecoration(
+                  labelText: 'Dividend Yield Max (%)',
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    setState(() => screenerDividendYieldMax = int.tryParse(v)),
+              ),
+            ),
+          ]),
+          if (errorText != null) ...[
+            SizedBox(height: 8),
+            Text(errorText!, style: TextStyle(color: Colors.red)),
+          ],
+          SizedBox(height: 16),
+          Row(
+            children: [
+              ElevatedButton.icon(
+                icon: Icon(Icons.search),
+                onPressed: screenerLoading
+                    ? null
+                    : () async {
+                        // Validate min/max fields
+                        if (screenerMarketCapMin != null &&
+                            screenerMarketCapMax != null &&
+                            screenerMarketCapMin! > screenerMarketCapMax!) {
+                          setState(() {
+                            errorText =
+                                'Market Cap Min cannot be greater than Max.';
+                          });
+                          return;
+                        }
+                        if (screenerPeMin != null &&
+                            screenerPeMax != null &&
+                            screenerPeMin! > screenerPeMax!) {
+                          setState(() {
+                            errorText = 'P/E Min cannot be greater than Max.';
+                          });
+                          return;
+                        }
+                        if (screenerDividendYieldMin != null &&
+                            screenerDividendYieldMax != null &&
+                            screenerDividendYieldMin! >
+                                screenerDividendYieldMax!) {
+                          setState(() {
+                            errorText =
+                                'Dividend Yield Min cannot be greater than Max.';
+                          });
+                          return;
+                        }
+                        setState(() {
+                          screenerLoading = true;
+                          errorText = null;
+                        });
+                        try {
+                          final results = await _firestoreService.stockScreener(
+                            sector: screenerSector,
+                            marketCapMin: screenerMarketCapMin,
+                            marketCapMax: screenerMarketCapMax,
+                            peMin: screenerPeMin,
+                            peMax: screenerPeMax,
+                            dividendYieldMin: screenerDividendYieldMin,
+                            dividendYieldMax: screenerDividendYieldMax,
+                          );
+                          setState(() {
+                            screenerResults = results;
+                            screenerLoading = false;
+                            // Keep controllers in sync after results
+                            marketCapMinCtl.text =
+                                screenerMarketCapMin?.toString() ?? '';
+                            marketCapMaxCtl.text =
+                                screenerMarketCapMax?.toString() ?? '';
+                            peMinCtl.text = screenerPeMin?.toString() ?? '';
+                            peMaxCtl.text = screenerPeMax?.toString() ?? '';
+                            dividendYieldMinCtl.text =
+                                screenerDividendYieldMin?.toString() ?? '';
+                            dividendYieldMaxCtl.text =
+                                screenerDividendYieldMax?.toString() ?? '';
+                          });
+                        } catch (e) {
+                          setState(() {
+                            screenerLoading = false;
+                          });
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: SelectableText(
+                                      'Error running screener: $e')),
+                            );
+                          }
+                        }
+                      },
+                label: Text('Run Screener'),
+              ),
+              if (screenerLoading) ...[
+                SizedBox(width: 16),
+                SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+              ]
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScreenerSliver() {
+    if (screenerLoading) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    return SliverStickyHeader(
+      header: Material(
+        child: Container(
+          alignment: Alignment.centerLeft,
+          child: Column(
+            children: [
+              const ListTile(
+                title: Text(
+                  "Screener",
+                  style: TextStyle(fontSize: 19.0),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          _buildScreenerPanel(),
+          if (screenerResults != null && screenerResults!.isNotEmpty)
+            GridView.builder(
+              shrinkWrap: true,
+              padding: EdgeInsets.all(8),
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 150.0,
+                mainAxisSpacing: 6.0,
+                crossAxisSpacing: 2.0,
+                childAspectRatio: 1.4,
+              ),
+              itemCount: screenerResults!.length,
+              itemBuilder: (BuildContext context, int gridIndex) {
+                return _buildListGridItem(
+                    screenerResults!, gridIndex, widget.brokerageUser);
+              },
+            )
+          else if (screenerResults != null && screenerResults!.isEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text('No results found.',
+                    style: TextStyle(color: Colors.grey)),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildYahooScreenerSliver() {
+    return SliverStickyHeader(
+      header: Material(
+        child: Container(
+          alignment: Alignment.centerLeft,
+          child: const ListTile(
+            title: Text(
+              "Presets",
+              style: TextStyle(fontSize: 19.0),
+            ),
+          ),
+        ),
+      ),
+      sliver: SliverList(
+        delegate: SliverChildListDelegate([
+          _buildYahooScreenerPanel(),
+          if (yahooScreenerLoading) ...[
+            const SizedBox(height: 12),
+            const Center(child: CircularProgressIndicator()),
+          ],
+          if (yahooScreenerError != null) ...[
+            const SizedBox(height: 8),
+            Text('Error: $yahooScreenerError',
+                style: const TextStyle(color: Colors.red)),
+          ],
+          if (yahooScreenerResults != null) ...[
+            Builder(
+              builder: (context) {
+                final records = yahooScreenerResults['finance']?['result']?[0]
+                        ?['records'] ??
+                    [];
+                if (records.isEmpty) {
+                  return const Center(child: Text('No results found.'));
+                }
+                return ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.all(4.0),
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: records.length,
+                  // separatorBuilder: (context, idx) => const Divider(height: 1),
+                  itemBuilder: (context, idx) {
+                    final item = records[idx];
+                    return ListTile(
+                        // leading: item['logo_url'] != null
+                        //     ? Image.network(item['logo_url'],
+                        //         width: 32,
+                        //         height: 32,
+                        //         errorBuilder: (c, e, s) =>
+                        //             const Icon(Icons.image_not_supported))
+                        //     : const Icon(Icons.business),
+                        title: Text(item['companyName'] ?? item['ticker'] ?? '',
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(item['ticker'] ?? '',
+                            style: const TextStyle(fontSize: 13)),
+                        trailing: item['regularMarketPrice'] != null
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    formatCurrency.format(
+                                        item['regularMarketPrice']['raw']),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 16),
+                                  ),
+                                  if (item['regularMarketChangePercent'] !=
+                                      null)
+                                    Text(
+                                      formatPercentage.format(
+                                          item['regularMarketChangePercent']
+                                                  ['raw'] /
+                                              100),
+                                      style: TextStyle(
+                                        color:
+                                            (item['regularMarketChangePercent']
+                                                            ['raw'] ??
+                                                        0) >=
+                                                    0
+                                                ? Colors.green
+                                                : Colors.red,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                ],
+                              )
+                            : null,
+                        onTap: () async {
+                          var instrument = await widget.service
+                              .getInstrumentBySymbol(
+                                  widget.brokerageUser,
+                                  Provider.of<InstrumentStore>(context,
+                                      listen: false),
+                                  item['ticker']);
+                          if (instrument != null) {
+                            if (context.mounted) {
+                              Navigator.of(context)
+                                  .push(MaterialPageRoute(builder: (context) {
+                                return InstrumentWidget(
+                                  widget.brokerageUser,
+                                  widget.service,
+                                  instrument,
+                                  analytics: widget.analytics,
+                                  observer: widget.observer,
+                                  generativeService: widget.generativeService,
+                                );
+                              }));
+                            }
+                          }
+                        });
+                  },
+                );
+              },
+            ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildYahooScreenerPanel() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DropdownButtonFormField<ScreenerId>(
+            value: selectedYahooScreener,
+            items: YahooService.scrIds
+                .map((s) => DropdownMenuItem(
+                      value: s,
+                      child: Text(s.display),
+                    ))
+                .toList(),
+            onChanged: (v) async {
+              setState(() => selectedYahooScreener = v);
+              setState(() {
+                yahooScreenerLoading = true;
+                yahooScreenerError = null;
+                yahooScreenerResults = null;
+              });
+              try {
+                final result = await yahooService.getStockScreener(
+                  scrIds: selectedYahooScreener!.id,
+                );
+                setState(() {
+                  yahooScreenerResults = result;
+                  yahooScreenerLoading = false;
+                });
+              } catch (e) {
+                setState(() {
+                  yahooScreenerError = e.toString();
+                  yahooScreenerLoading = false;
+                });
+              }
+            },
+            decoration: const InputDecoration(labelText: 'Screener'),
+          ),
+          const SizedBox(height: 12),
+          // ElevatedButton.icon(
+          //   icon: Icon(Icons.search),
+          //   onPressed: selectedYahooScreener == null || yahooScreenerLoading
+          //       ? null
+          //       : () async {
+          //           setState(() {
+          //             yahooScreenerLoading = true;
+          //             yahooScreenerError = null;
+          //             yahooScreenerResults = null;
+          //           });
+          //           try {
+          //             final result = await yahooService.getStockScreener(
+          //               scrIds: selectedYahooScreener!.id,
+          //             );
+          //             setState(() {
+          //               yahooScreenerResults = result;
+          //               yahooScreenerLoading = false;
+          //             });
+          //           } catch (e) {
+          //             setState(() {
+          //               yahooScreenerError = e.toString();
+          //               yahooScreenerLoading = false;
+          //             });
+          //           }
+          //         },
+          //   label: const Text('Run Screener'),
+          // ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchContent() {
     return FutureBuilder(
         future: Future.wait([
           futureSearch as Future,
@@ -285,6 +800,8 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
+                  _buildScreenerSliver(),
+                  _buildYahooScreenerSliver(),
                   if (movers != null && movers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
@@ -660,7 +1177,7 @@ class _SearchWidgetState extends State<SearchWidget>
                 Wrap(children: [
                   Text(instrumentObj.simpleName ?? instrumentObj.name,
                       style: const TextStyle(fontSize: 12.0),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis)
                 ]),
                 /*

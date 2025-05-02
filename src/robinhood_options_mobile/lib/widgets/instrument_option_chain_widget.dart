@@ -85,13 +85,12 @@ class _InstrumentOptionChainWidgetState
       futureOptionChain ??= widget.service.getOptionChains(user, instrument.id);
     } catch (e) {
       return Scaffold(
-        body: buildScrollView(instrument, done: true, widgets: [
+          body: buildScrollView(instrument, done: true, widgets: [
         SliverToBoxAdapter(
           child: Center(
               child: Text('\n\nError loading option chain. Please try again.')),
         )
       ]));
-      debugPrint('Error: $e');
     }
 
     /*
@@ -333,7 +332,7 @@ class _InstrumentOptionChainWidgetState
                                                     key: prompt.key,
                                                     title: prompt.title,
                                                     prompt:
-                                                        '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: ${historicalDataString2}\nUse the following option chain data:\n$historicalDataString');
+                                                        '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: $historicalDataString2\nUse the following option chain data:\n$historicalDataString');
 
                                                 await generateContent(
                                                     generativeProvider,
@@ -787,169 +786,6 @@ class _InstrumentOptionChainWidgetState
         // scrollDirection: orientation == Orientation.portrait
         //     ? Axis.vertical
         //     : Axis.horizontal,
-      ),
-    );
-    return SliverList(
-      // delegate: SliverChildListDelegate(widgets),
-      delegate: SliverChildBuilderDelegate(
-        (BuildContext context, int index) {
-          var optionInstrument = filteredOptionsInstruments[index];
-          OptionInstrument? prevOptionInstrument;
-          if (index > 0) {
-            prevOptionInstrument = filteredOptionsInstruments[index - 1];
-          }
-
-          // TODO: Optimize to batch calls for market data.
-          if (optionInstrument.optionMarketData == null) {
-            widget.service
-                .getOptionMarketData(widget.user, optionInstrument)
-                .then((value) => setState(() {
-                      optionInstrument.optionMarketData = value;
-                    }));
-          }
-
-          return Consumer<OptionPositionStore>(
-              builder: (context, optionPositionStore, child) {
-            var optionPositions = optionPositionStore.items
-                .where((e) => e.symbol == widget.instrument.symbol)
-                .toList();
-            var optionPositionsMatchingInstrument = optionPositions.where((e) =>
-                e.optionInstrument != null &&
-                e.optionInstrument!.id == optionInstrument.id);
-            var optionInstrumentQuantity =
-                optionPositionsMatchingInstrument.isNotEmpty
-                    ? optionPositionsMatchingInstrument
-                        .map((e) => e.quantity ?? 0)
-                        .reduce((a, b) => a + b)
-                    : 0;
-            return Column(
-              children: [
-                if ((instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                            instrument.quoteObj!.lastTradePrice!) <
-                        optionInstrument.strikePrice! &&
-                    (prevOptionInstrument == null ||
-                        (instrument.quoteObj!.lastExtendedHoursTradePrice ??
-                                instrument.quoteObj!.lastTradePrice!) >=
-                            prevOptionInstrument.strikePrice!)) ...[
-                  Card(
-                      child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                        Row(
-                          children: [
-                            Expanded(
-                                flex: 10,
-                                child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        15.0, 10, 15, 10),
-                                    child: priceAndChangeWidget(instrument))),
-                          ],
-                        )
-                      ]))
-                ],
-                Card(
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                      ListTile(
-                        //key: index == 0 ? dataKey : null,
-                        /*optionInstrument.id ==
-                          firstOptionsInstrumentsSorted.id
-                      ? dataKey
-                      : null,
-                      */
-                        /*
-                  leading: CircleAvatar(
-                      backgroundColor: optionInstrument.type == 'call'
-                          ? Colors.green
-                          : Colors.amber,
-                      //backgroundImage: AssetImage(user.profilePicture),
-                      child: optionInstrument.type == 'call'
-                          ? const Text('Call')
-                          : const Text('Put')),
-                          */
-                        /*
-                leading: CircleAvatar(
-                    //backgroundImage: AssetImage(user.profilePicture),
-                    child: Text('${optionOrders[index].quantity!.round()}',
-                        style: const TextStyle(fontSize: 18))),
-                leading: Icon(Icons.ac_unit),
-                */
-                        leading: optionInstrumentQuantity > 0
-                            ? CircleAvatar(
-                                //backgroundImage: AssetImage(user.profilePicture),
-                                child: Text(
-                                    formatCompactNumber
-                                        .format(optionInstrumentQuantity),
-                                    style: const TextStyle(fontSize: 18)))
-                            : null, //Icon(Icons.ac_unit),
-                        title: Text(//${optionInstrument.chainSymbol}
-                            '\$${formatCompactNumber.format(optionInstrument.strikePrice)} ${optionInstrument.type}'), // , style: TextStyle(fontSize: 18.0)),
-                        subtitle: Text(optionInstrument.optionMarketData != null
-                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance Long: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-"} Short: ${optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-"}"
-                            ? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}\nChance of profit: ${actionFilter == 'Buy' ? (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitLong) : "-") : (optionInstrument.optionMarketData!.chanceOfProfitLong != null ? formatPercentage.format(optionInstrument.optionMarketData!.chanceOfProfitShort) : "-")}"
-                            //? "Breakeven ${formatCurrency.format(optionInstrument.optionMarketData!.breakEvenPrice)}"
-                            : ""),
-                        //'Issued ${dateFormat.format(optionInstrument.issueDate as DateTime)}'),
-                        trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              optionInstrument.optionMarketData != null
-                                  ? Text(
-                                      formatCurrency.format(optionInstrument
-                                          .optionMarketData!.markPrice),
-                                      //"${formatCurrency.format(optionInstrument.optionMarketData!.bidPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.markPrice)} - ${formatCurrency.format(optionInstrument.optionMarketData!.askPrice)}",
-                                      style: const TextStyle(fontSize: 18))
-                                  : const Text(""),
-                              Wrap(spacing: 8, children: [
-                                Icon(
-                                    instrument.quoteObj!.changeToday > 0
-                                        ? Icons.trending_up
-                                        : (instrument.quoteObj!.changeToday < 0
-                                            ? Icons.trending_down
-                                            : Icons.trending_flat),
-                                    color: (instrument.quoteObj!.changeToday > 0
-                                        ? Colors.green
-                                        : (instrument.quoteObj!.changeToday < 0
-                                            ? Colors.red
-                                            : Colors.grey)),
-                                    size: 16),
-                                Text(
-                                  optionInstrument.optionMarketData != null
-                                      ? formatPercentage.format(optionInstrument
-                                          .optionMarketData!.changePercentToday)
-                                      : "-",
-                                  //style: TextStyle(fontSize: 16),
-                                )
-                              ]),
-                            ]),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => OptionInstrumentWidget(
-                                        widget.user,
-                                        widget.service,
-                                        optionInstrument,
-                                        optionPosition:
-                                            optionInstrumentQuantity > 0
-                                                ? optionPosition
-                                                : null,
-                                        analytics: widget.analytics,
-                                        observer: widget.observer,
-                                        generativeService:
-                                            widget.generativeService,
-                                      )));
-                        },
-                      )
-                    ]))
-              ],
-            );
-          });
-
-          //return Text('\$${optionInstrument.strikePrice}');
-        },
-        childCount: filteredOptionsInstruments.length,
       ),
     );
   }
