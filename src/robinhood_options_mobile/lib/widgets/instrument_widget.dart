@@ -175,7 +175,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
 
     if (widget.instrument.logoUrl == null &&
-        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol) && auth.currentUser != null) {
+        RobinhoodService.logoUrls.containsKey(widget.instrument.symbol) &&
+        auth.currentUser != null) {
       widget.instrument.logoUrl =
           RobinhoodService.logoUrls[widget.instrument.symbol];
       _firestoreService.upsertInstrument(widget.instrument);
@@ -636,8 +637,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                       var newPrompt = Prompt(
                                           key: prompt.key,
                                           title: prompt.title,
-                                          prompt:
-                                              '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol)}'); // \nHere is some instrument fundamental data to include:\n$instrumentDataString
+                                          prompt: prompt.prompt.replaceAll(
+                                              "{{symbol}}",
+                                              instrument
+                                                  .symbol)); // \nHere is some instrument fundamental data to include:\n$instrumentDataString
 
                                       await generateContent(
                                           generativeProvider,
@@ -2790,7 +2793,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           [instrument.similarObj![index]["instrument_id"]]);
                   if (instrument.similarObj![index]["logo_url"] != null &&
                       instrument.similarObj![index]["logo_url"] !=
-                          similarInstruments[0].logoUrl && auth.currentUser != null) {
+                          similarInstruments[0].logoUrl &&
+                      auth.currentUser != null) {
                     similarInstruments[0].logoUrl = instrument
                         .similarObj![index]["logo_url"]
                         .toString()

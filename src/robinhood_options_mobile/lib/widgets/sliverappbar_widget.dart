@@ -177,30 +177,36 @@ Future<String?> showProfile(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      enableDrag: true,
       showDragHandle: true,
       builder: (context) {
         return DraggableScrollableSheet(
           expand: false,
           snap: true,
-          // minChildSize: 0.5,
+          minChildSize: 0.5,
           builder: (context, scrollController) {
             return auth.currentUser != null
-                ? UserWidget(auth,
+                ? UserWidget(
+                    auth,
                     userId: auth.currentUser!.uid,
-                    isProfileView: true, onSignout: () async {
-                    // Reset userRole
-                    final authUtil = AuthUtil(auth);
-                    userRole = await authUtil.userRole();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('Signed out'),
-                          behavior: SnackBarBehavior.floating));
-                      Navigator.pop(context);
-                    }
-                  },
+                    isProfileView: true,
+                    onSignout: () async {
+                      // Reset userRole
+                      final authUtil = AuthUtil(auth);
+                      userRole = await authUtil.userRole();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Signed out'),
+                                behavior: SnackBarBehavior.floating));
+                        Navigator.pop(context);
+                      }
+                    },
                     analytics: analytics,
                     observer: observer,
-                    brokerageUser: brokerageUser)
+                    brokerageUser: brokerageUser,
+                    scrollController: scrollController,
+                  )
                 : AuthGate(
                     scrollController: scrollController,
                     onSignin: (User? firebaseUser) async {

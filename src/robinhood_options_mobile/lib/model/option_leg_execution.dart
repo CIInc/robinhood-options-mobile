@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class OptionLegExecution {
   final String id;
   final double? price;
@@ -10,10 +12,18 @@ class OptionLegExecution {
 
   OptionLegExecution.fromJson(dynamic json)
       : id = json['id'],
-        price = double.tryParse(json['price']),
-        quantity = double.tryParse(json['quantity']),
-        settlementDate = DateTime.tryParse(json['settlement_date']),
-        timestamp = DateTime.tryParse(json['timestamp']);
+        price = json['price'] is double
+            ? json['price']
+            : double.tryParse(json['price']),
+        quantity = json['quantity'] is double
+            ? json['quantity']
+            : double.tryParse(json['quantity']),
+        settlementDate = json['settlement_date'] is Timestamp
+            ? (json['settlement_date'] as Timestamp).toDate()
+            : DateTime.tryParse(json['settlement_date']),
+        timestamp = json['timestamp'] is Timestamp
+            ? (json['timestamp'] as Timestamp).toDate()
+            : DateTime.tryParse(json['timestamp']);
 
   Map<String, dynamic> toJson() => {
         'id': id,

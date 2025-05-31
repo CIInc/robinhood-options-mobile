@@ -553,6 +553,47 @@ class FirestoreService {
     batch.commit();
   }
 
+  /// Share Methods
+
+  /// Set sharing options for a user's portfolio
+  Future<void> setPortfolioSharing(
+    String uid, {
+    List<String>? sharedWithUserIds,
+    List<String>? sharedGroups,
+    bool? isPublic,
+  }) async {
+    final userDoc = userCollection.doc(uid);
+    Map<String, dynamic> data = {};
+    if (sharedWithUserIds != null) data['sharedWith'] = sharedWithUserIds;
+    if (sharedGroups != null) data['sharedGroups'] = sharedGroups;
+    if (isPublic != null) data['isPublic'] = isPublic;
+    data['dateUpdated'] = DateTime.now();
+    await userDoc.update(data);
+  }
+
+  /// Get portfolios shared with the current user
+  Stream<QuerySnapshot<User>> getPortfoliosSharedWithUser(
+      String currentUserId) {
+    return userCollection
+        .where('sharedWith', arrayContains: currentUserId)
+        .snapshots();
+    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  /// Get portfolios shared with a group
+  Stream<QuerySnapshot<User>> getPortfoliosSharedWithGroup(String groupId) {
+    return userCollection
+        .where('sharedGroups', arrayContains: groupId)
+        .snapshots();
+    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  /// Get all public portfolios
+  Stream<QuerySnapshot<User>> getPublicPortfolios() {
+    return userCollection.where('isPublic', isEqualTo: true).snapshots();
+    // .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
   /// Dividend Methods
 
   // Future<DocumentReference<Map<String, dynamic>>> addDividend(

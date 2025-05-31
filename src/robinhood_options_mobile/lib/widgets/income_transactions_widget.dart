@@ -256,6 +256,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     int multiplier = 1;
     double? marketValue;
     double? totalCost;
+    double? totalValue;
     int? countBuys;
     double? positionCost;
     double? totalSells;
@@ -311,6 +312,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 .reduce((a, b) => a + b);
         totalCost = buyTotal;
         totalSells = sellTotal;
+        totalValue = totalIncome + (marketValue ?? 0) + sellTotal;
         gainLoss = (marketValue ?? 0) + sellTotal - totalCost;
         gainLossPercent = gainLoss / totalCost;
         adjustedReturn =
@@ -325,10 +327,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // positionAdjustedReturnPercent = ((marketValue + totalIncome) / position.totalCost) - 1;
           double buyTotalQuantity = buys.isEmpty
               ? 0
-              : buys
-                  .map((o) => o.quantity!)
-                  .reduce((a, b) => a + b);
-          adjustedCost = (totalCost - totalIncome) / buyTotalQuantity; // position.quantity!;
+              : buys.map((o) => o.quantity!).reduce((a, b) => a + b);
+          adjustedCost = (totalCost - totalIncome) /
+              buyTotalQuantity; // position.quantity!;
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
@@ -884,6 +885,36 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            if (totalValue != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(totalValue),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Total value",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             Padding(
                               padding: const EdgeInsets.all(summaryEgdeInset),
                               child: Column(
@@ -905,41 +936,43 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     // Text(formatCurrency.format(adjustedReturnPercent),
                                     //     style:
                                     //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Total Income",
+                                    Text("Total income",
                                         overflow: TextOverflow.fade,
                                         softWrap: false,
                                         style: TextStyle(
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Row(
-                                      children: [
-                                        Text(
-                                          // formatCurrency.format(adjustedReturn),
-                                          formatCurrency.format(totalSells),
+                            if (totalSells != null && totalSells > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(totalSells),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Total sells",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ],
-                                    ),
-                                    // Text(formatCurrency.format(adjustedReturnPercent),
-                                    //     style:
-                                    //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Total Sells",
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (marketValue != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -962,7 +995,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Market Value",
+                                      Text("Position value",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -971,6 +1004,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               ),
                             ],
                             // if (position?.quantity != null) ...[
+                            // ],
                             Padding(
                               padding: const EdgeInsets.all(summaryEgdeInset),
                               child: Column(
@@ -1000,37 +1034,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            if (positionCost != null && countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatCurrency.format(positionCost),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Position Cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-
-                            // ],
                           ])),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1062,55 +1065,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            if (dividendInterval.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            dividendInterval.capitalize(),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Distributions",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (position?.averageBuyPrice != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          widget.user.getDisplayText(
-                                              position!.averageBuyPrice!,
-                                              displayValue:
-                                                  DisplayValue.lastPrice),
-                                          style: TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                      Text("Avg. cost basis",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
                             if (position?.instrumentObj != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -1130,6 +1084,25 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           style: TextStyle(
                                               fontSize: summaryValueFontSize)),
                                       Text("Last price",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (position?.averageBuyPrice != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          widget.user.getDisplayText(
+                                              position!.averageBuyPrice!,
+                                              displayValue:
+                                                  DisplayValue.lastPrice),
+                                          style: TextStyle(
+                                              fontSize: summaryValueFontSize)),
+                                      Text("Avg. cost basis",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1163,7 +1136,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Total NAV return",
+                                      Text("Total return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1185,7 +1158,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Total NAV return",
+                                      Text("Total return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1213,7 +1186,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Total Cost",
+                                      Text("Total cost",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -1260,6 +1233,35 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            if (positionCost != null && countSells! > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            formatCurrency.format(positionCost),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Position cost",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (positionGainLossPercent != null &&
                                 countSells! > 0) ...[
                               Padding(
@@ -1289,7 +1291,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Position NAV return",
+                                      Text("Position return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1313,7 +1315,37 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Position NAV return",
+                                      Text("Position return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (dividendInterval.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            dividendInterval.capitalize(),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Distributions",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),

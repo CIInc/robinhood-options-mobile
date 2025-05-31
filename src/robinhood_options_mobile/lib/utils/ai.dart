@@ -22,10 +22,7 @@ Future<void> generateContent(
     generativeProvider.startGenerating(prompt.key);
     if (prompt.key == "market-summary" || prompt.key == "market-predictions") {
       response = await generativeService.generateContent(
-          prompt,
-          stockPositionStore,
-          optionPositionStore,
-          forexHoldingStore);
+          prompt, stockPositionStore, optionPositionStore, forexHoldingStore);
       generativeProvider.setGenerativeResponse(prompt.prompt, response);
     } else if (prompt.prompt.isEmpty) {
       response = '';
@@ -100,7 +97,8 @@ void showAIResponse(
       useSafeArea: true,
       // constraints: BoxConstraints.loose(const Size.fromHeight(340)),
       builder: (BuildContext newContext) {
-        return StatefulBuilder(builder: (BuildContext buildercontext, setState) {
+        return StatefulBuilder(
+            builder: (BuildContext buildercontext, setState) {
           return DraggableScrollableSheet(
               expand: false,
               snap: true,
@@ -264,7 +262,11 @@ void showAIResponse(
 
                                       response = await generativeService
                                           .generateContent(
-                                              Prompt(key: prompt.key, title: prompt.title, prompt: promptController.text),
+                                              Prompt(
+                                                  key: prompt.key,
+                                                  title: prompt.title,
+                                                  prompt:
+                                                      promptController.text),
                                               stockPositionStore,
                                               optionPositionStore,
                                               forexHoldingStore);
@@ -340,7 +342,7 @@ void showAIResponse(
                             //   state(() {
                             //     currentPrompt = promptKey;
                             //   });
-                            generativeProvider.promptResponses[prompt.key] =
+                            generativeProvider.promptResponses[prompt.prompt] =
                                 null;
                             // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
                             await generateContent(

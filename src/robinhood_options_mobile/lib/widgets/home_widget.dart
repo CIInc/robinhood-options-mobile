@@ -547,13 +547,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     padding: const EdgeInsets.all(4.0),
                                     child: ActionChip(
                                       avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'portfolio-summary') &&
                                               generativeProvider
-                                                          .promptResponses[
-                                                      'portfolio-summary'] ==
-                                                  null
+                                                      .generatingPrompt ==
+                                                  'portfolio-summary'
                                           ? const CircularProgressIndicator()
                                           : const Icon(
                                               Icons.summarize_outlined),
@@ -579,13 +575,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     padding: const EdgeInsets.all(4.0),
                                     child: ActionChip(
                                       avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'portfolio-recommendations') &&
                                               generativeProvider
-                                                          .promptResponses[
-                                                      'portfolio-recommendations'] ==
-                                                  null
+                                                      .generatingPrompt ==
+                                                  'portfolio-recommendations'
                                           ? const CircularProgressIndicator()
                                           : const Icon(
                                               Icons.recommend_outlined),
@@ -612,13 +604,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     padding: const EdgeInsets.all(4.0),
                                     child: ActionChip(
                                       avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'market-summary') &&
                                               generativeProvider
-                                                          .promptResponses[
-                                                      'market-summary'] ==
-                                                  null
+                                                      .generatingPrompt ==
+                                                  'market-summary'
                                           ? const CircularProgressIndicator()
                                           : const Icon(Icons.public),
                                       label: const Text('Market Summary'),
@@ -643,13 +631,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     padding: const EdgeInsets.all(4.0),
                                     child: ActionChip(
                                       avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'market-predictions') &&
                                               generativeProvider
-                                                          .promptResponses[
-                                                      'market-predictions'] ==
-                                                  null
+                                                      .generatingPrompt ==
+                                                  'market-predictions'
                                           ? const CircularProgressIndicator()
                                           : const Icon(
                                               Icons.batch_prediction_outlined),
@@ -676,11 +660,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                     padding: const EdgeInsets.all(4.0),
                                     child: ActionChip(
                                       avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey('ask') &&
                                               generativeProvider
-                                                      .promptResponses['ask'] ==
-                                                  null
+                                                      .generatingPrompt ==
+                                                  'ask'
                                           ? const CircularProgressIndicator()
                                           : const Icon(Icons.question_answer),
                                       label: const Text('Ask a question'),

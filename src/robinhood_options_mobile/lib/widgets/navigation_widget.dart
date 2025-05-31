@@ -37,6 +37,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -85,7 +86,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     1: GlobalKey<NavigatorState>(),
     2: GlobalKey<NavigatorState>(),
     3: GlobalKey<NavigatorState>(),
-    // 4: GlobalKey<NavigatorState>(),
+    4: GlobalKey<NavigatorState>(),
   };
 
   int _pageIndex = 0;
@@ -459,6 +460,16 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             generativeService: _generativeService,
             navigatorKey: navigatorKeys[3]),
       ],
+      // Shared Portfolios tab
+      if (auth.currentUser != null) ...[
+        SharedPortfoliosWidget(
+          firestoreService: _firestoreService,
+          brokerageService: service,
+          brokerageUser: userStore.currentUser!,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+      ],
     ];
   }
 
@@ -784,6 +795,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 _onPageChanged(2);
                               },
                             ),
+                            if (auth.currentUser != null) ...[
+                              const Divider(
+                                thickness: 0.25,
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.share),
+                                title: const Text("Shared Portfolios"),
+                                selected: _pageIndex == 4,
+                                onTap: () {
+                                  Navigator.pop(context); // close the drawer
+                                  _onPageChanged(4);
+                                },
+                              ),
+                            ],
                             // ListTile(
                             //   leading: const Icon(Icons.account_circle),
                             //   title: const Text("Account"),

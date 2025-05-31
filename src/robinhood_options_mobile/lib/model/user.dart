@@ -22,6 +22,9 @@ class User {
   List<Account> accounts = [];
   bool persistToFirebase;
   bool refreshQuotes;
+  List<String>? sharedWith;
+  List<String>? sharedGroups;
+  bool? isPublic;
 
   User(
       {this.name,
@@ -39,7 +42,10 @@ class User {
       required this.brokerageUsers,
       required this.accounts,
       this.persistToFirebase = true,
-      this.refreshQuotes = false});
+      this.refreshQuotes = false,
+      this.sharedWith,
+      this.sharedGroups,
+      this.isPublic});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -73,7 +79,15 @@ class User {
                 : true,
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
-                : true);
+                : true,
+            sharedWith: json['sharedWith'] != null
+                ? List<String>.from(json['sharedWith'] as Iterable<dynamic>)
+                : null,
+            sharedGroups: json['sharedGroups'] != null
+                ? List<String>.from(json['sharedGroups'] as Iterable<dynamic>)
+                : null,
+            isPublic:
+                json['isPublic'] != null ? json['isPublic'] as bool : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -92,7 +106,10 @@ class User {
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
       'accounts': accounts.map((e) => e.toJson()).toList(),
       'persistToFirebase': persistToFirebase,
-      'refreshQuotes': refreshQuotes
+      'refreshQuotes': refreshQuotes,
+      'sharedWith': sharedWith,
+      'sharedGroups': sharedGroups,
+      'isPublic': isPublic
     };
   }
 

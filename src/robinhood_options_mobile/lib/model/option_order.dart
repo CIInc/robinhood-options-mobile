@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
@@ -65,16 +66,33 @@ class OptionOrder {
         chainId = json['chain_id'],
         chainSymbol = json['chain_symbol'],
         cancelUrl = json['cancel_url'],
-        canceledQuantity = double.tryParse(json['canceled_quantity']),
+        canceledQuantity = json['canceled_quantity'] is double
+            ? json['canceled_quantity']
+            : double.tryParse(json['canceled_quantity']),
         direction = json['direction'],
         legs = OptionLeg.fromJsonArray(json['legs']),
-        pendingQuantity = double.tryParse(json['pending_quantity']),
-        premium =
-            json['premium'] != null ? double.tryParse(json['premium']) : null,
-        processedPremium = double.tryParse(json['processed_premium']),
-        price = json['price'] != null ? double.tryParse(json['price']) : null,
-        processedQuantity = double.tryParse(json['processed_quantity']),
-        quantity = double.tryParse(json['quantity']),
+        pendingQuantity = json['pending_quantity'] is double
+            ? json['pending_quantity']
+            : double.tryParse(json['pending_quantity']),
+        premium = json['premium'] != null
+            ? (json['premium'] is double
+                ? json['premium']
+                : double.tryParse(json['premium']))
+            : null,
+        processedPremium = json['processed_premium'] is double
+            ? json['processed_premium']
+            : double.tryParse(json['processed_premium']),
+        price = json['price'] != null
+            ? (json['price'] is double
+                ? json['price']
+                : double.tryParse(json['price']))
+            : null,
+        processedQuantity = json['processed_quantity'] is double
+            ? json['processed_quantity']
+            : double.tryParse(json['processed_quantity']),
+        quantity = json['quantity'] is double
+            ? json['quantity']
+            : double.tryParse(json['quantity']),
         refId = json['ref_id'],
         state = json['state'],
         timeInForce = json['time_in_force'],
@@ -84,14 +102,16 @@ class OptionOrder {
         openingStrategy = json['opening_strategy'],
         closingStrategy = json['closing_strategy'],
         stopPrice = json['stop_price'] != null
-            ? double.tryParse(json['stop_price'])
+            ? (json['stop_price'] is double
+                ? json['stop_price']
+                : double.tryParse(json['stop_price']))
             : null,
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']),
-        updatedAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']);
+        createdAt = json['created_at'] is Timestamp
+            ? (json['created_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['created_at']),
+        updatedAt = json['updated_at'] is Timestamp
+            ? (json['updated_at'] as Timestamp).toDate()
+            : DateTime.tryParse(json['updated_at']);
 
   String get strategy {
     String strat = "";

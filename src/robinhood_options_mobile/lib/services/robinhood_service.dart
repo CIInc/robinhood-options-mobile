@@ -609,14 +609,13 @@ Response: {
   // https://bonfire.robinhood.com/portfolio/performance/1234567?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
-    var url = "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
+    var url =
+        "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
     var result = await RobinhoodService.getJson(user, url);
     var historicals = PortfolioHistoricals.fromPerformanceJson(result);
     store.set(historicals);
@@ -653,6 +652,78 @@ Response: {
     var historicals = PortfolioHistoricals.fromJson(result);
     store.set(historicals);
     return historicals;
+  }
+
+  /*
+  FUTURES
+  */
+// https://api.robinhood.com/ceres/v1/accounts/67648fdb-54c9-4610-9922-c18f2b217d2e/aggregated_positions
+  @override
+  Stream<List<dynamic>> streamFuturePositions(
+    BrokerageUser user,
+    // InstrumentPositionStore store,
+    // InstrumentStore instrumentStore,
+    // QuoteStore quoteStore,
+    String account,
+    // {
+    // bool nonzero = true,
+    // DocumentReference? userDoc,
+    // }
+  ) {
+    var pageStream = streamedGet(
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
+    return pageStream;
+    //debugPrint(results);
+    // await for (final results in pageStream) {
+    //   for (var i = 0; i < results.length; i++) {
+    //     var result = results[i];
+    //     var op = InstrumentPosition.fromJson(result);
+
+    //     //if ((withQuantity && op.quantity! > 0) ||
+    //     //    (!withQuantity && op.quantity == 0)) {
+    //     store.addOrUpdate(op);
+    //     if (userDoc != null) {
+    //       _firestoreService.upsertInstrumentPosition(op, userDoc);
+    //     }
+    //   }
+    //   var instrumentIds = store.items.map((e) => e.instrumentId).toList();
+    //   var instrumentObjs =
+    //       await getInstrumentsByIds(user, instrumentStore, instrumentIds);
+    //   for (var instrumentObj in instrumentObjs) {
+    //     var position = store.items
+    //         .firstWhere((element) => element.instrumentId == instrumentObj.id);
+    //     position.instrumentObj = instrumentObj;
+    //     store.update(position);
+    //   }
+    //   // var symbols = store.items
+    //   //     .where((e) =>
+    //   //         e.instrumentObj !=
+    //   //         null) // Figure out why in certain conditions, instrumentObj is null
+    //   //     .map((e) => e.instrumentObj!.symbol)
+    //   //     .toList();
+    //   // // Remove old quotes (that would be returned from cache) to get current ones
+    //   // quoteStore.removeAll();
+    //   // var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
+    //   // for (var quoteObj in quoteObjs) {
+    //   //   // Update Position
+    //   //   var position = store.items.firstWhere(
+    //   //       (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+    //   //   if (position.instrumentObj!.quoteObj == null ||
+    //   //       position.instrumentObj!.quoteObj!.updatedAt!
+    //   //           .isBefore(quoteObj.updatedAt!)) {
+    //   //     position.instrumentObj!.quoteObj = quoteObj;
+    //   //     store.update(position);
+    //   //     // Update Instrument
+    //   //     instrumentStore.update(position.instrumentObj!);
+    //   //     if (userDoc != null) {
+    //   //       _firestoreService.upsertInstrument(position.instrumentObj!);
+    //   //       debugPrint(
+    //   //           'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
+    //   //     }
+    //   //   }
+    //   // }
+    // }
+    // return store;
   }
 
   /*
@@ -2258,7 +2329,7 @@ Response: {
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
         if (optionPosition.optionInstrument == null) {
-          // We may want to handle this, by looking it up from optionInstrumentStore 
+          // We may want to handle this, by looking it up from optionInstrumentStore
           continue;
         }
         if (optionPosition.optionInstrument!.optionMarketData == null ||
