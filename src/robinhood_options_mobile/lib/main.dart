@@ -130,7 +130,7 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
             backgroundColor: colorScheme.primary,
             foregroundColor: Colors.white),
-        tabBarTheme: TabBarTheme(
+        tabBarTheme: TabBarThemeData(
           dividerColor: Colors.transparent,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
