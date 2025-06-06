@@ -185,9 +185,11 @@ class Instrument {
         dayTradeRatio = json['day_trade_ratio'] is double
             ? json['day_trade_ratio']
             : double.tryParse(json['day_trade_ratio']),
-        listDate = json['list_date'] is Timestamp
-            ? (json['list_date'] as Timestamp).toDate()
-            : DateTime.tryParse(json['list_date']),
+        listDate = json['list_date'] == null
+            ? null
+            : json['list_date'] is Timestamp
+                ? (json['list_date'] as Timestamp).toDate()
+                : DateTime.tryParse(json['list_date']),
         minTickSize = json['min_tick_size'] == null
             ? null
             : double.tryParse(json['min_tick_size']),
@@ -382,5 +384,5 @@ class Instrument {
       ].join(' | ')} |');
     }
     return buffer.toString();
-  }      
+  }
 }
