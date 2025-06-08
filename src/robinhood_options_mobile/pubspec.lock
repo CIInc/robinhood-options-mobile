@@ -314,7 +314,7 @@ packages:
     source: hosted
     version: "7.0.1"
   firebase_ai:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: firebase_ai
       sha256: "178bdce7248e9ad5a483c3623453d3219443d203b4a5d347b0400580fff2fd6d"
@@ -441,14 +441,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.10.6"
-  firebase_vertexai:
-    dependency: "direct main"
-    description:
-      name: firebase_vertexai
-      sha256: "2bc4fba827f2648765b099e307b34da55fd4cb3c313ac59aafbed259447db4a2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.7.0"
   fixnum:
     dependency: transitive
     description:

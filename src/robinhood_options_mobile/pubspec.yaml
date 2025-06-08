@@ -92,7 +92,9 @@ dependencies:
   # Used to cache user image in SliverAppBar 
   cached_network_image: ^3.4.1
   # Used for AI Assistant
-  firebase_vertexai: ^1.4.0
+  firebase_ai: ^2.0.0
+  # Deprecated by firebase_ai
+  # firebase_vertexai: ^1.4.0
   flutter_markdown: ^0.7.6+2
   # Used by option chain lists
   scrollable_positioned_list: ^0.3.8

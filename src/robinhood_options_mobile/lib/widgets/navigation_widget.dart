@@ -419,7 +419,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         */
   }
 
-  _buildTabs(BrokerageUserStore userStore) {
+  void _buildTabs(BrokerageUserStore userStore) {
     tabPages = [
       HomePage(
         userStore.currentUser!, userInfo!,
@@ -473,7 +473,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     ];
   }
 
-  buildScaffold(BrokerageUserStore userStore, {Widget? widget}) {
+  Scaffold buildScaffold(BrokerageUserStore userStore, {Widget? widget}) {
     return Scaffold(
       /*
       appBar: AppBar(
@@ -561,7 +561,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     );
   }
 
-  _buildDrawer(BrokerageUserStore userStore) {
+  Consumer<DrawerProvider> _buildDrawer(BrokerageUserStore userStore) {
     return Consumer<DrawerProvider>(builder: (context, drawerProvider, child) {
       final userWidgets = <Widget>[];
       for (int userIndex = 0; userIndex < userStore.items.length; userIndex++) {
@@ -955,7 +955,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
 
-  _onSelectItem(int index) {
+  void _onSelectItem(int index) {
     //setState(() => {_selectedDrawerIndex = index});
     Navigator.pop(context); // close the drawer
   }
@@ -986,13 +986,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
   */
 
-  loggedIn(BrokerageUserStore userStore) {
+  bool loggedIn(BrokerageUserStore userStore) {
     return userStore.items.isNotEmpty &&
         userStore.currentUser!.userName != null &&
         userInfo != null;
   }
 
-  _openLogin() async {
+  Future<void> _openLogin() async {
     final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -1028,7 +1028,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     }
   }
 
-  _logout(BrokerageUserStore userStore) async {
+  Future<void> _logout(BrokerageUserStore userStore) async {
     var alert = AlertDialog(
       title: Text(
           'Unlink ${userStore.currentUser!.source.enumValue().capitalize()}'),

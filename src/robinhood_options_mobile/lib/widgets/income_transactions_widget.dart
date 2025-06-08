@@ -260,15 +260,17 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     double? totalCost;
     double? totalValue;
     int? countBuys;
-    double? positionCost;
     double? totalSells;
     int? countSells;
     double? gainLoss;
     double? gainLossPercent;
     double? adjustedReturn;
     double? adjustedReturnPercent;
+    double? positionCost;
+    double? positionAdjCost;
     double? positionGainLoss;
     double? positionGainLossPercent;
+    double? positionIncome;
     // double? positionAdjustedReturn;
     // double? positionAdjustedReturnPercent;
     double? adjustedCost;
@@ -298,7 +300,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             o.instrumentId == instrument!.id &&
             o.state != 'cancelled' &&
             o.state != 'unconfirmed');
-        var buys = positionOrders.where((o) => o.side == 'buy');
+        var buys =
+            positionOrders.where((o) => o.side == 'buy' && o.state != 'queued');
         countBuys = buys.length;
         double buyTotal = buys.isEmpty
             ? 0
@@ -330,8 +333,10 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           double buyTotalQuantity = buys.isEmpty
               ? 0
               : buys.map((o) => o.quantity!).reduce((a, b) => a + b);
-          adjustedCost = (totalCost - totalIncome) /
-              buyTotalQuantity; // position.quantity!;
+          positionIncome = totalIncome * position.quantity! / buyTotalQuantity;
+          positionAdjCost =
+              (positionCost - positionIncome) / position.quantity!;
+          adjustedCost = (totalCost - totalIncome) / buyTotalQuantity;
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
@@ -548,7 +553,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   start:
                       // transactionSymbolFilters.isNotEmpty ? groupedDividendsData.map((d) => d.key).min :
                       DateTime(
-                          DateTime.now().year - 1, DateTime.now().month, 1),
+                          DateTime.now().year - (dateFilter == 'Year' ? 1 : 3),
+                          DateTime.now().month,
+                          1),
                   // DateTime.now().subtract(Duration(days: 365)),
                   // end: DateTime.now())),
                   end: DateTime.now()
@@ -738,7 +745,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           ? Theme.of(context)
                                               .colorScheme
                                               .primary
-                                              .withOpacity(0.2)
+                                              .withValues(alpha: 0.2)
                                           : null,
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
@@ -937,7 +944,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                                 """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
                                                                 Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
                                                                 Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.user.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
-                                                                Adjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
+                                                                Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
                                                             // Yields are annualized from the $dividendInterval distribution period.
                                                             actions: [
                                                               TextButton(
@@ -988,7 +995,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                 child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
-                                      Text(formatCurrency.format(adjustedCost),
+                                      Text(
+                                          formatCurrency.format(
+                                              positionAdjCost), // adjustedCost
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -1575,12 +1584,30 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                         child: FilterChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Year'), // Positions
+                          label: const Text('1Y'), // Positions
                           selected: dateFilter == 'Year',
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
                                 dateFilter = 'Year';
+                              } else {
+                                // dateFilter = 'All';
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('3Y'), // Positions
+                          selected: dateFilter == '3Year',
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                dateFilter = '3Year';
                               } else {
                                 // dateFilter = 'All';
                               }

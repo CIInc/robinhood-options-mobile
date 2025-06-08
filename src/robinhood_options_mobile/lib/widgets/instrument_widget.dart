@@ -386,7 +386,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     });
   }
 
-  buildScrollView(Instrument instrument,
+  RefreshIndicator buildScrollView(Instrument instrument,
       {List<OptionInstrument>? optionInstruments, bool done = false}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,

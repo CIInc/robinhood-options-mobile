@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_vertexai/firebase_vertexai.dart';
+// import 'package:firebase_vertexai/firebase_vertexai.dart';
+import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/constants.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
@@ -90,7 +91,7 @@ Volume - Volume bar or other volume indicators
       :
         // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
-        model = FirebaseVertexAI.instance.generativeModel(
+        model = FirebaseAI.vertexAI().generativeModel(
             model: 'gemini-2.0-flash'); // gemini-2.5-flash-preview-04-17
 
   Future<String> generateContent(

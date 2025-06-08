@@ -198,7 +198,7 @@ class _InstrumentOptionChainWidgetState
     ));
   }
 
-  buildScrollView(Instrument instrument,
+  RefreshIndicator buildScrollView(Instrument instrument,
       {List<OptionInstrument>? optionInstruments,
       bool done = false,
       List<Widget> widgets = const []}) {

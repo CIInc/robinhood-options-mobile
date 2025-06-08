@@ -122,7 +122,7 @@ class SharedPortfolioWidget extends StatelessWidget {
                               ),
                             ),
                             title: Text(
-                              "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type ?? ''} ${o.side ?? ''} ${o.price != null ? formatCurrency.format(o.price) : ''}",
+                              "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type} ${o.side} ${o.price != null ? formatCurrency.format(o.price) : ''}",
                             ),
                             subtitle: Text(
                               "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}",
@@ -208,7 +208,7 @@ class SharedPortfolioWidget extends StatelessWidget {
                                   style: const TextStyle(fontSize: 17)),
                         ),
                         title: Text(
-                          "${o.chainSymbol} \$${o.legs.isNotEmpty ? formatCompactNumber.format(o.legs.first.strikePrice) : ''} ${o.strategy ?? ''} ${o.legs.isNotEmpty && o.legs.first.expirationDate != null ? formatCompactDate.format(o.legs.first.expirationDate!) : ''}",
+                          "${o.chainSymbol} \$${o.legs.isNotEmpty ? formatCompactNumber.format(o.legs.first.strikePrice) : ''} ${o.strategy} ${o.legs.isNotEmpty && o.legs.first.expirationDate != null ? formatCompactDate.format(o.legs.first.expirationDate!) : ''}",
                         ),
                         subtitle: subtitle,
                         trailing: Wrap(spacing: 8, children: [

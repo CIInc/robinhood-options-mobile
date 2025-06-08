@@ -155,6 +155,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   Future<OptionPositionStore>? futureOptionPositions;
   //Stream<OptionPositionStore>? optionPositionStoreStream;
 
+  Future<List<dynamic>>? futureFuturesAccounts;
+  Stream<List<dynamic>>? futuresStream;
+
   /*
   Stream<List<StockPosition>>? positionStream;
   List<StockPosition> positions = [];
@@ -319,6 +322,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             account = null;
           }
 
+          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+          //   futureFuturesAccounts = (widget.service as RobinhoodService)
+          //       .getFutureAccounts(widget.brokerageUser, account!);
+          // }
+
+          // var futuresAccounts = data[1] as List<dynamic>;
+
           // for (var acct in accts) {
           //   var existingAccount = accounts!.firstWhereOrNull((element) =>
           //       element.userId == widget.user.id &&
@@ -409,6 +419,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             futureDividends = null;
             futureInterests = null;
           }
+
+          // FUTURES
+          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+          //   futuresStream = (widget.service as RobinhoodService)
+          //       .streamFuturePositions(
+          //           widget.brokerageUser,
+          //           futuresAccounts.firstWhereOrNull(
+          //               (f) => f['accountType'] == 'FUTURES')['id']);
+          // }
+
           /*
           return MultiProvider(
               providers: [
@@ -501,6 +521,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
+            // FUTURES
+            // StreamBuilder(
+            //     stream: futuresStream,
+            //     builder: (BuildContext context,
+            //         AsyncSnapshot<List<dynamic>> futuressnapshot) {
+            //       if (futuressnapshot.hasData) {
+            //         var futures = futuressnapshot.data!;
+            //         return SliverToBoxAdapter();
+            //       } else if (futuressnapshot.hasError) {
+            //         return SliverToBoxAdapter(
+            //           child: Text('${futuressnapshot.error}'),
+            //         );
+            //       } else {
+            //         return SliverToBoxAdapter(
+            //           child: const Center(
+            //             child: CircularProgressIndicator(),
+            //           ),
+            //         );
+            //       }
+            //     }),
             Consumer5<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
                 builder: (context,
@@ -2474,7 +2514,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
   }
 
-  _refresh() async {
+  Future<void> _refresh() async {
     var random = Random();
     final maxDelay = 15000;
     if (widget.brokerageUser.refreshEnabled &&
@@ -2607,7 +2647,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
   }
 
-  showSettings() {
+  void showSettings() {
     showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,

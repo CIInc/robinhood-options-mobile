@@ -657,74 +657,26 @@ Response: {
   /*
   FUTURES
   */
-// https://api.robinhood.com/ceres/v1/accounts/67648fdb-54c9-4610-9922-c18f2b217d2e/aggregated_positions
-  @override
-  Stream<List<dynamic>> streamFuturePositions(
-    BrokerageUser user,
-    // InstrumentPositionStore store,
-    // InstrumentStore instrumentStore,
-    // QuoteStore quoteStore,
-    String account,
-    // {
-    // bool nonzero = true,
-    // DocumentReference? userDoc,
-    // }
-  ) {
-    var pageStream = streamedGet(
-        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
-    return pageStream;
-    //debugPrint(results);
-    // await for (final results in pageStream) {
-    //   for (var i = 0; i < results.length; i++) {
-    //     var result = results[i];
-    //     var op = InstrumentPosition.fromJson(result);
+// https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
+  // @override
+  // Future<List<dynamic>> getFutureAccounts(
+  //     BrokerageUser user, Account account) async {
+  //   var results = await RobinhoodService.pagedGet(user,
+  //       "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
+  //   //debugPrint(results);
+  //   return results;
+  // }
 
-    //     //if ((withQuantity && op.quantity! > 0) ||
-    //     //    (!withQuantity && op.quantity == 0)) {
-    //     store.addOrUpdate(op);
-    //     if (userDoc != null) {
-    //       _firestoreService.upsertInstrumentPosition(op, userDoc);
-    //     }
-    //   }
-    //   var instrumentIds = store.items.map((e) => e.instrumentId).toList();
-    //   var instrumentObjs =
-    //       await getInstrumentsByIds(user, instrumentStore, instrumentIds);
-    //   for (var instrumentObj in instrumentObjs) {
-    //     var position = store.items
-    //         .firstWhere((element) => element.instrumentId == instrumentObj.id);
-    //     position.instrumentObj = instrumentObj;
-    //     store.update(position);
-    //   }
-    //   // var symbols = store.items
-    //   //     .where((e) =>
-    //   //         e.instrumentObj !=
-    //   //         null) // Figure out why in certain conditions, instrumentObj is null
-    //   //     .map((e) => e.instrumentObj!.symbol)
-    //   //     .toList();
-    //   // // Remove old quotes (that would be returned from cache) to get current ones
-    //   // quoteStore.removeAll();
-    //   // var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
-    //   // for (var quoteObj in quoteObjs) {
-    //   //   // Update Position
-    //   //   var position = store.items.firstWhere(
-    //   //       (element) => element.instrumentObj!.symbol == quoteObj.symbol);
-    //   //   if (position.instrumentObj!.quoteObj == null ||
-    //   //       position.instrumentObj!.quoteObj!.updatedAt!
-    //   //           .isBefore(quoteObj.updatedAt!)) {
-    //   //     position.instrumentObj!.quoteObj = quoteObj;
-    //   //     store.update(position);
-    //   //     // Update Instrument
-    //   //     instrumentStore.update(position.instrumentObj!);
-    //   //     if (userDoc != null) {
-    //   //       _firestoreService.upsertInstrument(position.instrumentObj!);
-    //   //       debugPrint(
-    //   //           'RobinhoodService.getStockPositionStore: Stored instrument into Firestore ${position.instrumentObj!.symbol}');
-    //   //     }
-    //   //   }
-    //   // }
-    // }
-    // return store;
-  }
+// https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
+  // @override
+  // Stream<List<dynamic>> streamFuturePositions(
+  //   BrokerageUser user,
+  //   String account,
+  // ) {
+  //   var pageStream = streamedGet(
+  //       user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
+  //   return pageStream;
+  // }
 
   /*
   POSITIONS
@@ -1890,7 +1842,7 @@ Response: {
     return list;
   }
 
-  static saveLogos() async {
+  static Future<void> saveLogos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString("logoUrls", jsonEncode(logoUrls));
     debugPrint("Cached ${logoUrls.keys.length} logos");
@@ -2964,7 +2916,7 @@ WATCHLIST
     }
   }
 
-  static pagedGet(BrokerageUser user, String url) async {
+  static Future pagedGet(BrokerageUser user, String url) async {
     dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
     var nextUrl = responseJson['next'];
