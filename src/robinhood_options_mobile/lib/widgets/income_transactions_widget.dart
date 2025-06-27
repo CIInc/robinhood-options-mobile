@@ -118,6 +118,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             e["instrumentObj"] != null &&
             e["instrumentObj"].quoteObj != null &&
             (e["state"] == "paid" || e["state"] == "reinvesting"))
+        .where((e) {
+          final position = widget.instrumentPositionStore.items
+              .firstWhereOrNull(
+                  (p) => p.instrumentId == e['instrumentObj']!.id);
+          return position != null && position.quantity! > 0;
+        })
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
@@ -699,7 +705,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             child: transactionFilters.contains("dividend")
                 ? SizedBox(
                     key: ValueKey(transactionFilters.contains("dividend")),
-                    height: 56,
+                    height: 80, // 56
                     child: ListView.builder(
                       padding: const EdgeInsets.all(4.0),
                       scrollDirection: Axis.horizontal,
@@ -759,9 +765,20 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 8),
-                                    child: Row(
+                                    child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
+                                        Text(
+                                          formatPercentage
+                                              .format(entry['yield']),
+                                          style: TextStyle(
+                                              color: Colors.green.shade700,
+                                              fontSize: summaryValueFontSize
+                                              // greekValueFontSize // 13,
+                                              ),
+                                          // textAlign: TextAlign.start,
+                                        ),
+                                        // SizedBox(width: 8),
                                         Text(
                                           entry['symbol'],
                                           style: TextStyle(
@@ -772,15 +789,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                     .colorScheme
                                                     .primary
                                                 : null,
-                                          ),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          formatPercentage
-                                              .format(entry['yield']),
-                                          style: TextStyle(
-                                            color: Colors.green.shade700,
-                                            fontSize: 13,
                                           ),
                                         ),
                                       ],

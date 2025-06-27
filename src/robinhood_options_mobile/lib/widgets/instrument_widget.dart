@@ -915,36 +915,38 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   context,
                   listen: false);
 
-              chart = TimeSeriesChart(
-                seriesList,
-                open: open,
-                close: close,
-                seriesLegend: charts.SeriesLegend(
-                  horizontalFirst: true,
-                  position: charts.BehaviorPosition.top,
-                  defaultHiddenSeries: const ["Close", "Volume", "Low", "High"],
-                  // To show value on legend upon selection
-                  showMeasures: true,
-                  measureFormatter: (measure) =>
-                      measure != null ? formatCurrency.format(measure) : '',
-                  // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
-                ),
-                onSelected: (charts.SelectionModel<DateTime>? historical) {
-                  provider
-                      .selectionChanged(historical?.selectedDatum.first.datum);
-                },
-                symbolRenderer: TextSymbolRenderer(() {
-                  return provider.selection != null
-                      // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
-                      ? formatCompactDateTimeWithHour.format(
-                          (provider.selection as InstrumentHistorical)
-                              .beginsAt!
-                              .toLocal())
-                      : '0';
-                }, marginBottom: 16),
-                zeroBound: false,
-                // viewport: extents
-              );
+              chart = TimeSeriesChart(seriesList,
+                  open: open,
+                  close: close,
+                  seriesLegend: charts.SeriesLegend(
+                    horizontalFirst: true,
+                    position: charts.BehaviorPosition.top,
+                    defaultHiddenSeries: const [
+                      "Close",
+                      "Volume",
+                      "Low",
+                      "High"
+                    ],
+                    // To show value on legend upon selection
+                    showMeasures: true,
+                    measureFormatter: (measure) =>
+                        measure != null ? formatCurrency.format(measure) : '',
+                    // legendDefaultMeasure: charts.LegendDefaultMeasure.lastValue
+                  ), onSelected: (charts.SelectionModel<DateTime>? historical) {
+                provider
+                    .selectionChanged(historical?.selectedDatum.first.datum);
+              },
+                  symbolRenderer: TextSymbolRenderer(() {
+                    return provider.selection != null
+                        // ${formatPercentage.format((provider.selection as MapEntry).value)}\n
+                        ? formatCompactDateTimeWithHour.format(
+                            (provider.selection as InstrumentHistorical)
+                                .beginsAt!
+                                .toLocal())
+                        : '0';
+                  }, marginBottom: 16),
+                  zeroBound: false,
+                  viewport: extents);
 
               /*
               slivers.add(const SliverToBoxAdapter(
