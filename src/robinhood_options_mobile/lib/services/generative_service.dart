@@ -92,9 +92,9 @@ Volume - Volume bar or other volume indicators
         // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
-            model: 'gemini-2.0-flash'); // gemini-2.5-flash-preview-04-17
+            model: 'gemini-2.5-flash'); // gemini-2.5-flash-preview-04-17
 
-  Future<String> generateContent(
+  Future<String> generateContentFromServer(
     Prompt prompt,
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
@@ -105,13 +105,13 @@ Volume - Volume bar or other volume indicators
     ${prompt.prompt}
     ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : '') : ''}""";
     HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('generateContent2');
+        FirebaseFunctions.instance.httpsCallable('generateContent25');
     final resp = await callable.call(<String, dynamic>{
       'prompt': promptString,
     });
     debugPrint("result: ${resp.data}");
     String? response;
-    if (resp.data["modelVersion"].toString().startsWith("gemini-2.0")) {
+    if (resp.data["modelVersion"].toString().startsWith("gemini-2")) {
       //  == "gemini-2.0-flash-001"
       response = resp.data["candidates"][0]["content"]["parts"]
           .map((e) => e["text"])

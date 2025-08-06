@@ -943,8 +943,9 @@ https://api.schwabapi.com/trader/v1/accounts/C0182387A893E4CE03E26C081206E282EE3
     });
     var quoteObjs = await getQuoteByIds(user, quoteStore, symbols);
     for (var quoteObj in quoteObjs) {
-      var position = store.items.firstWhere(
-          (element) => element.instrumentObj!.symbol == quoteObj.symbol);
+      var position = store.items.firstWhere((element) =>
+          element.instrumentObj != null &&
+          element.instrumentObj!.symbol == quoteObj.symbol);
       position.instrumentObj!.quoteObj = quoteObj;
       store.update(position);
     }
@@ -1274,13 +1275,11 @@ https://api.schwabapi.com/trader/v1/orders?fromEnteredTime=2024-09-28T23%3A59%3A
 
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-    BrokerageUser user,
-    PortfolioHistoricalsStore store,
-    String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     throw UnimplementedError();
-    }
+  }
 
   @override
   Future<PortfolioHistoricals> getPortfolioHistoricals(

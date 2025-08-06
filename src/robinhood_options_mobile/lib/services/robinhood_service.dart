@@ -668,15 +668,17 @@ Response: {
   // }
 
 // https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
-  // @override
-  // Stream<List<dynamic>> streamFuturePositions(
-  //   BrokerageUser user,
-  //   String account,
-  // ) {
-  //   var pageStream = streamedGet(
-  //       user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
-  //   return pageStream;
-  // }
+// https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=c8e338f7-6764-4b68-ac05-d8f431c0f869%2Cc8e338f7-6764-4b68-ac05-d8f431c0f869
+// https://api.robinhood.com/arsenal/v1/futures/products/83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec
+  @override
+  Stream<List<dynamic>> streamFuturePositions(
+    BrokerageUser user,
+    String account,
+  ) {
+    var pageStream = streamedGet(
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
+    return pageStream;
+  }
 
   /*
   POSITIONS

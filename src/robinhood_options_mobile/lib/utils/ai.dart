@@ -21,7 +21,7 @@ Future<void> generateContent(
   } else {
     generativeProvider.startGenerating(prompt.key);
     if (prompt.key == "market-summary" || prompt.key == "market-predictions") {
-      response = await generativeService.generateContent(
+      response = await generativeService.generateContentFromServer(
           prompt, stockPositionStore, optionPositionStore, forexHoldingStore);
       generativeProvider.setGenerativeResponse(prompt.prompt, response);
     } else if (prompt.prompt.isEmpty) {
@@ -51,6 +51,19 @@ Future<void> generateContent(
   }
 }
 
+// Define a simple ChatMessage class or similar structure
+enum Sender { user, ai }
+
+class ChatMessage {
+  ChatMessage({required this.sender, required this.content});
+
+  final Sender sender;
+  final String content;
+}
+
+// State for the chat messages
+List<ChatMessage> messages = [];
+
 void showAIResponse(
     String? response,
     Prompt prompt,
@@ -62,31 +75,6 @@ void showAIResponse(
     ForexHoldingStore? forexHoldingStore) {
   final TextEditingController promptController = TextEditingController();
 
-  // // score-swing uses a JSON response, so don't show the details of the document unless it's already cached.
-  // double scoreFontSize = 28;
-  // double scoreLabelFontSize = 12;
-  // // int totalScore = 0;
-  // int formScore = 0;
-  // int clubSpeedScore = 0;
-  // int powerScore = 0;
-  // int controlScore = 0;
-  // if (promptKey == 'score-swing') {
-  //   try {
-  //     var scores = jsonDecode(
-  //         response!.replaceAll('```json\n', '').replaceAll('```', ''));
-  //     formScore = scores["form"];
-  //     clubSpeedScore = scores["club-speed"];
-  //     powerScore = scores["power"];
-  //     controlScore = scores["control"];
-  //     // totalScore =
-  //     //     ((formScore + clubSpeedScore + powerScore + controlScore) / 4)
-  //     //         .round();
-  //   } catch (e) {
-  //     // on Exception
-  //     debugPrint(e.toString());
-  //   }
-  //   // TODO: Add animation of score.
-  // }
   showModalBottomSheet(
       context: context,
       enableDrag: true,
@@ -99,278 +87,238 @@ void showAIResponse(
       builder: (BuildContext newContext) {
         return StatefulBuilder(
             builder: (BuildContext buildercontext, setState) {
+          // Add the initial response if it exists and the prompt key is 'ask'
+          if (prompt.key == 'ask' && response != null && response!.isNotEmpty) {
+            messages.add(ChatMessage(sender: Sender.ai, content: response!));
+            // Clear the initial response so it's not added again on rebuilds
+            response =
+                null; // Set to null after adding to prevent duplicates on rebuild
+          }
+
           return DraggableScrollableSheet(
               expand: false,
               snap: true,
+              initialChildSize: prompt.key == 'ask' ? 1 : 0.5,
               minChildSize: 0.5,
               builder: (context1, controller) {
-                return SingleChildScrollView(
-                  controller: controller,
-                  child: Column(
+                void handleSendMessage() async {
+                  if (promptController.text.isNotEmpty) {
+                    final userMessage = promptController.text;
+                    setState(() {
+                      messages.add(ChatMessage(
+                          sender: Sender.user, content: userMessage));
+                      promptController.clear();
+                      generativeProvider.startGenerating(prompt.key);
+                    });
+
+                    // Auto-scroll to bottom after user message
+                    await Future.delayed(Duration(milliseconds: 100));
+                    if (controller.hasClients) {
+                      controller.animateTo(
+                        controller.position.maxScrollExtent,
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+
+                    // Call the generative service with the user's message
+                    final aiResponse =
+                        await generativeService.generateContentFromServer(
+                            Prompt(
+                                key: prompt.key,
+                                title: prompt.title,
+                                prompt: userMessage),
+                            stockPositionStore,
+                            optionPositionStore,
+                            forexHoldingStore);
+
+                    setState(() {
+                      messages.add(
+                          ChatMessage(sender: Sender.ai, content: aiResponse));
+                      generativeProvider.generating = false; // Stop loading
+                    });
+
+                    // Auto-scroll to bottom after AI response
+                    await Future.delayed(Duration(milliseconds: 100));
+                    if (controller.hasClients) {
+                      controller.animateTo(
+                        controller.position.maxScrollExtent,
+                        duration: Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  }
+                }
+
+                if (prompt.key == 'ask') {
+                  return Column(
+                    // mainAxisSize: MainAxisSize.min, // Set mainAxisSize to min
+                    // Use Column instead of SingleChildScrollView
                     children: [
-                      // if (promptKey == 'score-swing') ...[
-                      //   Padding(
-                      //     padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      //     child: Card(
-                      //       margin: const EdgeInsets.symmetric(horizontal: 10.0),
-                      //       child: Padding(
-                      //         padding: const EdgeInsets.all(16.0),
-                      //         child: Column(
-                      //           children: [
-                      //             // const SizedBox(
-                      //             //   height: 16,
-                      //             // ),
-                      //             const ListTile(
-                      //               leading: Icon(Icons.sports_score),
-                      //               title: Text(
-                      //                 'Swing Score AI',
-                      //                 style: TextStyle(fontSize: 20.0),
-                      //               ),
-                      //             ),
-                      //             const SizedBox(
-                      //               height: 16,
-                      //             ),
-                      //             Row(
-                      //               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      //               children: [
-                      //                 Column(
-                      //                   children: [
-                      //                     CircleAvatar(
-                      //                         radius: 30,
-                      //                         child: Wrap(children: [
-                      //                           // const Icon(Icons.sports_score),
-                      //                           Text(
-                      //                             formScore.toString(),
-                      //                             style: TextStyle(
-                      //                                 fontSize: scoreFontSize),
-                      //                           )
-                      //                         ])),
-                      //                     Text(
-                      //                       'form',
-                      //                       style: TextStyle(
-                      //                           fontSize: scoreLabelFontSize),
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //                 Column(
-                      //                   children: [
-                      //                     CircleAvatar(
-                      //                         radius: 30,
-                      //                         child: Wrap(children: [
-                      //                           // const Icon(Icons.sports_score),
-                      //                           Text(
-                      //                             clubSpeedScore.toString(),
-                      //                             style: TextStyle(
-                      //                                 fontSize: scoreFontSize),
-                      //                           )
-                      //                         ])),
-                      //                     Text(
-                      //                       'club speed',
-                      //                       style: TextStyle(
-                      //                           fontSize: scoreLabelFontSize),
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //                 Column(
-                      //                   children: [
-                      //                     CircleAvatar(
-                      //                         radius: 30,
-                      //                         child: Wrap(children: [
-                      //                           // const Icon(Icons.sports_score),
-                      //                           Text(
-                      //                             powerScore.toString(),
-                      //                             style: TextStyle(
-                      //                                 fontSize: scoreFontSize),
-                      //                           )
-                      //                         ])),
-                      //                     Text(
-                      //                       'power',
-                      //                       style: TextStyle(
-                      //                           fontSize: scoreLabelFontSize),
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //                 Column(
-                      //                   children: [
-                      //                     CircleAvatar(
-                      //                         radius: 30,
-                      //                         child: Wrap(children: [
-                      //                           // const Icon(Icons.sports_score),
-                      //                           Text(
-                      //                             controlScore.toString(),
-                      //                             style: TextStyle(
-                      //                                 fontSize: scoreFontSize),
-                      //                           )
-                      //                         ])),
-                      //                     Text(
-                      //                       'control',
-                      //                       style: TextStyle(
-                      //                           fontSize: scoreLabelFontSize),
-                      //                     ),
-                      //                   ],
-                      //                 ),
-                      //               ],
-                      //             ),
-                      //             const SizedBox(
-                      //               height: 16,
-                      //             ),
-                      //           ],
-                      //         ),
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ] else ...[
-                      if (prompt.key == 'ask') ...[
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          // padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          // padding: const EdgeInsets.all(8.0),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: TextFormField(
-                                    controller: promptController,
-                                    // maxLines: null,
-                                    autofocus: true,
-                                    decoration: InputDecoration(
-                                      hintText: 'Ask a question.',
-                                      // labelText: 'Text Message',
-                                      // border: OutlineInputBorder(
-                                      //     borderRadius: BorderRadius.circular(15)),
-                                    ),
-                                    // validator: (String? value) {
-                                    //   if (value == null || value.isEmpty) {
-                                    //     return 'Ask a question.';
-                                    //   }
-                                    //   return null;
-                                    // },
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: generativeProvider.generating
-                                      ? const CircularProgressIndicator()
-                                      : const Icon(Icons.send),
-                                  onPressed: () async {
-                                    if (promptController.text.isNotEmpty) {
-                                      generativeProvider
-                                          .startGenerating(prompt.key);
-                                      generativeProvider
-                                          .promptResponses[prompt.key] = null;
-                                      setState(() {});
-
-                                      response = await generativeService
-                                          .generateContent(
-                                              Prompt(
-                                                  key: prompt.key,
-                                                  title: prompt.title,
-                                                  prompt:
-                                                      promptController.text),
-                                              stockPositionStore,
-                                              optionPositionStore,
-                                              forexHoldingStore);
-                                      generativeProvider.setGenerativeResponse(
-                                          prompt.key, response!);
-                                      setState(() {});
-                                    }
-                                  },
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      if (response!.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          // padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          // padding: const EdgeInsets.all(8.0),
-                          child: Card(
-                              margin:
-                                  const EdgeInsets.symmetric(horizontal: 10.0),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: SelectionArea(
-                                  // SelectionTransformer.separated allows for new lines to be copied and
-                                  // pasted.
+                      Flexible(
+                        // Use Flexible instead of Expanded
+                        fit: FlexFit.loose, // Set fit to loose
+                        // Use Expanded for the chat history
+                        child: ListView.builder(
+                          controller: controller,
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final message = messages[index];
+                            return Align(
+                              alignment: message.sender == Sender.user
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Card(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 10.0, vertical: 4.0),
+                                color: message.sender == Sender.user
+                                    ? Colors.blue[100]
+                                    : Colors.grey[200],
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
                                   child: MarkdownBody(
-                                    // selectable: true,
-                                    data: "# ${prompt.title}  \n$response",
-                                    // styleSheet: MarkdownStyleSheet(
-                                    //   h1Align: WrapAlignment.center,
-                                    //   tableHeadAlign: TextAlign.left,
-                                    //   textAlign: WrapAlignment.spaceEvenly,
-                                    // ),
+                                    data: message.content,
+                                    selectable: true,
                                   ),
                                 ),
-                              )),
-                        ),
-                      ],
-                      // if (promptKey == 'summarize-video') ...[
-                      //   TextButton.icon(
-                      //     icon: const Icon(Icons.copy_all_outlined),
-                      //     onPressed: () async {
-                      //       if (widget.video != null) {
-                      //         if (context.mounted) {
-                      //           Navigator.pop(context);
-                      //         }
-                      //         state(() {
-                      //           currentPrompt = promptKey;
-                      //         });
-                      //         widget.video!.note = response;
-                      //         if (widget.onChange != null) {
-                      //           widget.onChange!();
-                      //         }
-                      //         state(() {
-                      //           currentPrompt = null;
-                      //         });
-                      //       }
-                      //     },
-                      //     label: const Text('Copy to Pro Notes'),
-                      //   ),
-                      // ],
-                      if (prompt.key != 'ask') ...[
-                        TextButton.icon(
-                          icon: const Icon(Icons.refresh),
-                          onPressed: () async {
-                            // if (widget.video != null &&
-                            //     widget.video!.responses != null) {
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                            //   state(() {
-                            //     currentPrompt = promptKey;
-                            //   });
-                            generativeProvider.promptResponses[prompt.prompt] =
-                                null;
-                            // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
-                            await generateContent(
-                              generativeProvider,
-                              generativeService,
-                              prompt,
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
+                              ),
                             );
-
-                            //   widget.video!.responses!.remove(promptKey);
-                            //   await onAIChipPressed(promptKey!, context, state);
-                            //   state(() {
-                            //     currentPrompt = null;
-                            //   });
-                            // }
                           },
-                          label: const Text('Generate new answer'),
                         ),
-                      ],
+                      ),
+                      Padding(
+                        // Input row at the bottom
+                        padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(buildercontext)
+                                    .viewInsets
+                                    .bottom +
+                                16.0,
+                            left: 16.0,
+                            right: 16.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: promptController,
+                                autofocus: true,
+                                decoration: InputDecoration(
+                                  hintText: 'Ask a question...',
+                                ),
+                                onFieldSubmitted: (_) => handleSendMessage(),
+                              ),
+                            ),
+                            IconButton(
+                              icon: generativeProvider.generating
+                                  ? const CircularProgressIndicator()
+                                  : const Icon(Icons.send),
+                              onPressed: handleSendMessage,
+                            )
+                          ],
+                        ),
+                      ),
                       SizedBox(
                         height: 25,
                       )
                     ],
-                  ),
-                );
+                  );
+                } else {
+                  return SingleChildScrollView(
+                      controller: controller,
+                      child: Column(
+                        children: [
+                          // This handles cases where prompt.key is not 'ask'
+                          if (response != null && response!.isNotEmpty) ...[
+                            // Add null check for response
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              // padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              // padding: const EdgeInsets.all(8.0),
+                              child: Card(
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 10.0),
+                                child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: SelectionArea(
+                                      // SelectionTransformer.separated allows for new lines to be copied and
+                                      // pasted.
+                                      child: MarkdownBody(
+                                        // selectable: true,
+                                        data: "# ${prompt.title}  \n$response",
+                                        // styleSheet: MarkdownStyleSheet(
+                                        //   h1Align: WrapAlignment.center,
+                                        //   tableHeadAlign: TextAlign.left,
+                                        //   textAlign: WrapAlignment.spaceEvenly,
+                                        // ),
+                                      ),
+                                    )),
+                              ),
+                            )
+                          ],
+                          // if (promptKey == 'summarize-video') ...[
+                          //   TextButton.icon(
+                          //     icon: const Icon(Icons.copy_all_outlined),
+                          //     onPressed: () async {
+                          //       if (widget.video != null) {
+                          //         if (context.mounted) {
+                          //           Navigator.pop(context);
+                          //         }
+                          //         state(() {
+                          //           currentPrompt = promptKey;
+                          //         });
+                          //         widget.video!.note = response;
+                          //         if (widget.onChange != null) {
+                          //           widget.onChange!();
+                          //         }
+                          //         state(() {
+                          //           currentPrompt = null;
+                          //         });
+                          //       }
+                          //     },
+                          //     label: const Text('Copy to Pro Notes'),
+                          //   ),
+                          // ],
+                          if (prompt.key != 'ask') ...[
+                            // Only show refresh button for non-chat prompts
+                            TextButton.icon(
+                              icon: const Icon(Icons.refresh),
+                              onPressed: () async {
+                                // if (widget.video != null &&
+                                //     widget.video!.responses != null) {
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                                //   state(() {
+                                //     currentPrompt = promptKey;
+                                //   });
+                                generativeProvider
+                                    .promptResponses[prompt.prompt] = null;
+                                // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
+                                await generateContent(
+                                  generativeProvider,
+                                  generativeService,
+                                  prompt,
+                                  context,
+                                  stockPositionStore: stockPositionStore,
+                                  optionPositionStore: optionPositionStore,
+                                  forexHoldingStore: forexHoldingStore,
+                                );
+
+                                //   widget.video!.responses!.remove(promptKey);
+                                //   await onAIChipPressed(promptKey!, context, state);
+                                //   state(() {
+                                //     currentPrompt = null;
+                                //   });
+                                // }
+                              },
+                              label: const Text('Generate new answer'),
+                            ),
+                          ],
+                          SizedBox(
+                            height: 25,
+                          )
+                        ],
+                      ));
+                }
               });
         });
       });

@@ -248,151 +248,85 @@ class _InstrumentOptionChainWidgetState
                       Consumer2<OptionPositionStore, GenerativeProvider>(
                           builder: (context, optionPositionStore,
                               generativeProvider, child) {
-                        return ExpansionTile(
-                          shape: const Border(),
-                          leading: const CircleAvatar(
-                              // radius: 20,
-                              child: Icon(Icons.lightbulb_circle_outlined)),
-                          title: Text(
-                            'AI Insight',
-                            overflow: TextOverflow.ellipsis,
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.fromLTRB(
+                              12.0,
+                              0, // 16.0,
+                              16.0,
+                              0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // const CircleAvatar(
+                              //   child: Icon(Icons.lightbulb_circle_outlined),
+                              // ),
+                              // const SizedBox(width: 10),
+                              // const Text(
+                              //   'AI Insight',
+                              //   style: TextStyle(
+                              //       fontWeight: FontWeight.bold, fontSize: 18),
+                              // ),
+                              // const SizedBox(width: 16),
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: ActionChip(
+                                  avatar: generativeProvider.generating &&
+                                          generativeProvider.promptResponses
+                                              .containsKey('select-option') &&
+                                          generativeProvider.promptResponses[
+                                                  'select-option'] ==
+                                              null
+                                      ? const CircularProgressIndicator()
+                                      : const Icon(Icons.recommend_outlined),
+                                  label: const Text('Find Best Contract'),
+                                  onPressed: () async {
+                                    var prompt = widget
+                                        .generativeService.prompts
+                                        .firstWhere(
+                                            (p) => p.key == 'select-option');
+                                    var historicalDataString =
+                                        OptionInstrument.toMarkdownTable(
+                                            optionInstruments);
+                                    var historicalDataString2 =
+                                        Instrument.toMarkdownTable(
+                                            [instrument]);
+                                    var newPrompt = Prompt(
+                                        key: prompt.key,
+                                        title: prompt.title,
+                                        prompt:
+                                            '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: $historicalDataString2\nUse the following option chain data:\n$historicalDataString');
+                                    await generateContent(
+                                        generativeProvider,
+                                        widget.generativeService,
+                                        newPrompt,
+                                        context);
+                                  },
+                                ),
+                              ),
+                              // Uncomment below to add 'Ask a question' chip
+                              // Padding(
+                              //   padding: const EdgeInsets.all(4.0),
+                              //   child: ActionChip(
+                              //     avatar: generativeProvider.generating &&
+                              //             generativeProvider.promptResponses.containsKey('ask') &&
+                              //             generativeProvider.promptResponses['ask'] == null
+                              //         ? const CircularProgressIndicator()
+                              //         : const Icon(Icons.question_answer),
+                              //     label: const Text('Ask a question'),
+                              //     onPressed: () async {
+                              //       var prompt = widget.generativeService.prompts.firstWhere((p) => p.key == 'ask');
+                              //       prompt.appendPortfolioToPrompt = false;
+                              //       await generateContent(
+                              //           generativeProvider,
+                              //           widget.generativeService,
+                              //           prompt,
+                              //           context);
+                              //     },
+                              //   ),
+                              // ),
+                            ],
                           ),
-                          // subtitle: Text(metadata != null
-                          //         ? constants
-                          //             .formatLongDateTime
-                          //             .format(metadata
-                          //                 .timeCreated!)
-                          //         : ''
-                          //     // '${metadata != null ? constants.formatLongDateTime.format(metadata.timeCreated!) : ''} extension ${videoRef.name.substring(videoRef.name.lastIndexOf('.'))}',
-                          //     // overflow: TextOverflow.ellipsis,
-                          //     ),
-                          children: [
-                            SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.fromLTRB(
-                                    12.0,
-                                    0, // 16.0,
-                                    16.0,
-                                    0),
-                                // padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Padding(
-                                            padding: const EdgeInsets.all(4.0),
-                                            child: ActionChip(
-                                              avatar: generativeProvider
-                                                          .generating &&
-                                                      generativeProvider
-                                                          .promptResponses
-                                                          .containsKey(
-                                                              'select-option') &&
-                                                      generativeProvider
-                                                                  .promptResponses[
-                                                              'select-option'] ==
-                                                          null
-                                                  ? const CircularProgressIndicator()
-                                                  : const Icon(
-                                                      Icons.recommend_outlined),
-                                              label: const Text(
-                                                  'Find Best Contract'),
-                                              onPressed: () async {
-                                                var prompt = widget
-                                                    .generativeService.prompts
-                                                    .firstWhere((p) =>
-                                                        p.key ==
-                                                        'select-option');
-
-                                                // var optionPositions =
-                                                //     optionPositionStore.items
-                                                //         .where((e) =>
-                                                //             e.symbol ==
-                                                //             widget.instrument
-                                                //                 .symbol)
-                                                //         .toList();
-                                                // var optionMarketData =
-                                                //     optionPositions
-                                                //         .map((e) => e
-                                                //             .optionInstrument!
-                                                //             .optionMarketData!)
-                                                //         .toList();
-
-                                                // Format the optionMarketData list into a more readable string for the LLM
-                                                var historicalDataString =
-                                                    OptionInstrument
-                                                        .toMarkdownTable(
-                                                            optionInstruments);
-                                                var historicalDataString2 =
-                                                    Instrument.toMarkdownTable(
-                                                        [instrument]);
-
-                                                var newPrompt = Prompt(
-                                                    key: prompt.key,
-                                                    title: prompt.title,
-                                                    prompt:
-                                                        '${prompt.prompt.replaceAll("{{symbol}}", instrument.symbol).replaceAll("{{type}}", typeFilter != null ? typeFilter!.toLowerCase() : '').replaceAll("{{action}}", actionFilter != null ? actionFilter!.toLowerCase() : 'buy or sell')}\nUse the following stock data: $historicalDataString2\nUse the following option chain data:\n$historicalDataString');
-
-                                                await generateContent(
-                                                    generativeProvider,
-                                                    widget.generativeService,
-                                                    newPrompt,
-                                                    context);
-                                              },
-                                            ),
-                                          ),
-                                          // Padding(
-                                          //   padding: const EdgeInsets.all(4.0),
-                                          //   child: ActionChip(
-                                          //     avatar: generativeProvider
-                                          //                 .generating &&
-                                          //             generativeProvider
-                                          //                 .promptResponses
-                                          //                 .containsKey('ask') &&
-                                          //             generativeProvider
-                                          //                         .promptResponses[
-                                          //                     'ask'] ==
-                                          //                 null
-                                          //         ? const CircularProgressIndicator()
-                                          //         : const Icon(
-                                          //             Icons.question_answer),
-                                          //     label:
-                                          //         const Text('Ask a question'),
-                                          //     onPressed: () async {
-                                          //       var prompt = widget
-                                          //           .generativeService.prompts
-                                          //           .firstWhere(
-                                          //               (p) => p.key == 'ask');
-                                          //       // prompt.prompt += '\n${instrument.symbol}';
-                                          //       prompt.appendPortfolioToPrompt =
-                                          //           false;
-                                          //       await generateContent(
-                                          //           generativeProvider,
-                                          //           widget.generativeService,
-                                          //           prompt,
-                                          //           context);
-                                          //     },
-                                          //   ),
-                                          // ),
-                                        ]),
-                                  ],
-                                )),
-
-                            // ListTile(
-                            //   title: const Text(
-                            //       'Filename'),
-                            //   subtitle: SelectableText(
-                            //     videoRef.name,
-                            //     maxLines: 2,
-                            //     // style: const TextStyle(
-                            //     //   overflow:
-                            //     //       TextOverflow.ellipsis,
-                            //     // )
-                            //   ),
-                            // ),
-                          ],
                         );
 
                         // return SliverToBoxAdapter(

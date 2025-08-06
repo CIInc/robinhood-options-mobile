@@ -551,195 +551,142 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     generativeProvider,
                     child) {
               return SliverToBoxAdapter(
-                child: ExpansionTile(
-                  shape: const Border(),
-                  leading: const CircleAvatar(
-                      // radius: 20,
-                      child: Icon(Icons.lightbulb_circle_outlined)),
-                  title: Text(
-                    'AI Insight',
-                    overflow: TextOverflow.ellipsis,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(
+                      12.0,
+                      0, // 16.0,
+                      16.0,
+                      0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // const CircleAvatar(
+                      //   child: Icon(Icons.lightbulb_circle_outlined),
+                      // ),
+                      // const SizedBox(width: 10),
+                      // const Text(
+                      //   'AI Insight',
+                      //   style: TextStyle(
+                      //       fontWeight: FontWeight.bold, fontSize: 18),
+                      // ),
+                      // const SizedBox(width: 16),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'portfolio-summary'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.summarize_outlined),
+                          label: const Text('Portfolio Summary'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts.firstWhere(
+                                  (p) => p.key == 'portfolio-summary'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'portfolio-recommendations'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.recommend_outlined),
+                          label: const Text('Recommendations'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts.firstWhere(
+                                  (p) => p.key == 'portfolio-recommendations'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'market-summary'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.public),
+                          label: const Text('Market Summary'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts
+                                  .firstWhere((p) => p.key == 'market-summary'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'market-predictions'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.batch_prediction_outlined),
+                          label: const Text('Market Predictions'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts.firstWhere(
+                                  (p) => p.key == 'market-predictions'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt == 'ask'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.question_answer),
+                          label: const Text('Ask a question'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts
+                                  .firstWhere((p) => p.key == 'ask'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  // subtitle: Text(metadata != null
-                  //         ? constants
-                  //             .formatLongDateTime
-                  //             .format(metadata
-                  //                 .timeCreated!)
-                  //         : ''
-                  //     // '${metadata != null ? constants.formatLongDateTime.format(metadata.timeCreated!) : ''} extension ${videoRef.name.substring(videoRef.name.lastIndexOf('.'))}',
-                  //     // overflow: TextOverflow.ellipsis,
-                  //     ),
-                  children: [
-                    SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.fromLTRB(
-                            12.0,
-                            0, // 16.0,
-                            16.0,
-                            0),
-                        // padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Column(
-                          children: [
-                            Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider
-                                                      .generatingPrompt ==
-                                                  'portfolio-summary'
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.summarize_outlined),
-                                      label: const Text('Portfolio Summary'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key == 'portfolio-summary'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider
-                                                      .generatingPrompt ==
-                                                  'portfolio-recommendations'
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.recommend_outlined),
-                                      label: const Text('Recommendations'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key ==
-                                                  'portfolio-recommendations'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider
-                                                      .generatingPrompt ==
-                                                  'market-summary'
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(Icons.public),
-                                      label: const Text('Market Summary'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key == 'market-summary'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider
-                                                      .generatingPrompt ==
-                                                  'market-predictions'
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.batch_prediction_outlined),
-                                      label: const Text('Market Predictions'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key ==
-                                                  'market-predictions'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider
-                                                      .generatingPrompt ==
-                                                  'ask'
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(Icons.question_answer),
-                                      label: const Text('Ask a question'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere(
-                                                  (p) => p.key == 'ask'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ]),
-                          ],
-                        )),
-
-                    // ListTile(
-                    //   title: const Text(
-                    //       'Filename'),
-                    //   subtitle: SelectableText(
-                    //     videoRef.name,
-                    //     maxLines: 2,
-                    //     // style: const TextStyle(
-                    //     //   overflow:
-                    //     //       TextOverflow.ellipsis,
-                    //     // )
-                    //   ),
-                    // ),
-                  ],
                 ),
               );
 
