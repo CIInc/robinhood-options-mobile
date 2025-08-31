@@ -564,7 +564,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             ScaffoldMessenger.of(context)
               ..removeCurrentSnackBar()
               ..showSnackBar(SnackBar(
-                content: Text("$userView['context']['heading']['text']"),
+                content: Text("${userView['context']['heading']['text']}"),
                 behavior: SnackBarBehavior.floating,
               )); // Login failed:
           }
