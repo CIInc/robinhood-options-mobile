@@ -306,7 +306,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 200.0,
+                                maxCrossAxisExtent: 220.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
                                 childAspectRatio: 1.36,
@@ -344,7 +344,7 @@ class _SearchWidgetState extends State<SearchWidget>
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 200.0,
+                                maxCrossAxisExtent: 220.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
                                 childAspectRatio: 1.36,
