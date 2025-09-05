@@ -14,20 +14,17 @@ Future<void> generateContent(
   InstrumentPositionStore? stockPositionStore,
   OptionPositionStore? optionPositionStore,
   ForexHoldingStore? forexHoldingStore,
+  bool localInference = true,
 }) async {
   String? response;
   if (generativeProvider.promptResponses[prompt.prompt] != null) {
     response = generativeProvider.promptResponses[prompt.prompt];
   } else {
     generativeProvider.startGenerating(prompt.key);
-    if (prompt.key == "market-summary" || prompt.key == "market-predictions") {
-      response = await generativeService.generateContentFromServer(
-          prompt, stockPositionStore, optionPositionStore, forexHoldingStore);
-      generativeProvider.setGenerativeResponse(prompt.prompt, response);
-    } else if (prompt.prompt.isEmpty) {
+    if (prompt.prompt.isEmpty) {
       response = '';
       generativeProvider.generating = false;
-    } else {
+    } else if (localInference) {
       var generateContentResponse =
           await generativeService.generatePortfolioContent(
               prompt,
@@ -36,6 +33,10 @@ Future<void> generateContent(
               forexHoldingStore,
               generativeProvider);
       response = generateContentResponse.text;
+    } else {
+      response = await generativeService.generateContentFromServer(
+          prompt, stockPositionStore, optionPositionStore, forexHoldingStore);
+      generativeProvider.setGenerativeResponse(prompt.prompt, response);
     }
   }
   if (context.mounted) {

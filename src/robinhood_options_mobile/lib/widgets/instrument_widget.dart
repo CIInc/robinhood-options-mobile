@@ -550,11 +550,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       padding: const EdgeInsets.all(4.0),
                       child: ActionChip(
                         avatar: generativeProvider.generating &&
-                                generativeProvider.promptResponses
-                                    .containsKey('chart-trend') &&
-                                generativeProvider
-                                        .promptResponses['chart-trend'] ==
-                                    null
+                                generativeProvider.generatingPrompt ==
+                                    'chart-trend'
                             ? const CircularProgressIndicator()
                             : const Icon(Icons.recommend_outlined),
                         label: const Text('Trend'),
@@ -581,11 +578,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       padding: const EdgeInsets.all(4.0),
                       child: ActionChip(
                         avatar: generativeProvider.generating &&
-                                generativeProvider.promptResponses
-                                    .containsKey('stock-summary') &&
-                                generativeProvider
-                                        .promptResponses['stock-summary'] ==
-                                    null
+                                generativeProvider.generatingPrompt ==
+                                    'stock-summary'
                             ? const CircularProgressIndicator()
                             : const Icon(Icons.summarize),
                         label: const Text('Summary'),
@@ -606,10 +600,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       padding: const EdgeInsets.all(4.0),
                       child: ActionChip(
                         avatar: generativeProvider.generating &&
-                                generativeProvider.promptResponses
-                                    .containsKey('ask') &&
-                                generativeProvider.promptResponses['ask'] ==
-                                    null
+                                generativeProvider.generatingPrompt == 'ask'
                             ? const CircularProgressIndicator()
                             : const Icon(Icons.question_answer),
                         label: const Text('Ask a question'),

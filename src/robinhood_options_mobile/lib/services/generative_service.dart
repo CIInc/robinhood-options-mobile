@@ -92,7 +92,8 @@ Volume - Volume bar or other volume indicators
         // Initialize the Vertex AI service and the generative model
         // Specify a model that supports your use case
         model = FirebaseAI.vertexAI().generativeModel(
-            model: 'gemini-2.5-flash'); // gemini-2.5-flash-preview-04-17
+            // model: 'gemini-2.5-flash'
+            model: 'gemini-2.5-flash-lite'); // gemini-2.5-flash-preview-04-17
 
   Future<String> generateContentFromServer(
     Prompt prompt,

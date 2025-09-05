@@ -470,6 +470,26 @@ class _UserWidgetState extends State<UserWidget> {
                                 child: Column(
                                   children: [
                                     if (user != null) ...[
+                                      SwitchListTile(
+//leading: Icon(Icons.functions),
+                                        title:
+                                            const Text("Refresh Market Data"),
+                                        subtitle: const Text(
+                                            "Periodically update latest prices"),
+                                        value: widget.brokerageUser
+                                            .refreshEnabled, // user.refreshQuotes,
+                                        onChanged: (bool value) async {
+                                          setState(() {
+                                            user!.refreshQuotes = value;
+                                          });
+                                          // Also set the brokerageUser for unauthenticated users.
+                                          widget.brokerageUser.refreshEnabled =
+                                              value;
+                                          saveBrokerageUser(context);
+                                          _onSettingsChanged(user: user);
+                                        },
+                                        secondary: const Icon(Icons.refresh),
+                                      ),
                                       ExpansionTile(
                                           shape: const Border(),
                                           leading:
@@ -526,26 +546,6 @@ class _UserWidgetState extends State<UserWidget> {
                                               // },
                                             ),
                                           ]),
-                                      SwitchListTile(
-//leading: Icon(Icons.functions),
-                                        title:
-                                            const Text("Refresh Market Data"),
-                                        subtitle: const Text(
-                                            "Periodically update latest prices"),
-                                        value: widget.brokerageUser
-                                            .refreshEnabled, // user.refreshQuotes,
-                                        onChanged: (bool value) async {
-                                          setState(() {
-                                            user!.refreshQuotes = value;
-                                          });
-                                          // Also set the brokerageUser for unauthenticated users.
-                                          widget.brokerageUser.refreshEnabled =
-                                              value;
-                                          saveBrokerageUser(context);
-                                          _onSettingsChanged(user: user);
-                                        },
-                                        secondary: const Icon(Icons.refresh),
-                                      ),
                                     ],
 // ListTile(
                                     //     leading: const Icon(Icons.tune),

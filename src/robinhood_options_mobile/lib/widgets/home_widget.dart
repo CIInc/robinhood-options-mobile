@@ -628,15 +628,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           label: const Text('Market Summary'),
                           onPressed: () async {
                             await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts
-                                  .firstWhere((p) => p.key == 'market-summary'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                            );
+                                generativeProvider,
+                                widget.generativeService,
+                                widget.generativeService.prompts.firstWhere(
+                                    (p) => p.key == 'market-summary'),
+                                context,
+                                stockPositionStore: stockPositionStore,
+                                optionPositionStore: optionPositionStore,
+                                forexHoldingStore: forexHoldingStore,
+                                localInference:
+                                    false // Needed for googleTools RAG only available in cloud rn.
+                                );
                           },
                         ),
                       ),
@@ -651,15 +653,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           label: const Text('Market Predictions'),
                           onPressed: () async {
                             await generateContent(
-                              generativeProvider,
-                              widget.generativeService,
-                              widget.generativeService.prompts.firstWhere(
-                                  (p) => p.key == 'market-predictions'),
-                              context,
-                              stockPositionStore: stockPositionStore,
-                              optionPositionStore: optionPositionStore,
-                              forexHoldingStore: forexHoldingStore,
-                            );
+                                generativeProvider,
+                                widget.generativeService,
+                                widget.generativeService.prompts.firstWhere(
+                                    (p) => p.key == 'market-predictions'),
+                                context,
+                                stockPositionStore: stockPositionStore,
+                                optionPositionStore: optionPositionStore,
+                                forexHoldingStore: forexHoldingStore,
+                                localInference:
+                                    false // Needed for googleTools RAG only available in cloud rn.
+                                );
                           },
                         ),
                       ),
