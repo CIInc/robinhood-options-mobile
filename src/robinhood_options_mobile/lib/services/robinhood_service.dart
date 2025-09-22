@@ -658,7 +658,6 @@ Response: {
   FUTURES
   */
 // https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
-  @override
   Future<List<dynamic>> getFuturesAccounts(
       BrokerageUser user, Account account) async {
     var results = await RobinhoodService.pagedGet(user,

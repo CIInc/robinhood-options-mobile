@@ -63,10 +63,7 @@ class FuturesPositionsWidget extends StatelessWidget {
                       child: ListTile(
                         title: Text(contractId),
                         subtitle: Text(
-                            accountNumber +
-                                (avg > 0
-                                    ? ' • avg: \$${avg.toStringAsFixed(2)}'
-                                    : ''),
+                            '$accountNumber${avg > 0 ? ' • avg: \$${avg.toStringAsFixed(2)}' : ''}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                         trailing: Column(

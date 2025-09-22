@@ -2291,13 +2291,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   if (snapshotAccounts.hasData &&
                       snapshotAccounts.data != null) {
                     var accounts = snapshotAccounts.data!;
-                    var futuresAcct = accounts.firstWhere(
+                    var futuresAccount = accounts.firstWhere(
                         (f) => f['accountType'] == 'FUTURES',
                         orElse: () => null);
-                    if (futuresAcct != null) {
-                      var acctId = futuresAcct['id'];
+                    if (futuresAccount != null) {
+                      var accountId = futuresAcct['id'];
                       var stream = (widget.service as RobinhoodService)
-                          .streamFuturePositions(widget.brokerageUser, acctId);
+                          .streamFuturePositions(
+                              widget.brokerageUser, accountId);
                       return StreamBuilder<List<dynamic>>(
                           stream: stream,
                           builder: (context, futSnapshot) {
