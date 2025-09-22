@@ -37,11 +37,14 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
+import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -322,10 +325,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             account = null;
           }
 
-          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-          //   futureFuturesAccounts = (widget.service as RobinhoodService)
-          //       .getFutureAccounts(widget.brokerageUser, account!);
-          // }
+          if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+            futureFuturesAccounts = (widget.service as RobinhoodService)
+                .getFuturesAccounts(widget.brokerageUser, account!);
+          }
 
           // var futuresAccounts = data[1] as List<dynamic>;
 
@@ -521,26 +524,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-            // FUTURES
-            // StreamBuilder(
-            //     stream: futuresStream,
-            //     builder: (BuildContext context,
-            //         AsyncSnapshot<List<dynamic>> futuressnapshot) {
-            //       if (futuressnapshot.hasData) {
-            //         var futures = futuressnapshot.data!;
-            //         return SliverToBoxAdapter();
-            //       } else if (futuressnapshot.hasError) {
-            //         return SliverToBoxAdapter(
-            //           child: Text('${futuressnapshot.error}'),
-            //         );
-            //       } else {
-            //         return SliverToBoxAdapter(
-            //           child: const Center(
-            //             child: CircularProgressIndicator(),
-            //           ),
-            //         );
-            //       }
-            //     }),
             Consumer5<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
                 builder: (context,
@@ -2301,6 +2284,89 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 );
               },
             ),
+            // FUTURES: If we have futures accounts, stream aggregated positions
+            FutureBuilder<List<dynamic>>(
+                future: futureFuturesAccounts,
+                builder: (context, snapshotAccounts) {
+                  if (snapshotAccounts.hasData &&
+                      snapshotAccounts.data != null) {
+                    var accounts = snapshotAccounts.data!;
+                    var futuresAcct = accounts.firstWhere(
+                        (f) => f['accountType'] == 'FUTURES',
+                        orElse: () => null);
+                    if (futuresAcct != null) {
+                      var acctId = futuresAcct['id'];
+                      var stream = (widget.service as RobinhoodService)
+                          .streamFuturePositions(widget.brokerageUser, acctId);
+                      return StreamBuilder<List<dynamic>>(
+                          stream: stream,
+                          builder: (context, futSnapshot) {
+                            if (futSnapshot.hasData &&
+                                futSnapshot.data != null) {
+                              var list = futSnapshot.data!;
+                              // Build a store and provide it to descendants
+                              var store = FuturesPositionStore();
+                              store.addAll(list);
+                              return ChangeNotifierProvider<
+                                  FuturesPositionStore>.value(
+                                value: store,
+                                child: FuturesPositionsWidget(
+                                  showList: false,
+                                  onTapHeader: () {
+                                    // navigate to a full futures page if desired
+                                  },
+                                ),
+                              );
+                            } else if (futSnapshot.hasError) {
+                              return SliverToBoxAdapter(
+                                child: Text('${futSnapshot.error}'),
+                              );
+                            } else {
+                              return const SliverToBoxAdapter(
+                                child: Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(12.0),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              );
+                            }
+                          });
+                    }
+                    return SliverToBoxAdapter();
+                  } else {
+                    return SliverToBoxAdapter();
+                  }
+                }),
+            Consumer<OptionPositionStore>(
+                builder: (context, optionPositionStore, child) {
+              //if (optionPositions != null) {
+              var filteredOptionAggregatePositions = optionPositionStore.items
+                  .where((element) =>
+                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                              (!hasQuantityFilters[1] ||
+                                  element.quantity! <= 0)) &&
+                      (positionFilters.isEmpty ||
+                          positionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionFilters.isEmpty ||
+                          optionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionSymbolFilters.isEmpty ||
+                          optionSymbolFilters.contains(element.symbol)))
+                  .toList();
+
+              return OptionPositionsWidget(
+                widget.brokerageUser,
+                widget.service,
+                filteredOptionAggregatePositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+              );
+            }),
             Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
               //if (positions != null) {
@@ -2338,35 +2404,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 widget.brokerageUser,
                 widget.service,
                 filteredPositions,
-                showList: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-              );
-            }),
-            Consumer<OptionPositionStore>(
-                builder: (context, optionPositionStore, child) {
-              //if (optionPositions != null) {
-              var filteredOptionAggregatePositions = optionPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      (positionFilters.isEmpty ||
-                          positionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionFilters.isEmpty ||
-                          optionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionSymbolFilters.isEmpty ||
-                          optionSymbolFilters.contains(element.symbol)))
-                  .toList();
-
-              return OptionPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
-                filteredOptionAggregatePositions,
                 showList: false,
                 analytics: widget.analytics,
                 observer: widget.observer,

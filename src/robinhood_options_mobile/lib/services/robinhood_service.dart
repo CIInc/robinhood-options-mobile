@@ -658,14 +658,14 @@ Response: {
   FUTURES
   */
 // https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
-  // @override
-  // Future<List<dynamic>> getFutureAccounts(
-  //     BrokerageUser user, Account account) async {
-  //   var results = await RobinhoodService.pagedGet(user,
-  //       "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
-  //   //debugPrint(results);
-  //   return results;
-  // }
+  @override
+  Future<List<dynamic>> getFuturesAccounts(
+      BrokerageUser user, Account account) async {
+    var results = await RobinhoodService.pagedGet(user,
+        "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
+    //debugPrint(results);
+    return results;
+  }
 
 // https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 // https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=c8e338f7-6764-4b68-ac05-d8f431c0f869%2Cc8e338f7-6764-4b68-ac05-d8f431c0f869
