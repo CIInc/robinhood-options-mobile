@@ -309,7 +309,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 220.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.36,
+                                childAspectRatio: 1.32,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -347,7 +347,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                 maxCrossAxisExtent: 220.0,
                                 mainAxisSpacing: 10.0,
                                 crossAxisSpacing: 10.0,
-                                childAspectRatio: 1.36,
+                                childAspectRatio: 1.32,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {

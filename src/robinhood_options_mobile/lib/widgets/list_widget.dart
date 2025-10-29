@@ -428,7 +428,7 @@ class _ListWidgetState extends State<ListWidget>
             maxCrossAxisExtent: 150.0,
             mainAxisSpacing: 2.0,
             crossAxisSpacing: 2.0,
-            childAspectRatio: 1.22,
+            childAspectRatio: 1.2,
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {

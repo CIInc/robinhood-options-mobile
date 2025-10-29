@@ -55,6 +55,8 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -1375,89 +1377,171 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          // const SizedBox(width: 8),
-          if (instrument.tradeableChainId != null) ...[
-            FilledButton.tonal(
-              child: const Text('OPTION CHAIN'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentOptionChainWidget(
-                              widget.user,
-                              widget.service,
-                              instrument,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                            )));
-              },
-            ),
-          ],
-          // const Expanded(child: SizedBox()),
-          const SizedBox(width: 8),
-          FilledButton(
-              child: const Text('TRADE'),
-              onPressed: () =>
-                  // showDialog<String>(
-                  //   context: context,
-                  //   builder: (BuildContext context) => AlertDialog(
-                  //     title: const Text('Alert'),
-                  //     content: const Text('This feature is not implemented.'),
-                  //     actions: <Widget>[
-                  //       TextButton(
-                  //         onPressed: () => Navigator.pop(context, 'OK'),
-                  //         child: const Text('OK'),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            if (instrument.tradeableChainId != null) ...[
+              FilledButton.tonal(
+                child: const Text('OPTION CHAIN'),
+                onPressed: () {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeInstrumentWidget(
-                                widget.user, widget.service,
-                                //widget.account,
-                                // stockPosition: positi,
-                                instrument: instrument,
-                                positionType: "Buy",
+                          builder: (context) => InstrumentOptionChainWidget(
+                                widget.user,
+                                widget.service,
+                                instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
-                              )))),
-          // const SizedBox(width: 8),
-          // TextButton(
-          //     child: const Text('SELL'),
-          //     onPressed: () =>
-          //         // showDialog<String>(
-          //         //   context: context,
-          //         //   builder: (BuildContext context) => AlertDialog(
-          //         //     title: const Text('Alert'),
-          //         //     content: const Text('This feature is not implemented.'),
-          //         //     actions: <Widget>[
-          //         //       TextButton(
-          //         //         onPressed: () => Navigator.pop(context, 'OK'),
-          //         //         child: const Text('OK'),
-          //         //       ),
-          //         //     ],
-          //         //   ),
-          //         // ),
-          //         Navigator.push(
-          //             context,
-          //             MaterialPageRoute(
-          //                 builder: (context) => TradeInstrumentWidget(
-          //                       widget.user, widget.service,
-          //                       //widget.account,
-          //                       // stockPosition: positi,
-          //                       instrument: instrument,
-          //                       positionType: "Sell",
-          //                       analytics: widget.analytics,
-          //                       observer: widget.observer,
-          //                     )))),
-          const SizedBox(width: 4),
-        ],
+                                generativeService: widget.generativeService,
+                              )));
+                },
+              ),
+            ],
+            const SizedBox(width: 8),
+            FilledButton(
+              child: const Text('TRADE'),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => TradeInstrumentWidget(
+                            widget.user,
+                            widget.service,
+                            instrument: instrument,
+                            positionType: "Buy",
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                          ))),
+            ),
+            const SizedBox(width: 8),
+            // Agentic Trading Button
+            Consumer2<AgenticTradingProvider?, PortfolioStore?>(
+              builder:
+                  (context, agenticTradingProvider, portfolioStore, child) {
+                final isLoading =
+                    agenticTradingProvider?.isTradeInProgress ?? false;
+                return FilledButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          final symbol = instrument.symbol;
+                          final price = instrument
+                                  .quoteObj?.lastExtendedHoursTradePrice ??
+                              instrument.quoteObj?.lastTradePrice;
+                          double cash = 10000.0;
+                          int shares = 0;
+                          if (portfolioStore?.items != null &&
+                              portfolioStore!.items.isNotEmpty) {
+                            for (final p in portfolioStore.items) {
+                              if (p.account == instrument.id ||
+                                  p.url.contains(symbol)) {
+                                shares = (p.equity ?? 0).toInt();
+                              }
+                              cash += (p.marketValue ?? 0);
+                            }
+                          }
+                          final portfolioState = {'cash': cash, symbol: shares};
+                          if (price != null && agenticTradingProvider != null) {
+                            await agenticTradingProvider.initiateTradeProposal(
+                              symbol: symbol,
+                              currentPrice: price,
+                              portfolioState: portfolioState,
+                            );
+                            if (context.mounted) {
+                              final msg =
+                                  agenticTradingProvider.tradeProposalMessage;
+                              final proposal =
+                                  agenticTradingProvider.lastTradeProposal;
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(16)),
+                                ),
+                                builder: (context) {
+                                  return Padding(
+                                    padding: MediaQuery.of(context).viewInsets,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text(
+                                                'Agentic Trade Result',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(Icons.close),
+                                                onPressed: () =>
+                                                    Navigator.of(context).pop(),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (proposal != null) ...[
+                                          ListTile(
+                                            title: const Text('Symbol'),
+                                            trailing:
+                                                Text('${proposal['symbol']}'),
+                                          ),
+                                          ListTile(
+                                            title: const Text('Action'),
+                                            trailing:
+                                                Text('${proposal['action']}'),
+                                          ),
+                                          ListTile(
+                                            title: const Text('Quantity'),
+                                            trailing:
+                                                Text('${proposal['quantity']}'),
+                                          ),
+                                          ListTile(
+                                            title: const Text('Price'),
+                                            trailing:
+                                                Text('${proposal['price']}'),
+                                          ),
+                                        ],
+                                        Padding(
+                                          padding: const EdgeInsets.all(16.0),
+                                          child: Text(
+                                            msg,
+                                            style:
+                                                const TextStyle(fontSize: 16),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('AGENTIC TRADE'),
+                );
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
       ),
     );
   }
@@ -1869,7 +1953,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           title: const Text("Market Cap"),
           trailing: Text(
               formatCompactNumber
-                  .format(instrument.fundamentalsObj!.marketCap!),
+                  .format(instrument.fundamentalsObj!.marketCap ?? 0),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
@@ -1877,7 +1961,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           title: const Text("Shares Outstanding"),
           trailing: Text(
               formatCompactNumber
-                  .format(instrument.fundamentalsObj!.sharesOutstanding!),
+                  .format(instrument.fundamentalsObj!.sharesOutstanding ?? 0),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
