@@ -113,4 +113,4 @@ Potential future improvements:
 - CSV validation before import
 - Preview of transactions before confirming import
 - Import history tracking
-- Ability to undo imports
+- Ability to undo imports.
