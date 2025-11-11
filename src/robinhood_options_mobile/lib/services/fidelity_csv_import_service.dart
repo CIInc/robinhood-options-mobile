@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/option_leg.dart';
@@ -177,7 +178,7 @@ class FidelityCsvImportService {
         settlementDate ?? runDate ?? DateTime.now(), // updatedAt
       );
     } catch (e) {
-      print('Error parsing instrument order: $e');
+      debugPrint('Error parsing instrument order: $e');
       return null;
     }
   }
@@ -286,7 +287,7 @@ class FidelityCsvImportService {
         settlementDate ?? runDate ?? DateTime.now(), // updatedAt
       );
     } catch (e) {
-      print('Error parsing option order: $e');
+      debugPrint('Error parsing option order: $e');
       return null;
     }
   }
@@ -347,7 +348,7 @@ class FidelityCsvImportService {
         'type': type,
       };
     } catch (e) {
-      print('Error parsing option details: $e');
+      debugPrint('Error parsing option details: $e');
       return null;
     }
   }
@@ -371,7 +372,7 @@ class FidelityCsvImportService {
       // Try ISO format
       return DateTime.tryParse(dateStr);
     } catch (e) {
-      print('Error parsing date: $e');
+      debugPrint('Error parsing date: $e');
       return null;
     }
   }
