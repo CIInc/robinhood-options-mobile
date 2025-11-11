@@ -2499,26 +2499,14 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
       }
 
       // Merge imported orders with existing orders
-      if (positionOrders != null) {
-        setState(() {
-          positionOrders = [...positionOrders!, ...importedInstrumentOrders];
-        });
-      } else {
-        setState(() {
-          positionOrders = importedInstrumentOrders;
-        });
-      }
-
-      if (optionOrders != null) {
-        setState(() {
-          optionOrders = [...optionOrders!, ...importedOptionOrders];
-        });
-      } else {
-        setState(() {
-          optionOrders = importedOptionOrders;
-        });
-      }
-
+      setState(() {
+        positionOrders = positionOrders != null
+            ? [...positionOrders!, ...importedInstrumentOrders]
+            : importedInstrumentOrders;
+        optionOrders = optionOrders != null
+            ? [...optionOrders!, ...importedOptionOrders]
+            : importedOptionOrders;
+      });
       // Log analytics event
       widget.analytics.logEvent(
         name: 'fidelity_csv_import',
