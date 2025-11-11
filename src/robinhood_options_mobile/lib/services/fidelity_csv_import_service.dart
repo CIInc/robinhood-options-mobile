@@ -315,8 +315,13 @@ class FidelityCsvImportService {
         type = 'put';
       }
 
-      // Try to find strike price (look for number with decimal)
-      final strikeMatch = RegExp(r'\$?(\d+\.?\d*)').firstMatch(combined);
+      // Try to find strike price (look for number with decimal, preceded by $ or before CALL/PUT)
+      RegExp strikeRegexDollar = RegExp(r'\$(\d+\.?\d*)');
+      RegExp strikeRegexNoDollar = RegExp(r'(\d+\.?\d*)\s+(CALL|PUT|C|P)\b');
+      RegExpMatch? strikeMatch = strikeRegexDollar.firstMatch(combined);
+      if (strikeMatch == null) {
+        strikeMatch = strikeRegexNoDollar.firstMatch(combined);
+      }
       final strike =
           strikeMatch != null ? double.tryParse(strikeMatch.group(1)!) : null;
 
