@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
+import 'package:robinhood_options_mobile/services/fidelity_position_calculator.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/forex_historicals.dart';
@@ -65,6 +66,38 @@ class FidelityService implements IBrokerageService {
   
   @override
   String redirectUrl = '';
+
+  // Static storage for imported orders (in-memory)
+  // In a production app, this should be persisted to Firebase/local storage
+  static final Map<String, List<InstrumentOrder>> _importedStockOrders = {};
+  static final Map<String, List<OptionOrder>> _importedOptionOrders = {};
+
+  /// Store imported orders for a user
+  static void storeImportedOrders({
+    required String userId,
+    required List<InstrumentOrder> stockOrders,
+    required List<OptionOrder> optionOrders,
+  }) {
+    if (!_importedStockOrders.containsKey(userId)) {
+      _importedStockOrders[userId] = [];
+    }
+    if (!_importedOptionOrders.containsKey(userId)) {
+      _importedOptionOrders[userId] = [];
+    }
+    
+    _importedStockOrders[userId]!.addAll(stockOrders);
+    _importedOptionOrders[userId]!.addAll(optionOrders);
+  }
+
+  /// Get imported stock orders for a user
+  static List<InstrumentOrder> getImportedStockOrders(String userId) {
+    return _importedStockOrders[userId] ?? [];
+  }
+
+  /// Get imported option orders for a user
+  static List<OptionOrder> getImportedOptionOrders(String userId) {
+    return _importedOptionOrders[userId] ?? [];
+  }
 
   /// For Fidelity, there's no API authentication - users import CSV files manually
   Future<BrokerageUser?> getAccessToken() async {
@@ -134,6 +167,18 @@ class FidelityService implements IBrokerageService {
       QuoteStore quoteStore,
       {bool nonzero = true,
       DocumentReference? userDoc}) async {
+    // Calculate positions from imported orders
+    final userId = user.userName ?? 'fidelity_user';
+    final orders = getImportedStockOrders(userId);
+    final positions = FidelityPositionCalculator.calculateStockPositions(
+        orders, 'CSV-IMPORT');
+
+    // Add positions to store
+    for (var position in positions) {
+      if (nonzero && (position.quantity ?? 0) <= 0) continue;
+      store.addOrUpdate(position);
+    }
+
     return store;
   }
 
@@ -165,6 +210,14 @@ class FidelityService implements IBrokerageService {
   Future<OptionPositionStore> getOptionPositionStore(BrokerageUser user,
       OptionPositionStore store, InstrumentStore instrumentStore,
       {bool nonzero = true, DocumentReference? userDoc}) async {
+    // Calculate positions from imported orders
+    final positions = await getAggregateOptionPositions(user, nonzero: nonzero);
+    
+    for (var position in positions) {
+      store.addOrUpdate(position);
+    }
+    store.sort();
+
     return store;
   }
 
@@ -172,7 +225,17 @@ class FidelityService implements IBrokerageService {
   Future<List<OptionAggregatePosition>> getAggregateOptionPositions(
       BrokerageUser user,
       {bool nonzero = true}) async {
-    return [];
+    // Calculate positions from imported orders
+    final userId = user.userName ?? 'fidelity_user';
+    final orders = getImportedOptionOrders(userId);
+    final positions = FidelityPositionCalculator.calculateOptionPositions(
+        orders, 'CSV-IMPORT');
+
+    // Filter by nonzero if requested
+    if (nonzero) {
+      return positions.where((p) => (p.quantity ?? 0) > 0).toList();
+    }
+    return positions;
   }
 
   @override

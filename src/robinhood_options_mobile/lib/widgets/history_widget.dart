@@ -23,6 +23,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/fidelity_csv_import_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -2497,6 +2498,14 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
       if (mounted) {
         Navigator.of(context).pop();
       }
+
+      // Store imported orders in Fidelity service for position calculation
+      final userId = widget.brokerageUser.userName ?? 'fidelity_user';
+      FidelityService.storeImportedOrders(
+        userId: userId,
+        stockOrders: importedInstrumentOrders,
+        optionOrders: importedOptionOrders,
+      );
 
       // Merge imported orders with existing orders
       setState(() {
