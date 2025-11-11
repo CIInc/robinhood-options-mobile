@@ -1,9 +1,24 @@
 # Fidelity CSV Import
 
 ## Overview
-The Fidelity CSV import feature allows users to import their transaction history from Fidelity brokerage accounts into the RealizeAlpha app.
+The Fidelity CSV import feature allows users to import their transaction history from Fidelity brokerage accounts into the RealizeAlpha app. Fidelity is integrated as a full brokerage service with support for multi-account tracking and persistence.
 
-## How to Use
+## Setup
+
+### Link Your Fidelity Account
+
+1. **Open the RealizeAlpha app**
+2. **Navigate to Link Brokerage Account**:
+   - If you don't have any accounts linked, you'll see the login screen automatically
+   - If you already have accounts, tap your profile icon and select "Link Account"
+3. **Select Fidelity**:
+   - Tap the "Fidelity" choice chip
+   - Tap "Link Fidelity (CSV Import)" button
+4. **Account Created**:
+   - A Fidelity account will be created and saved to your profile
+   - You can now import transactions for this account
+
+### Import Transactions
 
 1. **Export from Fidelity**:
    - Log into your Fidelity account
@@ -15,6 +30,7 @@ The Fidelity CSV import feature allows users to import their transaction history
 
 2. **Import into RealizeAlpha**:
    - Open the RealizeAlpha app
+   - Make sure your Fidelity account is selected (via profile menu)
    - Navigate to the Transactions (History) tab
    - Tap the upload icon (📤) in the top app bar
    - Select your Fidelity CSV file
@@ -77,6 +93,9 @@ Run Date,Action,Symbol,Security Description,Security Type,Quantity,Price,Commiss
 
 ## Features
 
+- **Full Brokerage Integration**: Fidelity is a first-class brokerage service in the app
+- **Multi-Account Support**: Can track multiple brokerage accounts (Fidelity, Robinhood, Schwab, etc.) simultaneously
+- **Account Persistence**: Fidelity accounts are saved to your profile and persist across sessions
 - **Automatic Header Detection**: The parser automatically finds the header row, even if there are metadata rows at the top of the CSV
 - **Mixed Transactions**: Can handle CSVs containing both stock and option transactions
 - **Error Handling**: Provides clear error messages if the import fails
@@ -85,10 +104,12 @@ Run Date,Action,Symbol,Security Description,Security Type,Quantity,Price,Commiss
 
 ## Limitations
 
+- **CSV-Based Only**: Unlike other brokerages, Fidelity doesn't have OAuth/API integration - all data comes from manual CSV imports
 - Only supports Fidelity CSV format
 - Transactions are appended to existing data (not merged)
 - No automatic duplicate detection
 - Option details parsing is best-effort based on symbol format
+- No live data (quotes, positions, market data) - only historical transaction data from CSV imports
 
 ## Troubleshooting
 
