@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/services/plaid_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
@@ -39,7 +40,9 @@ class BrokerageUser {
                 ? BrokerageSource.schwab
                 : json['source'] == BrokerageSource.plaid.toString()
                     ? BrokerageSource.plaid
-                    : BrokerageSource.demo,
+                    : json['source'] == BrokerageSource.fidelity.toString()
+                        ? BrokerageSource.fidelity
+                        : BrokerageSource.demo,
         userName = json['userName'],
         credentials = json['credentials'],
         refreshEnabled = json['refreshEnabled'] ?? false,
@@ -89,7 +92,9 @@ class BrokerageUser {
                 ? SchwabService()
                 : user.source == BrokerageSource.plaid
                     ? PlaidService()
-                    : DemoService();
+                    : user.source == BrokerageSource.fidelity
+                        ? FidelityService()
+                        : DemoService();
 
         var client = Client(credentials, identifier: service.clientId);
         user.oauth2Client = client;
