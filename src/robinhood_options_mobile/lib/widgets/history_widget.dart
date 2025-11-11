@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 // import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/constants.dart';
@@ -20,6 +22,7 @@ import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_csv_import_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -511,6 +514,11 @@ class _HistoryPageState extends State<HistoryPage>
                                 fontSize: 16.0, color: Colors.white70)),
                       ]),
                   actions: [
+                    IconButton(
+                      icon: const Icon(Icons.upload_file),
+                      tooltip: 'Import Fidelity CSV',
+                      onPressed: _importFidelityCsv,
+                    ),
                     IconButton(
                         icon: auth.currentUser != null
                             ? (auth.currentUser!.photoURL == null
@@ -2436,6 +2444,120 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
       optionOrderStream = null;
       positionOrderStream = null;
     });
+  }
+
+  Future<void> _importFidelityCsv() async {
+    try {
+      // Pick a CSV file
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        // User canceled the picker
+        return;
+      }
+
+      // Show loading indicator
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
+      // Get the file
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          _showImportError('Could not read file path');
+        }
+        return;
+      }
+
+      final file = File(filePath);
+
+      // Parse the CSV
+      final importedData =
+          await FidelityCsvImportService.parseTransactionsCsv(file);
+
+      final List<InstrumentOrder> importedInstrumentOrders =
+          (importedData['instrumentOrders'] as List).cast<InstrumentOrder>();
+      final List<OptionOrder> importedOptionOrders =
+          (importedData['optionOrders'] as List).cast<OptionOrder>();
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Merge imported orders with existing orders
+      if (positionOrders != null) {
+        setState(() {
+          positionOrders = [...positionOrders!, ...importedInstrumentOrders];
+        });
+      } else {
+        setState(() {
+          positionOrders = importedInstrumentOrders;
+        });
+      }
+
+      if (optionOrders != null) {
+        setState(() {
+          optionOrders = [...optionOrders!, ...importedOptionOrders];
+        });
+      } else {
+        setState(() {
+          optionOrders = importedOptionOrders;
+        });
+      }
+
+      // Log analytics event
+      widget.analytics.logEvent(
+        name: 'fidelity_csv_import',
+        parameters: {
+          'stock_count': importedInstrumentOrders.length,
+          'option_count': importedOptionOrders.length,
+        },
+      );
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(
+                'Successfully imported ${importedInstrumentOrders.length} stock orders and ${importedOptionOrders.length} option orders'),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+          ));
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+      _showImportError(e.toString());
+    }
+  }
+
+  void _showImportError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text('Import failed: $message'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ));
   }
 
   /*
