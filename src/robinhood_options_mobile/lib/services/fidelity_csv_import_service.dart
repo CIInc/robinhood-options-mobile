@@ -92,7 +92,7 @@ class FidelityCsvImportService {
   /// Check if the transaction is an option
   static bool _isOptionTransaction(Map<String, String> rowMap) {
     final symbol = rowMap['Symbol'] ?? '';
-    final description = rowMap['Description'] ?? '';
+    final description = rowMap['Description'] ?? rowMap['Security Description'] ?? '';
     final securityType = rowMap['Security Type'] ?? '';
 
     // Fidelity option symbols typically contain spaces and keywords like CALL/PUT
