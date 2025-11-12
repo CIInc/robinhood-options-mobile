@@ -32,6 +32,12 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable # or: beta, master (or main)
+          cache: true
+          # optional parameters follow
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
+          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
+          pub-cache-key: "flutter-pub-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache of dart pub get dependencies
+          pub-cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
 
       - name: Install dependencies
         run: flutter pub get
@@ -55,30 +61,34 @@ jobs:
       # - name: Build web
       #   run: flutter build web --web-renderer html
 
-      - name: Install Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
-          java-version: '17'
+      # Ucomment the following steps to build Android
 
-      - name: Setup Android Signing
-        run: |
-          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+      # - name: Install Java
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     distribution: 'zulu' # Default from v1. See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+      #     java-version: '17'
 
-      - name: Build Android APK
-        run: flutter build apk --release
-        continue-on-error: false
+      # - name: Setup Android Signing
+      #   run: |
+      #     echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+      #     echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
 
-      - name: Upload Android APK Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          # Artifact name
-          name: release-apk
-          # A file, directory or wildcard pattern that describes what to upload
-          path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
-          # The desired behavior if no files are found using the provided path.
-        continue-on-error: false
+      # - name: Build Android APK
+      #   run: flutter build apk --release
+      #   continue-on-error: false
+
+      # - name: Upload Android APK Build Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     # Artifact name
+      #     name: release-apk
+      #     # A file, directory or wildcard pattern that describes what to upload
+      #     path: src/robinhood_options_mobile/build/app/outputs/flutter-apk/app-release.apk
+      #     # The desired behavior if no files are found using the provided path.
+      #   continue-on-error: false
+
+
 
       # - name: Build Android AppBundle
       #   run: flutter build appbundle --release
