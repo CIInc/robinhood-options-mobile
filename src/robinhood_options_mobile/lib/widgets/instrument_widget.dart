@@ -3564,8 +3564,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: TextStyle(fontSize: 19.0),
             ),
           ),
-          Consumer<AgenticTradingProvider>(
-            builder: (context, agenticTradingProvider, child) {
+          Consumer2<AgenticTradingProvider, AccountStore>(
+            builder: (context, agenticTradingProvider, accountStore, child) {
               final signal = agenticTradingProvider.tradeSignal;
               if (signal == null || signal.isEmpty) {
                 return const Card(
@@ -3687,20 +3687,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           };
 
                           // Build portfolio state with all positions (copied from trade proposal logic)
+                          // Get actual portfolio cash from account (same as Home widget)
                           double cash = 0.0;
-                          final portfolioStore = Provider.of<PortfolioStore?>(
-                              context,
-                              listen: false);
+                          if (accountStore.items.isNotEmpty) {
+                            final account = accountStore.items.first;
+                            cash = account.portfolioCash ?? 0.0;
+                          }
+
                           final stockPositionStore =
                               Provider.of<InstrumentPositionStore>(context,
                                   listen: false);
-
-                          if (portfolioStore?.items != null &&
-                              portfolioStore!.items.isNotEmpty) {
-                            for (final p in portfolioStore.items) {
-                              cash += (p.marketValue ?? 0);
-                            }
-                          }
 
                           final Map<String, dynamic> portfolioState = {
                             'cash': cash,
