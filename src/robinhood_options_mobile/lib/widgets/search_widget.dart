@@ -163,7 +163,6 @@ class _SearchWidgetState extends State<SearchWidget>
       List<MidlandMoversItem>? losers,
       List<Instrument>? listMovers,
       List<Instrument>? listMostPopular,
-      //List<Map<String, dynamic>>? tradeSignals,
       bool done = false}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
