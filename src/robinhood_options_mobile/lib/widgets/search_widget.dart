@@ -728,11 +728,10 @@ class _SearchWidgetState extends State<SearchWidget>
                     ),
                   ]),
               onTap: () async {
-                if (signal['proposal']?['symbol'] == null) return;
+                final symbol = signal['proposal']?['symbol'];
+                if (symbol == null || symbol == 'N/A') return;
                 var instrument = await widget.service.getInstrumentBySymbol(
-                    widget.brokerageUser,
-                    instrumentStore!,
-                    signal['proposal']['symbol']);
+                    widget.brokerageUser, instrumentStore!, symbol);
 
                 if (!mounted || instrument == null) return;
                 Navigator.push(

@@ -175,15 +175,16 @@ class AgenticTradingProvider with ChangeNotifier {
       final status = data['status'] as String? ?? 'error';
       final reason = data['reason']?.toString();
       if (status == 'approved') {
-        final trade = Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
-        _lastTradeProposal = trade;
+        final proposal =
+            Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
+        _lastTradeProposal = proposal;
         final assessment =
             Map<String, dynamic>.from(data['assessment'] as Map? ?? {});
         _lastAssessment = assessment;
         final reasonMsg =
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
         _tradeProposalMessage =
-            'Trade proposal approved for $symbol.\n${trade['action']} ${trade['quantity']} of ${trade['symbol']}$reasonMsg';
+            'Trade proposal approved for $symbol.\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
         _analytics.logEvent(name: 'agentic_trading_trade_approved');
       } else {
         _lastTradeProposal = null;

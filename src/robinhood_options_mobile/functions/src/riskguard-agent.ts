@@ -34,7 +34,7 @@ export async function assessTrade(proposal: any,
   let currentPosition = 0;
   if (portfolioState && portfolioState[symbol]) {
     if (typeof portfolioState[symbol] === "object" &&
-        portfolioState[symbol].quantity !== undefined) {
+      portfolioState[symbol].quantity !== undefined) {
       currentPosition = Number(portfolioState[symbol].quantity);
     } else {
       currentPosition = Number(portfolioState[symbol]);
@@ -55,7 +55,7 @@ export async function assessTrade(proposal: any,
 
   // Calculate total portfolio value from ALL positions
   let totalPortfolioValue = cash;
-  const positions: {[key: string]: {quantity: number, price: number}} = {};
+  const positions: { [key: string]: { quantity: number, price: number } } = {};
 
   // Iterate through all positions in portfolioState
   for (const [posSymbol, posData] of Object.entries(portfolioState)) {
@@ -83,8 +83,8 @@ export async function assessTrade(proposal: any,
     }
   }
 
-  // Calculate proposed position value
-  const proposedPositionValue = Math.abs(proposedPosition) * price;
+  // Calculate proposed position value (use signed value for BUY/SELL)
+  const proposedPositionValue = proposedPosition * price;
 
   // Calculate concentration ratio
   const proposedConcentration = totalPortfolioValue > 0 ?

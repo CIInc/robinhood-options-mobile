@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -1426,10 +1427,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
             const SizedBox(width: 8),
             // Agentic Trading Button
-            Consumer3<AgenticTradingProvider?, PortfolioStore?,
-                InstrumentPositionStore>(
+            Consumer4<AgenticTradingProvider?, PortfolioStore?,
+                InstrumentPositionStore, AccountStore>(
               builder: (context, agenticTradingProvider, portfolioStore,
-                  stockPositionStore, child) {
+                  stockPositionStore, accountStore, child) {
                 final isLoading =
                     agenticTradingProvider?.isTradeInProgress ?? false;
                 return FilledButton(
@@ -1441,15 +1442,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   .quoteObj?.lastExtendedHoursTradePrice ??
                               instrument.quoteObj?.lastTradePrice;
 
-                          // Calculate cash from portfolio
+                          // Get actual portfolio cash from account (same as Home widget)
                           double cash = 0.0;
-                          if (portfolioStore?.items != null &&
-                              portfolioStore!.items.isNotEmpty) {
-                            // Sum all portfolio market values as cash-equivalent
-                            // In a real scenario, you'd get actual cash from account
-                            for (final p in portfolioStore.items) {
-                              cash += (p.marketValue ?? 0);
-                            }
+                          if (accountStore.items.isNotEmpty) {
+                            final account = accountStore.items.first;
+                            cash = account.portfolioCash ?? 0.0;
                           }
 
                           // Build portfolio state with all positions
@@ -3688,8 +3685,49 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             'quantity': signal['quantity'] ?? 1,
                             'price': signal['price'] ?? 0,
                           };
-                          // TODO: Replace with real portfolio state
-                          final portfolioState = <String, dynamic>{};
+
+                          // Build portfolio state with all positions (copied from trade proposal logic)
+                          double cash = 0.0;
+                          final portfolioStore = Provider.of<PortfolioStore?>(
+                              context,
+                              listen: false);
+                          final stockPositionStore =
+                              Provider.of<InstrumentPositionStore>(context,
+                                  listen: false);
+
+                          if (portfolioStore?.items != null &&
+                              portfolioStore!.items.isNotEmpty) {
+                            for (final p in portfolioStore.items) {
+                              cash += (p.marketValue ?? 0);
+                            }
+                          }
+
+                          final Map<String, dynamic> portfolioState = {
+                            'cash': cash,
+                          };
+
+                          for (final position in stockPositionStore.items) {
+                            if (position.instrumentObj != null &&
+                                position.quantity != null &&
+                                position.quantity! > 0) {
+                              final posSymbol = position.instrumentObj!.symbol;
+                              final posQuantity = position.quantity!;
+                              final posPrice = position.instrumentObj!.quoteObj
+                                      ?.lastExtendedHoursTradePrice ??
+                                  position
+                                      .instrumentObj!.quoteObj?.lastTradePrice;
+
+                              if (posPrice != null) {
+                                portfolioState[posSymbol] = {
+                                  'quantity': posQuantity,
+                                  'price': posPrice,
+                                };
+                              } else {
+                                portfolioState[posSymbol] = posQuantity;
+                              }
+                            }
+                          }
+
                           final provider = Provider.of<AgenticTradingProvider>(
                               context,
                               listen: false);
