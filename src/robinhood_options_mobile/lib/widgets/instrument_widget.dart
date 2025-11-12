@@ -148,6 +148,54 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
 
+  /// Builds a portfolio state map with cash and all stock positions.
+  /// 
+  /// Returns a map containing:
+  /// - 'cash': The available portfolio cash from the account
+  /// - For each position: symbol -> {quantity, price} or just quantity if price unavailable
+  Map<String, dynamic> _buildPortfolioState(BuildContext context) {
+    // Get actual portfolio cash from account (same as Home widget)
+    double cash = 0.0;
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (accountStore.items.isNotEmpty) {
+      final account = accountStore.items.first;
+      cash = account.portfolioCash ?? 0.0;
+    }
+
+    final stockPositionStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+
+    final Map<String, dynamic> portfolioState = {
+      'cash': cash,
+    };
+
+    // Add all stock positions with their quantities and prices
+    for (final position in stockPositionStore.items) {
+      if (position.instrumentObj != null &&
+          position.quantity != null &&
+          position.quantity! > 0) {
+        final posSymbol = position.instrumentObj!.symbol;
+        final posQuantity = position.quantity!;
+        final posPrice = position.instrumentObj!.quoteObj
+                ?.lastExtendedHoursTradePrice ??
+            position.instrumentObj!.quoteObj?.lastTradePrice;
+
+        if (posPrice != null) {
+          // Store as object with quantity and price for accurate valuation
+          portfolioState[posSymbol] = {
+            'quantity': posQuantity,
+            'price': posPrice,
+          };
+        } else {
+          // Fallback to just quantity if price unavailable
+          portfolioState[posSymbol] = posQuantity;
+        }
+      }
+    }
+
+    return portfolioState;
+  }
+
   @override
   Widget build(BuildContext context) {
     var instrument = widget.instrument;
@@ -1442,42 +1490,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   .quoteObj?.lastExtendedHoursTradePrice ??
                               instrument.quoteObj?.lastTradePrice;
 
-                          // Get actual portfolio cash from account (same as Home widget)
-                          double cash = 0.0;
-                          if (accountStore.items.isNotEmpty) {
-                            final account = accountStore.items.first;
-                            cash = account.portfolioCash ?? 0.0;
-                          }
-
                           // Build portfolio state with all positions
-                          final Map<String, dynamic> portfolioState = {
-                            'cash': cash,
-                          };
-
-                          // Add all stock positions with their quantities and prices
-                          for (final position in stockPositionStore.items) {
-                            if (position.instrumentObj != null &&
-                                position.quantity != null &&
-                                position.quantity! > 0) {
-                              final posSymbol = position.instrumentObj!.symbol;
-                              final posQuantity = position.quantity!;
-                              final posPrice = position.instrumentObj!.quoteObj
-                                      ?.lastExtendedHoursTradePrice ??
-                                  position
-                                      .instrumentObj!.quoteObj?.lastTradePrice;
-
-                              if (posPrice != null) {
-                                // Store as object with quantity and price for accurate valuation
-                                portfolioState[posSymbol] = {
-                                  'quantity': posQuantity,
-                                  'price': posPrice,
-                                };
-                              } else {
-                                // Fallback to just quantity if price unavailable
-                                portfolioState[posSymbol] = posQuantity;
-                              }
-                            }
-                          }
+                          final portfolioState = _buildPortfolioState(context);
 
                           if (price != null && agenticTradingProvider != null) {
                             await agenticTradingProvider.initiateTradeProposal(
@@ -3686,43 +3700,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             'price': signal['price'] ?? 0,
                           };
 
-                          // Build portfolio state with all positions (copied from trade proposal logic)
-                          // Get actual portfolio cash from account (same as Home widget)
-                          double cash = 0.0;
-                          if (accountStore.items.isNotEmpty) {
-                            final account = accountStore.items.first;
-                            cash = account.portfolioCash ?? 0.0;
-                          }
-
-                          final stockPositionStore =
-                              Provider.of<InstrumentPositionStore>(context,
-                                  listen: false);
-
-                          final Map<String, dynamic> portfolioState = {
-                            'cash': cash,
-                          };
-
-                          for (final position in stockPositionStore.items) {
-                            if (position.instrumentObj != null &&
-                                position.quantity != null &&
-                                position.quantity! > 0) {
-                              final posSymbol = position.instrumentObj!.symbol;
-                              final posQuantity = position.quantity!;
-                              final posPrice = position.instrumentObj!.quoteObj
-                                      ?.lastExtendedHoursTradePrice ??
-                                  position
-                                      .instrumentObj!.quoteObj?.lastTradePrice;
-
-                              if (posPrice != null) {
-                                portfolioState[posSymbol] = {
-                                  'quantity': posQuantity,
-                                  'price': posPrice,
-                                };
-                              } else {
-                                portfolioState[posSymbol] = posQuantity;
-                              }
-                            }
-                          }
+                          // Build portfolio state with all positions
+                          final portfolioState = _buildPortfolioState(context);
 
                           final provider = Provider.of<AgenticTradingProvider>(
                               context,
