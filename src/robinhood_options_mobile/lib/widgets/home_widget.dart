@@ -2295,7 +2295,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         (f) => f['accountType'] == 'FUTURES',
                         orElse: () => null);
                     if (futuresAccount != null) {
-                      var accountId = futuresAcct['id'];
+                      var accountId = futuresAccount['id'];
                       var stream = (widget.service as RobinhoodService)
                           .streamFuturePositions(
                               widget.brokerageUser, accountId);
