@@ -88,7 +88,7 @@ export async function assessTrade(proposal: any,
 
   // Calculate concentration ratio
   const proposedConcentration = totalPortfolioValue > 0 ?
-    (proposedPositionValue / totalPortfolioValue) : 1.0;
+    (Math.abs(proposedPositionValue) / totalPortfolioValue) : 1.0;
 
   logger.info("RiskGuard: Portfolio analysis", {
     symbol,
