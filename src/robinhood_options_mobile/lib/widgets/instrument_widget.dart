@@ -149,7 +149,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   */
 
   /// Builds a portfolio state map with cash and all stock positions.
-  /// 
+  ///
   /// Returns a map containing:
   /// - 'cash': The available portfolio cash from the account
   /// - For each position: symbol -> {quantity, price} or just quantity if price unavailable
@@ -176,9 +176,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           position.quantity! > 0) {
         final posSymbol = position.instrumentObj!.symbol;
         final posQuantity = position.quantity!;
-        final posPrice = position.instrumentObj!.quoteObj
-                ?.lastExtendedHoursTradePrice ??
-            position.instrumentObj!.quoteObj?.lastTradePrice;
+        final posPrice =
+            position.instrumentObj!.quoteObj?.lastExtendedHoursTradePrice ??
+                position.instrumentObj!.quoteObj?.lastTradePrice;
 
         if (posPrice != null) {
           // Store as object with quantity and price for accurate valuation
@@ -3717,10 +3717,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Risk Guard'),
-                              content: Text(result['reason'] ??
-                                  (result['approved']
+                              content: Text((result['approved']
                                       ? 'Approved'
-                                      : 'Rejected')),
+                                      : 'Rejected') +
+                                  (result['reason'] != null
+                                      ? ': ${result['reason']}'
+                                      : '')),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.of(context).pop(),
