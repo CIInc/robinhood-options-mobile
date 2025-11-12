@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -10,13 +11,19 @@ class AgenticTradingProvider with ChangeNotifier {
   Map<String, dynamic> _config = {};
   String _tradeProposalMessage = '';
   Map<String, dynamic>? _lastTradeProposal;
+  Map<String, dynamic>? _lastAssessment;
   bool _isTradeInProgress = false;
+  Map<String, dynamic>? _tradeSignal;
+  List<Map<String, dynamic>> _tradeSignals = [];
 
   bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
   Map<String, dynamic> get config => _config;
   String get tradeProposalMessage => _tradeProposalMessage;
   Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
+  Map<String, dynamic>? get lastAssessment => _lastAssessment;
   bool get isTradeInProgress => _isTradeInProgress;
+  Map<String, dynamic>? get tradeSignal => _tradeSignal;
+  List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
 
   AgenticTradingProvider() {
     _loadConfig();
@@ -85,6 +92,60 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> fetchTradeSignal(String symbol) async {
+    try {
+      if (symbol.isEmpty) {
+        _tradeSignal = null;
+        notifyListeners();
+        return;
+      }
+      final doc = await FirebaseFirestore.instance
+          .collection('agentic_trading')
+          .doc('signals_$symbol')
+          .get();
+      if (doc.exists && doc.data() != null) {
+        _tradeSignal = doc.data();
+      } else {
+        _tradeSignal = null;
+      }
+      notifyListeners();
+    } catch (e) {
+      _tradeSignal = null;
+      _tradeProposalMessage = 'Failed to fetch trade signal: ${e.toString()}';
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchAllTradeSignals() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('agentic_trading').get();
+      _tradeSignals = snapshot.docs
+          .where((doc) => doc.id.startsWith('signals_'))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure data has required fields
+            if (data.containsKey('timestamp')) {
+              return data;
+            }
+            return null;
+          })
+          .where((data) => data != null)
+          .cast<Map<String, dynamic>>()
+          .toList();
+      _tradeSignals.sort((a, b) {
+        final aTimestamp = a['timestamp'] as int? ?? 0;
+        final bTimestamp = b['timestamp'] as int? ?? 0;
+        return bTimestamp.compareTo(aTimestamp);
+      });
+      notifyListeners();
+    } catch (e) {
+      _tradeSignals = [];
+      _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
+      notifyListeners();
+    }
+  }
+
   Future<void> initiateTradeProposal({
     required String symbol,
     required double currentPrice,
@@ -114,8 +175,11 @@ class AgenticTradingProvider with ChangeNotifier {
       final status = data['status'] as String? ?? 'error';
       final reason = data['reason']?.toString();
       if (status == 'approved') {
-        final trade = Map<String, dynamic>.from(data['trade'] as Map? ?? {});
+        final trade = Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
         _lastTradeProposal = trade;
+        final assessment =
+            Map<String, dynamic>.from(data['assessment'] as Map? ?? {});
+        _lastAssessment = assessment;
         final reasonMsg =
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
         _tradeProposalMessage =
@@ -123,6 +187,7 @@ class AgenticTradingProvider with ChangeNotifier {
         _analytics.logEvent(name: 'agentic_trading_trade_approved');
       } else {
         _lastTradeProposal = null;
+        _lastAssessment = null;
         final message = data['message']?.toString() ?? 'Rejected by agent';
         final reasonMsg =
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
@@ -154,5 +219,25 @@ class AgenticTradingProvider with ChangeNotifier {
 
     _isTradeInProgress = false;
     notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> assessTradeRisk({
+    required Map<String, dynamic> proposal,
+    required Map<String, dynamic> portfolioState,
+  }) async {
+    try {
+      final result = await _functions.httpsCallable('riskguardTask').call({
+        'proposal': proposal,
+        'portfolioState': portfolioState,
+        'config': _config,
+      });
+      if (result.data is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(result.data);
+      } else {
+        return {'approved': false, 'reason': 'Unexpected response format'};
+      }
+    } catch (e) {
+      return {'approved': false, 'reason': 'Error: ${e.toString()}'};
+    }
   }
 }

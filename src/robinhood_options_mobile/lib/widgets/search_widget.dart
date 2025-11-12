@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -61,6 +62,7 @@ class _SearchWidgetState extends State<SearchWidget>
   Future<List<MidlandMoversItem>>? futureLosers;
   Future<List<Instrument>>? futureListMovers;
   Future<List<Instrument>>? futureListMostPopular;
+  Future<List<Map<String, dynamic>>>? futureTradeSignals;
 
   InstrumentStore? instrumentStore;
 
@@ -75,6 +77,13 @@ class _SearchWidgetState extends State<SearchWidget>
 
     searchCtl = TextEditingController();
     widget.analytics.logScreenView(screenName: 'Search');
+
+    // Fetch trade signals on initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      agenticTradingProvider.fetchAllTradeSignals();
+    });
   }
 
   @override
@@ -154,6 +163,7 @@ class _SearchWidgetState extends State<SearchWidget>
       List<MidlandMoversItem>? losers,
       List<Instrument>? listMovers,
       List<Instrument>? listMostPopular,
+      //List<Map<String, dynamic>>? tradeSignals,
       bool done = false}) {
     return RefreshIndicator(
         onRefresh: _pullRefresh,
@@ -285,6 +295,48 @@ class _SearchWidgetState extends State<SearchWidget>
                       height: 25.0,
                     )),
                   ],
+                  Consumer<AgenticTradingProvider>(
+                    builder: (context, agenticTradingProvider, child) {
+                      final tradeSignals = agenticTradingProvider.tradeSignals;
+                      if (tradeSignals.isEmpty) {
+                        return const SliverToBoxAdapter(
+                            child: SizedBox.shrink());
+                      }
+                      return SliverStickyHeader(
+                          header: Material(
+                              //elevation: 2,
+                              child: Container(
+                                  alignment: Alignment.centerLeft,
+                                  child: const ListTile(
+                                    title: Wrap(children: [
+                                      Text(
+                                        "Trade Signals",
+                                        style: TextStyle(fontSize: 19.0),
+                                      ),
+                                    ]),
+                                  ))),
+                          sliver: SliverPadding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              sliver: SliverGrid(
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 220.0,
+                                  mainAxisSpacing: 10.0,
+                                  crossAxisSpacing: 10.0,
+                                  childAspectRatio: 1.32,
+                                ),
+                                delegate: SliverChildBuilderDelegate(
+                                  (BuildContext context, int index) {
+                                    return _buildTradeSignalGridItem(
+                                        tradeSignals, index);
+                                  },
+                                  childCount: tradeSignals.length,
+                                ),
+                              )));
+                    },
+                  ),
+
                   if (movers != null && movers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
@@ -463,7 +515,12 @@ class _SearchWidgetState extends State<SearchWidget>
       futureListMovers = null;
       futureListMostPopular = null;
       futureSearch = Future.value(null);
+      futureTradeSignals = null;
     });
+    // Refresh trade signals on pull-to-refresh
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    await agenticTradingProvider.fetchAllTradeSignals();
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
@@ -475,7 +532,8 @@ class _SearchWidgetState extends State<SearchWidget>
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
               child: Column(
-                  //mainAxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     // movers[index].instrumentObj != null &&
                     //         movers[index].instrumentObj!.logoUrl != null
@@ -491,8 +549,10 @@ class _SearchWidgetState extends State<SearchWidget>
                     //       )
                     //     : SizedBox(height: 40, width: 40),
                     Text(movers[index].symbol,
-                        style: const TextStyle(fontSize: 17.0)),
+                        style: const TextStyle(fontSize: 17.0),
+                        overflow: TextOverflow.ellipsis),
                     Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Icon(
                             movers[index].marketHoursPriceMovement! > 0
@@ -526,12 +586,12 @@ class _SearchWidgetState extends State<SearchWidget>
                     Container(
                       height: 5,
                     ),
-                    Wrap(children: [
-                      Text(movers[index].description,
+                    Expanded(
+                      child: Text(movers[index].description,
                           style: const TextStyle(fontSize: 12.0),
                           maxLines: 4,
-                          overflow: TextOverflow.ellipsis)
-                    ]),
+                          overflow: TextOverflow.ellipsis),
+                    ),
                   ]),
               onTap: () async {
                 var instrument = await widget.service.getInstrument(
@@ -605,6 +665,91 @@ class _SearchWidgetState extends State<SearchWidget>
     */
   }
 
+  Widget _buildTradeSignalGridItem(
+      List<Map<String, dynamic>> tradeSignals, int index) {
+    final signal = tradeSignals[index];
+    final timestamp = signal['timestamp'] != null
+        ? DateTime.fromMillisecondsSinceEpoch(signal['timestamp'] as int)
+        : DateTime.now();
+    final symbol = signal['proposal']?['symbol'] ?? 'N/A';
+    final signalType = signal['signal'] ?? 'HOLD';
+    final reason = signal['reason'] ?? 'No reason provided';
+
+    return Card(
+        child: Padding(
+            padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
+            child: InkWell(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(symbol,
+                        style: const TextStyle(fontSize: 17.0),
+                        overflow: TextOverflow.ellipsis),
+                    Text(formatDate.format(timestamp),
+                        style: const TextStyle(
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey),
+                        overflow: TextOverflow.ellipsis),
+                    Container(
+                      height: 4,
+                    ),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Icon(
+                            signalType == 'BUY'
+                                ? Icons.trending_up
+                                : (signalType == 'SELL'
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (signalType == 'BUY'
+                                ? Colors.green
+                                : (signalType == 'SELL'
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 20),
+                        Container(
+                          width: 2,
+                        ),
+                        Text(signalType,
+                            style: const TextStyle(fontSize: 16.0)),
+                      ],
+                    ),
+                    Container(
+                      height: 5,
+                    ),
+                    Expanded(
+                      child: Text(reason,
+                          style: const TextStyle(fontSize: 12.0),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                  ]),
+              onTap: () async {
+                if (signal['proposal']?['symbol'] == null) return;
+                var instrument = await widget.service.getInstrumentBySymbol(
+                    widget.brokerageUser,
+                    instrumentStore!,
+                    signal['proposal']['symbol']);
+
+                if (!mounted || instrument == null) return;
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => InstrumentWidget(
+                              widget.brokerageUser,
+                              widget.service,
+                              instrument,
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                            )));
+              },
+            )));
+  }
+
   Widget _buildListGridItem(
       List<Instrument> instruments, int index, BrokerageUser user) {
     var instrumentObj = instruments[index];
@@ -612,58 +757,65 @@ class _SearchWidgetState extends State<SearchWidget>
         child: Padding(
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                // instrumentObj.logoUrl != null
-                //     ? Image.network(
-                //         instrumentObj.logoUrl!,
-                //         width: 40,
-                //         height: 40,
-                //         errorBuilder: (BuildContext context, Object exception,
-                //             StackTrace? stackTrace) {
-                //           //RobinhoodService.removeLogo(instrument.symbol);
-                //           return Text(instrumentObj.symbol);
-                //         },
-                //       )
-                //     : SizedBox(height: 40, width: 40),
-                Text(instrumentObj.symbol,
-                    style: const TextStyle(fontSize: 16.0)),
-                Wrap(
-                  children: [
-                    if (instrumentObj.quoteObj != null) ...[
-                      Icon(
-                          instrumentObj.quoteObj!.changeToday > 0
-                              ? Icons.trending_up
-                              : (instrumentObj.quoteObj!.changeToday < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (instrumentObj.quoteObj!.changeToday > 0
-                              ? Colors.green
-                              : (instrumentObj.quoteObj!.changeToday < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          size: 20),
-                    ],
-                    Container(
-                      width: 2,
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // instrumentObj.logoUrl != null
+                    //     ? Image.network(
+                    //         instrumentObj.logoUrl!,
+                    //         width: 40,
+                    //         height: 40,
+                    //         errorBuilder: (BuildContext context, Object exception,
+                    //             StackTrace? stackTrace) {
+                    //           //RobinhoodService.removeLogo(instrument.symbol);
+                    //           return Text(instrumentObj.symbol);
+                    //         },
+                    //       )
+                    //     : SizedBox(height: 40, width: 40),
+                    Text(instrumentObj.symbol,
+                        style: const TextStyle(fontSize: 16.0),
+                        overflow: TextOverflow.ellipsis),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (instrumentObj.quoteObj != null) ...[
+                          Icon(
+                              instrumentObj.quoteObj!.changeToday > 0
+                                  ? Icons.trending_up
+                                  : (instrumentObj.quoteObj!.changeToday < 0
+                                      ? Icons.trending_down
+                                      : Icons.trending_flat),
+                              color: (instrumentObj.quoteObj!.changeToday > 0
+                                  ? Colors.green
+                                  : (instrumentObj.quoteObj!.changeToday < 0
+                                      ? Colors.red
+                                      : Colors.grey)),
+                              size: 20),
+                        ],
+                        Container(
+                          width: 2,
+                        ),
+                        if (instrumentObj.quoteObj != null) ...[
+                          Text(
+                              formatPercentage.format(instrumentObj
+                                  .quoteObj!.changePercentToday
+                                  .abs()),
+                              style: const TextStyle(fontSize: 16.0)),
+                        ],
+                      ],
                     ),
-                    if (instrumentObj.quoteObj != null) ...[
-                      Text(
-                          formatPercentage.format(
-                              instrumentObj.quoteObj!.changePercentToday.abs()),
-                          style: const TextStyle(fontSize: 16.0)),
-                    ],
-                  ],
-                ),
-                Container(
-                  height: 5,
-                ),
-                Wrap(children: [
-                  Text(instrumentObj.simpleName ?? instrumentObj.name,
-                      style: const TextStyle(fontSize: 12.0),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis)
-                ]),
-                /*
+                    Container(
+                      height: 5,
+                    ),
+                    Expanded(
+                      child: Text(
+                          instrumentObj.simpleName ?? instrumentObj.name,
+                          style: const TextStyle(fontSize: 12.0),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    /*
                 if (instrumentObj.fundamentalsObj != null) ...[
                   Container(
                     height: 5,
@@ -676,7 +828,7 @@ class _SearchWidgetState extends State<SearchWidget>
                   ]),
                 ]
                   */
-              ]),
+                  ]),
               onTap: () {
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
