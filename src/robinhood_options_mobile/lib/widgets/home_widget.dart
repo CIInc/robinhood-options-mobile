@@ -590,6 +590,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),
@@ -613,6 +614,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),
@@ -637,8 +639,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 optionPositionStore: optionPositionStore,
                                 forexHoldingStore: forexHoldingStore,
                                 localInference:
-                                    false // Needed for googleTools RAG only available in cloud rn.
-                                );
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
                           },
                         ),
                       ),
@@ -662,8 +664,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 optionPositionStore: optionPositionStore,
                                 forexHoldingStore: forexHoldingStore,
                                 localInference:
-                                    false // Needed for googleTools RAG only available in cloud rn.
-                                );
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
                           },
                         ),
                       ),
@@ -685,6 +687,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),

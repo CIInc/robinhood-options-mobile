@@ -25,6 +25,11 @@ class User {
   List<String>? sharedWith;
   List<String>? sharedGroups;
   bool? isPublic;
+  // Investment Profile fields
+  String? investmentGoals;
+  String? timeHorizon;
+  String? riskTolerance;
+  double? totalPortfolioValue;
 
   User(
       {this.name,
@@ -45,7 +50,11 @@ class User {
       this.refreshQuotes = false,
       this.sharedWith,
       this.sharedGroups,
-      this.isPublic});
+      this.isPublic,
+      this.investmentGoals,
+      this.timeHorizon,
+      this.riskTolerance,
+      this.totalPortfolioValue});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -87,7 +96,13 @@ class User {
                 ? List<String>.from(json['sharedGroups'] as Iterable<dynamic>)
                 : null,
             isPublic:
-                json['isPublic'] != null ? json['isPublic'] as bool : null);
+                json['isPublic'] != null ? json['isPublic'] as bool : null,
+            investmentGoals: json['investmentGoals'] as String?,
+            timeHorizon: json['timeHorizon'] as String?,
+            riskTolerance: json['riskTolerance'] as String?,
+            totalPortfolioValue: json['totalPortfolioValue'] != null
+                ? (json['totalPortfolioValue'] as num).toDouble()
+                : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -109,7 +124,11 @@ class User {
       'refreshQuotes': refreshQuotes,
       'sharedWith': sharedWith,
       'sharedGroups': sharedGroups,
-      'isPublic': isPublic
+      'isPublic': isPublic,
+      'investmentGoals': investmentGoals,
+      'timeHorizon': timeHorizon,
+      'riskTolerance': riskTolerance,
+      'totalPortfolioValue': totalPortfolioValue
     };
   }
 

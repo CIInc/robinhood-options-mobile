@@ -15,6 +15,7 @@ Future<void> generateContent(
   OptionPositionStore? optionPositionStore,
   ForexHoldingStore? forexHoldingStore,
   bool localInference = true,
+  dynamic user,
 }) async {
   String? response;
   if (generativeProvider.promptResponses[prompt.prompt] != null) {
@@ -31,11 +32,13 @@ Future<void> generateContent(
               stockPositionStore,
               optionPositionStore,
               forexHoldingStore,
-              generativeProvider);
+              generativeProvider,
+              user: user);
       response = generateContentResponse.text;
     } else {
       response = await generativeService.generateContentFromServer(
-          prompt, stockPositionStore, optionPositionStore, forexHoldingStore);
+          prompt, stockPositionStore, optionPositionStore, forexHoldingStore,
+          user: user);
       generativeProvider.setGenerativeResponse(prompt.prompt, response);
     }
   }
@@ -48,7 +51,8 @@ Future<void> generateContent(
         generativeService,
         stockPositionStore,
         optionPositionStore,
-        forexHoldingStore);
+        forexHoldingStore,
+        user);
   }
 }
 
@@ -73,7 +77,8 @@ void showAIResponse(
     GenerativeService generativeService,
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
-    ForexHoldingStore? forexHoldingStore) {
+    ForexHoldingStore? forexHoldingStore,
+    dynamic user) {
   final TextEditingController promptController = TextEditingController();
 
   showModalBottomSheet(
@@ -131,7 +136,8 @@ void showAIResponse(
                                 prompt: userMessage),
                             stockPositionStore,
                             optionPositionStore,
-                            forexHoldingStore);
+                            forexHoldingStore,
+                            user: user);
 
                     setState(() {
                       messages.add(
@@ -302,6 +308,7 @@ void showAIResponse(
                                   stockPositionStore: stockPositionStore,
                                   optionPositionStore: optionPositionStore,
                                   forexHoldingStore: forexHoldingStore,
+                                  user: user,
                                 );
 
                                 //   widget.video!.responses!.remove(promptKey);

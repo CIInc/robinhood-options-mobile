@@ -99,12 +99,13 @@ Volume - Volume bar or other volume indicators
     Prompt prompt,
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
-    ForexHoldingStore? forexHoldingStore,
-  ) async {
+    ForexHoldingStore? forexHoldingStore, {
+    dynamic user,
+  }) async {
     String promptString =
         """You are a financial assistant, provide answers in markdown format.
     ${prompt.prompt}
-    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : '') : ''}""";
+    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : '') : ''}""";
     HttpsCallable callable =
         FirebaseFunctions.instance.httpsCallable('generateContent25');
     final resp = await callable.call(<String, dynamic>{
@@ -134,13 +135,14 @@ Volume - Volume bar or other volume indicators
       InstrumentPositionStore? stockPositionStore,
       OptionPositionStore? optionPositionStore,
       ForexHoldingStore? forexHoldingStore,
-      GenerativeProvider provider) async {
+      GenerativeProvider provider,
+      {dynamic user}) async {
     String promptString = stockPositionStore == null ||
             optionPositionStore == null ||
             forexHoldingStore == null
         ? prompt.prompt
         : """${prompt.prompt}
-${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : ''}""";
+${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
     final prompts = [
       Content.text(promptString),
     ];
@@ -164,8 +166,28 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
   String portfolioPrompt(
       InstrumentPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
-      ForexHoldingStore forexHoldingStore) {
+      ForexHoldingStore forexHoldingStore,
+      {dynamic user}) {
     String positionPrompt = "This is my portfolio data:\n";
+    
+    // Add investment profile information if user is provided
+    if (user != null) {
+      positionPrompt += "\n## Investment Profile\n";
+      if (user.investmentGoals != null && user.investmentGoals!.isNotEmpty) {
+        positionPrompt += "**Investment Goals:** ${user.investmentGoals}\n";
+      }
+      if (user.timeHorizon != null && user.timeHorizon!.isNotEmpty) {
+        positionPrompt += "**Time Horizon:** ${user.timeHorizon}\n";
+      }
+      if (user.riskTolerance != null && user.riskTolerance!.isNotEmpty) {
+        positionPrompt += "**Risk Tolerance:** ${user.riskTolerance}\n";
+      }
+      if (user.totalPortfolioValue != null) {
+        positionPrompt += "**Total Portfolio Value:** \$${formatCompactNumber.format(user.totalPortfolioValue)}\n";
+      }
+      positionPrompt += "\n";
+    }
+    
     positionPrompt += """
     | Instrument | Gain/Loss Today | Gain/Loss Total | Market Value |
     | ---------- | --------- | --------- | --------- |""";
