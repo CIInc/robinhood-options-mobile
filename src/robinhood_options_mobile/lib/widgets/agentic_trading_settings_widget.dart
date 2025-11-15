@@ -18,6 +18,8 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _tradeQuantityController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
+  late TextEditingController _rsiPeriodController;
+  late TextEditingController _marketIndexSymbolController;
 
   @override
   void initState() {
@@ -37,6 +39,10 @@ class _AgenticTradingSettingsWidgetState
         text: agenticTradingProvider.config['maxPortfolioConcentration']
                 ?.toString() ??
             '');
+    _rsiPeriodController = TextEditingController(
+        text: agenticTradingProvider.config['rsiPeriod']?.toString() ?? '14');
+    _marketIndexSymbolController = TextEditingController(
+        text: agenticTradingProvider.config['marketIndexSymbol']?.toString() ?? 'SPY');
   }
 
   @override
@@ -46,6 +52,8 @@ class _AgenticTradingSettingsWidgetState
     _tradeQuantityController.dispose();
     _maxPositionSizeController.dispose();
     _maxPortfolioConcentrationController.dispose();
+    _rsiPeriodController.dispose();
+    _marketIndexSymbolController.dispose();
     super.dispose();
   }
 
@@ -60,12 +68,116 @@ class _AgenticTradingSettingsWidgetState
         'maxPositionSize': int.parse(_maxPositionSizeController.text),
         'maxPortfolioConcentration':
             double.parse(_maxPortfolioConcentrationController.text),
+        'rsiPeriod': int.parse(_rsiPeriodController.text),
+        'marketIndexSymbol': _marketIndexSymbolController.text,
       };
       agenticTradingProvider.updateConfig(newConfig);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settings saved!')),
       );
     }
+  }
+
+  Widget _buildMultiIndicatorDisplay(Map<String, dynamic> multiIndicator) {
+    final indicators = multiIndicator['indicators'] as Map<String, dynamic>?;
+    if (indicators == null) return const SizedBox.shrink();
+
+    final allGreen = multiIndicator['allGreen'] as bool? ?? false;
+    final overallSignal = multiIndicator['overallSignal'] as String? ?? 'HOLD';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(),
+          Text(
+            'Technical Indicators',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          _buildIndicatorRow('Price Movement', 
+              indicators['priceMovement'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Momentum (RSI)', 
+              indicators['momentum'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Market Direction', 
+              indicators['marketDirection'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Volume', 
+              indicators['volume'] as Map<String, dynamic>?),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8.0),
+            decoration: BoxDecoration(
+              color: allGreen 
+                  ? Colors.green.withOpacity(0.2) 
+                  : Colors.orange.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              'Overall: $overallSignal ${allGreen ? '✓ All Green!' : ''}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: allGreen ? Colors.green.shade800 : Colors.orange.shade800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicatorRow(String name, Map<String, dynamic>? indicator) {
+    if (indicator == null) return const SizedBox.shrink();
+
+    final signal = indicator['signal'] as String? ?? 'HOLD';
+    final reason = indicator['reason'] as String? ?? '';
+
+    Color signalColor;
+    IconData signalIcon;
+
+    switch (signal) {
+      case 'BUY':
+        signalColor = Colors.green;
+        signalIcon = Icons.arrow_upward;
+        break;
+      case 'SELL':
+        signalColor = Colors.red;
+        signalIcon = Icons.arrow_downward;
+        break;
+      default:
+        signalColor = Colors.grey;
+        signalIcon = Icons.horizontal_rule;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(signalIcon, color: signalColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$name: $signal',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: signalColor,
+                  ),
+                ),
+                if (reason.isNotEmpty)
+                  Text(
+                    reason,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -150,7 +262,7 @@ class _AgenticTradingSettingsWidgetState
                   controller: _maxPortfolioConcentrationController,
                   decoration: const InputDecoration(
                       labelText: 'Max Portfolio Concentration'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a value';
@@ -160,6 +272,50 @@ class _AgenticTradingSettingsWidgetState
                     }
                     return null;
                   },
+                ),
+                TextFormField(
+                  controller: _rsiPeriodController,
+                  decoration:
+                      const InputDecoration(labelText: 'RSI Period (default: 14)'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a value';
+                    }
+                    if (int.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _marketIndexSymbolController,
+                  decoration: const InputDecoration(
+                      labelText: 'Market Index Symbol (SPY or QQQ)'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a value';
+                    }
+                    return null;
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Multi-Indicator System',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text(
+                    'All 4 indicators must be GREEN for automatic trade:\n'
+                    '1. Price Movement (chart patterns)\n'
+                    '2. Momentum (RSI)\n'
+                    '3. Market Direction (moving averages on selected index)\n'
+                    '4. Volume (volume with price correlation)',
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -192,6 +348,9 @@ class _AgenticTradingSettingsWidgetState
                             'Quantity: ${agenticTradingProvider.lastTradeProposal!['quantity']}'),
                         Text(
                             'Price: ${agenticTradingProvider.lastTradeProposal!['price']}'),
+                        if (agenticTradingProvider.lastTradeProposal!.containsKey('multiIndicatorResult'))
+                          _buildMultiIndicatorDisplay(
+                              agenticTradingProvider.lastTradeProposal!['multiIndicatorResult']),
                       ],
                     ),
                   ),
