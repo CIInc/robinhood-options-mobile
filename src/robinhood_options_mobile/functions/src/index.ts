@@ -19,8 +19,8 @@ import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
 import * as agenticTradingfunc from "./agentic-trading";
 import { agenticTradingCron } from "./agentic-trading-cron";
+import * as riskguardAgent from "./riskguard-agent";
 // import * as alphaagent from "./alphaagent";
-// import * as riskguard from "./riskguard";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -50,4 +50,4 @@ export const setAgenticTradingConfig =
   agenticTradingfunc.setAgenticTradingConfig;
 export const agenticTradingCronJob = agenticTradingCron;
 // export const alphaagentTask = alphaagent.alphaagentTask;
-// export const riskguardTask = riskguard.riskguardTask;
+export const riskguardTask = riskguardAgent.riskguardTask;
