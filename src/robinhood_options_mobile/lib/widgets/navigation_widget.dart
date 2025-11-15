@@ -799,15 +799,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 _onPageChanged(2);
                               },
                             ),
-                            ListTile(
-                              leading: const Icon(Icons.auto_graph),
-                              title: const Text("Agentic Trading Settings"),
-                              onTap: () {
-                                Navigator.pop(context); // close the drawer
-                                Navigator.pushNamed(
-                                    context, '/agentic-trading-settings');
-                              },
-                            ),
+                            // Agentic Trading Settings moved to the User page
                             if (auth.currentUser != null) ...[
                               const Divider(
                                 thickness: 0.25,
