@@ -168,11 +168,11 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       OptionPositionStore optionPositionStore,
       ForexHoldingStore forexHoldingStore,
       {dynamic user}) {
-    String positionPrompt = "This is my portfolio data:\n";
-    
+    String positionPrompt = "";
+
     // Add investment profile information if user is provided
     if (user != null) {
-      positionPrompt += "\n## Investment Profile\n";
+      positionPrompt += "## Investment Profile\n";
       if (user.investmentGoals != null && user.investmentGoals!.isNotEmpty) {
         positionPrompt += "**Investment Goals:** ${user.investmentGoals}\n";
       }
@@ -182,13 +182,36 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       if (user.riskTolerance != null && user.riskTolerance!.isNotEmpty) {
         positionPrompt += "**Risk Tolerance:** ${user.riskTolerance}\n";
       }
+      // Include total portfolio value if available
       if (user.totalPortfolioValue != null) {
-        positionPrompt += "**Total Portfolio Value:** \$${formatCompactNumber.format(user.totalPortfolioValue)}\n";
+        positionPrompt +=
+            "**Total Portfolio Value:** \$${formatCompactNumber.format(user.totalPortfolioValue)}\n";
+      }
+
+      // Include cash per account and aggregated cash if accounts are present
+      double totalCash = 0.0;
+      try {
+        if (user.accounts != null && user.accounts.isNotEmpty) {
+          positionPrompt += "**Accounts Cash:**\n";
+          for (var acct in user.accounts) {
+            double? acctCash = acct.portfolioCash;
+            if (acctCash != null) {
+              totalCash += acctCash;
+              positionPrompt +=
+                  "- Account ${acct.accountNumber ?? ''}: ${formatCurrency.format(acctCash)}\n";
+            }
+          }
+          positionPrompt +=
+              "**Total Cash Across Accounts:** ${formatCurrency.format(totalCash)}\n";
+        }
+      } catch (e) {
+        // If user.accounts is not present or another error occurs, ignore
       }
       positionPrompt += "\n";
     }
-    
+
     positionPrompt += """
+    ## Portfolio Positions
     | Instrument | Gain/Loss Today | Gain/Loss Total | Market Value |
     | ---------- | --------- | --------- | --------- |""";
     for (var item in stockPositionStore.items) {

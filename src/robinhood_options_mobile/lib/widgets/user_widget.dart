@@ -606,32 +606,24 @@ class _UserWidgetState extends State<UserWidget> {
                                     ListTile(
                                       leading:
                                           const Icon(Icons.assessment_outlined),
-                                      title:
-                                          const Text('Investment Profile Settings'),
+                                      title: const Text(
+                                          'Investment Profile Settings'),
                                       subtitle: const Text(
                                           'Configure goals and risk tolerance for AI'),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
-                                        if (widget.auth.currentUser != null) {
-                                          // Fetch the user document from Firestore
-                                          final userDoc = await _firestoreService
-                                              .userCollection
-                                              .doc(widget.auth.currentUser!.uid)
-                                              .get();
-                                          if (userDoc.exists &&
-                                              context.mounted) {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    InvestmentProfileSettingsWidget(
-                                                  user: userDoc.data()!,
-                                                  firestoreService:
-                                                      _firestoreService,
-                                                ),
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  InvestmentProfileSettingsWidget(
+                                                user: user!,
+                                                firestoreService:
+                                                    _firestoreService,
                                               ),
-                                            );
-                                          }
+                                            ),
+                                          );
                                         }
                                       },
                                     ),

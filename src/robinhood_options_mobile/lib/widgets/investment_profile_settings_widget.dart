@@ -71,13 +71,17 @@ class _InvestmentProfileSettingsWidgetState
               ? double.tryParse(_totalPortfolioValueController.text)
               : null;
 
-      // Save to Firestore
-      final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
-      if (currentUser != null) {
-        final userDocRef =
-            widget.firestoreService.userCollection.doc(currentUser.uid);
-        await widget.firestoreService.updateUser(userDocRef, widget.user);
-      }
+      var usersCollection = widget.firestoreService.userCollection;
+      var userDocumentReference =
+          usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
+      widget.firestoreService.updateUser(userDocumentReference, widget.user);
+      // // Save to Firestore
+      // final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
+      // if (currentUser != null) {
+      //   final userDocRef =
+      //       widget.firestoreService.userCollection.doc(currentUser.uid);
+      //   await widget.firestoreService.updateUser(userDocRef, widget.user);
+      // }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
