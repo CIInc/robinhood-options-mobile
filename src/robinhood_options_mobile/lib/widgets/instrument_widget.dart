@@ -3696,8 +3696,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           final proposal = {
                             'symbol': symbol,
                             'action': signalType,
-                            'quantity': signal['quantity'] ?? 1,
-                            'price': signal['price'] ?? 0,
+                            'quantity': signal['proposal']?['quantity'] ?? 1,
+                            'price': signal['proposal']?['price'] ?? 0,
                           };
 
                           // Build portfolio state with all positions
