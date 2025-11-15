@@ -736,7 +736,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               ? null
                               : () async {
                                   // Navigate to Investment Profile Settings
-                                  final firestoreService = FirestoreService();
+                                  final firestoreService = Provider.of<FirestoreService>(context, listen: false);
                                   if (auth.currentUser != null) {
                                     final userDoc = await firestoreService
                                         .userCollection
