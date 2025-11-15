@@ -28,21 +28,29 @@ export async function handleAlphaTask(marketData: any,
     { marketData, portfolioState, config });
 
   const prices: number[] = marketData?.prices || [];
-  const fast = computeSMA(prices, config?.smaPeriodFast || 10);
-  const slow = computeSMA(prices, config?.smaPeriodSlow || 30);
+  const smaPeriodFast = config?.smaPeriodFast || 10;
+  const smaPeriodSlow = config?.smaPeriodSlow || 30;
+  const fast = computeSMA(prices, smaPeriodFast);
+  const slow = computeSMA(prices, smaPeriodSlow);
 
   // Need previous SMA to detect crossover.
   // Compute with one-step lag if possible
-  const fastPrev = prices.length > (config?.smaPeriodFast || 10) ?
-    computeSMA(prices.slice(0, prices.length - 1),
-      config?.smaPeriodFast || 10) :
+  const fastPrev = prices.length > smaPeriodFast ?
+    computeSMA(prices.slice(0, prices.length - 1), smaPeriodFast) :
     null;
-  const slowPrev = prices.length > (config?.smaPeriodSlow || 30) ?
-    computeSMA(prices.slice(0, prices.length - 1),
-      config?.smaPeriodSlow || 30) :
+  const slowPrev = prices.length > smaPeriodSlow ?
+    computeSMA(prices.slice(0, prices.length - 1), smaPeriodSlow) :
     null;
 
-  logger.info("Alpha agent SMAs", { fast, slow, fastPrev, slowPrev, prices });
+  logger.info("Alpha agent SMAs", {
+    [`${smaPeriodFast}-day SMA`]: fast,
+    [`${smaPeriodSlow}-day SMA`]: slow,
+    [`Previous ${smaPeriodFast}-day SMA`]: fastPrev,
+    [`Previous ${smaPeriodSlow}-day SMA`]: slowPrev,
+    smaPeriodFast,
+    smaPeriodSlow,
+    prices,
+  });
 
   let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
   let reason = "";
@@ -50,17 +58,17 @@ export async function handleAlphaTask(marketData: any,
     fastPrev !== null && slowPrev !== null) {
     if (fast > slow && fastPrev <= slowPrev) {
       signal = "BUY";
-      reason = `Fast SMA crossed above Slow SMA (${fast.toFixed(2)} > ` +
-        `${slow.toFixed(2)})`;
+      reason = `${smaPeriodFast}-day SMA crossed above ` +
+        `${smaPeriodSlow}-day SMA (${fast.toFixed(2)} > ${slow.toFixed(2)})`;
     } else if (fast < slow && fastPrev >= slowPrev) {
       signal = "SELL";
-      reason = "Fast SMA crossed below Slow SMA (" +
-        `${fast.toFixed(2)} < ${slow.toFixed(2)})`;
+      reason = `${smaPeriodFast}-day SMA crossed below ` +
+        `${smaPeriodSlow}-day SMA (${fast.toFixed(2)} < ${slow.toFixed(2)})`;
     } else {
-      reason = `No crossover (fast=${fast?.toFixed(2)},` +
-        ` slow=${slow?.toFixed(2)},` +
-        ` fastPrev=${fastPrev?.toFixed(2)},` +
-        ` slowPrev=${slowPrev?.toFixed(2)})`;
+      reason = `No crossover (${smaPeriodFast}-day SMA=${fast?.toFixed(2)},` +
+        ` ${smaPeriodSlow}-day SMA=${slow?.toFixed(2)},` +
+        ` Previous ${smaPeriodFast}-day SMA=${fastPrev?.toFixed(2)},` +
+        ` Previous ${smaPeriodSlow}-day SMA=${slowPrev?.toFixed(2)})`;
     }
   } else {
     reason = "Insufficient data for SMA calculation.";
@@ -75,25 +83,45 @@ export async function handleAlphaTask(marketData: any,
     };
   }
 
+  const lastPrice = prices.length > 0 ?
+    prices[prices.length - 1] : marketData?.currentPrice || 0;
+  const quantity = config?.tradeQuantity || 1;
+
+  const proposal = {
+    symbol: marketData?.symbol || "SPY",
+    action: signal,
+    reason: reason,
+    quantity,
+    price: lastPrice,
+  };
+
+  // Call riskguard to assess
+  const assessment = await riskguard.assessTrade(proposal,
+    portfolioState, config);
+
   // Persist trade signal to Firestore
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
     const symbol = marketData.symbol || "UNKNOWN";
-    await db.doc(`agentic_trading/signals_${symbol}`).set({
+    const signalDoc = {
       timestamp: Date.now(),
       signal,
       reason,
-      fast,
-      slow,
-      fastPrev,
-      slowPrev,
+      [`${smaPeriodFast}-day SMA`]: fast,
+      [`${smaPeriodSlow}-day SMA`]: slow,
+      [`Previous ${smaPeriodFast}-day SMA`]: fastPrev,
+      [`Previous ${smaPeriodSlow}-day SMA`]: slowPrev,
       currentPrice: marketData.currentPrice,
       pricesLength: Array.isArray(marketData.prices) ?
         marketData.prices.length : 0,
-      portfolioState,
       config,
-    }, { merge: true });
+      portfolioState,
+      proposal,
+      assessment,
+    };
+    await db.doc(`agentic_trading/signals_${symbol}`)
+      .set(signalDoc); // , { merge: true }
     // await db.collection(`agentic_trading/signals_${symbol}`)
     //   .add({
     //     timestamp: Date.now(),
@@ -109,36 +137,23 @@ export async function handleAlphaTask(marketData: any,
     //     portfolioState,
     //     config,
     //   });
+    logger.info("Alpha agent stored trade signal", signalDoc);
   } catch (err) {
     logger.warn("Failed to persist trade signal", err);
   }
 
-  const lastPrice = prices.length > 0 ?
-    prices[prices.length - 1] : marketData?.currentPrice || 0;
-  const quantity = config?.tradeQuantity || 1;
-
-  const proposal = {
-    symbol: marketData?.symbol || "SPY",
-    action: signal,
-    quantity,
-    price: lastPrice,
-  };
-
-  // Call riskguard to assess
-  const assessment = await riskguard.assessTrade(proposal,
-    portfolioState, config);
-
   if (!assessment.approved) {
     return {
       status: "rejected",
-      message: "RiskGuard agent rejected the proposal", proposal, assessment,
+      message: "RiskGuard agent rejected the proposal",
+      proposal: proposal, assessment: assessment,
     };
   }
 
   return {
     status: "approved",
     message: "Alpha agent approved proposal after risk check",
-    proposal, assessment,
+    proposal: proposal, assessment: assessment,
   };
 }
 

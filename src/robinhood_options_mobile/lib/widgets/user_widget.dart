@@ -393,7 +393,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: SizedBox(
-                                              height: 400,
+                                              height: 360,
                                               child: UserInfoCardWidget(
                                                 user: brokerageUser.userInfo!,
                                                 brokerageUser: brokerageUser,
@@ -625,6 +625,18 @@ class _UserWidgetState extends State<UserWidget> {
                                             ),
                                           );
                                         }
+                                      },
+                                    ),
+                                    // Agentic Trading Settings entry moved here from the app Drawer
+                                    ListTile(
+                                      leading: const Icon(Icons.auto_graph),
+                                      title: const Text(
+                                          'Agentic Trading Settings'),
+                                      onTap: () {
+                                        Navigator.pop(
+                                            context); // close the user card
+                                        Navigator.pushNamed(context,
+                                            '/agentic-trading-settings');
                                       },
                                     ),
 // ExpansionPanelList(

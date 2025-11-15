@@ -57,6 +57,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -132,6 +133,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
+    Provider.of<AgenticTradingProvider>(context, listen: false)
+        .fetchTradeSignal(widget.instrument.symbol);
   }
 
   @override
@@ -144,6 +147,54 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
+
+  /// Builds a portfolio state map with cash and all stock positions.
+  ///
+  /// Returns a map containing:
+  /// - 'cash': The available portfolio cash from the account
+  /// - For each position: symbol -> {quantity, price} or just quantity if price unavailable
+  Map<String, dynamic> _buildPortfolioState(BuildContext context) {
+    // Get actual portfolio cash from account (same as Home widget)
+    double cash = 0.0;
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (accountStore.items.isNotEmpty) {
+      final account = accountStore.items.first;
+      cash = account.portfolioCash ?? 0.0;
+    }
+
+    final stockPositionStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+
+    final Map<String, dynamic> portfolioState = {
+      'cash': cash,
+    };
+
+    // Add all stock positions with their quantities and prices
+    for (final position in stockPositionStore.items) {
+      if (position.instrumentObj != null &&
+          position.quantity != null &&
+          position.quantity! > 0) {
+        final posSymbol = position.instrumentObj!.symbol;
+        final posQuantity = position.quantity!;
+        final posPrice =
+            position.instrumentObj!.quoteObj?.lastExtendedHoursTradePrice ??
+                position.instrumentObj!.quoteObj?.lastTradePrice;
+
+        if (posPrice != null) {
+          // Store as object with quantity and price for accurate valuation
+          portfolioState[posSymbol] = {
+            'quantity': posQuantity,
+            'price': posPrice,
+          };
+        } else {
+          // Fallback to just quantity if price unavailable
+          portfolioState[posSymbol] = posQuantity;
+        }
+      }
+    }
+
+    return portfolioState;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1212,6 +1263,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ]
                 ]));
           }),
+          if (instrument.tradeableChainId != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+            _buildAgenticTradeSignals(instrument.symbol),
+          ],
           if (instrument.dividendsObj != null &&
               instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
@@ -1417,9 +1475,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
             const SizedBox(width: 8),
             // Agentic Trading Button
-            Consumer2<AgenticTradingProvider?, PortfolioStore?>(
-              builder:
-                  (context, agenticTradingProvider, portfolioStore, child) {
+            Consumer4<AgenticTradingProvider?, PortfolioStore?,
+                InstrumentPositionStore, AccountStore>(
+              builder: (context, agenticTradingProvider, portfolioStore,
+                  stockPositionStore, accountStore, child) {
                 final isLoading =
                     agenticTradingProvider?.isTradeInProgress ?? false;
                 return FilledButton(
@@ -1430,19 +1489,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                           final price = instrument
                                   .quoteObj?.lastExtendedHoursTradePrice ??
                               instrument.quoteObj?.lastTradePrice;
-                          double cash = 10000.0;
-                          int shares = 0;
-                          if (portfolioStore?.items != null &&
-                              portfolioStore!.items.isNotEmpty) {
-                            for (final p in portfolioStore.items) {
-                              if (p.account == instrument.id ||
-                                  p.url.contains(symbol)) {
-                                shares = (p.equity ?? 0).toInt();
-                              }
-                              cash += (p.marketValue ?? 0);
-                            }
-                          }
-                          final portfolioState = {'cash': cash, symbol: shares};
+
+                          // Build portfolio state with all positions
+                          final portfolioState = _buildPortfolioState(context);
+
                           if (price != null && agenticTradingProvider != null) {
                             await agenticTradingProvider.initiateTradeProposal(
                               symbol: symbol,
@@ -1510,6 +1560,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                             title: const Text('Price'),
                                             trailing:
                                                 Text('${proposal['price']}'),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Text(
+                                              proposal['reason'],
+                                              style:
+                                                  const TextStyle(fontSize: 16),
+                                            ),
                                           ),
                                         ],
                                         Padding(
@@ -3507,6 +3565,182 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ])
             ],
           ]),
+    );
+  }
+
+  Widget _buildAgenticTradeSignals(String symbol) {
+    return SliverToBoxAdapter(
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text(
+              "Trade Signal",
+              style: TextStyle(fontSize: 19.0),
+            ),
+          ),
+          Consumer2<AgenticTradingProvider, AccountStore>(
+            builder: (context, agenticTradingProvider, accountStore, child) {
+              final signal = agenticTradingProvider.tradeSignal;
+              if (signal == null || signal.isEmpty) {
+                return const Card(
+                    child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text("No trade signal found for this instrument."),
+                ));
+              }
+              final timestamp = DateTime.fromMillisecondsSinceEpoch(
+                  signal['timestamp'] as int);
+              final signalType = signal['signal'] ?? 'HOLD';
+              final assessment = signal['assessment'] as Map<String, dynamic>?;
+
+              return Card(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    // Basic Signal Info
+                    ListTile(
+                      minTileHeight: 10,
+                      title: const Text(""), // Timestamp
+                      trailing: Text(formatLongDate.format(timestamp),
+                          style: const TextStyle(fontSize: 17)),
+                    ),
+                    ListTile(
+                      minTileHeight: 10,
+                      title: const Text("Signal"),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            signalType == 'BUY'
+                                ? Icons.trending_up
+                                : (signalType == 'SELL'
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: signalType == 'BUY'
+                                ? Colors.green
+                                : (signalType == 'SELL'
+                                    ? Colors.red
+                                    : Colors.grey),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            signalType,
+                            style: const TextStyle(fontSize: 17),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ListTile(
+                      minTileHeight: 10,
+                      title: const Text("Reason"),
+                      subtitle: Text(signal['reason'] ?? 'No reason provided',
+                          style: const TextStyle(fontSize: 13)),
+                    ),
+                    const Divider(),
+
+                    // Risk Assessment
+                    if (assessment != null) ...[
+                      const ListTile(
+                        title: Text(
+                          "Risk Assessment",
+                          // style: TextStyle(fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                      ListTile(
+                        minTileHeight: 10,
+                        title: const Text("Status"),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              assessment['approved'] == true
+                                  ? Icons.check_circle
+                                  : Icons.cancel,
+                              color: assessment['approved'] == true
+                                  ? Colors.green
+                                  : Colors.red,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              assessment['approved'] == true
+                                  ? 'Approved'
+                                  : 'Rejected',
+                              style: TextStyle(
+                                fontSize: 17,
+                                color: assessment['approved'] == true
+                                    ? Colors.green
+                                    : Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (assessment['reason'] != null)
+                        ListTile(
+                          minTileHeight: 10,
+                          title: const Text("Assessment Reason"),
+                          subtitle: Text(assessment['reason'] ?? '',
+                              style: const TextStyle(fontSize: 13)),
+                        ),
+                    ],
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: FilledButton.icon(
+                        icon: const Icon(Icons.shield_outlined),
+                        label: const Text('Risk Guard'),
+                        onPressed: () async {
+                          final proposal = {
+                            'symbol': symbol,
+                            'action': signalType,
+                            'quantity': signal['proposal']?['quantity'] ?? 1,
+                            'price': signal['proposal']?['price'] ?? 0,
+                          };
+
+                          // Build portfolio state with all positions
+                          final portfolioState = _buildPortfolioState(context);
+
+                          final provider = Provider.of<AgenticTradingProvider>(
+                              context,
+                              listen: false);
+                          final result = await provider.assessTradeRisk(
+                            proposal: proposal,
+                            portfolioState: portfolioState,
+                          );
+                          // Update assessment in the signal and refresh UI
+                          signal['assessment'] = result;
+                          (context as Element).markNeedsBuild();
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Risk Guard'),
+                              content: Text((result['approved']
+                                      ? 'Approved'
+                                      : 'Rejected') +
+                                  (result['reason'] != null
+                                      ? ': ${result['reason']}'
+                                      : '')),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 

@@ -423,7 +423,7 @@ class UserInfoCardWidget extends StatelessWidget {
           minTileHeight: 10,
           title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
           trailing: SizedBox(
-              width: 220,
+              width: 195,
               child: Text(user.profileName!,
                   style: const TextStyle(fontSize: 16),
                   textAlign: TextAlign.end)),
@@ -433,7 +433,7 @@ class UserInfoCardWidget extends StatelessWidget {
         minTileHeight: 10,
         title: const Text("Username", style: TextStyle(fontSize: 14)),
         trailing: SizedBox(
-            width: 220,
+            width: 214,
             child: Text(user.username,
                 style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.end)),
