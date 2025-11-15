@@ -164,6 +164,49 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     return response;
   }
 
+  Stream<String> streamPortfolioContent(
+      Prompt prompt,
+      InstrumentPositionStore? stockPositionStore,
+      OptionPositionStore? optionPositionStore,
+      ForexHoldingStore? forexHoldingStore,
+      GenerativeProvider provider,
+      {dynamic user}) async* {
+    String promptString = stockPositionStore == null ||
+            optionPositionStore == null ||
+            forexHoldingStore == null
+        ? prompt.prompt
+        : """${prompt.prompt}
+${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
+    final prompts = [Content.text(promptString)];
+
+    final buffer = StringBuffer();
+    await for (final event in model.generateContentStream(prompts)) {
+      // Each event may contain partial candidates.
+      try {
+        final text = event.text;
+        if (text != null && text.isNotEmpty) {
+          // Some SDKs send cumulative text; guard against duplication.
+          if (!buffer.toString().endsWith(text)) {
+            // If cumulative, reset buffer; else append.
+            if (text.length > buffer.length &&
+                text.startsWith(buffer.toString())) {
+              buffer.clear();
+              buffer.write(text);
+            } else {
+              buffer.write(text);
+            }
+          } else {
+            buffer.write(text); // fallback
+          }
+          provider.setGenerativeResponse(prompt.prompt, buffer.toString());
+          yield buffer.toString();
+        }
+      } catch (_) {
+        // Ignore malformed partial chunk
+      }
+    }
+  }
+
   String portfolioPrompt(
       InstrumentPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
@@ -173,6 +216,9 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
 
     // Add investment profile information if user is provided
     if (user != null) {
+      positionPrompt +=
+          user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
+
       positionPrompt += "## Investment Profile\n";
       if (user.investmentGoals != null && user.investmentGoals!.isNotEmpty) {
         positionPrompt += "**Investment Goals:** ${user.investmentGoals}\n";

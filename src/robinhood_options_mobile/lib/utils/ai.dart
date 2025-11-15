@@ -6,6 +6,7 @@ import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
 
 Future<void> generateContent(
   GenerativeProvider generativeProvider,
@@ -18,43 +19,56 @@ Future<void> generateContent(
   bool localInference = true,
   dynamic user,
 }) async {
-  String? response;
-  if (generativeProvider.promptResponses[prompt.prompt] != null) {
-    response = generativeProvider.promptResponses[prompt.prompt];
-  } else {
-    generativeProvider.startGenerating(prompt.key);
-    if (prompt.prompt.isEmpty) {
-      response = '';
-      generativeProvider.generating = false;
-    } else if (localInference) {
-      var generateContentResponse =
-          await generativeService.generatePortfolioContent(
-              prompt,
-              stockPositionStore,
-              optionPositionStore,
-              forexHoldingStore,
-              generativeProvider,
-              user: user);
-      response = generateContentResponse.text;
-    } else {
-      response = await generativeService.generateContentFromServer(
-          prompt, stockPositionStore, optionPositionStore, forexHoldingStore,
-          user: user);
-      generativeProvider.setGenerativeResponse(prompt.prompt, response);
-    }
-  }
+  // Open sheet immediately with current cached response (if any)
   if (context.mounted) {
     showAIResponse(
-        response,
-        prompt,
-        context,
-        generativeProvider,
-        generativeService,
-        stockPositionStore,
-        optionPositionStore,
-        forexHoldingStore,
-        user);
+      generativeProvider.promptResponses[prompt.prompt],
+      prompt,
+      context,
+      generativeProvider,
+      generativeService,
+      stockPositionStore,
+      optionPositionStore,
+      forexHoldingStore,
+      user,
+    );
   }
+
+  // If already cached, no further work
+  if (generativeProvider.promptResponses[prompt.prompt] != null) return;
+
+  generativeProvider.startGenerating(prompt.key);
+
+  if (prompt.prompt.isEmpty) {
+    generativeProvider.generating = false;
+    generativeProvider.setGenerativeResponse(prompt.prompt, '');
+    return;
+  }
+
+  if (localInference) {
+    // Stream local model output
+    await for (final _ in generativeService.streamPortfolioContent(
+      prompt,
+      stockPositionStore,
+      optionPositionStore,
+      forexHoldingStore,
+      generativeProvider,
+      user: user,
+    )) {
+      // Provider already updated inside streamPortfolioContent; we just wait.
+    }
+  } else {
+    // Non-stream server call (Cloud Function) - could be extended later
+    final full = await generativeService.generateContentFromServer(
+      prompt,
+      stockPositionStore,
+      optionPositionStore,
+      forexHoldingStore,
+      user: user,
+    );
+    generativeProvider.setGenerativeResponse(prompt.prompt, full);
+  }
+  generativeProvider.generating = false;
 }
 
 // Define a simple ChatMessage class or similar structure
@@ -311,11 +325,12 @@ void showAIResponse(
                     ],
                   );
                 } else {
-                  return SingleChildScrollView(
-                      controller: controller,
-                      child: Column(
-                        children: [
-                          if (response != null && response!.isNotEmpty) ...[
+                  return Consumer<GenerativeProvider>(builder: (ctx, gp, _) {
+                    final current = gp.promptResponses[prompt.prompt];
+                    return SingleChildScrollView(
+                        controller: controller,
+                        child: Column(
+                          children: [
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Column(
@@ -357,116 +372,135 @@ void showAIResponse(
                                     ),
                                     child: Padding(
                                       padding: const EdgeInsets.all(20.0),
-                                      child: SelectionArea(
-                                        child: MarkdownBody(
-                                          data: response!,
-                                          styleSheet: MarkdownStyleSheet(
-                                            p: theme.textTheme.bodyLarge,
-                                            h1: theme.textTheme.headlineSmall
-                                                ?.copyWith(
-                                              fontWeight: FontWeight.bold,
+                                      child: current == null
+                                          ? Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      const CircularProgressIndicator(
+                                                          strokeWidth: 2),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text('Generating...',
+                                                    style: theme
+                                                        .textTheme.bodyMedium),
+                                              ],
+                                            )
+                                          : SelectionArea(
+                                              child: MarkdownBody(
+                                                data: current,
+                                                styleSheet: MarkdownStyleSheet(
+                                                  p: theme.textTheme.bodyLarge,
+                                                  h1: theme
+                                                      .textTheme.headlineSmall
+                                                      ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  h2: theme.textTheme.titleLarge
+                                                      ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                            h2: theme.textTheme.titleLarge
-                                                ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ],
                               ),
+                            ),
+                            // if (promptKey == 'summarize-video') ...[
+                            //   TextButton.icon(
+                            //     icon: const Icon(Icons.copy_all_outlined),
+                            //     onPressed: () async {
+                            //       if (widget.video != null) {
+                            //         if (context.mounted) {
+                            //           Navigator.pop(context);
+                            //         }
+                            //         state(() {
+                            //           currentPrompt = promptKey;
+                            //         });
+                            //         widget.video!.note = response;
+                            //         if (widget.onChange != null) {
+                            //           widget.onChange!();
+                            //         }
+                            //         state(() {
+                            //           currentPrompt = null;
+                            //         });
+                            //       }
+                            //     },
+                            //     label: const Text('Copy to Pro Notes'),
+                            //   ),
+                            // ],
+                            if (prompt.key != 'ask') ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 8.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      key: shareButtonKey,
+                                      icon: const Icon(Icons.share_outlined,
+                                          size: 20),
+                                      onPressed: () async {
+                                        if (current != null &&
+                                            current.isNotEmpty) {
+                                          final box = shareButtonKey
+                                                  .currentContext
+                                                  ?.findRenderObject()
+                                              as RenderBox?;
+                                          if (box != null) {
+                                            await SharePlus.instance
+                                                .share(ShareParams(
+                                              subject: prompt.title,
+                                              text:
+                                                  '${prompt.title}\n\n$current',
+                                              sharePositionOrigin:
+                                                  box.localToGlobal(
+                                                          Offset.zero) &
+                                                      box.size,
+                                            ));
+                                          }
+                                        }
+                                      },
+                                      label: const Text('Share'),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    FilledButton.tonalIcon(
+                                      icon: const Icon(Icons.refresh, size: 20),
+                                      onPressed: () async {
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                        generativeProvider.promptResponses[
+                                            prompt.prompt] = null;
+                                        await generateContent(
+                                          generativeProvider,
+                                          generativeService,
+                                          prompt,
+                                          context,
+                                          stockPositionStore:
+                                              stockPositionStore,
+                                          optionPositionStore:
+                                              optionPositionStore,
+                                          forexHoldingStore: forexHoldingStore,
+                                          user: user,
+                                        );
+                                      },
+                                      label: const Text('Refresh'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            SizedBox(
+                              height: 25,
                             )
                           ],
-                          // if (promptKey == 'summarize-video') ...[
-                          //   TextButton.icon(
-                          //     icon: const Icon(Icons.copy_all_outlined),
-                          //     onPressed: () async {
-                          //       if (widget.video != null) {
-                          //         if (context.mounted) {
-                          //           Navigator.pop(context);
-                          //         }
-                          //         state(() {
-                          //           currentPrompt = promptKey;
-                          //         });
-                          //         widget.video!.note = response;
-                          //         if (widget.onChange != null) {
-                          //           widget.onChange!();
-                          //         }
-                          //         state(() {
-                          //           currentPrompt = null;
-                          //         });
-                          //       }
-                          //     },
-                          //     label: const Text('Copy to Pro Notes'),
-                          //   ),
-                          // ],
-                          if (prompt.key != 'ask') ...[
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16.0, vertical: 8.0),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  FilledButton.tonalIcon(
-                                    key: shareButtonKey,
-                                    icon: const Icon(Icons.share_outlined,
-                                        size: 20),
-                                    onPressed: () async {
-                                      if (response != null &&
-                                          response!.isNotEmpty) {
-                                        final box = shareButtonKey
-                                            .currentContext
-                                            ?.findRenderObject() as RenderBox?;
-                                        if (box != null) {
-                                          await SharePlus.instance
-                                              .share(ShareParams(
-                                            subject: prompt.title,
-                                            text:
-                                                '${prompt.title}\n\n$response',
-                                            sharePositionOrigin:
-                                                box.localToGlobal(Offset.zero) &
-                                                    box.size,
-                                          ));
-                                        }
-                                      }
-                                    },
-                                    label: const Text('Share'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  FilledButton.tonalIcon(
-                                    icon: const Icon(Icons.refresh, size: 20),
-                                    onPressed: () async {
-                                      if (context.mounted) {
-                                        Navigator.pop(context);
-                                      }
-                                      generativeProvider
-                                              .promptResponses[prompt.prompt] =
-                                          null;
-                                      await generateContent(
-                                        generativeProvider,
-                                        generativeService,
-                                        prompt,
-                                        context,
-                                        stockPositionStore: stockPositionStore,
-                                        optionPositionStore:
-                                            optionPositionStore,
-                                        forexHoldingStore: forexHoldingStore,
-                                        user: user,
-                                      );
-                                    },
-                                    label: const Text('Refresh'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          SizedBox(
-                            height: 25,
-                          )
-                        ],
-                      ));
+                        ));
+                  });
                 }
               });
         });
