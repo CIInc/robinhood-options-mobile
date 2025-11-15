@@ -12,11 +12,12 @@ const db = getFirestore();
  * @param {number} smaPeriodFast The fast SMA period.
  * @param {number} smaPeriodSlow The slow SMA period.
  * @return {Promise<object>} An object containing the symbol, prices,
- * and current price.
+ * volumes, and current price.
  */
 export async function getMarketData(symbol: string,
   smaPeriodFast: number, smaPeriodSlow: number) {
   let prices: any[] = [];
+  let volumes: any[] = [];
   let currentPrice: number | null = null;
 
   /**
@@ -49,16 +50,20 @@ export async function getMarketData(symbol: string,
 
       if (isCached && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
         const closes = chart.indicators.quote[0].close;
+        const vols = chart.indicators.quote[0].volume || [];
         prices = closes.filter((p: any) => p !== null);
+        volumes = vols.filter((v: any) => v !== null);
         if (chart && typeof chart?.meta?.regularMarketPrice === "number") {
           currentPrice = chart.meta.regularMarketPrice;
         } else if (Array.isArray(prices) && prices.length > 0) {
           currentPrice = prices[prices.length - 1];
         }
-        logger.info(`Loaded cached prices for ${symbol} from Firestore`);
+        logger.info("Loaded cached prices and volumes " +
+          `for ${symbol} from Firestore`);
       } else {
         logger.info(`Cached data for ${symbol} is stale, will fetch new data`);
         prices = [];
+        volumes = [];
       }
     }
   } catch (err) {
@@ -79,24 +84,26 @@ export async function getMarketData(symbol: string,
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         const closes = result.indicators.quote[0].close;
+        const vols = result.indicators.quote[0].volume || [];
         prices = closes.filter((p: any) => p !== null);
-        logger.info(`Fetched ${prices.length} prices for 
-          ${symbol} from Yahoo Finance`);
+        volumes = vols.filter((v: any) => v !== null);
+        logger.info(`Fetched ${prices.length} prices and ` +
+          `${volumes.length} volumes for ${symbol} from Yahoo Finance`);
       }
       if (result && typeof result?.meta?.regularMarketPrice === "number") {
         currentPrice = result.meta.regularMarketPrice;
       } else if (Array.isArray(prices) && prices.length > 0) {
         currentPrice = prices[prices.length - 1];
       }
-      // Cache prices in Firestore
+      // Cache prices and volumes in Firestore
       try {
         await db.doc(`agentic_trading/chart_${symbol}`)
           .set({ chart: result, updated: Date.now() });
       } catch (err) {
-        logger.warn(`Failed to update cached prices for ${symbol}`, err);
+        logger.warn(`Failed to update cached data for ${symbol}`, err);
       }
     } catch (err) {
-      logger.error(`Failed to fetch prices from 
+      logger.error(`Failed to fetch data from 
         Yahoo Finance for ${symbol}`, err);
     }
   }
@@ -104,6 +111,7 @@ export async function getMarketData(symbol: string,
   return {
     symbol,
     prices,
+    volumes,
     currentPrice,
   };
 }

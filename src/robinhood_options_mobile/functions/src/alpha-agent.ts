@@ -1,6 +1,8 @@
 import * as riskguard from "./riskguard-agent";
 import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import * as indicators from "./technical-indicators";
+import fetch from "node-fetch";
 
 /**
  * Compute the Simple Moving Average (SMA) for a given period.
@@ -16,70 +18,133 @@ export function computeSMA(prices: number[], period: number): number | null {
 }
 
 /**
+ * Fetch market index data (SPY or QQQ) for market direction analysis
+ * @param {string} symbol The market index symbol (default: SPY)
+ * @return {Promise<{prices: number[], volumes: number[]}>} Market data
+ */
+async function fetchMarketData(symbol = "SPY"): Promise<{
+  prices: number[];
+  volumes: number[];
+}> {
+  try {
+    const baseUrl = "https://query1.finance.yahoo.com";
+    const url = `${baseUrl}/v8/finance/chart/${symbol}` +
+      "?interval=1d&range=3mo";
+    const resp = await fetch(url);
+    const data: any = await resp.json();
+    const result = data?.chart?.result?.[0];
+
+    if (result &&
+        Array.isArray(result?.indicators?.quote?.[0]?.close) &&
+        Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
+      const closeData = result.indicators.quote[0].close;
+      const volumeData = result.indicators.quote[0].volume;
+      const closes = closeData.filter((p: any) => p !== null);
+      const vols = volumeData.filter((v: any) => v !== null);
+
+      return { prices: closes, volumes: vols };
+    }
+  } catch (err) {
+    logger.warn(`Failed to fetch market data for ${symbol}`, err);
+  }
+
+  return { prices: [], volumes: [] };
+}
+
+/**
  * Handle Alpha agent logic for trade signal and risk assessment.
- * @param {object} marketData - Market data including prices and symbol.
+ * Uses multi-indicator analysis (Price Movement, Momentum,
+ * Market Direction, Volume)
+ * @param {object} marketData - Market data including prices,
+ *                               volumes, and symbol.
  * @param {object} portfolioState - Current portfolio state.
  * @param {object} config - Trading configuration.
  * @return {Promise<object>} The result of the Alpha agent task.
  */
 export async function handleAlphaTask(marketData: any,
   portfolioState: any, config: any) {
-  logger.info("Alpha agent: handleAlphaTask called",
-    { marketData, portfolioState, config });
+  const logMsg = "Alpha agent: handleAlphaTask called " +
+    "with multi-indicator analysis";
+  logger.info(logMsg, { marketData, portfolioState, config });
 
   const prices: number[] = marketData?.prices || [];
+  const volumes: number[] = marketData?.volumes || [];
+  const symbol = marketData?.symbol || "SPY";
+
+  // Fetch market index data (SPY by default, or QQQ if configured)
+  const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
+  const marketIndexData = await fetchMarketData(marketIndexSymbol);
+
+  logger.info("Fetched market index data", {
+    symbol: marketIndexSymbol,
+    pricesLength: marketIndexData.prices.length,
+    volumesLength: marketIndexData.volumes.length,
+  });
+
+  // Evaluate all 4 technical indicators
+  const multiIndicatorResult = indicators.evaluateAllIndicators(
+    { prices, volumes },
+    marketIndexData,
+    {
+      rsiPeriod: config?.rsiPeriod || 14,
+      marketFastPeriod: config?.smaPeriodFast || 10,
+      marketSlowPeriod: config?.smaPeriodSlow || 30,
+    }
+  );
+
+  const { allGreen, indicators: indicatorResults,
+    overallSignal, reason } = multiIndicatorResult;
+
+  logger.info("Multi-indicator evaluation", {
+    allGreen,
+    overallSignal,
+    indicators: {
+      priceMovement: indicatorResults.priceMovement.signal,
+      momentum: indicatorResults.momentum.signal,
+      marketDirection: indicatorResults.marketDirection.signal,
+      volume: indicatorResults.volume.signal,
+    },
+  });
+
+  // Legacy SMA calculation for backward compatibility
   const smaPeriodFast = config?.smaPeriodFast || 10;
   const smaPeriodSlow = config?.smaPeriodSlow || 30;
   const fast = computeSMA(prices, smaPeriodFast);
   const slow = computeSMA(prices, smaPeriodSlow);
-
-  // Need previous SMA to detect crossover.
-  // Compute with one-step lag if possible
   const fastPrev = prices.length > smaPeriodFast ?
-    computeSMA(prices.slice(0, prices.length - 1), smaPeriodFast) :
-    null;
+    computeSMA(prices.slice(0, prices.length - 1), smaPeriodFast) : null;
   const slowPrev = prices.length > smaPeriodSlow ?
-    computeSMA(prices.slice(0, prices.length - 1), smaPeriodSlow) :
-    null;
+    computeSMA(prices.slice(0, prices.length - 1), smaPeriodSlow) : null;
 
-  logger.info("Alpha agent SMAs", {
-    [`${smaPeriodFast}-day SMA`]: fast,
-    [`${smaPeriodSlow}-day SMA`]: slow,
-    [`Previous ${smaPeriodFast}-day SMA`]: fastPrev,
-    [`Previous ${smaPeriodSlow}-day SMA`]: slowPrev,
-    smaPeriodFast,
-    smaPeriodSlow,
-    prices,
-  });
-
-  let signal: "BUY" | "SELL" | "HOLD" = "HOLD";
-  let reason = "";
-  if (fast !== null && slow !== null &&
-    fastPrev !== null && slowPrev !== null) {
-    if (fast > slow && fastPrev <= slowPrev) {
-      signal = "BUY";
-      reason = `${smaPeriodFast}-day SMA crossed above ` +
-        `${smaPeriodSlow}-day SMA (${fast.toFixed(2)} > ${slow.toFixed(2)})`;
-    } else if (fast < slow && fastPrev >= slowPrev) {
-      signal = "SELL";
-      reason = `${smaPeriodFast}-day SMA crossed below ` +
-        `${smaPeriodSlow}-day SMA (${fast.toFixed(2)} < ${slow.toFixed(2)})`;
-    } else {
-      reason = `No crossover (${smaPeriodFast}-day SMA=${fast?.toFixed(2)},` +
-        ` ${smaPeriodSlow}-day SMA=${slow?.toFixed(2)},` +
-        ` Previous ${smaPeriodFast}-day SMA=${fastPrev?.toFixed(2)},` +
-        ` Previous ${smaPeriodSlow}-day SMA=${slowPrev?.toFixed(2)})`;
+  // If not all indicators are green, hold
+  if (overallSignal === "HOLD") {
+    // Persist signal even when holding
+    try {
+      const { getFirestore } = await import("firebase-admin/firestore");
+      const db = getFirestore();
+      const signalDoc = {
+        timestamp: Date.now(),
+        signal: overallSignal,
+        reason,
+        multiIndicatorResult,
+        [`${smaPeriodFast}-day SMA`]: fast,
+        [`${smaPeriodSlow}-day SMA`]: slow,
+        currentPrice: marketData.currentPrice,
+        config,
+        portfolioState,
+      };
+      await db.doc(`agentic_trading/signals_${symbol}`).set(signalDoc);
+      logger.info("Alpha agent stored HOLD signal", signalDoc);
+    } catch (err) {
+      logger.warn("Failed to persist trade signal", err);
     }
-  } else {
-    reason = "Insufficient data for SMA calculation.";
-  }
 
-  if (signal === "HOLD") {
     return {
       status: "no_action",
-      message: "Alpha agent: No SMA crossover signal.",
+      message: "Alpha agent: Multi-indicator analysis shows HOLD.",
       reason,
-      signal,
+      signal: overallSignal,
+      multiIndicatorResult,
     };
   }
 
@@ -88,11 +153,12 @@ export async function handleAlphaTask(marketData: any,
   const quantity = config?.tradeQuantity || 1;
 
   const proposal = {
-    symbol: marketData?.symbol || "SPY",
-    action: signal,
+    symbol,
+    action: overallSignal,
     reason: reason,
     quantity,
     price: lastPrice,
+    multiIndicatorResult,
   };
 
   // Call riskguard to assess
@@ -103,11 +169,11 @@ export async function handleAlphaTask(marketData: any,
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
-    const symbol = marketData.symbol || "UNKNOWN";
     const signalDoc = {
       timestamp: Date.now(),
-      signal,
+      signal: overallSignal,
       reason,
+      multiIndicatorResult,
       [`${smaPeriodFast}-day SMA`]: fast,
       [`${smaPeriodSlow}-day SMA`]: slow,
       [`Previous ${smaPeriodFast}-day SMA`]: fastPrev,
@@ -115,28 +181,14 @@ export async function handleAlphaTask(marketData: any,
       currentPrice: marketData.currentPrice,
       pricesLength: Array.isArray(marketData.prices) ?
         marketData.prices.length : 0,
+      volumesLength: Array.isArray(marketData.volumes) ?
+        marketData.volumes.length : 0,
       config,
       portfolioState,
       proposal,
       assessment,
     };
-    await db.doc(`agentic_trading/signals_${symbol}`)
-      .set(signalDoc); // , { merge: true }
-    // await db.collection(`agentic_trading/signals_${symbol}`)
-    //   .add({
-    //     timestamp: Date.now(),
-    //     signal,
-    //     reason,
-    //     fast,
-    //     slow,
-    //     fastPrev,
-    //     slowPrev,
-    //     currentPrice: marketData.currentPrice,
-    //     pricesLength: Array.isArray(marketData.prices) ?
-    //       marketData.prices.length : 0,
-    //     portfolioState,
-    //     config,
-    //   });
+    await db.doc(`agentic_trading/signals_${symbol}`).set(signalDoc);
     logger.info("Alpha agent stored trade signal", signalDoc);
   } catch (err) {
     logger.warn("Failed to persist trade signal", err);
@@ -146,14 +198,19 @@ export async function handleAlphaTask(marketData: any,
     return {
       status: "rejected",
       message: "RiskGuard agent rejected the proposal",
-      proposal: proposal, assessment: assessment,
+      proposal: proposal,
+      assessment: assessment,
+      multiIndicatorResult,
     };
   }
 
   return {
     status: "approved",
-    message: "Alpha agent approved proposal after risk check",
-    proposal: proposal, assessment: assessment,
+    message: `Alpha agent approved ${overallSignal} proposal: ` +
+      "All 4 indicators aligned",
+    proposal: proposal,
+    assessment: assessment,
+    multiIndicatorResult,
   };
 }
 
