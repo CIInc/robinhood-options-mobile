@@ -87,15 +87,19 @@ void showAIResponse(
   showModalBottomSheet(
       context: context,
       enableDrag: true,
-      // backgroundColor: Colors.grey.shade100,
-      // shape: const BeveledRectangleBorder(),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       showDragHandle: true,
       isScrollControlled: true,
       useSafeArea: true,
-      // constraints: BoxConstraints.loose(const Size.fromHeight(340)),
       builder: (BuildContext newContext) {
         return StatefulBuilder(
             builder: (BuildContext buildercontext, setState) {
+          final theme = Theme.of(buildercontext);
+          final colorScheme = theme.colorScheme;
+
           // Add the initial response if it exists and the prompt key is 'ask'
           if (prompt.key == 'ask' && response != null && response!.isNotEmpty) {
             messages.add(ChatMessage(sender: Sender.ai, content: response!));
@@ -162,33 +166,60 @@ void showAIResponse(
 
                 if (prompt.key == 'ask') {
                   return Column(
-                    // mainAxisSize: MainAxisSize.min, // Set mainAxisSize to min
-                    // Use Column instead of SingleChildScrollView
                     children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.chat_bubble_outline,
+                                color: colorScheme.primary, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              prompt.title,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Divider(height: 1, thickness: 1),
                       Flexible(
-                        // Use Flexible instead of Expanded
-                        fit: FlexFit.loose, // Set fit to loose
-                        // Use Expanded for the chat history
+                        fit: FlexFit.loose,
                         child: ListView.builder(
                           controller: controller,
                           itemCount: messages.length,
                           itemBuilder: (context, index) {
                             final message = messages[index];
+                            final isUser = message.sender == Sender.user;
                             return Align(
-                              alignment: message.sender == Sender.user
+                              alignment: isUser
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
-                              child: Card(
+                              child: Container(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.75,
+                                ),
                                 margin: const EdgeInsets.symmetric(
-                                    horizontal: 10.0, vertical: 4.0),
-                                color: message.sender == Sender.user
-                                    ? Colors.blue[100]
-                                    : Colors.grey[200],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: MarkdownBody(
-                                    data: message.content,
-                                    selectable: true,
+                                    horizontal: 16.0, vertical: 6.0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0, vertical: 12.0),
+                                decoration: BoxDecoration(
+                                  color: isUser
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.secondaryContainer,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: MarkdownBody(
+                                  data: message.content,
+                                  selectable: true,
+                                  styleSheet: MarkdownStyleSheet(
+                                    p: theme.textTheme.bodyMedium?.copyWith(
+                                      color: isUser
+                                          ? colorScheme.onPrimaryContainer
+                                          : colorScheme.onSecondaryContainer,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -197,56 +228,81 @@ void showAIResponse(
                         ),
                       ),
                       Padding(
-                        // Input row at the bottom
                         padding: EdgeInsets.only(
                             bottom: MediaQuery.of(buildercontext)
                                     .viewInsets
                                     .bottom +
-                                16.0,
-                            left: 16.0,
-                            right: 16.0),
-                        child: Row(
-                          children: [
-                            if (messages.isNotEmpty) ...[
-                              IconButton(
-                                key: chatShareButtonKey,
-                                icon: const Icon(Icons.share),
-                                tooltip: 'Share conversation',
-                                onPressed: () async {
-                                  final conversationText = messages
-                                      .map((msg) =>
-                                          '${msg.sender == Sender.user ? "You" : "AI"}: ${msg.content}')
-                                      .join('\n\n');
-                                  final box = chatShareButtonKey.currentContext
-                                      ?.findRenderObject() as RenderBox?;
-                                  if (box != null) {
-                                    await SharePlus.instance.share(ShareParams(
-                                        subject: prompt.title,
-                                        text: conversationText,
-                                        sharePositionOrigin:
-                                            box.localToGlobal(Offset.zero) &
-                                                box.size));
-                                  }
-                                },
-                              ),
-                            ],
-                            Expanded(
-                              child: TextFormField(
-                                controller: promptController,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  hintText: 'Ask a question...',
-                                ),
-                                onFieldSubmitted: (_) => handleSendMessage(),
-                              ),
+                                8.0,
+                            left: 8.0,
+                            right: 8.0,
+                            top: 8.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: colorScheme.outline.withOpacity(0.2),
                             ),
-                            IconButton(
-                              icon: generativeProvider.generating
-                                  ? const CircularProgressIndicator()
-                                  : const Icon(Icons.send),
-                              onPressed: handleSendMessage,
-                            )
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              if (messages.isNotEmpty) ...[
+                                IconButton(
+                                  key: chatShareButtonKey,
+                                  icon: const Icon(Icons.share_outlined),
+                                  tooltip: 'Share conversation',
+                                  onPressed: () async {
+                                    final conversationText = messages
+                                        .map((msg) =>
+                                            '${msg.sender == Sender.user ? "You" : "AI"}: ${msg.content}')
+                                        .join('\n\n');
+                                    final box = chatShareButtonKey
+                                        .currentContext
+                                        ?.findRenderObject() as RenderBox?;
+                                    if (box != null) {
+                                      await SharePlus.instance.share(
+                                          ShareParams(
+                                              subject: prompt.title,
+                                              text: conversationText,
+                                              sharePositionOrigin:
+                                                  box.localToGlobal(
+                                                          Offset.zero) &
+                                                      box.size));
+                                    }
+                                  },
+                                ),
+                              ],
+                              Expanded(
+                                child: TextField(
+                                  controller: promptController,
+                                  autofocus: true,
+                                  maxLines: null,
+                                  decoration: InputDecoration(
+                                    hintText: 'Ask a question...',
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                      vertical: 12.0,
+                                    ),
+                                  ),
+                                  onSubmitted: (_) => handleSendMessage(),
+                                ),
+                              ),
+                              IconButton(
+                                icon: generativeProvider.generating
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2))
+                                    : Icon(Icons.send,
+                                        color: colorScheme.primary),
+                                onPressed: generativeProvider.generating
+                                    ? null
+                                    : handleSendMessage,
+                              )
+                            ],
+                          ),
                         ),
                       ),
                       SizedBox(
@@ -259,31 +315,67 @@ void showAIResponse(
                       controller: controller,
                       child: Column(
                         children: [
-                          // This handles cases where prompt.key is not 'ask'
                           if (response != null && response!.isNotEmpty) ...[
-                            // Add null check for response
                             Padding(
-                              padding: const EdgeInsets.only(bottom: 16.0),
-                              // padding: const EdgeInsets.symmetric(vertical: 16.0),
-                              // padding: const EdgeInsets.all(8.0),
-                              child: Card(
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 10.0),
-                                child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: SelectionArea(
-                                      // SelectionTransformer.separated allows for new lines to be copied and
-                                      // pasted.
-                                      child: MarkdownBody(
-                                        // selectable: true,
-                                        data: "# ${prompt.title}  \n$response",
-                                        // styleSheet: MarkdownStyleSheet(
-                                        //   h1Align: WrapAlignment.center,
-                                        //   tableHeadAlign: TextAlign.left,
-                                        //   textAlign: WrapAlignment.spaceEvenly,
-                                        // ),
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8.0),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          Icons.auto_awesome,
+                                          color: colorScheme.primary,
+                                          size: 24,
+                                        ),
                                       ),
-                                    )),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          prompt.title,
+                                          style: theme.textTheme.titleLarge
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Card(
+                                    elevation: 0,
+                                    color: colorScheme.surfaceContainerHighest,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20.0),
+                                      child: SelectionArea(
+                                        child: MarkdownBody(
+                                          data: response!,
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: theme.textTheme.bodyLarge,
+                                            h1: theme.textTheme.headlineSmall
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            h2: theme.textTheme.titleLarge
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             )
                           ],
@@ -311,68 +403,63 @@ void showAIResponse(
                           //   ),
                           // ],
                           if (prompt.key != 'ask') ...[
-                            // Only show buttons for non-chat prompts
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                TextButton.icon(
-                                  key: shareButtonKey,
-                                  icon: const Icon(Icons.share),
-                                  onPressed: () async {
-                                    if (response != null &&
-                                        response!.isNotEmpty) {
-                                      final box = shareButtonKey.currentContext
-                                          ?.findRenderObject() as RenderBox?;
-                                      if (box != null) {
-                                        await SharePlus.instance
-                                            .share(ShareParams(
-                                          subject: prompt.title,
-                                          text: '${prompt.title}\n\n$response',
-                                          sharePositionOrigin:
-                                              box.localToGlobal(Offset.zero) &
-                                                  box.size,
-                                        ));
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  FilledButton.tonalIcon(
+                                    key: shareButtonKey,
+                                    icon: const Icon(Icons.share_outlined,
+                                        size: 20),
+                                    onPressed: () async {
+                                      if (response != null &&
+                                          response!.isNotEmpty) {
+                                        final box = shareButtonKey
+                                            .currentContext
+                                            ?.findRenderObject() as RenderBox?;
+                                        if (box != null) {
+                                          await SharePlus.instance
+                                              .share(ShareParams(
+                                            subject: prompt.title,
+                                            text:
+                                                '${prompt.title}\n\n$response',
+                                            sharePositionOrigin:
+                                                box.localToGlobal(Offset.zero) &
+                                                    box.size,
+                                          ));
+                                        }
                                       }
-                                    }
-                                  },
-                                  label: const Text('Share'),
-                                ),
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  icon: const Icon(Icons.refresh),
-                                  onPressed: () async {
-                                    // if (widget.video != null &&
-                                    //     widget.video!.responses != null) {
-                                    if (context.mounted) {
-                                      Navigator.pop(context);
-                                    }
-                                    //   state(() {
-                                    //     currentPrompt = promptKey;
-                                    //   });
-                                    generativeProvider
-                                        .promptResponses[prompt.prompt] = null;
-                                    // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
-                                    await generateContent(
-                                      generativeProvider,
-                                      generativeService,
-                                      prompt,
-                                      context,
-                                      stockPositionStore: stockPositionStore,
-                                      optionPositionStore: optionPositionStore,
-                                      forexHoldingStore: forexHoldingStore,
-                                      user: user,
-                                    );
-
-                                    //   widget.video!.responses!.remove(promptKey);
-                                    //   await onAIChipPressed(promptKey!, context, state);
-                                    //   state(() {
-                                    //     currentPrompt = null;
-                                    //   });
-                                    // }
-                                  },
-                                  label: const Text('Refresh'),
-                                ),
-                              ],
+                                    },
+                                    label: const Text('Share'),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  FilledButton.tonalIcon(
+                                    icon: const Icon(Icons.refresh, size: 20),
+                                    onPressed: () async {
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                      }
+                                      generativeProvider
+                                              .promptResponses[prompt.prompt] =
+                                          null;
+                                      await generateContent(
+                                        generativeProvider,
+                                        generativeService,
+                                        prompt,
+                                        context,
+                                        stockPositionStore: stockPositionStore,
+                                        optionPositionStore:
+                                            optionPositionStore,
+                                        forexHoldingStore: forexHoldingStore,
+                                        user: user,
+                                      );
+                                    },
+                                    label: const Text('Refresh'),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                           SizedBox(
