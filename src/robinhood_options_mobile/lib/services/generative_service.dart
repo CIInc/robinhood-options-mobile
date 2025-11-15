@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 
 class Prompt {
   final String key;
@@ -33,7 +34,8 @@ class GenerativeService {
     Prompt(
         key: 'portfolio-recommendations',
         title: 'Portfolio Recommendations',
-        prompt: 'Provide recommendations for this portfolio',
+        prompt: 'Provide recommendations for this portfolio, including risk '
+            'management, diversification, and potential trades to consider.',
         appendPortfolioToPrompt: true),
     Prompt(
         key: 'market-summary',
@@ -99,12 +101,13 @@ Volume - Volume bar or other volume indicators
     Prompt prompt,
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
-    ForexHoldingStore? forexHoldingStore,
-  ) async {
+    ForexHoldingStore? forexHoldingStore, {
+    User? user,
+  }) async {
     String promptString =
         """You are a financial assistant, provide answers in markdown format.
     ${prompt.prompt}
-    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : '') : ''}""";
+    ${stockPositionStore != null && optionPositionStore != null && forexHoldingStore != null ? (prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : '') : ''}""";
     HttpsCallable callable =
         FirebaseFunctions.instance.httpsCallable('generateContent25');
     final resp = await callable.call(<String, dynamic>{
@@ -134,13 +137,14 @@ Volume - Volume bar or other volume indicators
       InstrumentPositionStore? stockPositionStore,
       OptionPositionStore? optionPositionStore,
       ForexHoldingStore? forexHoldingStore,
-      GenerativeProvider provider) async {
+      GenerativeProvider provider,
+      {User? user}) async {
     String promptString = stockPositionStore == null ||
             optionPositionStore == null ||
             forexHoldingStore == null
         ? prompt.prompt
         : """${prompt.prompt}
-${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore) : ''}""";
+${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
     final prompts = [
       Content.text(promptString),
     ];
@@ -161,18 +165,106 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
     return response;
   }
 
+  Stream<String> streamPortfolioContent(
+      Prompt prompt,
+      InstrumentPositionStore? stockPositionStore,
+      OptionPositionStore? optionPositionStore,
+      ForexHoldingStore? forexHoldingStore,
+      GenerativeProvider provider,
+      {User? user}) async* {
+    String promptString = stockPositionStore == null ||
+            optionPositionStore == null ||
+            forexHoldingStore == null
+        ? prompt.prompt
+        : """${prompt.prompt}
+${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPositionStore, forexHoldingStore, user: user) : ''}""";
+    final prompts = [Content.text(promptString)];
+
+    final buffer = StringBuffer();
+    await for (final event in model.generateContentStream(prompts)) {
+      // Each event may contain partial candidates.
+      try {
+        final text = event.text;
+        if (text != null && text.isNotEmpty) {
+          // Deduplicate cumulative or partial text updates.
+          final current = buffer.toString();
+          if (current.isEmpty) {
+            buffer.write(text);
+          } else if (text.startsWith(current)) {
+            // Only append the new part.
+            buffer.write(text.substring(current.length));
+          } else if (!current.endsWith(text)) {
+            // Unusual case: append as-is.
+            buffer.write(text);
+          }
+          // else: text is already present, do not append.
+          provider.setGenerativeResponse(prompt.prompt, buffer.toString());
+          yield buffer.toString();
+        }
+      } catch (_) {
+        // Ignore malformed partial chunk
+      }
+    }
+  }
+
   String portfolioPrompt(
       InstrumentPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
-      ForexHoldingStore forexHoldingStore) {
-    String positionPrompt = "This is my portfolio data:\n";
+      ForexHoldingStore forexHoldingStore,
+      {User? user}) {
+    String positionPrompt = "";
+
+    // Add investment profile information if user is provided
+    if (user != null) {
+      positionPrompt +=
+          user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
+
+      positionPrompt += "## Investment Profile\n";
+      if (user.investmentGoals != null && user.investmentGoals!.isNotEmpty) {
+        positionPrompt += "**Investment Goals:** ${user.investmentGoals}\n";
+      }
+      if (user.timeHorizon != null && user.timeHorizon!.isNotEmpty) {
+        positionPrompt += "**Time Horizon:** ${user.timeHorizon}\n";
+      }
+      if (user.riskTolerance != null && user.riskTolerance!.isNotEmpty) {
+        positionPrompt += "**Risk Tolerance:** ${user.riskTolerance}\n";
+      }
+      // Include total portfolio value if available
+      if (user.totalPortfolioValue != null) {
+        positionPrompt +=
+            "**Total Portfolio Value:** \$${formatCompactNumber.format(user.totalPortfolioValue)}\n";
+      }
+
+      // Include cash per account and aggregated cash if accounts are present
+      double totalCash = 0.0;
+      try {
+        if (user.accounts != null && user.accounts.isNotEmpty) {
+          positionPrompt += "**Accounts Cash:**\n";
+          for (var acct in user.accounts) {
+            double? acctCash = acct.portfolioCash;
+            if (acctCash != null) {
+              totalCash += acctCash;
+              positionPrompt +=
+                  "- Account ${acct.accountNumber ?? ''}: ${formatCurrency.format(acctCash)}\n";
+            }
+          }
+          positionPrompt +=
+              "**Total Cash Across Accounts:** ${formatCurrency.format(totalCash)}\n";
+        }
+      } catch (e) {
+        // If user.accounts is not present or another error occurs, ignore
+      }
+      positionPrompt += "\n";
+    }
+
     positionPrompt += """
-    | Instrument | Gain/Loss Today | Gain/Loss Total | Market Value |
-    | ---------- | --------- | --------- | --------- |""";
+    ## Portfolio Positions
+    | Instrument | Quantity | Created | Gain/Loss Today | Gain/Loss Total | Market Value |
+    | ---------- | --------- | --------- | --------- | --------- | --------- |""";
     for (var item in stockPositionStore.items) {
       if (item.instrumentObj != null) {
         positionPrompt +=
-            "| ${item.instrumentObj!.symbol} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
+            "| ${item.instrumentObj!.symbol} | ${item.quantity} | ${item.createdAt} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
       }
     }
     positionPrompt += """
