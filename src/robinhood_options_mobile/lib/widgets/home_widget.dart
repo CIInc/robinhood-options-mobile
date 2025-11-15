@@ -51,6 +51,8 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart'
+    hide formatCurrency;
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -696,7 +698,168 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ),
                 ),
               );
+            }),
 
+            // AI Recommendations Promotional Card
+            if (widget.user != null)
+              Consumer<GenerativeProvider>(
+                builder: (context, generativeProvider, child) {
+                  final hasInvestmentProfile =
+                      widget.user!.investmentGoals != null ||
+                          widget.user!.timeHorizon != null ||
+                          widget.user!.riskTolerance != null ||
+                          widget.user!.totalPortfolioValue != null;
+
+                  // Check if user has ever generated recommendations
+                  final hasUsedRecommendations = generativeProvider
+                      .promptResponses
+                      .containsKey('portfolio-recommendations');
+                  //      &&
+                  // generativeProvider
+                  //         .promptResponses['portfolio-recommendations'] !=
+                  //     null;
+
+                  // Hide card if user has already used the feature
+                  if (hasUsedRecommendations) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+
+                  final theme = Theme.of(context);
+                  final colorScheme = theme.colorScheme;
+
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+                      child: Card(
+                        elevation: 2,
+                        color: hasInvestmentProfile
+                            ? colorScheme.primaryContainer.withOpacity(0.5)
+                            : colorScheme.secondaryContainer.withOpacity(0.5),
+                        child: InkWell(
+                          onTap: hasInvestmentProfile
+                              ? null
+                              : () async {
+                                  // Navigate to Investment Profile Settings
+                                  final firestoreService = FirestoreService();
+                                  if (auth.currentUser != null) {
+                                    final userDoc = await firestoreService
+                                        .userCollection
+                                        .doc(auth.currentUser!.uid)
+                                        .get();
+                                    if (userDoc.exists && context.mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              InvestmentProfileSettingsWidget(
+                                            user: userDoc.data()!,
+                                            firestoreService: firestoreService,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: hasInvestmentProfile
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        Icons.stars,
+                                        color: colorScheme.primary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Personalized AI Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Get tailored insights based on your investment profile. Tap "Recommendations" above to generate personalized advice.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onPrimaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Icon(
+                                        Icons.psychology_outlined,
+                                        color: colorScheme.secondary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Unlock AI-Powered Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onSecondaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Complete your investment profile to receive personalized AI portfolio recommendations.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onSecondaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: colorScheme.secondary,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+            Consumer5<PortfolioStore, InstrumentPositionStore,
+                    OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
+                builder: (context,
+                    portfolioStore,
+                    stockPositionStore,
+                    optionPositionStore,
+                    forexHoldingStore,
+                    generativeProvider,
+                    child) {
+              return const SliverToBoxAdapter(child: SizedBox.shrink());
               // return SliverToBoxAdapter(
               //   child: Column(children: [
               //     // ListTile(

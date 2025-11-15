@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
+import 'package:share_plus/share_plus.dart';
 
 Future<void> generateContent(
   GenerativeProvider generativeProvider,
@@ -80,6 +81,8 @@ void showAIResponse(
     ForexHoldingStore? forexHoldingStore,
     dynamic user) {
   final TextEditingController promptController = TextEditingController();
+  final GlobalKey shareButtonKey = GlobalKey();
+  final GlobalKey chatShareButtonKey = GlobalKey();
 
   showModalBottomSheet(
       context: context,
@@ -204,6 +207,29 @@ void showAIResponse(
                             right: 16.0),
                         child: Row(
                           children: [
+                            if (messages.isNotEmpty) ...[
+                              IconButton(
+                                key: chatShareButtonKey,
+                                icon: const Icon(Icons.share),
+                                tooltip: 'Share conversation',
+                                onPressed: () async {
+                                  final conversationText = messages
+                                      .map((msg) =>
+                                          '${msg.sender == Sender.user ? "You" : "AI"}: ${msg.content}')
+                                      .join('\n\n');
+                                  final box = chatShareButtonKey.currentContext
+                                      ?.findRenderObject() as RenderBox?;
+                                  if (box != null) {
+                                    await SharePlus.instance.share(ShareParams(
+                                        subject: prompt.title,
+                                        text: conversationText,
+                                        sharePositionOrigin:
+                                            box.localToGlobal(Offset.zero) &
+                                                box.size));
+                                  }
+                                },
+                              ),
+                            ],
                             Expanded(
                               child: TextFormField(
                                 controller: promptController,
@@ -285,40 +311,68 @@ void showAIResponse(
                           //   ),
                           // ],
                           if (prompt.key != 'ask') ...[
-                            // Only show refresh button for non-chat prompts
-                            TextButton.icon(
-                              icon: const Icon(Icons.refresh),
-                              onPressed: () async {
-                                // if (widget.video != null &&
-                                //     widget.video!.responses != null) {
-                                if (context.mounted) {
-                                  Navigator.pop(context);
-                                }
-                                //   state(() {
-                                //     currentPrompt = promptKey;
-                                //   });
-                                generativeProvider
-                                    .promptResponses[prompt.prompt] = null;
-                                // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
-                                await generateContent(
-                                  generativeProvider,
-                                  generativeService,
-                                  prompt,
-                                  context,
-                                  stockPositionStore: stockPositionStore,
-                                  optionPositionStore: optionPositionStore,
-                                  forexHoldingStore: forexHoldingStore,
-                                  user: user,
-                                );
+                            // Only show buttons for non-chat prompts
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextButton.icon(
+                                  key: shareButtonKey,
+                                  icon: const Icon(Icons.share),
+                                  onPressed: () async {
+                                    if (response != null &&
+                                        response!.isNotEmpty) {
+                                      final box = shareButtonKey.currentContext
+                                          ?.findRenderObject() as RenderBox?;
+                                      if (box != null) {
+                                        await SharePlus.instance
+                                            .share(ShareParams(
+                                          subject: prompt.title,
+                                          text: '${prompt.title}\n\n$response',
+                                          sharePositionOrigin:
+                                              box.localToGlobal(Offset.zero) &
+                                                  box.size,
+                                        ));
+                                      }
+                                    }
+                                  },
+                                  label: const Text('Share'),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.refresh),
+                                  onPressed: () async {
+                                    // if (widget.video != null &&
+                                    //     widget.video!.responses != null) {
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                    }
+                                    //   state(() {
+                                    //     currentPrompt = promptKey;
+                                    //   });
+                                    generativeProvider
+                                        .promptResponses[prompt.prompt] = null;
+                                    // generativeProvider.promptResponses.removeWhere((key, value) => key == 'portfolio-summary');
+                                    await generateContent(
+                                      generativeProvider,
+                                      generativeService,
+                                      prompt,
+                                      context,
+                                      stockPositionStore: stockPositionStore,
+                                      optionPositionStore: optionPositionStore,
+                                      forexHoldingStore: forexHoldingStore,
+                                      user: user,
+                                    );
 
-                                //   widget.video!.responses!.remove(promptKey);
-                                //   await onAIChipPressed(promptKey!, context, state);
-                                //   state(() {
-                                //     currentPrompt = null;
-                                //   });
-                                // }
-                              },
-                              label: const Text('Generate new answer'),
+                                    //   widget.video!.responses!.remove(promptKey);
+                                    //   await onAIChipPressed(promptKey!, context, state);
+                                    //   state(() {
+                                    //     currentPrompt = null;
+                                    //   });
+                                    // }
+                                  },
+                                  label: const Text('Refresh'),
+                                ),
+                              ],
                             ),
                           ],
                           SizedBox(

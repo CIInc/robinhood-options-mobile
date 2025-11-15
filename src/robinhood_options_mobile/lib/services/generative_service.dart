@@ -33,7 +33,8 @@ class GenerativeService {
     Prompt(
         key: 'portfolio-recommendations',
         title: 'Portfolio Recommendations',
-        prompt: 'Provide recommendations for this portfolio',
+        prompt: 'Provide recommendations for this portfolio, including risk '
+            'management, diversification, and potential trades to consider.',
         appendPortfolioToPrompt: true),
     Prompt(
         key: 'market-summary',
@@ -212,12 +213,12 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
 
     positionPrompt += """
     ## Portfolio Positions
-    | Instrument | Gain/Loss Today | Gain/Loss Total | Market Value |
-    | ---------- | --------- | --------- | --------- |""";
+    | Instrument | Quantity | Created | Gain/Loss Today | Gain/Loss Total | Market Value |
+    | ---------- | --------- | --------- | --------- | --------- | --------- |""";
     for (var item in stockPositionStore.items) {
       if (item.instrumentObj != null) {
         positionPrompt +=
-            "| ${item.instrumentObj!.symbol} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
+            "| ${item.instrumentObj!.symbol} | ${item.quantity} | ${item.createdAt} | ${item.gainLossToday} | ${item.gainLoss} | ${item.marketValue} |\n";
       }
     }
     positionPrompt += """
