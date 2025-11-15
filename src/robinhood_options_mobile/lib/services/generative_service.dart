@@ -185,19 +185,18 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       try {
         final text = event.text;
         if (text != null && text.isNotEmpty) {
-          // Some SDKs send cumulative text; guard against duplication.
-          if (!buffer.toString().endsWith(text)) {
-            // If cumulative, reset buffer; else append.
-            if (text.length > buffer.length &&
-                text.startsWith(buffer.toString())) {
-              buffer.clear();
-              buffer.write(text);
-            } else {
-              buffer.write(text);
-            }
-          } else {
-            buffer.write(text); // fallback
+          // Deduplicate cumulative or partial text updates.
+          final current = buffer.toString();
+          if (current.isEmpty) {
+            buffer.write(text);
+          } else if (text.startsWith(current)) {
+            // Only append the new part.
+            buffer.write(text.substring(current.length));
+          } else if (!current.endsWith(text)) {
+            // Unusual case: append as-is.
+            buffer.write(text);
           }
+          // else: text is already present, do not append.
           provider.setGenerativeResponse(prompt.prompt, buffer.toString());
           yield buffer.toString();
         }
