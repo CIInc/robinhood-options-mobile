@@ -161,50 +161,6 @@ class _UserInfoWidgetState extends State<UserInfoWidget> {
                 child: SizedBox(
               height: 25.0,
             )),
-            const SliverToBoxAdapter(
-                child: Column(children: [
-              ListTile(
-                title: Text(
-                  "Investment Profile",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-              )
-            ])),
-            SliverToBoxAdapter(
-              child: Card(
-                child: ListTile(
-                  leading: const Icon(Icons.assessment_outlined),
-                  title: const Text('Investment Profile Settings'),
-                  subtitle: const Text(
-                      'Configure your investment goals and risk tolerance for AI recommendations'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () async {
-                    if (auth.currentUser != null) {
-                      // Fetch the user document from Firestore
-                      final userDoc = await _firestoreService.userCollection
-                          .doc(auth.currentUser!.uid)
-                          .get();
-                      if (userDoc.exists && context.mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                InvestmentProfileSettingsWidget(
-                              user: userDoc.data()!,
-                              firestoreService: _firestoreService,
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                ),
-              ),
-            ),
-            const SliverToBoxAdapter(
-                child: SizedBox(
-              height: 25.0,
-            )),
             const SliverToBoxAdapter(child: DisclaimerWidget()),
             const SliverToBoxAdapter(child: SizedBox(height: 25.0)),
           ]),
@@ -528,6 +484,31 @@ class UserInfoCardWidget extends StatelessWidget {
           },
         ),
       ],
+      ListTile(
+        leading: const Icon(Icons.assessment_outlined),
+        title: const Text('Investment Profile', style: TextStyle(fontSize: 14)),
+        subtitle: const Text('Configure goals and risk tolerance for AI'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () async {
+          if (auth.currentUser != null) {
+            // Fetch the user document from Firestore
+            final userDoc = await firestoreService.userCollection
+                .doc(auth.currentUser!.uid)
+                .get();
+            if (userDoc.exists && context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvestmentProfileSettingsWidget(
+                    user: userDoc.data()!,
+                    firestoreService: firestoreService,
+                  ),
+                ),
+              );
+            }
+          }
+        },
+      ),
       ListTile(
           trailing: Row(
         mainAxisSize: MainAxisSize.min,

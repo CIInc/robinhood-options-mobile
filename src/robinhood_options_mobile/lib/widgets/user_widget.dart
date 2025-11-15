@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/share_portfolio_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -601,6 +602,38 @@ class _UserWidgetState extends State<UserWidget> {
                                           ),
                                         )
                                       ],
+                                    ),
+                                    ListTile(
+                                      leading:
+                                          const Icon(Icons.assessment_outlined),
+                                      title:
+                                          const Text('Investment Profile Settings'),
+                                      subtitle: const Text(
+                                          'Configure goals and risk tolerance for AI'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (widget.auth.currentUser != null) {
+                                          // Fetch the user document from Firestore
+                                          final userDoc = await _firestoreService
+                                              .userCollection
+                                              .doc(widget.auth.currentUser!.uid)
+                                              .get();
+                                          if (userDoc.exists &&
+                                              context.mounted) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    InvestmentProfileSettingsWidget(
+                                                  user: userDoc.data()!,
+                                                  firestoreService:
+                                                      _firestoreService,
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
                                     ),
 // ExpansionPanelList(
                                     //   expansionCallback:
