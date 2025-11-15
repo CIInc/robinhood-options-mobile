@@ -714,10 +714,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   final hasUsedRecommendations = generativeProvider
                       .promptResponses
                       .containsKey('portfolio-recommendations');
-                  //      &&
-                  // generativeProvider
-                  //         .promptResponses['portfolio-recommendations'] !=
-                  //     null;
 
                   // Hide card if user has already used the feature
                   if (hasUsedRecommendations) {
@@ -849,89 +845,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   );
                 },
               ),
-
-            Consumer5<PortfolioStore, InstrumentPositionStore,
-                    OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
-                builder: (context,
-                    portfolioStore,
-                    stockPositionStore,
-                    optionPositionStore,
-                    forexHoldingStore,
-                    generativeProvider,
-                    child) {
-              return const SliverToBoxAdapter(child: SizedBox.shrink());
-              // return SliverToBoxAdapter(
-              //   child: Column(children: [
-              //     // ListTile(
-              //     //   title: const Text(
-              //     //     "Assistant",
-              //     //     style: TextStyle(fontSize: 19.0),
-              //     //   ),
-              //     // ),
-              //     ListTile(
-              //       title: Text(
-              //         "Insight",
-              //         style: TextStyle(fontSize: listTileTitleFontSize),
-              //       ),
-              //       trailing: Wrap(
-              //         children: [
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider
-              //                     .setGenerativePrompt('portfolio-summary');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key == 'portfolio-summary'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Summary"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
-              //                               generativeProvider.promptResponses['portfolio-summary'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.summarize)),
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider.setGenerativePrompt(
-              //                     'portfolio-recommendations');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key ==
-              //                                 'portfolio-recommendations'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Recommendations"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
-              //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.recommend)),
-              //         ],
-              //       ),
-              //     ),
-              //     if (generativeProvider.promptResponses != null) ...[
-              //       Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: Card(
-              //             child: SizedBox(
-              //                 height: 280,
-              //                 child: Markdown(
-              //                     data: generativeProvider.response!))),
-              //       ),
-              //     ],
-              //   ]),
-              // );
-            }),
 
             Consumer4<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore>(

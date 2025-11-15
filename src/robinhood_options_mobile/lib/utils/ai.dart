@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +18,7 @@ Future<void> generateContent(
   OptionPositionStore? optionPositionStore,
   ForexHoldingStore? forexHoldingStore,
   bool localInference = true,
-  dynamic user,
+  User? user,
 }) async {
   // Open sheet immediately with current cached response (if any)
   if (context.mounted) {
@@ -93,7 +94,7 @@ void showAIResponse(
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
     ForexHoldingStore? forexHoldingStore,
-    dynamic user) {
+    User? user) {
   final TextEditingController promptController = TextEditingController();
   final GlobalKey shareButtonKey = GlobalKey();
   final GlobalKey chatShareButtonKey = GlobalKey();

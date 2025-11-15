@@ -81,7 +81,7 @@ class _InvestmentProfileSettingsWidgetState
       // Calculate portfolio value using the same logic as home_widget.dart
       double portfolioValue = 0;
       if (portfolioStore.items.isNotEmpty && account != null) {
-        portfolioValue = account.portfolioCash! +
+        portfolioValue = (account.portfolioCash ?? 0) +
             stockPositionStore.equity +
             optionPositionStore.equity +
             forexHoldingStore.equity;
@@ -141,14 +141,7 @@ class _InvestmentProfileSettingsWidgetState
       var usersCollection = widget.firestoreService.userCollection;
       var userDocumentReference =
           usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
-      widget.firestoreService.updateUser(userDocumentReference, widget.user);
-      // // Save to Firestore
-      // final currentUser = fb_auth.FirebaseAuth.instance.currentUser;
-      // if (currentUser != null) {
-      //   final userDocRef =
-      //       widget.firestoreService.userCollection.doc(currentUser.uid);
-      //   await widget.firestoreService.updateUser(userDocRef, widget.user);
-      // }
+      await widget.firestoreService.updateUser(userDocumentReference, widget.user);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

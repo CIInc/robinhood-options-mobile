@@ -8,6 +8,7 @@ import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 
 class Prompt {
   final String key;
@@ -101,7 +102,7 @@ Volume - Volume bar or other volume indicators
     InstrumentPositionStore? stockPositionStore,
     OptionPositionStore? optionPositionStore,
     ForexHoldingStore? forexHoldingStore, {
-    dynamic user,
+    User? user,
   }) async {
     String promptString =
         """You are a financial assistant, provide answers in markdown format.
@@ -137,7 +138,7 @@ Volume - Volume bar or other volume indicators
       OptionPositionStore? optionPositionStore,
       ForexHoldingStore? forexHoldingStore,
       GenerativeProvider provider,
-      {dynamic user}) async {
+      {User? user}) async {
     String promptString = stockPositionStore == null ||
             optionPositionStore == null ||
             forexHoldingStore == null
@@ -170,7 +171,7 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       OptionPositionStore? optionPositionStore,
       ForexHoldingStore? forexHoldingStore,
       GenerativeProvider provider,
-      {dynamic user}) async* {
+      {User? user}) async* {
     String promptString = stockPositionStore == null ||
             optionPositionStore == null ||
             forexHoldingStore == null
@@ -210,7 +211,7 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
       InstrumentPositionStore stockPositionStore,
       OptionPositionStore optionPositionStore,
       ForexHoldingStore forexHoldingStore,
-      {dynamic user}) {
+      {User? user}) {
     String positionPrompt = "";
 
     // Add investment profile information if user is provided
