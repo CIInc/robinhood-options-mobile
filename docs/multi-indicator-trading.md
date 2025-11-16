@@ -8,22 +8,57 @@ This system replaces the previous simple SMA crossover strategy with a more robu
 
 ## The 4 Technical Indicators
 
-### 1. Price Movement (Chart Patterns)
+### 1. Price Movement (Multi-Pattern Detection)
 
-**Purpose:** Identifies bullish or bearish chart patterns based on price action.
+**Purpose:** Identifies and scores multiple bullish and bearish chart patterns from recent price action to produce a directional signal with confidence.
 
 **Implementation:** `detectChartPattern()` in `technical-indicators.ts`
 
-**Signals:**
-- **BUY**: Bullish patterns detected (breakout above moving averages, cup & handle formation)
-- **SELL**: Bearish patterns detected (breakdown below moving averages)
-- **HOLD**: No clear pattern
+**Supported Patterns:**
+- Bullish: Breakout, Double Bottom, Ascending Triangle, Cup & Handle, Bull Flag
+- Bearish: Breakdown, Double Top, Head & Shoulders, Descending Triangle, Bear Flag
 
-**Technical Details:**
-- Uses 5, 10, and 20-period simple moving averages
-- Detects breakouts when price moves 2% above the 20-period MA
-- Identifies cup & handle pattern when price recovers 5% from recent lows
-- Analyzes the last 20 price periods
+**Signals:**
+- **BUY**: Highest-confidence bullish pattern reaches action threshold (≥ 0.60)
+- **SELL**: Highest-confidence bearish pattern reaches action threshold (≥ 0.60)
+- **HOLD**: No qualifying pattern or only emerging (confidence < 0.60)
+
+**Confidence Scoring:** Each detected pattern is assigned a `confidence` (0–1) based on structure completeness and volume confirmation (e.g., breakout with volume > 130% avg adds a boost). The system selects the strongest non-neutral pattern to drive the signal.
+
+**Key Heuristics:**
+- Moving averages (5/10/20 SMA) establish trend context
+- Breakout/Breakdown requires price displacement vs 20 SMA ±2%
+- Double Top/Bottom similarity tolerance ~1%
+- Head & Shoulders shoulder symmetry tolerance ~2%
+- Triangles require flat highs/lows plus rising/falling opposing side
+- Cup & Handle recovery >5% from handle low with short-term momentum
+- Flags require prior impulsive move (>6%) followed by tight consolidation (<1.5% range)
+
+**Metadata Returned:**
+```json
+{
+   "selectedPattern": "ascending_triangle",
+   "confidence": 0.63,
+   "patterns": [
+      {"key": "ascending_triangle", "confidence": 0.63, "direction": "bullish"},
+      {"key": "breakout", "confidence": 0.60, "direction": "bullish"}
+   ],
+   "ma5": 101.2,
+   "ma10": 100.8,
+   "ma20": 99.9,
+   "slope": 0.15
+}
+```
+
+**Action Threshold:** Only patterns with confidence ≥ 0.60 generate BUY/SELL; otherwise the system issues a HOLD with an "emerging" reason.
+
+**Advantages vs Previous Version:**
+- Multiple pattern support instead of single breakout/cup detection
+- Confidence-weighted decisions reduce false positives
+- Volume-aware breakout/breakdown scoring
+- Rich metadata for UI & analytics (pattern list + slope + moving averages)
+
+**Fallback:** If no actionable pattern found, a neutral summary of price and MAs is returned.
 
 ### 2. Momentum (RSI - Relative Strength Index)
 
@@ -199,12 +234,20 @@ Document structure:
     "allGreen": true,
     "overallSignal": "BUY",
     "indicators": {
-      "priceMovement": {
-        "signal": "BUY",
-        "reason": "Bullish pattern detected: Breakout...",
-        "value": 1,
-        "metadata": { ... }
-      },
+         "priceMovement": {
+            "signal": "BUY",
+            "reason": "Ascending Triangle pattern (conf 63%)",
+            "value": 0.63,
+            "metadata": {
+               "selectedPattern": "ascending_triangle",
+               "confidence": 0.63,
+               "patterns": [ {"key": "ascending_triangle", "confidence": 0.63} ],
+               "ma5": 101.2,
+               "ma10": 100.8,
+               "ma20": 99.9,
+               "slope": 0.15
+            }
+         },
       "momentum": {
         "signal": "BUY",
         "reason": "RSI indicates oversold condition...",

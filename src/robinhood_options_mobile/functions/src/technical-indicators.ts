@@ -116,28 +116,29 @@ export function detectChartPattern(
   prices: number[],
   volumes?: number[]
 ): IndicatorResult {
-  // Future enhancement: use volumes for pattern confirmation
-  void volumes;
-
-  if (!prices || prices.length < 20) {
+  // Expanded multi-pattern heuristic based detection
+  // Volumes (if supplied) can confirm breakouts (higher relative volume)
+  const minBars = 30; // minimum history for multi-pattern set
+  if (!prices || prices.length < minBars) {
     return {
       value: null,
       signal: "HOLD",
-      reason: "Insufficient data for pattern detection " +
-        "(need at least 20 periods)",
+      reason: `Need ${minBars}+ bars for pattern scan`,
     };
   }
 
-  const recentPrices = prices.slice(-20);
+  const lookback = 60; // maximum historical window inspected
+  const windowPrices = prices.slice(-Math.min(lookback, prices.length));
+  // Short window for moving averages and breakout checks
+  const recentPrices = windowPrices.slice(-30);
   const currentPrice = recentPrices[recentPrices.length - 1];
-  const previousPrice = recentPrices[recentPrices.length - 2];
+  const prevPrice = recentPrices[recentPrices.length - 2];
 
-  // Calculate short-term and medium-term trends
-  const shortMA = computeSMA(recentPrices, 5);
-  const mediumMA = computeSMA(recentPrices, 10);
-  const longMA = computeSMA(recentPrices, 20);
-
-  if (!shortMA || !mediumMA || !longMA) {
+  // Moving averages for trend context
+  const ma5 = computeSMA(recentPrices, 5);
+  const ma10 = computeSMA(recentPrices, 10);
+  const ma20 = computeSMA(recentPrices, 20);
+  if (!ma5 || !ma10 || !ma20) {
     return {
       value: null,
       signal: "HOLD",
@@ -145,53 +146,279 @@ export function detectChartPattern(
     };
   }
 
-  // Detect bullish patterns
-  const isBullishTrend = shortMA > mediumMA && mediumMA > longMA;
-  const isBullishBreakout = currentPrice > previousPrice &&
-    currentPrice > longMA * 1.02; // 2% above long MA
+  // Helper: linear regression slope (simplified) for overall trend direction
+  const slope = (() => {
+    const n = recentPrices.length;
+    const xSum = (n * (n - 1)) / 2;
+    const xMean = xSum / n;
+    let num = 0;
+    let den = 0;
+    for (let i = 0; i < n; i++) {
+      const x = i;
+      const y = recentPrices[i];
+      num += (x - xMean) * (y - currentPrice);
+      den += (x - xMean) * (x - xMean);
+    }
+    return den === 0 ? 0 : num / den;
+  })();
 
-  // Detect bearish patterns
-  const isBearishTrend = shortMA < mediumMA && mediumMA < longMA;
-  const isBearishBreakdown = currentPrice < previousPrice &&
-    currentPrice < longMA * 0.98; // 2% below long MA
+  /**
+   * Find local extrema indices using a 2-bar look-back/look-forward.
+   * @param {number[]} pr Price array
+   * @return {{peaks:number[], troughs:number[]}} Peak & trough indices
+   */
+  function findExtrema(pr: number[]): { peaks: number[]; troughs: number[] } {
+    const peaks: number[] = [];
+    const troughs: number[] = [];
+    for (let i = 2; i < pr.length - 2; i++) {
+      const p = pr[i];
+      if (p > pr[i - 1] && p > pr[i - 2] && p > pr[i + 1] && p > pr[i + 2]) {
+        peaks.push(i);
+      }
+      if (p < pr[i - 1] && p < pr[i - 2] && p < pr[i + 1] && p < pr[i + 2]) {
+        troughs.push(i);
+      }
+    }
+    return { peaks, troughs };
+  }
 
-  // Cup and Handle pattern (simplified)
-  const prices10to5 = recentPrices.slice(-10, -5);
-  const lowest = Math.min(...prices10to5);
-  const isRecovering = currentPrice > lowest * 1.05;
+  const { peaks, troughs } = findExtrema(windowPrices);
 
-  if (isBullishTrend && (isBullishBreakout || isRecovering)) {
-    const patternType = isBullishBreakout ?
-      "Breakout" : "Cup & Handle formation";
-    const patternKey = isBullishBreakout ? "breakout" : "cup_handle";
+  // Utility to get price at index (from full window)
+  const px = (i: number) => windowPrices[i];
+
+  interface PatternCandidate {
+    key: string;
+    label: string;
+    direction: "bullish" | "bearish" | "neutral";
+    confidence: number; // 0..1
+    details?: Record<string, unknown>;
+  }
+
+  const patterns: PatternCandidate[] = [];
+
+  // 1. Breakout / Breakdown (price crossing longer MA + momentum)
+  const breakout = currentPrice > ma20 * 1.02 &&
+    currentPrice > ma10 && prevPrice <= ma20 * 1.02;
+  if (breakout) {
+    // Volume confirmation
+    let volumeBoost = 0;
+    if (volumes && volumes.length >= 30) {
+      const recentVol = volumes.slice(-30);
+      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
+      const lastVol = recentVol[recentVol.length - 1];
+      volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
+    }
+    patterns.push({
+      key: "breakout",
+      label: "Price Breakout",
+      direction: "bullish",
+      confidence: 0.6 + volumeBoost,
+      details: { ma10, ma20, currentPrice },
+    });
+  }
+  const breakdown = currentPrice < ma20 * 0.98 &&
+    currentPrice < ma10 && prevPrice >= ma20 * 0.98;
+  if (breakdown) {
+    let volumeBoost = 0;
+    if (volumes && volumes.length >= 30) {
+      const recentVol = volumes.slice(-30);
+      const avgVol = recentVol.reduce((a, b) => a + b, 0) / recentVol.length;
+      const lastVol = recentVol[recentVol.length - 1];
+      volumeBoost = lastVol > avgVol * 1.3 ? 0.15 : 0;
+    }
+    patterns.push({
+      key: "breakdown",
+      label: "Price Breakdown",
+      direction: "bearish",
+      confidence: 0.6 + volumeBoost,
+      details: { ma10, ma20, currentPrice },
+    });
+  }
+
+  // 2. Double Top / Double Bottom (last two peaks/troughs similar height)
+  const tolerancePct = 0.01; // 1% tolerance
+  if (peaks.length >= 2) {
+    const a = px(peaks[peaks.length - 2]);
+    const b = px(peaks[peaks.length - 1]);
+    const dblTop = Math.abs(a - b) / ((a + b) / 2) < tolerancePct &&
+      currentPrice < b * 0.985;
+    if (dblTop) {
+      patterns.push({
+        key: "double_top",
+        label: "Double Top",
+        direction: "bearish",
+        confidence: 0.55,
+        details: { peakA: a, peakB: b },
+      });
+    }
+  }
+  if (troughs.length >= 2) {
+    const a = px(troughs[troughs.length - 2]);
+    const b = px(troughs[troughs.length - 1]);
+    const dblBottom = Math.abs(a - b) / ((a + b) / 2) < tolerancePct &&
+      currentPrice > b * 1.015;
+    if (dblBottom) {
+      patterns.push({
+        key: "double_bottom",
+        label: "Double Bottom",
+        direction: "bullish",
+        confidence: 0.55,
+        details: { troughA: a, troughB: b },
+      });
+    }
+  }
+
+  // 3. Head & Shoulders (3 peaks with middle highest and shoulders similar)
+  if (peaks.length >= 3) {
+    const p1 = px(peaks[peaks.length - 3]);
+    const p2 = px(peaks[peaks.length - 2]);
+    const p3 = px(peaks[peaks.length - 1]);
+    const shouldersClose = Math.abs(p1 - p3) / ((p1 + p3) / 2) < 0.02;
+    const headHigher = p2 > p1 * 1.01 && p2 > p3 * 1.01;
+    if (shouldersClose && headHigher && currentPrice < p3 * 0.985) {
+      patterns.push({
+        key: "head_shoulders",
+        label: "Head & Shoulders",
+        direction: "bearish",
+        confidence: 0.6,
+        details: { left: p1, head: p2, right: p3 },
+      });
+    }
+  }
+
+  // 4. Triangles (ascending & descending)
+  /** Detect ascending triangle
+   * @return {PatternCandidate|null} Asc triangle or null
+   */
+  function isAscendingTriangle(): PatternCandidate | null {
+    if (peaks.length < 3 || troughs.length < 3) return null;
+    const lastPeaks = peaks.slice(-3).map(px);
+    const lastTroughs = troughs.slice(-3).map(px);
+    const flatHighs = Math.max(...lastPeaks) - Math.min(...lastPeaks);
+    const risingLows = lastTroughs[0] < lastTroughs[1] &&
+      lastTroughs[1] < lastTroughs[2];
+    if (flatHighs / ((lastPeaks[0] + lastPeaks[2]) / 2) < 0.01 && risingLows) {
+      const breakoutPending = currentPrice > lastPeaks[2] * 0.995;
+      return {
+        key: "ascending_triangle",
+        label: "Ascending Triangle",
+        direction: breakoutPending ? "bullish" : "neutral",
+        confidence: breakoutPending ? 0.6 : 0.45,
+        details: { highs: lastPeaks, lows: lastTroughs },
+      };
+    }
+    return null;
+  }
+  /** Detect descending triangle
+   * @return {PatternCandidate|null} Desc triangle or null
+   */
+  function isDescendingTriangle(): PatternCandidate | null {
+    if (peaks.length < 3 || troughs.length < 3) return null;
+    const lastPeaks = peaks.slice(-3).map(px);
+    const lastTroughs = troughs.slice(-3).map(px);
+    const flatLows = Math.max(...lastTroughs) - Math.min(...lastTroughs);
+    const fallingHighs = lastPeaks[0] > lastPeaks[1] &&
+      lastPeaks[1] > lastPeaks[2];
+    const lowFlat = flatLows / ((lastTroughs[0] + lastTroughs[2]) / 2) < 0.01 &&
+      fallingHighs;
+    if (lowFlat) {
+      const breakdownPending = currentPrice < lastTroughs[2] * 1.005;
+      return {
+        key: "descending_triangle",
+        label: "Descending Triangle",
+        direction: breakdownPending ? "bearish" : "neutral",
+        confidence: breakdownPending ? 0.6 : 0.45,
+        details: { highs: lastPeaks, lows: lastTroughs },
+      };
+    }
+    return null;
+  }
+  const asc = isAscendingTriangle();
+  if (asc) patterns.push(asc);
+  const desc = isDescendingTriangle();
+  if (desc) patterns.push(desc);
+
+  // 5. Cup & Handle (retain previous simplified logic)
+  const handleSlice = recentPrices.slice(-10, -5);
+  const handleLow = Math.min(...handleSlice);
+  const recovering = currentPrice > handleLow * 1.05 && ma5 > ma10;
+  if (recovering) {
+    patterns.push({
+      key: "cup_handle",
+      label: "Cup & Handle",
+      direction: "bullish",
+      confidence: 0.5,
+      details: { handleLow, currentPrice },
+    });
+  }
+
+  // 6. Flag (sharp move followed by tight consolidation)
+  const flagCandidate = (() => {
+    if (recentPrices.length < 15) return null;
+    const firstPart = recentPrices.slice(-15, -7);
+    const secondPart = recentPrices.slice(-7);
+    const movePct = (secondPart[0] - firstPart[0]) / firstPart[0];
+    const consolidationRange = (Math.max(...secondPart) -
+      Math.min(...secondPart)) / secondPart[0];
+    if (Math.abs(movePct) > 0.06 && consolidationRange < 0.015) {
+      const dir: "bullish" | "bearish" = movePct > 0 ? "bullish" : "bearish";
+      return {
+        key: "flag",
+        label: dir === "bullish" ? "Bull Flag" : "Bear Flag",
+        direction: dir,
+        confidence: 0.55,
+        details: { movePct, consolidationRange },
+      } as PatternCandidate;
+    }
+    return null;
+  })();
+  if (flagCandidate) patterns.push(flagCandidate);
+
+  // Aggregate decision
+  // Choose highest confidence non-neutral pattern
+  const actionable = patterns
+    .filter((p) => p.direction !== "neutral")
+    .sort((a, b) => b.confidence - a.confidence);
+  const best = actionable[0];
+
+  if (best && best.confidence >= 0.6) {
     return {
-      value: 1,
-      signal: "BUY",
-      reason: `Bullish pattern detected: ${patternType}, ` +
-        `price ${currentPrice.toFixed(2)} above key MAs`,
-      metadata: { shortMA, mediumMA, longMA, pattern: patternKey },
+      value: best.direction === "bullish" ? best.confidence : -best.confidence,
+      signal: best.direction === "bullish" ? "BUY" : "SELL",
+      reason: `${best.label} (conf ${(best.confidence * 100).toFixed(0)}%)`,
+      metadata: {
+        selectedPattern: best.key,
+        confidence: best.confidence,
+        patterns,
+        ma5, ma10, ma20,
+        slope,
+      },
     };
   }
 
-  if (isBearishTrend && isBearishBreakdown) {
+  // Moderate confidence patterns present but below action threshold
+  if (best) {
     return {
-      value: -1,
-      signal: "SELL",
-      reason: "Bearish pattern detected: Breakdown, " +
-        `price ${currentPrice.toFixed(2)} below key MAs`,
-      metadata: { shortMA, mediumMA, longMA, pattern: "breakdown" },
+      value: 0,
+      signal: "HOLD",
+      reason: `${best.label} emerging (${(best.confidence * 100).toFixed(0)}%)`,
+      metadata: {
+        selectedPattern: best.key,
+        confidence: best.confidence,
+        patterns,
+        ma5, ma10, ma20,
+        slope,
+      },
     };
   }
 
   return {
     value: 0,
     signal: "HOLD",
-    reason: "No clear pattern detected. " +
-      `Current price: ${currentPrice.toFixed(2)}, ` +
-      `5-MA: ${shortMA.toFixed(2)}, ` +
-      `10-MA: ${mediumMA.toFixed(2)}, ` +
-      `20-MA: ${longMA.toFixed(2)}`,
-    metadata: { shortMA, mediumMA, longMA },
+    reason: `No clear pattern. Px ${currentPrice.toFixed(2)}; ` +
+      `MA5 ${ma5.toFixed(2)}, MA10 ${ma10.toFixed(2)}, MA20 ${ma20.toFixed(2)}`,
+    metadata: { ma5, ma10, ma20, slope, patterns },
   };
 }
 
