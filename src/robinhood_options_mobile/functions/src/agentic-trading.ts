@@ -75,8 +75,7 @@ export async function getMarketData(symbol: string,
     try {
       const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow);
       const range = maxPeriod > 30 * 24 ? "5y" :
-        (maxPeriod > 30 * 12 ? "2y" :
-          (maxPeriod > 30 * 6 ? "1y" : "6mo"));
+        (maxPeriod > 30 * 12 ? "2y" : "1y");
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${range}`;
       const resp = await fetch(url);
       const data: any = await resp.json();

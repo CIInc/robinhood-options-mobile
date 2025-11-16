@@ -112,7 +112,7 @@ export async function assessTrade(proposal: any,
   }
 
   // Passed basic risk checks
-  return { approved: true, reason: "" };
+  return { approved: true };
 }
 
 /**

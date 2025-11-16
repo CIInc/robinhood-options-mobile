@@ -29,14 +29,14 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
   try {
     const baseUrl = "https://query1.finance.yahoo.com";
     const url = `${baseUrl}/v8/finance/chart/${symbol}` +
-      "?interval=1d&range=3mo";
+      "?interval=1d&range=1y"; // 3mo
     const resp = await fetch(url);
     const data: any = await resp.json();
     const result = data?.chart?.result?.[0];
 
     if (result &&
-        Array.isArray(result?.indicators?.quote?.[0]?.close) &&
-        Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
+      Array.isArray(result?.indicators?.quote?.[0]?.close) &&
+      Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
       const closeData = result.indicators.quote[0].close;
       const volumeData = result.indicators.quote[0].volume;
       const closes = closeData.filter((p: any) => p !== null);
@@ -124,6 +124,7 @@ export async function handleAlphaTask(marketData: any,
       const db = getFirestore();
       const signalDoc = {
         timestamp: Date.now(),
+        symbol: symbol,
         signal: overallSignal,
         reason,
         multiIndicatorResult,
@@ -171,6 +172,7 @@ export async function handleAlphaTask(marketData: any,
     const db = getFirestore();
     const signalDoc = {
       timestamp: Date.now(),
+      symbol: symbol,
       signal: overallSignal,
       reason,
       multiIndicatorResult,

@@ -236,6 +236,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'portfolioState': portfolioState,
         'config': _config,
       });
+      notifyListeners();
       if (result.data is Map<String, dynamic>) {
         return Map<String, dynamic>.from(result.data);
       } else {
