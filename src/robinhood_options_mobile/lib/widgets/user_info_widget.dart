@@ -17,6 +17,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 final formatDate = DateFormat("yMMMd");
@@ -422,7 +423,7 @@ class UserInfoCardWidget extends StatelessWidget {
           minTileHeight: 10,
           title: const Text("Profile Name", style: TextStyle(fontSize: 14)),
           trailing: SizedBox(
-              width: 220,
+              width: 195,
               child: Text(user.profileName!,
                   style: const TextStyle(fontSize: 16),
                   textAlign: TextAlign.end)),
@@ -432,7 +433,7 @@ class UserInfoCardWidget extends StatelessWidget {
         minTileHeight: 10,
         title: const Text("Username", style: TextStyle(fontSize: 14)),
         trailing: SizedBox(
-            width: 220,
+            width: 214,
             child: Text(user.username,
                 style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.end)),
@@ -483,6 +484,31 @@ class UserInfoCardWidget extends StatelessWidget {
           },
         ),
       ],
+      ListTile(
+        leading: const Icon(Icons.assessment_outlined),
+        title: const Text('Investment Profile', style: TextStyle(fontSize: 14)),
+        subtitle: const Text('Configure goals and risk tolerance for AI'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () async {
+          if (auth.currentUser != null) {
+            // Fetch the user document from Firestore
+            final userDoc = await firestoreService.userCollection
+                .doc(auth.currentUser!.uid)
+                .get();
+            if (userDoc.exists && context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvestmentProfileSettingsWidget(
+                    user: userDoc.data()!,
+                    firestoreService: firestoreService,
+                  ),
+                ),
+              );
+            }
+          }
+        },
+      ),
       ListTile(
           trailing: Row(
         mainAxisSize: MainAxisSize.min,

@@ -19,7 +19,9 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/share_portfolio_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -391,7 +393,7 @@ class _UserWidgetState extends State<UserWidget> {
                                           Padding(
                                             padding: const EdgeInsets.all(8.0),
                                             child: SizedBox(
-                                              height: 400,
+                                              height: 360,
                                               child: UserInfoCardWidget(
                                                 user: brokerageUser.userInfo!,
                                                 brokerageUser: brokerageUser,
@@ -470,27 +472,7 @@ class _UserWidgetState extends State<UserWidget> {
                                   children: [
                                     if (user != null) ...[
                                       SwitchListTile(
-                                        //leading: Icon(Icons.functions),
-                                        title: const Text("Sharing"),
-                                        subtitle: const Text(
-                                            "Setup for private sharing"),
-                                        value: widget.brokerageUser
-                                            .persistToFirebase, // user.persistToFirebase,
-                                        onChanged: (bool value) {
-                                          setState(() {
-                                            user!.persistToFirebase = value;
-                                          });
-                                          // Also set the brokerageUser for unauthenticated users.
-                                          widget.brokerageUser
-                                              .persistToFirebase = value;
-                                          saveBrokerageUser(context);
-                                          _onSettingsChanged(user: user);
-                                        },
-                                        secondary: const Icon(
-                                            Icons.cloud_upload_outlined),
-                                      ),
-                                      SwitchListTile(
-                                        //leading: Icon(Icons.functions),
+//leading: Icon(Icons.functions),
                                         title:
                                             const Text("Refresh Market Data"),
                                         subtitle: const Text(
@@ -509,8 +491,64 @@ class _UserWidgetState extends State<UserWidget> {
                                         },
                                         secondary: const Icon(Icons.refresh),
                                       ),
+                                      ExpansionTile(
+                                          shape: const Border(),
+                                          leading:
+                                              Icon(Icons.ios_share_outlined),
+                                          title: Text('Sharing'),
+                                          children: [
+                                            SwitchListTile(
+                                              //leading: Icon(Icons.functions),
+                                              title: const Text("Sharing"),
+                                              subtitle: const Text(
+                                                  "Setup for private sharing"),
+                                              value: widget.brokerageUser
+                                                  .persistToFirebase, // user.persistToFirebase,
+                                              onChanged: (bool value) {
+                                                setState(() {
+                                                  user!.persistToFirebase =
+                                                      value;
+                                                });
+                                                // Also set the brokerageUser for unauthenticated users.
+                                                widget.brokerageUser
+                                                    .persistToFirebase = value;
+                                                saveBrokerageUser(context);
+                                                _onSettingsChanged(user: user);
+                                              },
+                                              secondary: const Icon(
+                                                  Icons.cloud_upload_outlined),
+                                            ),
+                                            SharePortfolioWidget(
+                                              userId: userDocumentReference!.id,
+                                              firestoreService:
+                                                  _firestoreService,
+                                              initialSharedWith:
+                                                  user.sharedWith,
+                                              initialSharedGroups:
+                                                  user.sharedGroups,
+                                              initialIsPublic: user.isPublic,
+                                              // When sharing settings change, update Firestore
+                                              // onSharingChanged: (sharedWith,
+                                              //     sharedGroups,
+                                              //     isPublic) async {
+                                              //   await _firestoreService
+                                              //       .setPortfolioSharing(
+                                              //     userDocumentReference!.id,
+                                              //     sharedWithUserIds: sharedWith,
+                                              //     sharedGroups: sharedGroups,
+                                              //     isPublic: isPublic,
+                                              //   );
+                                              //   ScaffoldMessenger.of(context)
+                                              //       .showSnackBar(
+                                              //     const SnackBar(
+                                              //         content: Text(
+                                              //             'Sharing settings updated!')),
+                                              //   );
+                                              // },
+                                            ),
+                                          ]),
                                     ],
-                                    // ListTile(
+// ListTile(
                                     //     leading: const Icon(Icons.tune),
                                     //     title: Text('Display Settings'),
                                     //     trailing: const Icon(Icons.chevron_right),
@@ -565,7 +603,44 @@ class _UserWidgetState extends State<UserWidget> {
                                         )
                                       ],
                                     ),
-                                    // ExpansionPanelList(
+                                    ListTile(
+                                      leading:
+                                          const Icon(Icons.assessment_outlined),
+                                      title: const Text(
+                                          'Investment Profile Settings'),
+                                      subtitle: const Text(
+                                          'Configure goals and risk tolerance for AI'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  InvestmentProfileSettingsWidget(
+                                                user: user!,
+                                                firestoreService:
+                                                    _firestoreService,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    // Agentic Trading Settings entry moved here from the app Drawer
+                                    ListTile(
+                                      leading: const Icon(Icons.auto_graph),
+                                      title: const Text(
+                                          'Agentic Trading Settings'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () {
+                                        Navigator.pop(
+                                            context); // close the user card
+                                        Navigator.pushNamed(context,
+                                            '/agentic-trading-settings');
+                                      },
+                                    ),
+// ExpansionPanelList(
                                     //   expansionCallback:
                                     //       (int index, bool isExpanded1) {
                                     //     setState(() {

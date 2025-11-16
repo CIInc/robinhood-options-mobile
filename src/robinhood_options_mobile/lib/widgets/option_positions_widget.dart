@@ -370,13 +370,10 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
               context,
               MaterialPageRoute(
                   builder: (context) => InstrumentWidget(
-                        widget.user,
-                        widget.service,
-                        op.instrumentObj!,
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService
-                      )));
+                      widget.user, widget.service, op.instrumentObj!,
+                      analytics: widget.analytics,
+                      observer: widget.observer,
+                      generativeService: widget.generativeService)));
         } else {
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
@@ -635,7 +632,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                 )));
   }
 
-  _calculateGreekAggregates(
+  List<double> _calculateGreekAggregates(
       List<OptionAggregatePosition> filteredOptionPositions) {
     double? deltaAvg,
         gammaAvg,

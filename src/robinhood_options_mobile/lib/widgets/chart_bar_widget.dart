@@ -77,7 +77,7 @@ class BarChartState extends State<BarChart> {
     );
   }
 
-  _onSelectionChanged(charts.SelectionModel model) {
+  void _onSelectionChanged(charts.SelectionModel model) {
     if (model.hasDatumSelection) {
       var selected = model.selectedDatum[0].datum;
       widget.onSelected(selected);

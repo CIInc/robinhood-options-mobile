@@ -51,6 +51,8 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart'
+    hide formatCurrency;
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -154,6 +156,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   //Stream<StockPositionStore>? positionStoreStream;
   Future<OptionPositionStore>? futureOptionPositions;
   //Stream<OptionPositionStore>? optionPositionStoreStream;
+
+  Future<List<dynamic>>? futureFuturesAccounts;
+  Stream<List<dynamic>>? futuresStream;
 
   /*
   Stream<List<StockPosition>>? positionStream;
@@ -319,6 +324,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             account = null;
           }
 
+          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+          //   futureFuturesAccounts = (widget.service as RobinhoodService)
+          //       .getFutureAccounts(widget.brokerageUser, account!);
+          // }
+
+          // var futuresAccounts = data[1] as List<dynamic>;
+
           // for (var acct in accts) {
           //   var existingAccount = accounts!.firstWhereOrNull((element) =>
           //       element.userId == widget.user.id &&
@@ -409,6 +421,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             futureDividends = null;
             futureInterests = null;
           }
+
+          // FUTURES
+          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+          //   futuresStream = (widget.service as RobinhoodService)
+          //       .streamFuturePositions(
+          //           widget.brokerageUser,
+          //           futuresAccounts.firstWhereOrNull(
+          //               (f) => f['accountType'] == 'FUTURES')['id']);
+          // }
+
           /*
           return MultiProvider(
               providers: [
@@ -501,6 +523,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
+            // FUTURES
+            // StreamBuilder(
+            //     stream: futuresStream,
+            //     builder: (BuildContext context,
+            //         AsyncSnapshot<List<dynamic>> futuressnapshot) {
+            //       if (futuressnapshot.hasData) {
+            //         var futures = futuressnapshot.data!;
+            //         return SliverToBoxAdapter();
+            //       } else if (futuressnapshot.hasError) {
+            //         return SliverToBoxAdapter(
+            //           child: Text('${futuressnapshot.error}'),
+            //         );
+            //       } else {
+            //         return SliverToBoxAdapter(
+            //           child: const Center(
+            //             child: CircularProgressIndicator(),
+            //           ),
+            //         );
+            //       }
+            //     }),
             Consumer5<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
                 builder: (context,
@@ -511,288 +553,298 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     generativeProvider,
                     child) {
               return SliverToBoxAdapter(
-                child: ExpansionTile(
-                  shape: const Border(),
-                  leading: const CircleAvatar(
-                      // radius: 20,
-                      child: Icon(Icons.lightbulb_circle_outlined)),
-                  title: Text(
-                    'AI Insight',
-                    overflow: TextOverflow.ellipsis,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(
+                      12.0,
+                      0, // 16.0,
+                      16.0,
+                      0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // const CircleAvatar(
+                      //   child: Icon(Icons.lightbulb_circle_outlined),
+                      // ),
+                      // const SizedBox(width: 10),
+                      // const Text(
+                      //   'AI Insight',
+                      //   style: TextStyle(
+                      //       fontWeight: FontWeight.bold, fontSize: 18),
+                      // ),
+                      // const SizedBox(width: 16),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'portfolio-summary'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.summarize_outlined),
+                          label: const Text('Portfolio Summary'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts.firstWhere(
+                                  (p) => p.key == 'portfolio-summary'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'portfolio-recommendations'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.recommend_outlined),
+                          label: const Text('Recommendations'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts.firstWhere(
+                                  (p) => p.key == 'portfolio-recommendations'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'market-summary'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.public),
+                          label: const Text('Market Summary'),
+                          onPressed: () async {
+                            await generateContent(
+                                generativeProvider,
+                                widget.generativeService,
+                                widget.generativeService.prompts.firstWhere(
+                                    (p) => p.key == 'market-summary'),
+                                context,
+                                stockPositionStore: stockPositionStore,
+                                optionPositionStore: optionPositionStore,
+                                forexHoldingStore: forexHoldingStore,
+                                localInference:
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt ==
+                                      'market-predictions'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.batch_prediction_outlined),
+                          label: const Text('Market Predictions'),
+                          onPressed: () async {
+                            await generateContent(
+                                generativeProvider,
+                                widget.generativeService,
+                                widget.generativeService.prompts.firstWhere(
+                                    (p) => p.key == 'market-predictions'),
+                                context,
+                                stockPositionStore: stockPositionStore,
+                                optionPositionStore: optionPositionStore,
+                                forexHoldingStore: forexHoldingStore,
+                                localInference:
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: ActionChip(
+                          avatar: generativeProvider.generating &&
+                                  generativeProvider.generatingPrompt == 'ask'
+                              ? const CircularProgressIndicator()
+                              : const Icon(Icons.question_answer),
+                          label: const Text('Ask a question'),
+                          onPressed: () async {
+                            await generateContent(
+                              generativeProvider,
+                              widget.generativeService,
+                              widget.generativeService.prompts
+                                  .firstWhere((p) => p.key == 'ask'),
+                              context,
+                              stockPositionStore: stockPositionStore,
+                              optionPositionStore: optionPositionStore,
+                              forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  // subtitle: Text(metadata != null
-                  //         ? constants
-                  //             .formatLongDateTime
-                  //             .format(metadata
-                  //                 .timeCreated!)
-                  //         : ''
-                  //     // '${metadata != null ? constants.formatLongDateTime.format(metadata.timeCreated!) : ''} extension ${videoRef.name.substring(videoRef.name.lastIndexOf('.'))}',
-                  //     // overflow: TextOverflow.ellipsis,
-                  //     ),
-                  children: [
-                    SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.fromLTRB(
-                            12.0,
-                            0, // 16.0,
-                            16.0,
-                            0),
-                        // padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                        child: Column(
-                          children: [
-                            Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'portfolio-summary') &&
-                                              generativeProvider
-                                                          .promptResponses[
-                                                      'portfolio-summary'] ==
-                                                  null
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.summarize_outlined),
-                                      label: const Text('Portfolio Summary'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key == 'portfolio-summary'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'portfolio-recommendations') &&
-                                              generativeProvider
-                                                          .promptResponses[
-                                                      'portfolio-recommendations'] ==
-                                                  null
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.recommend_outlined),
-                                      label: const Text('Recommendations'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key ==
-                                                  'portfolio-recommendations'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'market-summary') &&
-                                              generativeProvider
-                                                          .promptResponses[
-                                                      'market-summary'] ==
-                                                  null
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(Icons.public),
-                                      label: const Text('Market Summary'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key == 'market-summary'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey(
-                                                      'market-predictions') &&
-                                              generativeProvider
-                                                          .promptResponses[
-                                                      'market-predictions'] ==
-                                                  null
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(
-                                              Icons.batch_prediction_outlined),
-                                      label: const Text('Market Predictions'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere((p) =>
-                                                  p.key ==
-                                                  'market-predictions'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: ActionChip(
-                                      avatar: generativeProvider.generating &&
-                                              generativeProvider.promptResponses
-                                                  .containsKey('ask') &&
-                                              generativeProvider
-                                                      .promptResponses['ask'] ==
-                                                  null
-                                          ? const CircularProgressIndicator()
-                                          : const Icon(Icons.question_answer),
-                                      label: const Text('Ask a question'),
-                                      onPressed: () async {
-                                        await generateContent(
-                                          generativeProvider,
-                                          widget.generativeService,
-                                          widget.generativeService.prompts
-                                              .firstWhere(
-                                                  (p) => p.key == 'ask'),
-                                          context,
-                                          stockPositionStore:
-                                              stockPositionStore,
-                                          optionPositionStore:
-                                              optionPositionStore,
-                                          forexHoldingStore: forexHoldingStore,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ]),
-                          ],
-                        )),
-
-                    // ListTile(
-                    //   title: const Text(
-                    //       'Filename'),
-                    //   subtitle: SelectableText(
-                    //     videoRef.name,
-                    //     maxLines: 2,
-                    //     // style: const TextStyle(
-                    //     //   overflow:
-                    //     //       TextOverflow.ellipsis,
-                    //     // )
-                    //   ),
-                    // ),
-                  ],
                 ),
               );
-
-              // return SliverToBoxAdapter(
-              //   child: Column(children: [
-              //     // ListTile(
-              //     //   title: const Text(
-              //     //     "Assistant",
-              //     //     style: TextStyle(fontSize: 19.0),
-              //     //   ),
-              //     // ),
-              //     ListTile(
-              //       title: Text(
-              //         "Insight",
-              //         style: TextStyle(fontSize: listTileTitleFontSize),
-              //       ),
-              //       trailing: Wrap(
-              //         children: [
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider
-              //                     .setGenerativePrompt('portfolio-summary');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key == 'portfolio-summary'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Summary"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
-              //                               generativeProvider.promptResponses['portfolio-summary'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.summarize)),
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider.setGenerativePrompt(
-              //                     'portfolio-recommendations');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key ==
-              //                                 'portfolio-recommendations'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Recommendations"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
-              //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.recommend)),
-              //         ],
-              //       ),
-              //     ),
-              //     if (generativeProvider.promptResponses != null) ...[
-              //       Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: Card(
-              //             child: SizedBox(
-              //                 height: 280,
-              //                 child: Markdown(
-              //                     data: generativeProvider.response!))),
-              //       ),
-              //     ],
-              //   ]),
-              // );
             }),
+
+            // AI Recommendations Promotional Card
+            if (widget.user != null)
+              Consumer<GenerativeProvider>(
+                builder: (context, generativeProvider, child) {
+                  final hasInvestmentProfile =
+                      widget.user!.investmentGoals != null ||
+                          widget.user!.timeHorizon != null ||
+                          widget.user!.riskTolerance != null ||
+                          widget.user!.totalPortfolioValue != null;
+
+                  // Check if user has ever generated recommendations
+                  final hasUsedRecommendations = generativeProvider
+                      .promptResponses
+                      .containsKey('portfolio-recommendations');
+
+                  // Hide card if user has already used the feature
+                  if (hasUsedRecommendations) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+
+                  final theme = Theme.of(context);
+                  final colorScheme = theme.colorScheme;
+
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+                      child: Card(
+                        elevation: 2,
+                        color: hasInvestmentProfile
+                            ? colorScheme.primaryContainer.withOpacity(0.5)
+                            : colorScheme.secondaryContainer.withOpacity(0.5),
+                        child: InkWell(
+                          onTap: hasInvestmentProfile
+                              ? null
+                              : () async {
+                                  // Navigate to Investment Profile Settings
+                                  final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                                  if (auth.currentUser != null) {
+                                    final userDoc = await firestoreService
+                                        .userCollection
+                                        .doc(auth.currentUser!.uid)
+                                        .get();
+                                    if (userDoc.exists && context.mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              InvestmentProfileSettingsWidget(
+                                            user: userDoc.data()!,
+                                            firestoreService: firestoreService,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: hasInvestmentProfile
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        Icons.stars,
+                                        color: colorScheme.primary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Personalized AI Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Get tailored insights based on your investment profile. Tap "Recommendations" above to generate personalized advice.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onPrimaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Icon(
+                                        Icons.psychology_outlined,
+                                        color: colorScheme.secondary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Unlock AI-Powered Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onSecondaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Complete your investment profile to receive personalized AI portfolio recommendations.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onSecondaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: colorScheme.secondary,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
 
             Consumer4<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore>(
@@ -2492,7 +2544,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     }
   }
 
-  _refresh() async {
+  Future<void> _refresh() async {
     var random = Random();
     final maxDelay = 15000;
     if (widget.brokerageUser.refreshEnabled &&
@@ -2625,7 +2677,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     });
   }
 
-  showSettings() {
+  void showSettings() {
     showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,

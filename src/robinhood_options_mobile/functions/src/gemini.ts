@@ -64,3 +64,30 @@ export const generateContent2 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
     });
     return response;
   });
+
+export const generateContent25 = https.onCall({ secrets: ["GEMINI_API_KEY"] },
+  async (request) => {
+    logger.info(request.data, { structuredData: true });
+    if (process.env.GEMINI_API_KEY == null) {
+      throw new https.HttpsError(
+        "unavailable", "GEMINI_API_KEY not found.");
+    }
+    const vertexAI = new VertexAI({
+      project: "realizealpha", // process.env.GOOGLE_PROJECT_ID,
+      location: "us-central1", // process.env.GOOGLE_VERTEXAI_LOCATION,
+    });
+
+    const googleSearchTool = {
+      googleSearch: {},
+    } as Tool;
+
+    const model = vertexAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      tools: [googleSearchTool],
+    });
+
+    const { response } = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: request.data.prompt }] }],
+    });
+    return response;
+  });

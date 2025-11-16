@@ -17,6 +17,10 @@ import * as plaidfunc from "./plaid";
 import * as authfunc from "./auth";
 import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
+import * as agenticTradingfunc from "./agentic-trading";
+import { agenticTradingCron } from "./agentic-trading-cron";
+import * as riskguardAgent from "./riskguard-agent";
+// import * as alphaagent from "./alphaagent";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -37,3 +41,13 @@ export const changeUserRole = authfunc.changeUserRole;
 export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
 export const generateContent = gemini.generateContent;
 export const generateContent2 = gemini.generateContent2;
+export const generateContent25 = gemini.generateContent25;
+export const initiateTradeProposal =
+  agenticTradingfunc.initiateTradeProposal;
+export const getAgenticTradingConfig =
+  agenticTradingfunc.getAgenticTradingConfig;
+export const setAgenticTradingConfig =
+  agenticTradingfunc.setAgenticTradingConfig;
+export const agenticTradingCronJob = agenticTradingCron;
+// export const alphaagentTask = alphaagent.alphaagentTask;
+export const riskguardTask = riskguardAgent.riskguardTask;

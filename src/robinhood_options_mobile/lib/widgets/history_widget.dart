@@ -859,7 +859,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                       analytics:
                                                           widget.analytics,
                                                       observer: widget.observer,
-                                                      generativeService: widget.generativeService,
+                                                      generativeService: widget
+                                                          .generativeService,
                                                     )));
                                       },
                                     ),
@@ -1067,7 +1068,8 @@ class _HistoryPageState extends State<HistoryPage>
                                                       analytics:
                                                           widget.analytics,
                                                       observer: widget.observer,
-                                                      generativeService: widget.generativeService,
+                                                      generativeService: widget
+                                                          .generativeService,
                                                     )));
                                       },
                                     ),
@@ -2304,7 +2306,7 @@ class _HistoryPageState extends State<HistoryPage>
         ));
   }
 
-  _showShareView() async {
+  Future<void> _showShareView() async {
     if (showShareView) {
       var optionOrdersToShare = optionOrders!
           .where((element) => selectedOptionOrdersToShare.contains(element.id));
@@ -2344,8 +2346,9 @@ adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROW
       // final url =
       //     'https://realizealpha.web.app/?options=${Uri.encodeComponent(optionOrdersIdMap.join(","))}&positions=${Uri.encodeComponent(positionOrdersIdMap.join(","))}';
       // debugPrint(url);
-      await Share.share(ordersText,
-          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size);
+      await SharePlus.instance.share(ShareParams(
+          text: ordersText,
+          sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size));
       selectedOptionOrdersToShare.clear();
       selectedPositionOrdersToShare.clear();
       selectionsToShare.clear();

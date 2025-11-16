@@ -5,11 +5,13 @@ class GenerativeProvider extends ChangeNotifier {
   // String? prompt;
   // String? response;
   bool generating = false;
+  String? generatingPrompt;
 
   void startGenerating(String prompt) async {
     // this.prompt = prompt;
     promptResponses[prompt] = null;
     generating = true;
+    generatingPrompt = prompt;
     notifyListeners();
   }
 
@@ -17,6 +19,7 @@ class GenerativeProvider extends ChangeNotifier {
     // this.response = response;
     promptResponses[prompt] = response;
     generating = false;
+    generatingPrompt = null;
     notifyListeners();
   }
 }

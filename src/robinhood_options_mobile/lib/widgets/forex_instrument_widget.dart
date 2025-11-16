@@ -149,7 +149,7 @@ class _ForexInstrumentWidgetState extends State<ForexInstrumentWidget>
     });
   }
 
-  buildScrollView(ForexHolding holding, {bool done = false}) {
+  RefreshIndicator buildScrollView(ForexHolding holding, {bool done = false}) {
     InstrumentHistorical? firstHistorical;
     InstrumentHistorical? lastHistorical;
     double open = 0;

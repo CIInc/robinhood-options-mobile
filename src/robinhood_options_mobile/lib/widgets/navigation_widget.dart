@@ -37,6 +37,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -85,7 +86,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     1: GlobalKey<NavigatorState>(),
     2: GlobalKey<NavigatorState>(),
     3: GlobalKey<NavigatorState>(),
-    // 4: GlobalKey<NavigatorState>(),
+    4: GlobalKey<NavigatorState>(),
   };
 
   int _pageIndex = 0;
@@ -418,7 +419,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         */
   }
 
-  _buildTabs(BrokerageUserStore userStore) {
+  void _buildTabs(BrokerageUserStore userStore) {
     tabPages = [
       HomePage(
         userStore.currentUser!, userInfo!,
@@ -459,10 +460,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             generativeService: _generativeService,
             navigatorKey: navigatorKeys[3]),
       ],
+      // Shared Portfolios tab
+      if (auth.currentUser != null) ...[
+        SharedPortfoliosWidget(
+          firestoreService: _firestoreService,
+          brokerageService: service,
+          brokerageUser: userStore.currentUser!,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+      ],
     ];
   }
 
-  buildScaffold(BrokerageUserStore userStore, {Widget? widget}) {
+  Scaffold buildScaffold(BrokerageUserStore userStore, {Widget? widget}) {
     return Scaffold(
       /*
       appBar: AppBar(
@@ -550,7 +561,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     );
   }
 
-  _buildDrawer(BrokerageUserStore userStore) {
+  Consumer<DrawerProvider> _buildDrawer(BrokerageUserStore userStore) {
     return Consumer<DrawerProvider>(builder: (context, drawerProvider, child) {
       final userWidgets = <Widget>[];
       for (int userIndex = 0; userIndex < userStore.items.length; userIndex++) {
@@ -731,12 +742,16 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                               duration: Durations.short2,
                               transitionBuilder:
                                   (Widget child, Animation<double> animation) {
-                                return SlideTransition(
-                                    position: (Tween<Offset>(
-                                            begin: Offset(0, -0.25),
-                                            end: Offset.zero))
-                                        .animate(animation),
-                                    child: child);
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: const Offset(0, -0.1),
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
                               },
                               child: drawerProvider.showDrawerContents
                                   ? Column(
@@ -784,6 +799,21 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 _onPageChanged(2);
                               },
                             ),
+                            // Agentic Trading Settings moved to the User page
+                            if (auth.currentUser != null) ...[
+                              const Divider(
+                                thickness: 0.25,
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.share),
+                                title: const Text("Shared Portfolios"),
+                                selected: _pageIndex == 4,
+                                onTap: () {
+                                  Navigator.pop(context); // close the drawer
+                                  _onPageChanged(4);
+                                },
+                              ),
+                            ],
                             // ListTile(
                             //   leading: const Icon(Icons.account_circle),
                             //   title: const Text("Account"),
@@ -930,7 +960,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     });
   }
 
-  _onSelectItem(int index) {
+  void _onSelectItem(int index) {
     //setState(() => {_selectedDrawerIndex = index});
     Navigator.pop(context); // close the drawer
   }
@@ -961,13 +991,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   }
   */
 
-  loggedIn(BrokerageUserStore userStore) {
+  bool loggedIn(BrokerageUserStore userStore) {
     return userStore.items.isNotEmpty &&
         userStore.currentUser!.userName != null &&
         userInfo != null;
   }
 
-  _openLogin() async {
+  Future<void> _openLogin() async {
     final BrokerageUser? result = await Navigator.push(
         context,
         MaterialPageRoute(
@@ -1003,7 +1033,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     }
   }
 
-  _logout(BrokerageUserStore userStore) async {
+  Future<void> _logout(BrokerageUserStore userStore) async {
     var alert = AlertDialog(
       title: Text(
           'Unlink ${userStore.currentUser!.source.enumValue().capitalize()}'),

@@ -141,11 +141,9 @@ abstract class IBrokerageService {
       Bounds chartBoundsFilter,
       ChartDateSpan chartDateSpanFilter);
   Future<PortfolioHistoricals> getPortfolioPerformance(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});      
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day});
   Future<OptionHistoricals> getOptionHistoricals(
       BrokerageUser user, OptionHistoricalsStore store, List<String> ids,
       {Bounds chartBoundsFilter = Bounds.regular,
@@ -248,5 +246,8 @@ abstract class IBrokerageService {
           'gtc' // How long order will be in effect. 'gtc' = good until cancelled. 'gfd' = good for the day. 'ioc' = immediate or cancel. 'opg' execute at opening.
       });
 
-  cancelOrder(BrokerageUser user, String cancel) {}
+  Future<dynamic> cancelOrder(BrokerageUser user, String cancel) {
+    return Future.error(
+        'cancelOrder is not implemented for this brokerage service');
+  }
 }

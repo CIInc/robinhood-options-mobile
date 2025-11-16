@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
@@ -66,29 +67,50 @@ class InstrumentOrder {
         cancel = json['cancel'],
         instrument = json['instrument'],
         instrumentId = json['instrument_id'],
-        cumulativeQuantity = double.tryParse(json['cumulative_quantity']),
+        cumulativeQuantity = json['cumulative_quantity'] is double
+            ? json['cumulative_quantity']
+            : double.tryParse(json['cumulative_quantity']),
         averagePrice = json['average_price'] != null
-            ? double.tryParse(json['average_price'])
+            ? (json['average_price'] is double
+                ? json['average_price']
+                : double.tryParse(json['average_price']))
             : null,
-        fees = json['fees'] != null ? double.tryParse(json['fees']) : null,
+        fees = json['fees'] != null
+            ? (json['fees'] is double
+                ? json['fees']
+                : double.tryParse(json['fees']))
+            : null,
         state = json['state'],
         pendingCancelOpenAgent = json['pending_cancel_open_agent'],
         type = json['type'],
         side = json['side'],
         timeInForce = json['time_in_force'],
         trigger = json['trigger'],
-        price = json['price'] != null ? double.tryParse(json['price']) : null,
-        stopPrice = json['stop_price'] != null
-            ? double.tryParse(json['stop_price'])
+        price = json['price'] != null
+            ? (json['price'] is double
+                ? json['price']
+                : double.tryParse(json['price']))
             : null,
-        quantity = double.tryParse(json['quantity']),
+        stopPrice = json['stop_price'] != null
+            ? (json['stop_price'] is double
+                ? json['stop_price']
+                : double.tryParse(json['stop_price']))
+            : null,
+        quantity = json['quantity'] is double
+            ? json['quantity']
+            : double.tryParse(json['quantity']),
         rejectReason = json['reject_reason'],
-        createdAt =
-            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']),
         updatedAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']);
+            json['updated_at'] is Timestamp
+                ? (json['updated_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['updated_at']),
+        // 2021-02-09T18:01:28.135813Z
+        createdAt =
+            //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
+            json['created_at'] is Timestamp
+                ? (json['created_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['created_at']);
 
   Map<String, dynamic> toJson() => {
         'id': id,

@@ -15,11 +15,12 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 0.10.0+39
+version: 0.13.0+48
 
 environment:
 #  sdk: '>=3.0.0-85.0.dev <4.0.0'
-  sdk: ">=2.19.2 <3.0.0"
+ sdk: ">=2.19.2 <3.0.0"
+#  sdk: '^3.2.0'
 
 dependencies:
   flutter:
@@ -64,7 +65,7 @@ dependencies:
   #open_file: ^3.2.1
   # rxdart: ^0.27.2
   # TODO: Deprecated, using floating SliverAppBar instead.
-  flutter_sticky_header: ^0.7.0
+  flutter_sticky_header: ^0.8.0
   # Used to display charts
   community_charts_flutter: ^1.0.4
   # Used by charts for SelectionMode
@@ -74,7 +75,7 @@ dependencies:
 #      path: charts_flutter
   url_launcher: ^6.3.1  # flutter_echarts: ^2.3.0
   # local_auth: ^1.1.4
-  share_plus: ^10.1.4
+  share_plus: ^11.0.0
   uuid: ^4.5.1
   material_color_utilities: ^0.11.1
   dynamic_color: ^1.7.0
@@ -92,7 +93,9 @@ dependencies:
   # Used to cache user image in SliverAppBar 
   cached_network_image: ^3.4.1
   # Used for AI Assistant
-  firebase_vertexai: ^1.4.0
+  firebase_ai: ^2.0.0
+  # Deprecated by firebase_ai
+  # firebase_vertexai: ^1.4.0
   flutter_markdown: ^0.7.6+2
   # Used by option chain lists
   scrollable_positioned_list: ^0.3.8
@@ -106,7 +109,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
 
   flutter_launcher_icons: ^0.14.3
 

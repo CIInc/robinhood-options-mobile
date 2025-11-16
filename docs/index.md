@@ -9,13 +9,34 @@
 - Centralized view for stocks, options, and crypto assets.
 - Integration with brokerage accounts for real-time data.
 - AI-driven insights and recommendations.
+  - Note: AI portfolio prompts now include per-account cash and a total cash summary when available.
 - Historical data analysis for informed decision-making.
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
 - Enhanced security and privacy for user data.
 - Customizable watchlists and alerts for market movements.
 - Advanced charting tools for technical analysis.
+- Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
 - Integration with social media for sentiment analysis.
+
+## Investment Profile Feature
+
+This feature adds investment profile configuration to user settings, allowing users to specify their investment goals, time horizon, risk tolerance, and portfolio value. These preferences are then integrated into AI Portfolio Recommendations to provide personalized financial advice.
+
+### Model changes
+- Added optional fields on the `User` model: `investmentGoals`, `timeHorizon`, `riskTolerance`, `totalPortfolioValue`.
+
+### AI integration
+- `GenerativeService.portfolioPrompt()` now accepts a `user` parameter and includes an "Investment Profile" section when available.
+- The prompt also includes per-account cash (`portfolioCash`) and an aggregated total cash across accounts when `user.accounts` is present.
+
+### UI
+- New `Investment Profile Settings` widget under user settings for editing goals, time horizon, risk tolerance, and portfolio value.
+
+### Developer notes
+- The AI generation pipelines accept an optional `user` parameter and pass it through to `generateContent()`.
+- When `user` is not provided, behavior is backward compatible.
+
 
 ## Requirements
 
@@ -209,3 +230,35 @@
 ---
 
 - [App Launcher Icon](https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuoswQXrdH%2FCwm4h0a9oVu2V0rSJj%2F910ipfk8RLyvax46pBpgVphdHy0A40EZXVYqIJ1TfCzjqmMF5IGQ1bnkFDB9zyJkSJNxk%2FunmdsFTrXvme5gJ4DR1nrXLMrhUNdn7W14qVCMVAp5p1y0aacKJTEM9TxVCF6NwiwyI5T4vGrA9ndFZT9o34hxRvZ5FDeuUJPJrI3JSkvUl%2FU4bZ9AAfiKa7xAAAA)
+
+## Testing
+
+- Run unit tests for the app:
+
+```bash
+cd src/robinhood_options_mobile
+flutter test
+```
+
+- Run a single test file (example):
+
+```bash
+flutter test test/user_model_test.dart
+```
+
+## Developer Reference
+
+- Key files:
+  - `lib/main.dart` - App entrypoint and provider wiring
+  - `lib/model/user.dart` - User model and investment profile fields
+  - `lib/services/generative_service.dart` - AI prompt generation and `portfolioPrompt()`
+  - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
+  - `functions/` - Server-side Firebase Functions and helpers
+
+## Support
+
+- For issues related to investment profile behavior or AI prompts:
+  1. Check `lib/services/generative_service.dart` for prompt construction
+  2. Review unit tests under `test/`
+  3. Use Firebase emulator for local testing of functions
+  4. Contact the development team with reproducible steps and sample user data

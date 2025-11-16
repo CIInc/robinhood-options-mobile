@@ -609,14 +609,13 @@ Response: {
   // https://bonfire.robinhood.com/portfolio/performance/1234567?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=ytd&include_all_hours=true
   @override
   Future<PortfolioHistoricals> getPortfolioPerformance(
-      BrokerageUser user,
-      PortfolioHistoricalsStore store,
-      String account,
-      { Bounds chartBoundsFilter = Bounds.t24_7,
-      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day }) async {
+      BrokerageUser user, PortfolioHistoricalsStore store, String account,
+      {Bounds chartBoundsFilter = Bounds.t24_7,
+      ChartDateSpan chartDateSpanFilter = ChartDateSpan.day}) async {
     var rtn = convertChartSpanFilterWithInterval(chartDateSpanFilter);
     String? span = rtn[0];
-    var url = "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
+    var url =
+        "$robinHoodSearchEndpoint/portfolio/performance/$account?chart_style=PERFORMANCE&chart_type=historical_portfolio&display_span=$span&include_all_hours=${chartBoundsFilter == Bounds.t24_7 ? 'true' : 'false'}";
     var result = await RobinhoodService.getJson(user, url);
     var historicals = PortfolioHistoricals.fromPerformanceJson(result);
     store.set(historicals);
@@ -653,6 +652,32 @@ Response: {
     var historicals = PortfolioHistoricals.fromJson(result);
     store.set(historicals);
     return historicals;
+  }
+
+  /*
+  FUTURES
+  */
+// https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
+  // @override
+  // Future<List<dynamic>> getFutureAccounts(
+  //     BrokerageUser user, Account account) async {
+  //   var results = await RobinhoodService.pagedGet(user,
+  //       "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
+  //   //debugPrint(results);
+  //   return results;
+  // }
+
+// https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
+// https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=c8e338f7-6764-4b68-ac05-d8f431c0f869%2Cc8e338f7-6764-4b68-ac05-d8f431c0f869
+// https://api.robinhood.com/arsenal/v1/futures/products/83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec
+  @override
+  Stream<List<dynamic>> streamFuturePositions(
+    BrokerageUser user,
+    String account,
+  ) {
+    var pageStream = streamedGet(
+        user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
+    return pageStream;
   }
 
   /*
@@ -1819,7 +1844,7 @@ Response: {
     return list;
   }
 
-  static saveLogos() async {
+  static Future<void> saveLogos() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString("logoUrls", jsonEncode(logoUrls));
     debugPrint("Cached ${logoUrls.keys.length} logos");
@@ -2258,7 +2283,7 @@ Response: {
           return splits[splits.length - 2] == optionMarketDatum.instrumentId;
         });
         if (optionPosition.optionInstrument == null) {
-          // We may want to handle this, by looking it up from optionInstrumentStore 
+          // We may want to handle this, by looking it up from optionInstrumentStore
           continue;
         }
         if (optionPosition.optionInstrument!.optionMarketData == null ||
@@ -2893,7 +2918,7 @@ WATCHLIST
     }
   }
 
-  static pagedGet(BrokerageUser user, String url) async {
+  static Future pagedGet(BrokerageUser user, String url) async {
     dynamic responseJson = await getJson(user, url);
     var results = responseJson['results'];
     var nextUrl = responseJson['next'];

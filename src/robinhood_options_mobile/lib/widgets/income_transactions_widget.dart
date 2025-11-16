@@ -102,6 +102,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
   ];
   String dateFilter = 'Year';
   List<String> transactionSymbolFilters = [];
+  bool showAllTransactions = false;
+  final int maxTransactionsToShow = 3;
 
   @override
   void initState() {
@@ -116,6 +118,12 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             e["instrumentObj"] != null &&
             e["instrumentObj"].quoteObj != null &&
             (e["state"] == "paid" || e["state"] == "reinvesting"))
+        .where((e) {
+          final position = widget.instrumentPositionStore.items
+              .firstWhereOrNull(
+                  (p) => p.instrumentId == e['instrumentObj']!.id);
+          return position != null && position.quantity! > 0;
+        })
         .sortedBy<DateTime>((e) => e["payable_date"] != null
             ? DateTime.parse(e["payable_date"])
             : DateTime.parse(e["pay_date"]))
@@ -256,16 +264,19 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
     int multiplier = 1;
     double? marketValue;
     double? totalCost;
+    double? totalValue;
     int? countBuys;
-    double? positionCost;
     double? totalSells;
     int? countSells;
     double? gainLoss;
     double? gainLossPercent;
     double? adjustedReturn;
     double? adjustedReturnPercent;
+    double? positionCost;
+    double? positionAdjCost;
     double? positionGainLoss;
     double? positionGainLossPercent;
+    double? positionIncome;
     // double? positionAdjustedReturn;
     // double? positionAdjustedReturnPercent;
     double? adjustedCost;
@@ -295,7 +306,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
             o.instrumentId == instrument!.id &&
             o.state != 'cancelled' &&
             o.state != 'unconfirmed');
-        var buys = positionOrders.where((o) => o.side == 'buy');
+        var buys =
+            positionOrders.where((o) => o.side == 'buy' && o.state != 'queued');
         countBuys = buys.length;
         double buyTotal = buys.isEmpty
             ? 0
@@ -311,6 +323,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 .reduce((a, b) => a + b);
         totalCost = buyTotal;
         totalSells = sellTotal;
+        totalValue = totalIncome + (marketValue ?? 0) + sellTotal;
         gainLoss = (marketValue ?? 0) + sellTotal - totalCost;
         gainLossPercent = gainLoss / totalCost;
         adjustedReturn =
@@ -325,10 +338,11 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // positionAdjustedReturnPercent = ((marketValue + totalIncome) / position.totalCost) - 1;
           double buyTotalQuantity = buys.isEmpty
               ? 0
-              : buys
-                  .map((o) => o.quantity!)
-                  .reduce((a, b) => a + b);
-          adjustedCost = (totalCost - totalIncome) / buyTotalQuantity; // position.quantity!;
+              : buys.map((o) => o.quantity!).reduce((a, b) => a + b);
+          positionIncome = totalIncome * position.quantity! / buyTotalQuantity;
+          positionAdjCost =
+              (positionCost - positionIncome) / position.quantity!;
+          adjustedCost = (totalCost - totalIncome) / buyTotalQuantity;
           yieldOnCost =
               double.parse(transaction!["rate"]) / position.averageBuyPrice!;
         }
@@ -534,6 +548,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           renderSpec: charts.SmallTickRendererSpec(
               labelStyle: charts.TextStyleSpec(color: axisLabelColor)),
           viewport: dateFilter == 'All' ||
+                  // don't set viewport if the data is less than a year apart
                   (groupedDividendsData.length > 1 &&
                       groupedDividendsData.last.key
                               .difference(groupedDividendsData.first.key)
@@ -544,11 +559,14 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                   start:
                       // transactionSymbolFilters.isNotEmpty ? groupedDividendsData.map((d) => d.key).min :
                       DateTime(
-                          DateTime.now().year - 1, DateTime.now().month, 1),
+                          DateTime.now().year - (dateFilter == 'Year' ? 1 : 3),
+                          DateTime.now().month,
+                          1),
                   // DateTime.now().subtract(Duration(days: 365)),
                   // end: DateTime.now())),
                   end: DateTime.now()
-                      .add(Duration(days: 29 - DateTime.now().day)))),
+                  //.add(Duration(days: 29 - DateTime.now().day))
+                  )),
       // .add(Duration(days: 30 - DateTime.now().day)))),
       primaryMeasureAxis: charts.NumericAxisSpec(
         // showAxisLine: true,
@@ -596,6 +614,68 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
       ),
     );
 
+    // 1. Precalculate yield for each symbol in dividendSymbols
+    List<Map<String, dynamic>> dividendSymbolYields =
+        dividendSymbols.map((symbol) {
+      // Find all dividends for this symbol, sorted by payable_date descending
+      final dividends = widget.dividendStore.items
+          .where((d) =>
+              d['instrumentObj'] != null &&
+              d['instrumentObj']!.symbol == symbol)
+          .where((d) => d['payable_date'] != null)
+          .toList()
+        ..sort((a, b) => DateTime.parse(b['payable_date'])
+            .compareTo(DateTime.parse(a['payable_date'])));
+
+      double? yield;
+      double? price;
+      int multiplier = 1;
+      String interval = '';
+
+      if (dividends.isNotEmpty) {
+        final last = dividends[0];
+        final lastRate = double.tryParse(last['rate']?.toString() ?? '') ?? 0.0;
+        price = last['instrumentObj']?.quoteObj?.lastExtendedHoursTradePrice ??
+            last['instrumentObj']?.quoteObj?.lastTradePrice;
+        price ??= 1.0;
+        yield = price > 0 ? lastRate / price : 0.0;
+        // Find previous dividend to determine interval
+        if (dividends.length > 1) {
+          final prev = dividends[1];
+          final currDate = DateTime.parse(last['payable_date']);
+          final prevDate = DateTime.parse(prev['payable_date']);
+          const weeklyErrorMargin = 3;
+          const monthlyErrorMargin = 2;
+          const quarterlyErrorMargin = 4;
+          if (currDate.difference(prevDate).inDays <= 7 + weeklyErrorMargin) {
+            multiplier = 52;
+            interval = 'weekly';
+          } else if (currDate.difference(prevDate).inDays <=
+              31 + monthlyErrorMargin) {
+            multiplier = 12;
+            interval = 'monthly';
+          } else if (currDate.difference(prevDate).inDays <=
+              31 * 3 + quarterlyErrorMargin) {
+            multiplier = 4;
+            interval = 'quarterly';
+          }
+        }
+        yield = yield * multiplier;
+      }
+
+      return {
+        'symbol': symbol,
+        'yield': yield ?? 0.0,
+        'price': price ?? 1.0,
+        'interval': interval,
+        'multiplier': multiplier,
+      };
+    }).toList();
+
+    // 2. Sort by yield descending
+
+    dividendSymbolYields.sort((a, b) => b['yield'].compareTo(a['yield']));
+
     if (widget.dividendStore.items.isEmpty &&
         widget.interestStore != null &&
         widget.interestStore!.items.isEmpty) {
@@ -618,6 +698,130 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
+      if (widget.showChips) ...[
+        SliverToBoxAdapter(
+          child: AnimatedSwitcher(
+            duration: Durations.short4,
+            child: transactionFilters.contains("dividend")
+                ? SizedBox(
+                    key: ValueKey(transactionFilters.contains("dividend")),
+                    height: 80, // 56
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(4.0),
+                      scrollDirection: Axis.horizontal,
+                      controller: scrollController,
+                      itemBuilder: (context, index) {
+                        return Row(
+                          children: [
+                            // Divider(indent: 12),
+                            for (var entry in dividendSymbolYields) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () async {
+                                    var dividend = widget.dividendStore.items
+                                        .where((d) =>
+                                            d['instrumentObj'] != null &&
+                                            d['instrumentObj']!.symbol ==
+                                                entry['symbol'])
+                                        .firstOrNull;
+                                    if (dividend != null &&
+                                        !widget.instrumentOrderStore.items.any(
+                                            (o) =>
+                                                o.instrument ==
+                                                dividend['instrument'])) {
+                                      await widget.service.getInstrumentOrders(
+                                          widget.user,
+                                          widget.instrumentOrderStore,
+                                          [dividend['instrument']]);
+                                    }
+                                    setState(() {
+                                      transactionFilters.removeWhere(
+                                          (String name) => name == "interest");
+                                      transactionSymbolFilters.clear();
+                                      transactionSymbolFilters
+                                          .add(entry['symbol']);
+                                    });
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: transactionSymbolFilters
+                                              .contains(entry['symbol'])
+                                          ? Theme.of(context)
+                                              .colorScheme
+                                              .primary
+                                              .withValues(alpha: 0.2)
+                                          : null,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: transactionSymbolFilters
+                                                .contains(entry['symbol'])
+                                            ? Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                            : Colors.grey.shade400,
+                                      ),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          formatPercentage
+                                              .format(entry['yield']),
+                                          style: TextStyle(
+                                              color: Colors.green.shade700,
+                                              fontSize: summaryValueFontSize
+                                              // greekValueFontSize // 13,
+                                              ),
+                                          // textAlign: TextAlign.start,
+                                        ),
+                                        // SizedBox(width: 8),
+                                        Text(
+                                          entry['symbol'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: transactionSymbolFilters
+                                                    .contains(entry['symbol'])
+                                                ? Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                : null,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            // Add a 'Clear' chip if any symbol is selected
+                            if (transactionSymbolFilters.isNotEmpty) ...[
+                              Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4.0),
+                                child: FilterChip(
+                                  label: const Text('Clear'),
+                                  selected: false,
+                                  onSelected: (bool value) {
+                                    setState(() {
+                                      transactionSymbolFilters.clear();
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                      itemCount: 1,
+                    ))
+                : null,
+          ),
+        ),
+      ],
       SliverToBoxAdapter(
           child: Column(children: [
         ListTile(
@@ -748,7 +952,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                                 """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
                                                                 Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
                                                                 Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.user.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
-                                                                Adjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
+                                                                Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
                                                             // Yields are annualized from the $dividendInterval distribution period.
                                                             actions: [
                                                               TextButton(
@@ -799,7 +1003,9 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                 child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
-                                      Text(formatCurrency.format(adjustedCost),
+                                      Text(
+                                          formatCurrency.format(
+                                              positionAdjCost), // adjustedCost
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -884,6 +1090,36 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            if (totalValue != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(totalValue),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Total value",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             Padding(
                               padding: const EdgeInsets.all(summaryEgdeInset),
                               child: Column(
@@ -905,41 +1141,43 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     // Text(formatCurrency.format(adjustedReturnPercent),
                                     //     style:
                                     //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Total Income",
+                                    Text("Total income",
                                         overflow: TextOverflow.fade,
                                         softWrap: false,
                                         style: TextStyle(
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(summaryEgdeInset),
-                              child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    Row(
-                                      children: [
-                                        Text(
-                                          // formatCurrency.format(adjustedReturn),
-                                          formatCurrency.format(totalSells),
+                            if (totalSells != null && totalSells > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            formatCurrency.format(totalSells),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Total sells",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                      ],
-                                    ),
-                                    // Text(formatCurrency.format(adjustedReturnPercent),
-                                    //     style:
-                                    //         TextStyle(fontSize: summaryValueFontSize)),
-                                    Text("Total Sells",
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                        style: TextStyle(
-                                            fontSize: summaryLabelFontSize)),
-                                  ]),
-                            ),
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (marketValue != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -962,7 +1200,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Market Value",
+                                      Text("Position value",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -971,6 +1209,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               ),
                             ],
                             // if (position?.quantity != null) ...[
+                            // ],
                             Padding(
                               padding: const EdgeInsets.all(summaryEgdeInset),
                               child: Column(
@@ -1000,37 +1239,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            if (positionCost != null && countSells! > 0) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            formatCurrency.format(positionCost),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Position Cost",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-
-                            // ],
                           ])),
                   Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1062,55 +1270,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                             fontSize: summaryLabelFontSize)),
                                   ]),
                             ),
-                            if (dividendInterval.isNotEmpty) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Row(
-                                        children: [
-                                          Text(
-                                            // formatCurrency.format(adjustedReturn),
-                                            dividendInterval.capitalize(),
-                                            overflow: TextOverflow.fade,
-                                            softWrap: false,
-                                            style: const TextStyle(
-                                                fontSize: summaryValueFontSize),
-                                            textAlign: TextAlign.right,
-                                          ),
-                                        ],
-                                      ),
-                                      // Text(formatCurrency.format(adjustedReturnPercent),
-                                      //     style:
-                                      //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Distributions",
-                                          overflow: TextOverflow.fade,
-                                          softWrap: false,
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
-                            if (position?.averageBuyPrice != null) ...[
-                              Padding(
-                                padding: const EdgeInsets.all(summaryEgdeInset),
-                                child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      Text(
-                                          widget.user.getDisplayText(
-                                              position!.averageBuyPrice!,
-                                              displayValue:
-                                                  DisplayValue.lastPrice),
-                                          style: TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                      Text("Avg. cost basis",
-                                          style: TextStyle(
-                                              fontSize: summaryLabelFontSize)),
-                                    ]),
-                              ),
-                            ],
                             if (position?.instrumentObj != null) ...[
                               Padding(
                                 padding: const EdgeInsets.all(summaryEgdeInset),
@@ -1130,6 +1289,25 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           style: TextStyle(
                                               fontSize: summaryValueFontSize)),
                                       Text("Last price",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (position?.averageBuyPrice != null) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Text(
+                                          widget.user.getDisplayText(
+                                              position!.averageBuyPrice!,
+                                              displayValue:
+                                                  DisplayValue.lastPrice),
+                                          style: TextStyle(
+                                              fontSize: summaryValueFontSize)),
+                                      Text("Avg. cost basis",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1163,7 +1341,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Total NAV return",
+                                      Text("Total return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1185,7 +1363,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Total NAV return",
+                                      Text("Total return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1213,7 +1391,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                       // Text(formatCurrency.format(adjustedReturnPercent),
                                       //     style:
                                       //         TextStyle(fontSize: summaryValueFontSize)),
-                                      Text("Total Cost",
+                                      Text("Total cost",
                                           overflow: TextOverflow.fade,
                                           softWrap: false,
                                           style: TextStyle(
@@ -1260,6 +1438,35 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ]),
                               ),
                             ],
+                            if (positionCost != null && countSells! > 0) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            formatCurrency.format(positionCost),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Position cost",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
                             if (positionGainLossPercent != null &&
                                 countSells! > 0) ...[
                               Padding(
@@ -1289,7 +1496,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Position NAV return",
+                                      Text("Position return",
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1313,7 +1520,37 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 fontSize:
                                                     summaryValueFontSize)),
                                       ]),
-                                      Text("Position NAV return",
+                                      Text("Position return",
+                                          style: TextStyle(
+                                              fontSize: summaryLabelFontSize)),
+                                    ]),
+                              ),
+                            ],
+                            if (dividendInterval.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.all(summaryEgdeInset),
+                                child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Row(
+                                        children: [
+                                          Text(
+                                            // formatCurrency.format(adjustedReturn),
+                                            dividendInterval.capitalize(),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                            style: const TextStyle(
+                                                fontSize: summaryValueFontSize),
+                                            textAlign: TextAlign.right,
+                                          ),
+                                        ],
+                                      ),
+                                      // Text(formatCurrency.format(adjustedReturnPercent),
+                                      //     style:
+                                      //         TextStyle(fontSize: summaryValueFontSize)),
+                                      Text("Distributions",
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false,
                                           style: TextStyle(
                                               fontSize: summaryLabelFontSize)),
                                     ]),
@@ -1322,147 +1559,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                           ]))
                 ],
               )),
-          // ExpansionTile(
-          //   shape: const Border(),
-          //   // dense: true,
-          //   // controlAffinity: ListTileControlAffinity.leading,
-          //   minTileHeight: 60,
-          //   // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
-          //   enabled: position != null,
-          //   title: Wrap(children: [
-          //     const Text(
-          //       "Dividend Yield",
-          //       style: TextStyle(fontSize: 19.0),
-          //     ),
-          //     if (position != null) ...[
-          //       SizedBox(
-          //         height: 28,
-          //         child: IconButton(
-          //           iconSize: 18,
-          //           padding: EdgeInsets.zero,
-          //           icon: Icon(Icons.info_outline),
-          //           onPressed: () {
-          //             showDialog<String>(
-          //                 context: context,
-          //                 builder: (BuildContext context) => AlertDialog(
-          //                       // context: context,
-          //                       title: Text('Dividend Yield'),
-          //                       content: Text(
-          //                           'Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)}.\n\nYield on cost is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the average cost ${formatCurrency.format(position!.averageBuyPrice)}.\n\nYields are annualized from the $dividendInterval distribution period.\n\nAdjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the underlying profit or loss value ${widget.user.getDisplayText(position.gainLoss, displayValue: DisplayValue.totalReturn)}.\n\nAdjusted cost basis is calculated by subtracting the dividend income ${formatCurrency.format(totalIncome)} from the total cost ${formatCurrency.format(position.totalCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}.'),
-          //                       actions: [
-          //                         TextButton(
-          //                           onPressed: () {
-          //                             Navigator.of(context).pop();
-          //                           },
-          //                           child: const Text('OK'),
-          //                         ),
-          //                       ],
-          //                     ));
-          //           },
-          //         ),
-          //       )
-          //     ]
-          //   ]),
-          //   // subtitle:
-          //   //     yield != null ? Text(formatPercentage.format(yield)) : null,
-          //   subtitle: Text(
-          //       "last${dividendInterval.isNotEmpty ? ' ' : ''}$dividendInterval distribution ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))}"),
-          //   trailing: Wrap(spacing: 8, children: [
-          //     Text(
-          //       formatPercentage.format(yield),
-          //       style: const TextStyle(fontSize: 20.0),
-          //       textAlign: TextAlign.right,
-          //     ),
-          //   ]),
-          //   children: [
-          //     if (yieldOnCost != null) ...[
-          //       ListTile(
-          //         // dense: true,
-          //         minTileHeight: 60,
-          //         // contentPadding: const EdgeInsets.fromLTRB(16.0, 0, 24.0, 0),
-          //         title: Wrap(children: [
-          //           const Text(
-          //             "Yield on cost",
-          //             style: TextStyle(fontSize: 18.0),
-          //           ),
-          //         ]),
-          //         subtitle: Text(
-          //             "average cost basis ${widget.user.getDisplayText(position!.averageBuyPrice!, displayValue: DisplayValue.lastPrice)}"),
-          //         trailing: Wrap(spacing: 8, children: [
-          //           Text(
-          //             formatPercentage.format(yieldOnCost),
-          //             style: const TextStyle(fontSize: 20.0),
-          //             textAlign: TextAlign.right,
-          //           ),
-          //         ]),
-          //       ),
-          //     ],
-          //     if (adjustedCost != null) ...[
-          //       ListTile(
-          //         title: Wrap(children: [
-          //           const Text(
-          //             "Adjusted cost basis",
-          //             style: TextStyle(fontSize: 18.0),
-          //           ),
-          //         ]),
-          //         subtitle: Text(// • ${instrument!.symbol}
-          //             'last price ${widget.user.getDisplayText(position!.instrumentObj!.quoteObj!.lastExtendedHoursTradePrice ?? position.instrumentObj!.quoteObj!.lastTradePrice!, displayValue: DisplayValue.lastPrice)}'),
-          //         trailing: Wrap(spacing: 8, children: [
-          //           Text(
-          //             formatCurrency.format(adjustedCost),
-          //             style: const TextStyle(fontSize: 20.0),
-          //             textAlign: TextAlign.right,
-          //           ),
-          //           // if (pastYearYield != null) ...[
-          //           //   Text('${formatPercentage.format(pastYearYield)} yield',
-          //           //       style: const TextStyle(fontSize: 14)),
-          //           // ]
-          //         ]),
-          //       ),
-          //     ],
-          //     if (marketValue != null) ...[
-          //       ListTile(
-          //         title: Wrap(children: [
-          //           const Text(
-          //             "Adjusted return",
-          //             style: TextStyle(fontSize: 18.0),
-          //           ),
-          //         ]),
-          //         subtitle: Text(
-          //             // ${instrument!.symbol}  // ${widget.user.getDisplayText(marketValue, displayValue: DisplayValue.marketValue)}
-          //             'total return ${gainLossPercent! > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}'), // ${widget.user.getDisplayText(gainLoss, displayValue: DisplayValue.totalReturn)}
-          //         trailing: Wrap(spacing: 8, children: [
-          //           // Text(
-          //           //   formatCurrency.format(marketValue),
-          //           //   style: const TextStyle(fontSize: positionValueFontSize),
-          //           //   textAlign: TextAlign.right,
-          //           // ),
-          //           if (adjustedReturnPercent! != 0) ...[
-          //             // widget.user.getDisplayIcon(profitAndLoss)
-          //             Icon(
-          //                 adjustedReturnPercent > 0
-          //                     ? Icons.arrow_drop_up
-          //                     : Icons.arrow_drop_down,
-          //                 color: adjustedReturnPercent > 0
-          //                     ? Colors.green
-          //                     : Colors.red,
-          //                 size: 28),
-          //           ],
-          //           Text(
-          //             // formatCurrency.format(adjustedReturn),
-          //             formatPercentage.format(adjustedReturnPercent),
-          //             style: const TextStyle(fontSize: 20.0),
-          //             textAlign: TextAlign.right,
-          //           ),
-          //           // if (pastYearYield != null) ...[
-          //           //   Text('${formatPercentage.format(pastYearYield)} yield',
-          //           //       style: const TextStyle(fontSize: 14)),
-          //           // ]
-          //         ]),
-          //       ),
-          //     ],
-          //   ],
-          // ),
         ],
         SizedBox(
             height: 340,
@@ -1472,103 +1568,6 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
               //padding: const EdgeInsets.all(10.0),
               child: incomeChart,
             )),
-        //   SingleChildScrollView(
-        //       scrollDirection: Axis.horizontal,
-        //       child: Padding(
-        //           padding: const EdgeInsets.symmetric(horizontal: 5),
-        //           child: Row(
-        //               crossAxisAlignment: CrossAxisAlignment.start,
-        //               children: [
-        //                 Padding(
-        //                   padding: const EdgeInsets.all(
-        //                       summaryEgdeInset), //.symmetric(horizontal: 6),
-        //                   child: Column(
-        //                       mainAxisSize: MainAxisSize.min,
-        //                       children: <Widget>[
-        //                         Wrap(spacing: 8, children: [
-        //                           todayIcon,
-        //                           Text(todayReturnText,
-        //                               style: const TextStyle(
-        //                                   fontSize: summaryValueFontSize))
-        //                         ]),
-        //                         /*
-        //                                         Text(todayReturnText,
-        //                                             style: const TextStyle(
-        //                                                 fontSize:
-        //                                                     summaryValueFontSize)),
-        //                                                     */
-        //                         /*
-        //                               Text(todayReturnPercentText,
-        //                                   style: const TextStyle(
-        //                                       fontSize: summaryValueFontSize)),
-        //                                       */
-        //                         const Text("Return Today",
-        //                             style: TextStyle(
-        //                                 fontSize: summaryLabelFontSize)),
-        //                       ]),
-        //                 ),
-        //                 Padding(
-        //                   padding: const EdgeInsets.all(
-        //                       summaryEgdeInset), //.symmetric(horizontal: 6),
-        //                   child: Column(
-        //                       mainAxisSize: MainAxisSize.min,
-        //                       children: <Widget>[
-        //                         Text(todayReturnPercentText,
-        //                             style: const TextStyle(
-        //                                 fontSize: summaryValueFontSize)),
-        //                         const Text("Return Today %",
-        //                             style: TextStyle(
-        //                                 fontSize: summaryLabelFontSize)),
-        //                       ]),
-        //                 ),
-        //                 Padding(
-        //                   padding: const EdgeInsets.all(
-        //                       summaryEgdeInset), //.symmetric(horizontal: 6),
-        //                   child: Column(
-        //                       mainAxisSize: MainAxisSize.min,
-        //                       children: <Widget>[
-        //                         Wrap(spacing: 8, children: [
-        //                           totalIcon,
-        //                           Text(totalReturnText,
-        //                               style: const TextStyle(
-        //                                   fontSize: summaryValueFontSize))
-        //                         ]),
-        //                         /*
-        //                                         Text(totalReturnText,
-        //                                             style: const TextStyle(
-        //                                                 fontSize:
-        //                                                     summaryValueFontSize)),
-        //                               */
-        //                         /*
-        //                               Text(totalReturnPercentText,
-        //                                   style: const TextStyle(
-        //                                       fontSize: summaryValueFontSize)),
-        //                                       */
-        //                         //Container(height: 5),
-        //                         //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-        //                         const Text("Total Return",
-        //                             style: TextStyle(
-        //                                 fontSize: summaryLabelFontSize)),
-        //                       ]),
-        //                 ),
-        //                 Padding(
-        //                   padding: const EdgeInsets.all(
-        //                       summaryEgdeInset), //.symmetric(horizontal: 6),
-        //                   child: Column(
-        //                       mainAxisSize: MainAxisSize.min,
-        //                       children: <Widget>[
-        //                         Text(totalReturnPercentText,
-        //                             style: const TextStyle(
-        //                                 fontSize: summaryValueFontSize)),
-        //                         //Container(height: 5),
-        //                         //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-        //                         const Text("Total Return %",
-        //                             style: TextStyle(
-        //                                 fontSize: summaryLabelFontSize)),
-        //                       ]),
-        //                 ),
-        //               ])))
-        // ])),
       ])),
       if (widget.showChips) ...[
         // SliverPersistentHeader(
@@ -1593,12 +1592,30 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                         child: FilterChip(
                           //avatar: const Icon(Icons.history_outlined),
                           //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                          label: const Text('Year'), // Positions
+                          label: const Text('1Y'), // Positions
                           selected: dateFilter == 'Year',
                           onSelected: (bool value) {
                             setState(() {
                               if (value) {
                                 dateFilter = 'Year';
+                              } else {
+                                // dateFilter = 'All';
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: FilterChip(
+                          //avatar: const Icon(Icons.history_outlined),
+                          //avatar: CircleAvatar(child: Text(optionCount.toString())),
+                          label: const Text('3Y'), // Positions
+                          selected: dateFilter == '3Year',
+                          onSelected: (bool value) {
+                            setState(() {
+                              if (value) {
+                                dateFilter = '3Year';
                               } else {
                                 // dateFilter = 'All';
                               }
@@ -1749,173 +1766,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     ),
                                   ),
                                   Divider(indent: 12),
-                                  for (var dividendSymbol
-                                      in dividendSymbols) ...[
-                                    Padding(
-                                      padding: const EdgeInsets.all(4.0),
-                                      child: ChoiceChip(
-                                        //avatar: const Icon(Icons.history_outlined),
-                                        //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                                        label:
-                                            Text(dividendSymbol), // Positions
-                                        selected: transactionSymbolFilters
-                                            .contains(dividendSymbol),
-                                        onSelected: (bool value) async {
-                                          if (value) {
-                                            var dividend = widget
-                                                .dividendStore.items
-                                                .where((d) =>
-                                                    d['instrumentObj'] !=
-                                                        null &&
-                                                    d['instrumentObj']!
-                                                            .symbol ==
-                                                        dividendSymbol)
-                                                .firstOrNull;
-
-                                            // var transaction = widget.instrumentOrderStore.items.where((o) =>
-                                            //         o.instrumentObj!.symbol ==
-                                            //         dividendSymbol).firstOrNull;
-
-                                            // var positions = widget
-                                            //     .instrumentPositionStore.items
-                                            //     .where((p) =>
-                                            //         p.instrumentObj!.symbol ==
-                                            //         dividendSymbol);
-                                            if (dividend !=
-                                                    null && // positions.isNotEmpty &&
-                                                !widget
-                                                    .instrumentOrderStore.items
-                                                    .any((o) =>
-                                                            o.instrument ==
-                                                            dividend[
-                                                                'instrument']
-                                                        // positions.first.instrument
-                                                        )) {
-                                              await widget.service
-                                                  .getInstrumentOrders(
-                                                      widget.user,
-                                                      widget
-                                                          .instrumentOrderStore,
-                                                      [
-                                                    dividend['instrument']
-                                                    // positions.first.instrument
-                                                  ]);
-                                            }
-                                          }
-                                          setState(() {
-                                            if (value) {
-                                              transactionFilters
-                                                  .removeWhere((String name) {
-                                                return name == "interest";
-                                              });
-                                              transactionSymbolFilters.clear();
-                                              transactionSymbolFilters
-                                                  .add(dividendSymbol);
-                                              // dateFilter = 'All';
-                                            } else {
-                                              transactionFilters
-                                                  .add("interest");
-                                              transactionSymbolFilters
-                                                  .removeWhere((String name) {
-                                                return name == dividendSymbol;
-                                              });
-                                              // dateFilter = 'Year';
-                                            }
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                  ]
                                 ],
                               ),
-                        // Padding(
-                        //   padding: const EdgeInsets.all(4.0),
-                        //   child: FilterChip(
-                        //     //avatar: const Icon(Icons.history_outlined),
-                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        //     label: Text(DateTime.now().year.toString()),
-                        //     selected: transactionFilters
-                        //         .contains(DateTime.now().year.toString()),
-                        //     onSelected: (bool value) {
-                        //       setState(() {
-                        //         if (value) {
-                        //           transactionFilters
-                        //               .add(DateTime.now().year.toString());
-                        //         } else {
-                        //           transactionFilters.removeWhere((String name) {
-                        //             return name == DateTime.now().year.toString();
-                        //           });
-                        //         }
-                        //       });
-                        //     },
-                        //   ),
-                        // ),
-                        // Padding(
-                        //   padding: const EdgeInsets.all(4.0),
-                        //   child: FilterChip(
-                        //     //avatar: const Icon(Icons.history_outlined),
-                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        //     label: Text((DateTime.now().year - 1).toString()),
-                        //     selected: transactionFilters
-                        //         .contains((DateTime.now().year - 1).toString()),
-                        //     onSelected: (bool value) {
-                        //       setState(() {
-                        //         if (value) {
-                        //           transactionFilters
-                        //               .add((DateTime.now().year - 1).toString());
-                        //         } else {
-                        //           transactionFilters.removeWhere((String name) {
-                        //             return name ==
-                        //                 (DateTime.now().year - 1).toString();
-                        //           });
-                        //         }
-                        //       });
-                        //     },
-                        //   ),
-                        // ),
-                        // Padding(
-                        //   padding: const EdgeInsets.all(4.0),
-                        //   child: FilterChip(
-                        //     //avatar: const Icon(Icons.history_outlined),
-                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        //     label: Text((DateTime.now().year - 2).toString()),
-                        //     selected: transactionFilters
-                        //         .contains((DateTime.now().year - 2).toString()),
-                        //     onSelected: (bool value) {
-                        //       setState(() {
-                        //         if (value) {
-                        //           transactionFilters
-                        //               .add((DateTime.now().year - 2).toString());
-                        //         } else {
-                        //           transactionFilters.removeWhere((String name) {
-                        //             return name ==
-                        //                 (DateTime.now().year - 2).toString();
-                        //           });
-                        //         }
-                        //       });
-                        //     },
-                        //   ),
-                        // ),
-                        // Padding(
-                        //   padding: const EdgeInsets.all(4.0),
-                        //   child: FilterChip(
-                        //     //avatar: const Icon(Icons.history_outlined),
-                        //     //avatar: CircleAvatar(child: Text(optionCount.toString())),
-                        //     label: Text(priorYears),
-                        //     selected: transactionFilters.contains(priorYears),
-                        //     onSelected: (bool value) {
-                        //       setState(() {
-                        //         if (value) {
-                        //           transactionFilters.add(priorYears);
-                        //         } else {
-                        //           transactionFilters.removeWhere((String name) {
-                        //             return name == priorYears;
-                        //           });
-                        //         }
-                        //       });
-                        //     },
-                        //   ),
-                        // ),
                       )
                     ],
                   );
@@ -1929,6 +1781,23 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
           // delegate: SliverChildListDelegate(widgets),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
+              if (!showAllTransactions && index == maxTransactionsToShow) {
+                return ListTile(
+                  title: Center(
+                    child: TextButton(
+                      child: const Text('Show more'),
+                      onPressed: () {
+                        setState(() {
+                          showAllTransactions = true;
+                        });
+                      },
+                    ),
+                  ),
+                );
+              }
+              if (!showAllTransactions && index > maxTransactionsToShow) {
+                return null;
+              }
               var transaction = incomeTransactions[index];
               if (transaction["payable_date"] != null) {
                 var instrument = transaction["instrumentObj"];
@@ -1997,57 +1866,57 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                               style: const TextStyle(fontSize: 18))
                         ])
                       ]),
-                      onTap: () {
-                        if (transaction["instrumentObj"] != null) {
-                          setState(() {
-                            transactionFilters.removeWhere((String name) {
-                              return name == "interest";
-                            });
-                            transactionSymbolFilters.clear();
-                            transactionSymbolFilters
-                                .add(transaction["instrumentObj"].symbol);
-                          });
-                        }
-                        scrollController.animateTo(
-                          750, // scrollController.position.minScrollExtent,
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
+                      // onTap: () {
+                      //   if (transaction["instrumentObj"] != null) {
+                      //     setState(() {
+                      //       transactionFilters.removeWhere((String name) {
+                      //         return name == "interest";
+                      //       });
+                      //       transactionSymbolFilters.clear();
+                      //       transactionSymbolFilters
+                      //           .add(transaction["instrumentObj"].symbol);
+                      //     });
+                      //   }
+                      //   scrollController.animateTo(
+                      //     750, // scrollController.position.minScrollExtent,
+                      //     duration: const Duration(milliseconds: 500),
+                      //     curve: Curves.easeInOut,
+                      //   );
 
-                        /* For navigation within this tab, uncomment
-                      widget.navigatorKey!.currentState!.push(
-                          MaterialPageRoute(
-                              builder: (context) => PositionOrderWidget(
-                                  widget.user,
-                                  filteredDividends![index])));
-                                  */
-                        // showDialog<String>(
-                        //   context: context,
-                        //   builder: (BuildContext context) =>
-                        //       AlertDialog(
-                        //     title: const Text('Alert'),
-                        //     content: const Text(
-                        //         'This feature is not implemented.\n'),
-                        //     actions: <Widget>[
-                        //       TextButton(
-                        //         onPressed: () =>
-                        //             Navigator.pop(context, 'OK'),
-                        //         child: const Text('OK'),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // );
+                      //   /* For navigation within this tab, uncomment
+                      // widget.navigatorKey!.currentState!.push(
+                      //     MaterialPageRoute(
+                      //         builder: (context) => PositionOrderWidget(
+                      //             widget.user,
+                      //             filteredDividends![index])));
+                      //             */
+                      //   // showDialog<String>(
+                      //   //   context: context,
+                      //   //   builder: (BuildContext context) =>
+                      //   //       AlertDialog(
+                      //   //     title: const Text('Alert'),
+                      //   //     content: const Text(
+                      //   //         'This feature is not implemented.\n'),
+                      //   //     actions: <Widget>[
+                      //   //       TextButton(
+                      //   //         onPressed: () =>
+                      //   //             Navigator.pop(context, 'OK'),
+                      //   //         child: const Text('OK'),
+                      //   //       ),
+                      //   //     ],
+                      //   //   ),
+                      //   // );
 
-                        // Navigator.push(
-                        //     context,
-                        //     MaterialPageRoute(
-                        //         builder: (context) => PositionOrderWidget(
-                        //               widget.user,
-                        //               filteredDividends![index],
-                        //               analytics: widget.analytics,
-                        //               observer: widget.observer,
-                        //             )));
-                      },
+                      //   // Navigator.push(
+                      //   //     context,
+                      //   //     MaterialPageRoute(
+                      //   //         builder: (context) => PositionOrderWidget(
+                      //   //               widget.user,
+                      //   //               filteredDividends![index],
+                      //   //               analytics: widget.analytics,
+                      //   //               observer: widget.observer,
+                      //   //             )));
+                      // },
 
                       // isThreeLine: true,
                     ),

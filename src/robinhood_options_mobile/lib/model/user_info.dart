@@ -63,7 +63,7 @@ class UserInfo {
         createdAt = null,
         lastLoginTime = null;
 
-  toJson() {
+  Map<String, Object?> toJson() {
     return {
       'url': url,
       'id': id,

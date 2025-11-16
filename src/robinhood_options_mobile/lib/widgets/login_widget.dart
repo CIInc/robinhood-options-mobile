@@ -550,13 +550,25 @@ class _LoginWidgetState extends State<LoginWidget> {
         var userViewResponse = await service.userView(computerId!);
         debugPrint(userViewResponse.body);
         var userView = jsonDecode(userViewResponse.body);
-        setState(() {
-          loading = false;
-          mfaRequired = true;
-          challengeType = userView['context']['sheriff_challenge']['type'];
-          challengeRequestId = userView['context']['sheriff_challenge']['id'];
-          myFocusNode.requestFocus();
-        });
+        if (userView['context'] != null &&
+            userView['context']['sheriff_challenge'] != null) {
+          setState(() {
+            loading = false;
+            mfaRequired = true;
+            challengeType = userView['context']['sheriff_challenge']['type'];
+            challengeRequestId = userView['context']['sheriff_challenge']['id'];
+            myFocusNode.requestFocus();
+          });
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context)
+              ..removeCurrentSnackBar()
+              ..showSnackBar(SnackBar(
+                content: Text("${userView['context']['heading']['text']}"),
+                behavior: SnackBarBehavior.floating,
+              )); // Login failed:
+          }
+        }
       } else {
         setState(() {
           loading = false;

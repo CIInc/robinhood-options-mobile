@@ -28,6 +28,7 @@
   created_at: 2020-10-27T02:17:16.575685Z
 }
 */
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/model/instrument.dart';
 
@@ -83,35 +84,64 @@ class InstrumentPosition {
         instrument = json['instrument'],
         account = json['account'],
         accountNumber = json['account_number'],
-        averageBuyPrice = double.tryParse(json['average_buy_price']),
-        pendingAverageBuyPrice =
-            double.tryParse(json['pending_average_buy_price']),
-        quantity = double.tryParse(json['quantity']),
-        intradayAverageBuyPrice =
-            double.tryParse(json['intraday_average_buy_price']),
-        intradayQuantity = double.tryParse(json['intraday_quantity']),
+        averageBuyPrice = json['average_buy_price'] is double
+            ? json['average_buy_price']
+            : double.tryParse(json['average_buy_price']),
+        pendingAverageBuyPrice = json['pending_average_buy_price'] is double
+            ? json['pending_average_buy_price']
+            : double.tryParse(json['pending_average_buy_price']),
+        quantity = json['quantity'] is double
+            ? json['quantity']
+            : double.tryParse(json['quantity']),
+        intradayAverageBuyPrice = json['intraday_average_buy_price'] is double
+            ? json['intraday_average_buy_price']
+            : double.tryParse(json['intraday_average_buy_price']),
+        intradayQuantity = json['intraday_quantity'] is double
+            ? json['intraday_quantity']
+            : double.tryParse(json['intraday_quantity']),
         sharesAvailableForExercise =
-            double.tryParse(json['shares_available_for_exercise']),
-        sharesHeldForBuys = double.tryParse(json['shares_held_for_buys']),
-        sharesHeldForSells = double.tryParse(json['shares_held_for_sells']),
+            json['shares_available_for_exercise'] is double
+                ? json['shares_available_for_exercise']
+                : double.tryParse(json['shares_available_for_exercise']),
+        sharesHeldForBuys = json['shares_held_for_buys'] is double
+            ? json['shares_held_for_buys']
+            : double.tryParse(json['shares_held_for_buys']),
+        sharesHeldForSells = json['shares_held_for_sells'] is double
+            ? json['shares_held_for_sells']
+            : double.tryParse(json['shares_held_for_sells']),
         sharesHeldForStockGrants =
-            double.tryParse(json['shares_held_for_stock_grants']),
+            json['shares_held_for_stock_grants'] is double
+                ? json['shares_held_for_stock_grants']
+                : double.tryParse(json['shares_held_for_stock_grants']),
         sharesHeldForOptionsCollateral =
-            double.tryParse(json['shares_held_for_options_collateral']),
+            json['shares_held_for_options_collateral'] is double
+                ? json['shares_held_for_options_collateral']
+                : double.tryParse(json['shares_held_for_options_collateral']),
         sharesHeldForOptionsEvents =
-            double.tryParse(json['shares_held_for_options_events']),
+            json['shares_held_for_options_events'] is double
+                ? json['shares_held_for_options_events']
+                : double.tryParse(json['shares_held_for_options_events']),
         sharesPendingFromOptionsEvents =
-            double.tryParse(json['shares_pending_from_options_events']),
-        sharesAvailableForClosingShortPosition = double.tryParse(
-            json['shares_available_for_closing_short_position']),
+            json['shares_pending_from_options_events'] is double
+                ? json['shares_pending_from_options_events']
+                : double.tryParse(json['shares_pending_from_options_events']),
+        sharesAvailableForClosingShortPosition =
+            json['shares_available_for_closing_short_position'] is double
+                ? json['shares_available_for_closing_short_position']
+                : double.tryParse(
+                    json['shares_available_for_closing_short_position']),
         averageCostAffected = json['avg_cost_affected'],
         updatedAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['updated_at'].toString()),
-            DateTime.tryParse(json['updated_at']),
+            json['updated_at'] is Timestamp
+                ? (json['updated_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['updated_at']),
         // 2021-02-09T18:01:28.135813Z
         createdAt =
             //DateFormat('y-M-dTH:m:s.SZ').parse(json['created_at'].toString()),
-            DateTime.tryParse(json['created_at']);
+            json['created_at'] is Timestamp
+                ? (json['created_at'] as Timestamp).toDate()
+                : DateTime.tryParse(json['created_at']);
   // instrumentDocRef = json['instrumentDocRef'] != null
   //     ? json['instrumentDocRef'] as DocumentReference<Instrument>
   //     : null;
