@@ -26,7 +26,7 @@ class SharedPortfoliosWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -60,6 +60,7 @@ class SharedPortfoliosWidget extends StatelessWidget {
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.people), text: 'Shared With Me'),
+                Tab(icon: Icon(Icons.groups), text: 'Groups'),
                 Tab(icon: Icon(Icons.public), text: 'Public'),
               ],
             ),
@@ -71,6 +72,7 @@ class SharedPortfoliosWidget extends StatelessWidget {
               // Only show Shared With Me if user is logged in
               _buildSharedWithMe(context),
             ],
+            _buildGroupPortfolios(context),
             _buildPublic(context),
           ],
         ),
@@ -126,6 +128,115 @@ class SharedPortfoliosWidget extends StatelessWidget {
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildGroupPortfolios(BuildContext context) {
+    if (auth.currentUser == null) {
+      return CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.groups_outlined, size: 64),
+                  const SizedBox(height: 16),
+                  const Text('Sign in to view group portfolios'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return FutureBuilder(
+      future: firestoreService.userCollection.doc(auth.currentUser!.uid).get(),
+      builder: (context, userSnapshot) {
+        if (!userSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final user = userSnapshot.data!.data();
+        final groupIds = user?.sharedGroups ?? [];
+
+        if (groupIds.isEmpty) {
+          return CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.groups_outlined, size: 64),
+                      const SizedBox(height: 16),
+                      const Text('Join investor groups to see shared portfolios'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return StreamBuilder(
+          stream: firestoreService.userCollection
+              .where('sharedGroups', arrayContainsAny: groupIds)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.size == 0) {
+              return CustomScrollView(
+                slivers: [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Text('No portfolios shared in your groups.'),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            final users = snapshot.data!.docs;
+            return CustomScrollView(
+              slivers: [
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final user = users[index].data();
+                      return ListTile(
+                        leading: const Icon(Icons.account_circle),
+                        title: Text(user.name ?? 'User'),
+                        subtitle: const Text('Shared via group'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SharedPortfolioWidget(
+                                user: user,
+                                userDoc: users[index].reference,
+                                brokerageService: brokerageService,
+                                firestoreService: firestoreService,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    childCount: users.length,
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

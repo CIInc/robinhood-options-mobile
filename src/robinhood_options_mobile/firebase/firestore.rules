@@ -59,6 +59,22 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
 
+    match /investor_groups/{groupId} {
+      // Anyone can read public groups
+      allow read: if resource.data.isPrivate == false || request.auth.uid != null;
+      // Authenticated users can create groups
+      allow create: if request.auth.uid != null;
+      // Only group admins or creator can update/delete
+      allow update: if request.auth.uid != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid in resource.data.get('admins', [])
+      );
+      allow delete: if request.auth.uid != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if

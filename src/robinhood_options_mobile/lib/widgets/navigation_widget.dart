@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -811,6 +812,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   _onPageChanged(4);
+                                },
+                              ),
+                              ListTile(
+                                leading: const Icon(Icons.groups),
+                                title: const Text("Investor Groups"),
+                                onTap: () {
+                                  Navigator.pop(context); // close the drawer
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => InvestorGroupsWidget(
+                                        firestoreService: _firestoreService,
+                                        brokerageUser: userStore.currentUser!,
+                                        analytics: widget.analytics,
+                                        observer: widget.observer,
+                                      ),
+                                    ),
+                                  );
                                 },
                               ),
                             ],

@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/investor_group.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -26,6 +27,7 @@ class FirestoreService {
   final String optionEventCollectionName = 'optionEvent';
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
+  final String investorGroupCollectionName = 'investor_groups';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -40,6 +42,13 @@ class FirestoreService {
   late final CollectionReference<User> userCollection =
       _db.collection(userCollectionName).withConverter<User>(
             fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
+
+  late final CollectionReference<InvestorGroup> investorGroupCollection =
+      _db.collection(investorGroupCollectionName).withConverter<InvestorGroup>(
+            fromFirestore: (snapshots, _) =>
+                InvestorGroup.fromJson(snapshots.data()!),
             toFirestore: (obj, _) => obj.toJson(),
           );
 
@@ -784,6 +793,159 @@ class FirestoreService {
       batch.set(interestDoc, interest);
     }
     batch.commit();
+  }
+
+  /// Investor Group Methods
+
+  /// Create a new investor group
+  Future<DocumentReference<InvestorGroup>> createInvestorGroup(
+      InvestorGroup group) async {
+    try {
+      final docRef = await investorGroupCollection.add(group);
+      // Update the group with its own ID
+      group.id = docRef.id;
+      await docRef.update({'id': docRef.id});
+      debugPrint("Investor group created with ID: ${docRef.id} - ${group.name}");
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to create investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get a specific investor group
+  Future<InvestorGroup?> getInvestorGroup(String groupId) async {
+    try {
+      final doc = await investorGroupCollection.doc(groupId).get();
+      return doc.data();
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to get investor group: ${e.message}');
+      return null;
+    }
+  }
+
+  /// Get all investor groups where user is a member
+  Stream<QuerySnapshot<InvestorGroup>> getUserInvestorGroups(String userId) {
+    return investorGroupCollection
+        .where('members', arrayContains: userId)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
+
+  /// Get all public investor groups
+  Stream<QuerySnapshot<InvestorGroup>> getPublicInvestorGroups() {
+    return investorGroupCollection
+        .where('isPrivate', isEqualTo: false)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
+
+  /// Search investor groups by name
+  Stream<QuerySnapshot<InvestorGroup>> searchInvestorGroups(
+      {String? searchTerm}) {
+    Query<InvestorGroup> query = investorGroupCollection;
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      String searchTermLower = searchTerm.toLowerCase();
+      // Note: This is a basic implementation. For better search, consider using
+      // a dedicated search service like Algolia or Elasticsearch
+      query = query
+          .orderBy('name')
+          .startAt([searchTermLower]).endAt(['$searchTermLower\uf8ff']);
+    }
+    return query.orderBy('dateCreated', descending: true).snapshots();
+  }
+
+  /// Update an investor group
+  Future<void> updateInvestorGroup(InvestorGroup group) async {
+    group.dateUpdated = DateTime.now();
+    try {
+      await investorGroupCollection.doc(group.id).update(group.toJson());
+      debugPrint("Investor group updated: ${group.id}");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete an investor group
+  Future<void> deleteInvestorGroup(String groupId) async {
+    try {
+      await investorGroupCollection.doc(groupId).delete();
+      debugPrint("Investor group deleted: $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Add a user to an investor group
+  Future<void> joinInvestorGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayUnion([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId joined group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to join investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove a user from an investor group
+  Future<void> leaveInvestorGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayRemove([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId left group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to leave investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Add an admin to an investor group
+  Future<void> addGroupAdmin(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'admins': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId added as admin to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to add group admin: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove an admin from an investor group
+  Future<void> removeGroupAdmin(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'admins': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId removed as admin from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to remove group admin: ${e.message}');
+      rethrow;
+    }
   }
 }
 
