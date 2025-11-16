@@ -109,8 +109,27 @@ class AgenticTradingProvider with ChangeNotifier {
           .get();
       if (doc.exists && doc.data() != null) {
         _tradeSignal = doc.data();
+        
+        // Also update the signal in the _tradeSignals list
+        final signalData = doc.data()!;
+        final index = _tradeSignals.indexWhere((s) => s['symbol'] == symbol);
+        if (index != -1) {
+          // Update existing signal in the list
+          _tradeSignals[index] = signalData;
+        } else {
+          // Add new signal to the list
+          _tradeSignals.insert(0, signalData);
+        }
+        // Re-sort by timestamp
+        _tradeSignals.sort((a, b) {
+          final aTimestamp = a['timestamp'] as int? ?? 0;
+          final bTimestamp = b['timestamp'] as int? ?? 0;
+          return bTimestamp.compareTo(aTimestamp);
+        });
       } else {
         _tradeSignal = null;
+        // Remove signal from list if it no longer exists
+        _tradeSignals.removeWhere((s) => s['symbol'] == symbol);
       }
       notifyListeners();
     } catch (e) {
