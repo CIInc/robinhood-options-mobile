@@ -1842,14 +1842,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
               style: const TextStyle(fontSize: 18)),
         ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Average Volume"),
-          trailing: Text(
-              formatCompactNumber
-                  .format(instrument.fundamentalsObj!.averageVolume!),
-              style: const TextStyle(fontSize: 18)),
-        ),
+        if (instrument.fundamentalsObj!.averageVolume != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Average Volume"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.averageVolume!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
         ListTile(
           minTileHeight: 10,
           title: const Text("Average Volume (2 weeks)"),

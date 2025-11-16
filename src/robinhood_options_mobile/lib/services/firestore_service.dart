@@ -212,7 +212,34 @@ class FirestoreService {
   }
 
   /// Advanced Stock Screener
-  /// Filters: sector, marketCapMin, marketCapMax, peMin, peMax, dividendYieldMin, dividendYieldMax
+  /// 
+  /// Queries the Firestore `instrument` collection with multiple filter criteria
+  /// to find stocks matching specific investment parameters.
+  /// 
+  /// **Parameters:**
+  /// - [sector]: Filter by company sector (e.g., 'Technology Services', 'Finance')
+  /// - [marketCapMin]/[marketCapMax]: Market capitalization range in USD
+  /// - [peMin]/[peMax]: Price-to-Earnings ratio range
+  /// - [dividendYieldMin]/[dividendYieldMax]: Dividend yield percentage range
+  /// - [limit]: Maximum number of results to return (default: 100)
+  /// - [sort]: Field to sort by (default: 'fundamentalsObj.market_cap')
+  /// - [sortDescending]: Sort direction (default: true)
+  /// 
+  /// **Returns:** List of [Instrument] objects matching the criteria
+  /// 
+  /// **Example:**
+  /// ```dart
+  /// var results = await firestoreService.stockScreener(
+  ///   sector: 'Technology Services',
+  ///   marketCapMin: 1000000000, // $1B
+  ///   marketCapMax: 100000000000, // $100B
+  ///   peMin: 10,
+  ///   peMax: 30,
+  /// );
+  /// ```
+  /// 
+  /// **Note:** Requires Firestore composite indexes to be deployed.
+  /// See `firebase/firestore.indexes.json` for index definitions.
   Future<List<Instrument>> stockScreener({
     String? sector,
     int? marketCapMin,

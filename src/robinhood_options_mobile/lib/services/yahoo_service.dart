@@ -13,70 +13,18 @@ class YahooService {
   final http.Client httpClient = http.Client();
 
   // List of supported Yahoo Finance screener IDs (scrIds) with display names
+  // Organized by category for better user experience
   static const List<ScreenerId> scrIds = [
-    // ScreenerId('accident_health_insurance', 'Accident & Health Insurance'),
-    ScreenerId('advertising_agencies', 'Advertising Agencies'),
-    // ScreenerId('aerospace_defense_major_diversified',
-    //     'Aerospace & Defense - Major Diversified'),
-    // ScreenerId('aerospace_defense_products_services',
-    //     'Aerospace & Defense Products & Services'),
+    // === Popular & Most Used ===
+    ScreenerId('most_actives', 'Most Actives'),
+    ScreenerId('growth_technology_stocks', 'Growth Technology Stocks'),
+    ScreenerId('undervalued_growth_stocks', 'Undervalued Growth Stocks'),
+    ScreenerId('undervalued_large_caps', 'Undervalued Large Caps'),
     ScreenerId('aggressive_small_caps', 'Aggressive Small Caps'),
-    // ScreenerId('agricultural_chemicals', 'Agricultural Chemicals'),
-    // ScreenerId(
-    //     'air_delivery_freight_services', 'Air Delivery & Freight Services'),
-    // ScreenerId('air_services_other', 'Air Services, Other'),
-    // ScreenerId('all_cryptocurrencies_au', 'All Cryptocurrencies (AU)'),
-    // ScreenerId('all_cryptocurrencies_ca', 'All Cryptocurrencies (CA)'),
-    // ScreenerId('all_cryptocurrencies_eu', 'All Cryptocurrencies (EU)'),
-    // ScreenerId('all_cryptocurrencies_gb', 'All Cryptocurrencies (GB)'),
-    // ScreenerId('all_cryptocurrencies_in', 'All Cryptocurrencies (IN)'),
-    // ScreenerId('all_cryptocurrencies_us', 'All Cryptocurrencies (US)'),
-    ScreenerId('aluminum', 'Aluminum'),
-    // ScreenerId('apparel_stores', 'Apparel Stores'),
-    // ScreenerId('appliances', 'Appliances'),
-    // ScreenerId('application_software', 'Application Software'),
-    ScreenerId('asset_management', 'Asset Management'),
-    // ScreenerId('auto_dealerships', 'Auto Dealerships'),
-    // ScreenerId('auto_manufacturers_major', 'Auto Manufacturers - Major'),
-    ScreenerId('auto_parts', 'Auto Parts'),
-    // ScreenerId('auto_parts_stores', 'Auto Parts Stores'),
-    // ScreenerId('auto_parts_wholesale', 'Auto Parts Wholesale'),
-    // ScreenerId('basic_materials', 'Basic Materials'),
-    // ScreenerId('basic_materials_wholesale', 'Basic Materials Wholesale'),
-    ScreenerId('beverages_brewers', 'Beverages - Brewers'),
-    // ScreenerId('beverages_soft_drinks', 'Beverages - Soft Drinks'),
-    // ScreenerId(
-    //     'beverages_wineries_distillers', 'Beverages - Wineries & Distillers'),
-    ScreenerId('biotechnology', 'Biotechnology'),
-    // ScreenerId('broadcasting_radio', 'Broadcasting - Radio'),
-    // ScreenerId('broadcasting_tv', 'Broadcasting - TV'),
-    // ScreenerId('building_materials_wholesale', 'Building Materials Wholesale'),
-    // ScreenerId('business_equipment', 'Business Equipment'),
-    // ScreenerId('business_services', 'Business Services'),
-    // ScreenerId('business_software_services', 'Business Software & Services'),
-    // ScreenerId('catalog_mail_order_houses', 'Catalog & Mail Order Houses'),
-    // ScreenerId('catv_systems', 'CATV Systems'),
-    // ScreenerId('cement', 'Cement'),
-    // ScreenerId('chemicals_major_diversified', 'Chemicals - Major Diversified'),
-    // ScreenerId('cigarettes', 'Cigarettes'),
-    // ScreenerId('cleaning_products', 'Cleaning Products'),
-    // ScreenerId('closedend_fund_debt', 'Closed-End Fund - Debt'),
-    // ScreenerId('closedend_fund_equity', 'Closed-End Fund - Equity'),
-    // ScreenerId('closedend_fund_foreign', 'Closed-End Fund - Foreign'),
-    ScreenerId('communication_equipment', 'Communication Equipment'),
-    // ScreenerId('computer_based_systems', 'Computer Based Systems'),
-    // ScreenerId('computer_peripherals', 'Computer Peripherals'),
-    // ScreenerId('computers_wholesale', 'Computers Wholesale'),
-    ScreenerId('confectioners', 'Confectioners'),
-    ScreenerId('conglomerates', 'Conglomerates'),
-    ScreenerId('conservative_foreign_funds', 'Conservative Foreign Funds'),
-    // ScreenerId('consumer_defensive', 'Consumer Defensive'),
-    // ScreenerId('consumer_goods', 'Consumer Goods'),
-    // ScreenerId('consumer_services', 'Consumer Services'),
-    ScreenerId('copper', 'Copper'),
-    ScreenerId('credit_services', 'Credit Services'),
-    // ScreenerId('dairy_products', 'Dairy Products'),
-    // ScreenerId('data_storage_devices', 'Data Storage Devices'),
+    ScreenerId('small_cap_gainers', 'Small Cap Gainers'),
+    // ScreenerId('high_dividend_stocks', 'High Dividend Stocks'),
+
+    // === Day Performance ===
     ScreenerId('day_gainers', 'Day Gainers'),
     ScreenerId('day_gainers_americas', 'Day Gainers (Americas)'),
     ScreenerId('day_gainers_asia', 'Day Gainers (Asia)'),
@@ -113,6 +61,15 @@ class YahooService {
     ScreenerId('day_losers_ndx', 'Day Losers (NDX)'),
     ScreenerId('day_losers_nz', 'Day Losers (NZ)'),
     ScreenerId('day_losers_sg', 'Day Losers (SG)'),
+
+    // === Sector Specific ===
+    ScreenerId('biotechnology', 'Biotechnology'),
+    ScreenerId('communication_equipment', 'Communication Equipment'),
+    ScreenerId('semiconductors', 'Semiconductors'),
+    ScreenerId('software_infrastructure', 'Software - Infrastructure'),
+    ScreenerId('application_software', 'Application Software'),
+    ScreenerId('asset_management', 'Asset Management'),
+    ScreenerId('credit_services', 'Credit Services'),
     ScreenerId('department_stores', 'Department Stores'),
     // ScreenerId('diagnostic_substances', 'Diagnostic Substances'),
     // ScreenerId('discount_variety_stores', 'Discount & Variety Stores'),
@@ -152,7 +109,7 @@ class YahooService {
     // ScreenerId('general_entertainment', 'General Entertainment'),
     ScreenerId('gold', 'Gold'),
     ScreenerId('grocery_stores', 'Grocery Stores'),
-    ScreenerId('growth_technology_stocks', 'Growth Technology Stocks'),
+    // ScreenerId('growth_technology_stocks', 'Growth Technology Stocks'),
     // ScreenerId('health_care_plans', 'Health Care Plans'),
     // ScreenerId('healthcare', 'Healthcare'),
     // ScreenerId(
@@ -210,7 +167,7 @@ class YahooService {
     ScreenerId('metal_fabrication', 'Metal Fabrication'),
     // ScreenerId('money_center_banks', 'Money Center Banks'),
     // ScreenerId('mortgage_investment', 'Mortgage Investment'),
-    ScreenerId('most_actives', 'Most Actives'),
+    // ScreenerId('most_actives', 'Most Actives'),
     ScreenerId('most_actives_americas', 'Most Actives (Americas)'),
     ScreenerId('most_actives_asia', 'Most Actives (Asia)'),
     ScreenerId('most_actives_au', 'Most Actives (AU)'),
@@ -309,7 +266,7 @@ class YahooService {
     // ScreenerId('services', 'Services'),
     // ScreenerId('shipping', 'Shipping'),
     ScreenerId('silver', 'Silver'),
-    ScreenerId('small_cap_gainers', 'Small Cap Gainers'),
+    // ScreenerId('small_cap_gainers', 'Small Cap Gainers'),
     // ScreenerId('small_tools_accessories', 'Small Tools & Accessories'),
     ScreenerId('solid_large_growth_funds', 'Solid Large Growth Funds'),
     ScreenerId('solid_midcap_growth_funds', 'Solid Midcap Growth Funds'),
@@ -362,8 +319,8 @@ class YahooService {
     // ScreenerId('toys_games', 'Toys & Games'),
     ScreenerId('trucking', 'Trucking'),
     // ScreenerId('trucks_other_vehicles', 'Trucks & Other Vehicles'),
-    ScreenerId('undervalued_growth_stocks', 'Undervalued Growth Stocks'),
-    ScreenerId('undervalued_large_caps', 'Undervalued Large Caps'),
+    // ScreenerId('undervalued_growth_stocks', 'Undervalued Growth Stocks'),
+    // ScreenerId('undervalued_large_caps', 'Undervalued Large Caps'),
     // ScreenerId('utilities', 'Utilities'),
     ScreenerId('waste_management', 'Waste Management'),
     // ScreenerId('water_utilities', 'Water Utilities'),
@@ -710,6 +667,32 @@ class YahooService {
     return entryJson;
   }
 
+  /// Fetch stock screener results from Yahoo Finance predefined screeners
+  ///
+  /// Uses Yahoo Finance's public API to retrieve stocks matching preset screening criteria.
+  /// Available screeners include day gainers/losers, most actives, growth stocks, and more.
+  ///
+  /// **Parameters:**
+  /// - [count]: Number of results to return (default: 25)
+  /// - [scrIds]: Screener ID from the [scrIds] list (default: 'most_actives')
+  /// - [start]: Starting offset for pagination (default: 0)
+  /// - [lang]: Language code (default: 'en-US')
+  /// - [region]: Region code (default: 'US')
+  /// - [sortField]: Field to sort results by
+  /// - [sortType]: Sort direction ('ASC' or 'DESC')
+  /// - [formatted]: Whether to return formatted values (default: true)
+  /// - [useRecordsResponse]: Use records response format (default: true)
+  /// - [betaFeatureFlag]: Enable beta features (default: true)
+  ///
+  /// **Returns:** JSON response containing screener results with stock data
+  ///
+  /// **Example:**
+  /// ```dart
+  /// var results = await yahooService.getStockScreener(
+  ///   scrIds: 'day_gainers',
+  ///   count: 50,
+  /// );
+  /// ```
   Future<dynamic> getStockScreener({
     int count = 25,
     String scrIds = 'most_actives',
