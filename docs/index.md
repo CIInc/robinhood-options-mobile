@@ -37,6 +37,30 @@ This feature adds investment profile configuration to user settings, allowing us
 - The AI generation pipelines accept an optional `user` parameter and pass it through to `generateContent()`.
 - When `user` is not provided, behavior is backward compatible.
 
+## Trade Signals Feature
+
+The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
+
+### Key Components
+- **Multi-Indicator Correlation:** Analyzes price patterns, RSI, market direction, and volume to generate high-confidence trade signals
+- **Agentic Trading:** Automated agents (Alpha Agent, Risk Guard) monitor markets and execute trades
+- **Risk Assessment:** Comprehensive risk analysis before trade execution with portfolio-aware decision making
+- **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with dates and confidence scores
+
+### Configuration
+- Users can enable/disable agentic trading in settings
+- Configurable watchlist for symbols to monitor
+- Risk parameters and portfolio integration
+- Trade signal history and results tracking
+
+### Technical Details
+- Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
+- Firebase Functions for scheduled agent execution
+- Provider pattern (AgenticTradingProvider) for state management
+- Real-time signal updates and notifications
+
+For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
+
 
 ## Requirements
 
@@ -87,14 +111,23 @@ This feature adds investment profile configuration to user settings, allowing us
 - Search tab
   - [x] Search companies by name or symbol  
     _Find stocks, options, or crypto quickly._
+  - [x] Trade Signals  
+    _View AI-generated trade signals with multi-indicator correlation and confidence scores._
+    - [x] Signal cards with BUY/SELL/HOLD recommendations
+    - [x] Risk Guard integration for trade validation
+    - [x] Prominent date and reason display
+    - [x] Color-coded borders and badges
   - [x] S&P movers, losers, and gainers  
     _See daily market leaders and laggards._
   - [x] Top 100 stocks  
     _Browse the most popular or highest-volume stocks._
+  - [x] Stock Screener  
+    _Filter stocks by sector, market cap, P/E ratio, dividend yield, price, and volume._
+    - [x] Quick presets (High Dividend, Growth, Value, Large Cap)
+    - [x] Yahoo Finance screener integration
+    - [x] Sortable results
   - [ ] Undervalued/Overvalued (Fair value evaluation)  
     _Identify potential bargains or overpriced assets using valuation models._
-  - [ ] Advanced search filters  
-    _Filter by sector, market cap, P/E ratio, dividend yield, etc._
 
 - Lists tab
   - [x] View your lists and its stocks  

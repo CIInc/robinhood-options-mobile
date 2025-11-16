@@ -11,6 +11,8 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Brokerage Integration:** Connects securely to brokerage accounts (e.g., Robinhood) to fetch real-time data.
 *   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.
 *   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments.
+*   **Stock Screener:** Advanced stock filtering by sector, market cap, P/E ratio, dividend yield, price, and volume with quick presets and Yahoo Finance integration.
+*   **Trade Signals:** AI-powered agentic trading with multi-indicator correlation system (price patterns, RSI, market direction, volume) for automatic trade detection and execution.
 *   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends).
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 

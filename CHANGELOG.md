@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.14.0 - 2025-11-16
+
+### Added
+- Stock Screener with advanced filtering:
+  - Sector, market cap, P/E ratio, dividend yield, price range, and volume filters
+  - Quick presets: High Dividend, Growth Stocks, Value Stocks, Large Cap
+  - Yahoo Finance screener integration (Day Gainers, Day Losers, Most Actives, etc.)
+  - Sortable results by multiple criteria
+  - Input validation for filter ranges
+- Trade Signals UI improvements:
+  - Signal-type badges with color-coded backgrounds (green for BUY, red for SELL)
+  - Bordered cards matching signal type for visual distinction
+  - Prominent date display with improved formatting
+  - Enhanced reason text styling for better readability
+  - Repositioned to top of Search tab for visibility
+- Search Widget UI improvements:
+  - Sticky search header
+  - Enhanced card designs with rounded corners and elevation
+  - Improved grid layouts and typography
+  - Color-coded indicators
+  - Better visual hierarchy
+
+### Changed
+- Search results moved to top of page
+- Search field relocated to sticky header
+- Trade signal cards with bordered designs
+- Improved movers/losers card styling
+
 ## 0.13.0 - 2025-11-15
 This release significantly enhances AI-powered features with investment profiles, streaming responses, and agentic trading capabilities. Major additions include comprehensive risk assessment integration, improved trade signal displays, and refined portfolio analysis using user investment profiles.
 
