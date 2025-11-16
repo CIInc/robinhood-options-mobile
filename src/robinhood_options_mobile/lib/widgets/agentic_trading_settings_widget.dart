@@ -18,6 +18,8 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _tradeQuantityController;
   late TextEditingController _maxPositionSizeController;
   late TextEditingController _maxPortfolioConcentrationController;
+  late TextEditingController _rsiPeriodController;
+  late TextEditingController _marketIndexSymbolController;
 
   @override
   void initState() {
@@ -25,18 +27,26 @@ class _AgenticTradingSettingsWidgetState
     final agenticTradingProvider =
         Provider.of<AgenticTradingProvider>(context, listen: false);
     _smaPeriodFastController = TextEditingController(
-        text: agenticTradingProvider.config['smaPeriodFast']?.toString() ?? '');
-    _smaPeriodSlowController = TextEditingController(
-        text: agenticTradingProvider.config['smaPeriodSlow']?.toString() ?? '');
-    _tradeQuantityController = TextEditingController(
-        text: agenticTradingProvider.config['tradeQuantity']?.toString() ?? '');
-    _maxPositionSizeController = TextEditingController(
         text:
-            agenticTradingProvider.config['maxPositionSize']?.toString() ?? '');
+            agenticTradingProvider.config['smaPeriodFast']?.toString() ?? '10');
+    _smaPeriodSlowController = TextEditingController(
+        text:
+            agenticTradingProvider.config['smaPeriodSlow']?.toString() ?? '30');
+    _tradeQuantityController = TextEditingController(
+        text:
+            agenticTradingProvider.config['tradeQuantity']?.toString() ?? '1');
+    _maxPositionSizeController = TextEditingController(
+        text: agenticTradingProvider.config['maxPositionSize']?.toString() ??
+            '100');
     _maxPortfolioConcentrationController = TextEditingController(
         text: agenticTradingProvider.config['maxPortfolioConcentration']
                 ?.toString() ??
-            '');
+            '0.5');
+    _rsiPeriodController = TextEditingController(
+        text: agenticTradingProvider.config['rsiPeriod']?.toString() ?? '14');
+    _marketIndexSymbolController = TextEditingController(
+        text: agenticTradingProvider.config['marketIndexSymbol']?.toString() ??
+            'SPY');
   }
 
   @override
@@ -46,6 +56,8 @@ class _AgenticTradingSettingsWidgetState
     _tradeQuantityController.dispose();
     _maxPositionSizeController.dispose();
     _maxPortfolioConcentrationController.dispose();
+    _rsiPeriodController.dispose();
+    _marketIndexSymbolController.dispose();
     super.dispose();
   }
 
@@ -60,6 +72,8 @@ class _AgenticTradingSettingsWidgetState
         'maxPositionSize': int.parse(_maxPositionSizeController.text),
         'maxPortfolioConcentration':
             double.parse(_maxPortfolioConcentrationController.text),
+        'rsiPeriod': int.parse(_rsiPeriodController.text),
+        'marketIndexSymbol': _marketIndexSymbolController.text,
       };
       agenticTradingProvider.updateConfig(newConfig);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -150,7 +164,8 @@ class _AgenticTradingSettingsWidgetState
                   controller: _maxPortfolioConcentrationController,
                   decoration: const InputDecoration(
                       labelText: 'Max Portfolio Concentration'),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a value';
@@ -160,6 +175,50 @@ class _AgenticTradingSettingsWidgetState
                     }
                     return null;
                   },
+                ),
+                TextFormField(
+                  controller: _rsiPeriodController,
+                  decoration: const InputDecoration(
+                      labelText: 'RSI Period (default: 14)'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a value';
+                    }
+                    if (int.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _marketIndexSymbolController,
+                  decoration: const InputDecoration(
+                      labelText: 'Market Index Symbol (SPY or QQQ)'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a value';
+                    }
+                    return null;
+                  },
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'Multi-Indicator System',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text(
+                    'All 4 indicators must be GREEN for automatic trade:\n'
+                    '1. Price Movement (chart patterns)\n'
+                    '2. Momentum (RSI)\n'
+                    '3. Market Direction (moving averages on selected index)\n'
+                    '4. Volume (volume with price correlation)',
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -192,6 +251,15 @@ class _AgenticTradingSettingsWidgetState
                             'Quantity: ${agenticTradingProvider.lastTradeProposal!['quantity']}'),
                         Text(
                             'Price: ${agenticTradingProvider.lastTradeProposal!['price']}'),
+                        if (agenticTradingProvider.lastTradeProposal!
+                            .containsKey('multiIndicatorResult'))
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              'Multi-indicator data available. View in Trade Signals.',
+                              style: TextStyle(fontStyle: FontStyle.italic),
+                            ),
+                          ),
                       ],
                     ),
                   ),

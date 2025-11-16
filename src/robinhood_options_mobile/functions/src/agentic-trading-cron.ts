@@ -43,7 +43,7 @@ export const agenticTradingCron = onSchedule(
             const config = configDoc.exists ? configDoc.data() : {};
             // For now, portfolioState is empty
             const data = {
-              symbol,
+              symbol: symbol,
               ...config,
               portfolioState: {},
             };

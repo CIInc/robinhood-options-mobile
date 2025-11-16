@@ -58,6 +58,8 @@ class AgenticTradingProvider with ChangeNotifier {
           'tradeQuantity': 1,
           'maxPositionSize': 100,
           'maxPortfolioConcentration': 0.5,
+          'rsiPeriod': 14,
+          'marketIndexSymbol': 'SPY',
         };
       }
       _analytics.logEvent(name: 'agentic_trading_config_loaded');
@@ -69,6 +71,8 @@ class AgenticTradingProvider with ChangeNotifier {
         'tradeQuantity': 1,
         'maxPositionSize': 100,
         'maxPortfolioConcentration': 0.5,
+        'rsiPeriod': 14,
+        'marketIndexSymbol': 'SPY',
       };
       _tradeProposalMessage = 'Loaded local defaults (functions unavailable)';
       _analytics.logEvent(
@@ -232,6 +236,7 @@ class AgenticTradingProvider with ChangeNotifier {
         'portfolioState': portfolioState,
         'config': _config,
       });
+      notifyListeners();
       if (result.data is Map<String, dynamic>) {
         return Map<String, dynamic>.from(result.data);
       } else {

@@ -16,6 +16,7 @@
 - Enhanced security and privacy for user data.
 - Customizable watchlists and alerts for market movements.
 - Advanced charting tools for technical analysis.
+- Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
 - Integration with social media for sentiment analysis.
 
 ## Investment Profile Feature

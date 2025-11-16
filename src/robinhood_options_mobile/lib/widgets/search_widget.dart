@@ -670,7 +670,7 @@ class _SearchWidgetState extends State<SearchWidget>
     final timestamp = signal['timestamp'] != null
         ? DateTime.fromMillisecondsSinceEpoch(signal['timestamp'] as int)
         : DateTime.now();
-    final symbol = signal['proposal']?['symbol'] ?? 'N/A';
+    final symbol = signal['symbol'] ?? 'N/A';
     final signalType = signal['signal'] ?? 'HOLD';
     final reason = signal['reason'] ?? 'No reason provided';
 
@@ -727,7 +727,7 @@ class _SearchWidgetState extends State<SearchWidget>
                     ),
                   ]),
               onTap: () async {
-                final symbol = signal['proposal']?['symbol'];
+                final symbol = signal['symbol'];
                 if (symbol == null || symbol == 'N/A') return;
                 var instrument = await widget.service.getInstrumentBySymbol(
                     widget.brokerageUser, instrumentStore!, symbol);

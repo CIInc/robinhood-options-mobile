@@ -632,6 +632,7 @@ class _UserWidgetState extends State<UserWidget> {
                                       leading: const Icon(Icons.auto_graph),
                                       title: const Text(
                                           'Agentic Trading Settings'),
+                                      trailing: const Icon(Icons.chevron_right),
                                       onTap: () {
                                         Navigator.pop(
                                             context); // close the user card
