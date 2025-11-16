@@ -45,7 +45,7 @@ dependencies:
   # Used by Firebase auth for withSilentVerificationSMSMFA. Also used for push notifications
   firebase_messaging: ^15.2.2  
   # Device Info, model, etc. 
-  device_info_plus: ^11.3.0
+  device_info_plus: ^11.3.3
   # App Version
   package_info_plus: ^8.0.2
 
