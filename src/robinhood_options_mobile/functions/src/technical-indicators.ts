@@ -386,7 +386,8 @@ export function detectChartPattern(
     return {
       value: best.direction === "bullish" ? best.confidence : -best.confidence,
       signal: best.direction === "bullish" ? "BUY" : "SELL",
-      reason: `${best.label} (conf ${(best.confidence * 100).toFixed(0)}%)`,
+      reason:
+        `${best.label} (confidence ${(best.confidence * 100).toFixed(0)}%)`,
       metadata: {
         selectedPattern: best.key,
         confidence: best.confidence,

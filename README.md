@@ -253,6 +253,14 @@ firebase functions:secrets:set GEMINI_API_KEY
 firebase functions:secrets:access GEMINI_API_KEY
 ```
 
+### Firebase Firestore
+
+To deploy the Firestore rules and indexes, use the following command.
+
+```bash
+firebase deploy --only firestore
+```
+
 ### Android Play Store
 
 #### Build app bundle
