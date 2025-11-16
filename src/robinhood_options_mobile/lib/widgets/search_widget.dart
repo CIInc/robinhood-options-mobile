@@ -1273,74 +1273,65 @@ class _SearchWidgetState extends State<SearchWidget>
             padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
             child: InkWell(
               child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // instrumentObj.logoUrl != null
-                    //     ? Image.network(
-                    //         instrumentObj.logoUrl!,
-                    //         width: 40,
-                    //         height: 40,
-                    //         errorBuilder: (BuildContext context, Object exception,
-                    //             StackTrace? stackTrace) {
-                    //           //RobinhoodService.removeLogo(instrument.symbol);
-                    //           return Text(instrumentObj.symbol);
-                    //         },
-                    //       )
-                    //     : SizedBox(height: 40, width: 40),
-                    Text(instrumentObj.symbol,
-                        style: const TextStyle(fontSize: 16.0),
-                        overflow: TextOverflow.ellipsis),
-                    Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (instrumentObj.quoteObj != null) ...[
-                          Icon(
-                              instrumentObj.quoteObj!.changeToday > 0
-                                  ? Icons.trending_up
-                                  : (instrumentObj.quoteObj!.changeToday < 0
-                                      ? Icons.trending_down
-                                      : Icons.trending_flat),
-                              color: (instrumentObj.quoteObj!.changeToday > 0
-                                  ? Colors.green
-                                  : (instrumentObj.quoteObj!.changeToday < 0
-                                      ? Colors.red
-                                      : Colors.grey)),
-                              size: 20),
-                        ],
-                        Container(
-                          width: 2,
-                        ),
-                        if (instrumentObj.quoteObj != null) ...[
-                          Text(
-                              formatPercentage.format(instrumentObj
-                                  .quoteObj!.changePercentToday
-                                  .abs()),
-                              style: const TextStyle(fontSize: 16.0)),
-                        ],
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // instrumentObj.logoUrl != null
+                  //     ? Image.network(
+                  //         instrumentObj.logoUrl!,
+                  //         width: 40,
+                  //         height: 40,
+                  //         errorBuilder: (BuildContext context, Object exception,
+                  //             StackTrace? stackTrace) {
+                  //           //RobinhoodService.removeLogo(instrument.symbol);
+                  //           return Text(instrumentObj.symbol);
+                  //         },
+                  //       )
+                  //     : SizedBox(height: 40, width: 40),
+                  Text(instrumentObj.symbol,
+                      style: const TextStyle(fontSize: 16.0),
+                      overflow: TextOverflow.ellipsis),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (instrumentObj.quoteObj != null) ...[
+                        Icon(
+                            instrumentObj.quoteObj!.changeToday > 0
+                                ? Icons.trending_up
+                                : (instrumentObj.quoteObj!.changeToday < 0
+                                    ? Icons.trending_down
+                                    : Icons.trending_flat),
+                            color: (instrumentObj.quoteObj!.changeToday > 0
+                                ? Colors.green
+                                : (instrumentObj.quoteObj!.changeToday < 0
+                                    ? Colors.red
+                                    : Colors.grey)),
+                            size: 20),
                       ],
-                    ),
-                    Container(
-                      height: 5,
-                    ),
-                    if (instrumentObj.quoteObj != null) ...[
-                      Text(
-                          formatPercentage.format(
-                              instrumentObj.quoteObj!.changePercentToday.abs()),
-                          style: const TextStyle(fontSize: 16.0)),
+                      Container(
+                        width: 2,
+                      ),
+                      if (instrumentObj.quoteObj != null) ...[
+                        Text(
+                            formatPercentage.format(instrumentObj
+                                .quoteObj!.changePercentToday
+                                .abs()),
+                            style: const TextStyle(fontSize: 16.0)),
+                      ],
                     ],
+                  ),
+                  Container(
+                    height: 5,
+                  ),
+                  if (instrumentObj.quoteObj != null) ...[
+                    Text(
+                        formatPercentage.format(
+                            instrumentObj.quoteObj!.changePercentToday.abs()),
+                        style: const TextStyle(fontSize: 16.0)),
                   ],
-                ),
-                Container(
-                  height: 5,
-                ),
-                Wrap(children: [
-                  Text(instrumentObj.simpleName ?? instrumentObj.name,
-                      style: const TextStyle(fontSize: 12.0),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis)
-                ]),
-                /*
+                ],
+              ),
+              /*
                 if (instrumentObj.fundamentalsObj != null) ...[
                   Container(
                     height: 5,
@@ -1353,7 +1344,6 @@ class _SearchWidgetState extends State<SearchWidget>
                   ]),
                 ]
                   */
-                  ]),
               onTap: () {
                 /* For navigation within this tab, uncomment
                 widget.navigatorKey!.currentState!.push(MaterialPageRoute(
