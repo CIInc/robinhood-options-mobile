@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.15.0 - 2025-11-16
+
+### Added
+- Investor Groups feature for collaborative portfolio sharing:
+  - Create public or private investor groups
+  - Join and leave groups with member management
+  - View group details, members, and portfolios
+  - Group admin controls for editing and deleting groups
+  - Integration with Shared Portfolios via new "Groups" tab
+  - Firestore security rules for group access control
+- InvestorGroup model with full serialization support
+- Comprehensive Firestore service methods for group CRUD operations
+- Unit tests for InvestorGroup model functionality
+
 ## 0.14.0 - 2025-11-16
 
 ### Added

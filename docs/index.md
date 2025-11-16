@@ -235,6 +235,11 @@ For detailed technical documentation, see [Multi-Indicator Trading System](multi
 ### Future Feature Suggestions
 
 - **Social Integration**
+  - [x] Investor Groups for collaborative portfolio sharing
+    - Create public or private investor groups
+    - Join and leave groups with member management
+    - View shared portfolios within groups
+    - Group admin controls
   - [ ] Reddit integration for trending tickers and sharing results.
   - [ ] Twitter sentiment tracking and sharing.
   - [ ] Community-driven trade ideas and discussions.
@@ -256,6 +261,7 @@ For detailed technical documentation, see [Multi-Indicator Trading System](multi
   - [ ] Home screen widgets for quick updates.
 
 - **Collaboration & Sharing**
+  - [x] Investor Groups with portfolio sharing
   - [ ] Shared watchlists with friends.
   - [ ] Group discussions for specific assets.
   - [ ] Public leaderboards for portfolio performance.
