@@ -59,13 +59,14 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
  *                               volumes, and symbol.
  * @param {object} portfolioState - Current portfolio state.
  * @param {object} config - Trading configuration.
+ * @param {string} interval - Chart interval (1d, 1h, 30m, 15m).
  * @return {Promise<object>} The result of the Alpha agent task.
  */
 export async function handleAlphaTask(marketData: any,
-  portfolioState: any, config: any) {
+  portfolioState: any, config: any, interval = "1d") {
   const logMsg = "Alpha agent: handleAlphaTask called " +
     "with multi-indicator analysis";
-  logger.info(logMsg, { marketData, portfolioState, config });
+  logger.info(logMsg, { marketData, portfolioState, config, interval });
 
   const prices: number[] = marketData?.prices || [];
   const volumes: number[] = marketData?.volumes || [];
@@ -98,6 +99,7 @@ export async function handleAlphaTask(marketData: any,
   logger.info("Multi-indicator evaluation", {
     allGreen,
     overallSignal,
+    interval,
     indicators: {
       priceMovement: indicatorResults.priceMovement.signal,
       momentum: indicatorResults.momentum.signal,
@@ -122,9 +124,12 @@ export async function handleAlphaTask(marketData: any,
     try {
       const { getFirestore } = await import("firebase-admin/firestore");
       const db = getFirestore();
+      const signalDocId = interval === "1d" ?
+        `signals_${symbol}` : `signals_${symbol}_${interval}`;
       const signalDoc = {
         timestamp: Date.now(),
         symbol: symbol,
+        interval: interval,
         signal: overallSignal,
         reason,
         multiIndicatorResult,
@@ -134,17 +139,19 @@ export async function handleAlphaTask(marketData: any,
         config,
         portfolioState,
       };
-      await db.doc(`agentic_trading/signals_${symbol}`).set(signalDoc);
-      logger.info("Alpha agent stored HOLD signal", signalDoc);
+      await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
+      logger.info(`Alpha agent stored HOLD signal for ${interval}`, signalDoc);
     } catch (err) {
       logger.warn("Failed to persist trade signal", err);
     }
 
     return {
       status: "no_action",
-      message: "Alpha agent: Multi-indicator analysis shows HOLD.",
+      message: "Alpha agent: Multi-indicator analysis shows " +
+        `HOLD (${interval}).`,
       reason,
       signal: overallSignal,
+      interval,
       multiIndicatorResult,
     };
   }
@@ -159,6 +166,7 @@ export async function handleAlphaTask(marketData: any,
     reason: reason,
     quantity,
     price: lastPrice,
+    interval,
     multiIndicatorResult,
   };
 
@@ -170,9 +178,12 @@ export async function handleAlphaTask(marketData: any,
   try {
     const { getFirestore } = await import("firebase-admin/firestore");
     const db = getFirestore();
+    const signalDocId = interval === "1d" ?
+      `signals_${symbol}` : `signals_${symbol}_${interval}`;
     const signalDoc = {
       timestamp: Date.now(),
       symbol: symbol,
+      interval: interval,
       signal: overallSignal,
       reason,
       multiIndicatorResult,
@@ -190,8 +201,8 @@ export async function handleAlphaTask(marketData: any,
       proposal,
       assessment,
     };
-    await db.doc(`agentic_trading/signals_${symbol}`).set(signalDoc);
-    logger.info("Alpha agent stored trade signal", signalDoc);
+    await db.doc(`agentic_trading/${signalDocId}`).set(signalDoc);
+    logger.info(`Alpha agent stored ${interval} trade signal`, signalDoc);
   } catch (err) {
     logger.warn("Failed to persist trade signal", err);
   }
@@ -202,16 +213,18 @@ export async function handleAlphaTask(marketData: any,
       message: "RiskGuard agent rejected the proposal",
       proposal: proposal,
       assessment: assessment,
+      interval,
       multiIndicatorResult,
     };
   }
 
   return {
     status: "approved",
-    message: `Alpha agent approved ${overallSignal} proposal: ` +
+    message: `Alpha agent approved ${overallSignal} proposal (${interval}): ` +
       "All 4 indicators aligned",
     proposal: proposal,
     assessment: assessment,
+    interval,
     multiIndicatorResult,
   };
 }
