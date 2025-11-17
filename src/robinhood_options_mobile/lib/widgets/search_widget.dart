@@ -90,6 +90,12 @@ class _SearchWidgetState extends State<SearchWidget>
   bool yahooScreenerLoading = false;
   String? yahooScreenerError;
 
+  // Trade Signal Filters
+  String? tradeSignalFilter;      // null = all, 'BUY', 'SELL', 'HOLD'
+  DateTime? tradeSignalStartDate;
+  DateTime? tradeSignalEndDate;
+  int tradeSignalLimit = 50;      // Default limit
+
   // Controllers for screener fields
   late TextEditingController marketCapMinCtl;
   late TextEditingController marketCapMaxCtl;
@@ -1132,13 +1138,22 @@ class _SearchWidgetState extends State<SearchWidget>
                               //elevation: 2,
                               child: Container(
                                   alignment: Alignment.centerLeft,
-                                  child: const ListTile(
-                                    title: Wrap(children: [
-                                      Text(
-                                        "Trade Signals",
-                                        style: TextStyle(fontSize: 19.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const ListTile(
+                                        title: Wrap(children: [
+                                          Text(
+                                            "Trade Signals",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                        ]),
                                       ),
-                                    ]),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                                        child: _buildTradeSignalFilterChips(),
+                                      ),
+                                    ],
                                   ))),
                           sliver: SliverPadding(
                               padding:
@@ -1864,5 +1879,77 @@ class _SearchWidgetState extends State<SearchWidget>
     }
 
     return sorted;
+  }
+
+  void _fetchTradeSignalsWithFilters() {
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    agenticTradingProvider.fetchAllTradeSignals(
+      signalType: tradeSignalFilter,
+      startDate: tradeSignalStartDate,
+      endDate: tradeSignalEndDate,
+      limit: tradeSignalLimit,
+    );
+  }
+
+  Widget _buildTradeSignalFilterChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        FilterChip(
+          label: const Text('All'),
+          selected: tradeSignalFilter == null,
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+        ),
+        FilterChip(
+          label: const Text('BUY'),
+          selected: tradeSignalFilter == 'BUY',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'BUY' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.green.withOpacity(0.3),
+          checkmarkColor: Colors.green,
+        ),
+        FilterChip(
+          label: const Text('SELL'),
+          selected: tradeSignalFilter == 'SELL',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'SELL' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.red.withOpacity(0.3),
+          checkmarkColor: Colors.red,
+        ),
+        FilterChip(
+          label: const Text('HOLD'),
+          selected: tradeSignalFilter == 'HOLD',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'HOLD' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.grey.withOpacity(0.3),
+          checkmarkColor: Colors.grey,
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Refresh',
+          onPressed: _fetchTradeSignalsWithFilters,
+          iconSize: 20,
+        ),
+      ],
+    );
   }
 }
