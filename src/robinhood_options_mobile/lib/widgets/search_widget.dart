@@ -1129,10 +1129,6 @@ class _SearchWidgetState extends State<SearchWidget>
                   Consumer<AgenticTradingProvider>(
                     builder: (context, agenticTradingProvider, child) {
                       final tradeSignals = agenticTradingProvider.tradeSignals;
-                      if (tradeSignals.isEmpty) {
-                        return const SliverToBoxAdapter(
-                            child: SizedBox.shrink());
-                      }
                       return SliverStickyHeader(
                           header: Material(
                               //elevation: 2,
@@ -1155,25 +1151,42 @@ class _SearchWidgetState extends State<SearchWidget>
                                       ),
                                     ],
                                   ))),
-                          sliver: SliverPadding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              sliver: SliverGrid(
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 220.0,
-                                  mainAxisSpacing: 10.0,
-                                  crossAxisSpacing: 10.0,
-                                  childAspectRatio: 1.3,
-                                ),
-                                delegate: SliverChildBuilderDelegate(
-                                  (BuildContext context, int index) {
-                                    return _buildTradeSignalGridItem(
-                                        tradeSignals, index);
-                                  },
-                                  childCount: tradeSignals.length,
-                                ),
-                              )));
+                          sliver: tradeSignals.isEmpty
+                              ? SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        tradeSignalFilter == null
+                                            ? 'No trade signals available'
+                                            : 'No $tradeSignalFilter signals found',
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : SliverPadding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  sliver: SliverGrid(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 220.0,
+                                      mainAxisSpacing: 10.0,
+                                      crossAxisSpacing: 10.0,
+                                      childAspectRatio: 1.3,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (BuildContext context, int index) {
+                                        return _buildTradeSignalGridItem(
+                                            tradeSignals, index);
+                                      },
+                                      childCount: tradeSignals.length,
+                                    ),
+                                  )));
                     },
                   ),
                   _buildScreenerSliver(),
@@ -1901,10 +1914,12 @@ class _SearchWidgetState extends State<SearchWidget>
           label: const Text('All'),
           selected: tradeSignalFilter == null,
           onSelected: (selected) {
-            setState(() {
-              tradeSignalFilter = null;
-            });
-            _fetchTradeSignalsWithFilters();
+            if (tradeSignalFilter != null) {
+              setState(() {
+                tradeSignalFilter = null;
+              });
+              _fetchTradeSignalsWithFilters();
+            }
           },
         ),
         FilterChip(
