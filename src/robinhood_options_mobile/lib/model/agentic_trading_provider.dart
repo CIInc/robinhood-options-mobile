@@ -139,10 +139,49 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchAllTradeSignals() async {
+  Future<void> fetchAllTradeSignals({
+    String? signalType,        // Filter by 'BUY', 'SELL', or 'HOLD'
+    DateTime? startDate,       // Filter signals after this date
+    DateTime? endDate,         // Filter signals before this date
+    List<String>? symbols,     // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
+    int? limit,                // Limit number of results (default: 50)
+  }) async {
     try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection('agentic_trading').get();
+      Query<Map<String, dynamic>> query =
+          FirebaseFirestore.instance.collection('agentic_trading');
+
+      // Apply signal type filter
+      if (signalType != null && signalType.isNotEmpty) {
+        query = query.where('signal', isEqualTo: signalType);
+      }
+
+      // Apply date range filters
+      if (startDate != null) {
+        query = query.where('timestamp',
+            isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch);
+      }
+      if (endDate != null) {
+        query = query.where('timestamp',
+            isLessThanOrEqualTo: endDate.millisecondsSinceEpoch);
+      }
+
+      // Apply symbols filter (Firestore whereIn limit is 30)
+      if (symbols != null && symbols.isNotEmpty) {
+        if (symbols.length <= 30) {
+          query = query.where('symbol', whereIn: symbols);
+        }
+      }
+
+      // Apply ordering and limit
+      query = query.orderBy('timestamp', descending: true);
+      if (limit != null && limit > 0) {
+        query = query.limit(limit);
+      } else {
+        query = query.limit(50); // Default limit
+      }
+
+      final snapshot = await query.get();
+      
       _tradeSignals = snapshot.docs
           .where((doc) => doc.id.startsWith('signals_'))
           .map((doc) {
@@ -156,11 +195,14 @@ class AgenticTradingProvider with ChangeNotifier {
           .where((data) => data != null)
           .cast<Map<String, dynamic>>()
           .toList();
-      _tradeSignals.sort((a, b) {
-        final aTimestamp = a['timestamp'] as int? ?? 0;
-        final bTimestamp = b['timestamp'] as int? ?? 0;
-        return bTimestamp.compareTo(aTimestamp);
-      });
+
+      // Client-side filtering for symbols if list > 30 (Firestore limit)
+      if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
+        _tradeSignals = _tradeSignals
+            .where((signal) => symbols.contains(signal['symbol']))
+            .toList();
+      }
+
       notifyListeners();
     } catch (e) {
       _tradeSignals = [];
