@@ -77,6 +77,45 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 
 For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
 
+## Investor Groups Feature
+
+The Investor Groups feature enables collaborative portfolio sharing and community building among investors.
+
+### Key Components
+- **Group Creation:** Create public or private investor groups with customizable settings
+- **Member Management:** Join, leave, and manage group memberships
+- **Admin Controls:** Group creators and admins can edit group details and manage members
+- **Portfolio Sharing:** View portfolios shared within your groups
+- **Discovery:** Browse and join public groups or search for specific communities
+
+### User Interface
+- **InvestorGroupsWidget:** Main interface with "My Groups" and "Discover" tabs
+- **Group Details:** View member lists, group information, and shared portfolios
+- **Creation Form:** Simple form with name, description, and privacy toggle
+
+### Technical Implementation
+- **InvestorGroup Model:** Full serialization support with member/admin tracking
+- **Firestore Integration:** 10+ service methods for CRUD operations and membership management
+- **Security Rules:** Firestore rules enforce proper access control for private/public groups
+- **State Management:** InvestorGroupStore integrated with Provider pattern
+
+### Integration Points
+- **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
+- **Navigation:** Access via drawer menu under "Investor Groups"
+- **User Model:** Utilizes existing `sharedGroups` field for membership tracking
+
+### Security
+- Private groups visible only to members
+- Public groups discoverable by all users
+- Only group creator and admins can edit/delete groups
+- Member operations properly authenticated
+
+For implementation details, see:
+- `lib/model/investor_group.dart` - Data model
+- `lib/model/investor_group_store.dart` - State management
+- `lib/services/firestore_service.dart` - Backend operations
+- `lib/widgets/investor_groups_widget.dart` - Main UI
+- `firebase/firestore.rules` - Security rules
 
 ## Requirements
 
@@ -312,6 +351,113 @@ flutter test test/user_model_test.dart
   - `lib/services/generative_service.dart` - AI prompt generation and `portfolioPrompt()`
   - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
   - `functions/` - Server-side Firebase Functions and helpers
+
+## Future Enhancements
+
+### Investor Groups (Completed ✅)
+- [x] Create and manage investor groups
+- [x] Public and private group options
+- [x] Portfolio sharing within groups
+- [x] Admin controls and member management
+- [ ] Group chat/messaging functionality
+- [ ] Group performance analytics and leaderboards
+- [ ] Activity feed for group trades
+- [ ] Group-based watchlists
+- [ ] Invitation system for private groups
+
+### Trade Signals & AI Trading
+- [x] Multi-indicator correlation system
+- [x] Intraday signals (15m, 1h, daily)
+- [x] Real-time signal updates
+- [ ] Machine learning-based signal optimization
+- [ ] Backtesting interface for strategies
+- [ ] Custom indicator creation
+- [ ] Strategy templates and presets
+- [ ] Social signal sharing
+- [ ] Performance tracking dashboard
+- [ ] Paper trading mode
+
+### Social & Community
+- [ ] Follow other users and their portfolios
+- [ ] Comment system on shared portfolios
+- [ ] Reddit integration for trending tickers
+- [ ] Twitter sentiment tracking
+- [ ] Community-driven trade ideas
+- [ ] Portfolio comparison tools
+- [ ] Social feed with trade notifications
+- [ ] User reputation system
+- [ ] Achievement badges
+
+### Portfolio Management
+- [ ] Advanced portfolio analytics (Sharpe ratio, alpha, beta)
+- [ ] Risk exposure heatmaps
+- [ ] Sector allocation visualization
+- [ ] Dividend tracking and projections
+- [ ] Tax loss harvesting suggestions
+- [ ] Portfolio rebalancing recommendations
+- [ ] Multi-account aggregation
+- [ ] Import from other brokerages
+- [ ] Export data to Excel/CSV
+
+### Notifications & Alerts
+- [ ] Custom price alerts with conditions
+- [ ] Earnings calendar notifications
+- [ ] Dividend payment reminders
+- [ ] Options expiration alerts
+- [ ] News alerts for holdings
+- [ ] Unusual volume/price movement alerts
+- [ ] Trade signal push notifications
+- [ ] Group activity notifications
+
+### Trading Features
+- [ ] Place stock orders directly
+- [ ] Multi-leg options strategies
+- [ ] Crypto trading integration
+- [ ] Paper trading simulator
+- [ ] Limit/stop-loss orders
+- [ ] Trailing stop orders
+- [ ] Advanced order types
+- [ ] Order templates
+
+### Mobile Experience
+- [ ] Offline mode for portfolio viewing
+- [ ] Home screen widgets
+- [ ] Siri/Google Assistant integration
+- [ ] Dark mode customization
+- [ ] Tablet-optimized layouts
+- [ ] Landscape mode support
+- [ ] Haptic feedback
+- [ ] 3D Touch/Long press shortcuts
+
+### Analytics & Insights
+- [ ] AI-powered price targets
+- [ ] Fair value calculations
+- [ ] Technical analysis tools
+- [ ] Sentiment analysis dashboard
+- [ ] Insider trading activity tracking
+- [ ] Institutional ownership changes
+- [ ] Options flow analysis
+- [ ] Correlation analysis
+
+### Education & Learning
+- [ ] Investment strategy guides
+- [ ] Options education modules
+- [ ] Interactive tutorials
+- [ ] Video explanations
+- [ ] Glossary of terms
+- [ ] Market hours info
+- [ ] FAQ section
+- [ ] Webinar integration
+
+### Data & Integration
+- [ ] Multiple brokerage support
+- [ ] Bank account linking
+- [ ] Plaid integration expansion
+- [ ] Real-time market data subscriptions
+- [ ] Historical data exports
+- [ ] API access for developers
+- [ ] Webhook notifications
+- [ ] Third-party app integrations
 
 ## Support
 

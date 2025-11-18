@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.15.0 - 2025-11-16
+## Unreleased
 
 ### Added
 - Investor Groups feature for collaborative portfolio sharing:
@@ -13,8 +13,17 @@ All notable changes to this project will be documented in this file.
   - Integration with Shared Portfolios via new "Groups" tab
   - Firestore security rules for group access control
 - InvestorGroup model with full serialization support
-- Comprehensive Firestore service methods for group CRUD operations
-- Unit tests for InvestorGroup model functionality
+- Comprehensive Firestore service methods for group CRUD operations (10+ methods)
+- Unit tests for InvestorGroup model functionality (205 lines)
+- Navigation drawer menu item for accessing investor groups
+
+### Technical Details
+- **Files Changed:** 14 files, +1,638 lines
+- **Models:** `InvestorGroup` with JSON serialization, member/admin tracking
+- **State:** `InvestorGroupStore` ChangeNotifier integrated into MultiProvider
+- **UI Widgets:** InvestorGroupsWidget, InvestorGroupDetailWidget, InvestorGroupCreateWidget
+- **Backend:** 10 Firestore service methods for CRUD, membership, and discovery
+- **Security:** Comprehensive Firestore rules for group access control
 
 ## 0.14.2 - 2025-11-18
 

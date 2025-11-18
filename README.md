@@ -264,6 +264,14 @@ To deploy the Firestore rules and indexes, use the following command.
 firebase deploy --only firestore
 ```
 
+To export the current Firestore rules and indexes to the local files, use the following command.
+
+```bash
+firebase firestore:rules > ./firebase/firestore.rules
+firebase firestore:indexes > ./firebase/firestore.indexes.json
+# firebase firestore:indexes --export
+```
+
 ### Android Play Store
 
 #### Build app bundle
@@ -301,3 +309,18 @@ If you get an error, see Debugging Notes section above to clean the project.
 ```bash
 flutter test
 ```
+
+## Future Enhancements
+
+This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see the [Future Enhancements](docs/index.md#future-enhancements) section in the documentation.
+
+Key areas of planned development include:
+- **Investor Groups**: Enhanced collaboration features, advanced permissions, group analytics
+- **Trade Signals & AI**: Portfolio-wide analysis, custom agent training, ML model optimization
+- **Social & Community**: User profiles, leaderboards, strategy templates
+- **Portfolio Management**: Multi-broker support, asset allocation tools, tax optimization
+- **Advanced Analytics**: Custom dashboards, backtesting engine, performance attribution
+- **Education**: Interactive tutorials, glossary, strategy guides
+- **Mobile Experience**: Widgets, shortcuts, offline mode, tablet optimization
+
+See the [full documentation](docs/index.md) for detailed descriptions of each planned enhancement.

@@ -166,7 +166,7 @@ class _InvestorGroupCreateWidgetState extends State<InvestorGroupCreateWidget> {
         name: 'create_investor_group',
         parameters: {
           'group_name': group.name,
-          'is_private': _isPrivate,
+          'is_private': _isPrivate.toString(),
         },
       );
 
