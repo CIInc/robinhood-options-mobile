@@ -3614,6 +3614,12 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           Consumer<AgenticTradingProvider>(
             builder: (context, provider, child) {
               final isMarketOpen = provider.isMarketOpen;
+              final selectedInterval = provider.selectedInterval;
+              final intervalLabel = selectedInterval == '1d' ? 'Daily' :
+                                   selectedInterval == '1h' ? 'Hourly' :
+                                   selectedInterval == '30m' ? '30-min' :
+                                   selectedInterval == '15m' ? '15-min' : selectedInterval;
+              
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
                 child: Container(
@@ -3642,9 +3648,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        isMarketOpen
-                            ? 'Market Hours: Showing Intraday Signals'
-                            : 'After Hours: Showing Daily Signals',
+                        '${isMarketOpen ? 'Market Open' : 'After Hours'} • Showing $intervalLabel Signals',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

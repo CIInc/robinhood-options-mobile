@@ -1129,6 +1129,13 @@ class _SearchWidgetState extends State<SearchWidget>
                   Consumer<AgenticTradingProvider>(
                     builder: (context, agenticTradingProvider, child) {
                       final tradeSignals = agenticTradingProvider.tradeSignals;
+                      final isMarketOpen = agenticTradingProvider.isMarketOpen;
+                      final selectedInterval = agenticTradingProvider.selectedInterval;
+                      final intervalLabel = selectedInterval == '1d' ? 'Daily' :
+                                           selectedInterval == '1h' ? 'Hourly' :
+                                           selectedInterval == '30m' ? '30-min' :
+                                           selectedInterval == '15m' ? '15-min' : selectedInterval;
+                      
                       return SliverStickyHeader(
                           header: Material(
                               //elevation: 2,
@@ -1137,17 +1144,48 @@ class _SearchWidgetState extends State<SearchWidget>
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const ListTile(
-                                        title: Wrap(children: [
-                                          Text(
-                                            "Trade Signals",
-                                            style: TextStyle(fontSize: 19.0),
-                                          ),
-                                        ]),
+                                      ListTile(
+                                        title: Row(
+                                          children: [
+                                            const Text(
+                                              "Trade Signals",
+                                              style: TextStyle(fontSize: 19.0),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Chip(
+                                              avatar: Icon(
+                                                isMarketOpen ? Icons.access_time : Icons.calendar_today,
+                                                size: 16,
+                                                color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                              ),
+                                              label: Text(
+                                                '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                                ),
+                                              ),
+                                              backgroundColor: isMarketOpen
+                                                  ? Colors.green.withOpacity(0.1)
+                                                  : Colors.blue.withOpacity(0.1),
+                                              side: BorderSide(
+                                                color: isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300,
+                                                width: 1,
+                                              ),
+                                              visualDensity: VisualDensity.compact,
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                                        child: _buildTradeSignalFilterChips(),
+                                      Consumer<AgenticTradingProvider>(
+                                        builder: (context, agenticProvider, child) {
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                                            child: _buildTradeSignalFilterChips(),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ))),
@@ -1906,37 +1944,10 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildTradeSignalFilterChips() {
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    final isMarketOpen = agenticTradingProvider.isMarketOpen;
-
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
-        // Market status indicator chip
-        Chip(
-          avatar: Icon(
-            isMarketOpen ? Icons.access_time : Icons.calendar_today,
-            size: 18,
-            color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
-          ),
-          label: Text(
-            isMarketOpen ? 'Market Hours: Intraday' : 'After Hours: Daily',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
-            ),
-          ),
-          backgroundColor: isMarketOpen
-              ? Colors.green.withOpacity(0.1)
-              : Colors.blue.withOpacity(0.1),
-          side: BorderSide(
-            color: isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300,
-            width: 1,
-          ),
-        ),
         FilterChip(
           label: const Text('All'),
           selected: tradeSignalFilter == null,
