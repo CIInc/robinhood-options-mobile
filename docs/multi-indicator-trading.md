@@ -218,6 +218,23 @@ Configurable parameters:
 3. Modify fields directly
 4. Changes take effect on next trade evaluation
 
+### Firestore Indexes
+
+For optimal performance with server-side filtering, deploy the following indexes:
+
+**Required Indexes:**
+1. Composite index for filtered queries by signal type and timestamp
+2. Single-field index for timestamp ordering
+
+**Deployment:**
+```bash
+firebase deploy --only firestore:indexes
+```
+
+**Configuration File:** `firebase/firestore.indexes.json`
+
+These indexes enable efficient server-side filtering of trade signals by signal type, date range, and ordering by timestamp.
+
 ## Monitoring Trade Signals
 
 ### Firebase Firestore
@@ -275,7 +292,63 @@ Document structure:
 }
 ```
 
+#### Firestore Indexes
+
+Required composite indexes for optimized queries (configured in `firebase/firestore.indexes.json`):
+
+```json
+{
+  "collectionGroup": "agentic_trading",
+  "queryScope": "COLLECTION",
+  "fields": [
+    {"fieldPath": "signal", "order": "ASCENDING"},
+    {"fieldPath": "timestamp", "order": "DESCENDING"}
+  ]
+}
+```
+
+Deploy indexes with: `firebase deploy --only firestore:indexes`
+
+### Server-Side Filtering
+
+The `fetchAllTradeSignals()` function in `AgenticTradingProvider` supports optional server-side filtering:
+
+**Parameters:**
+- `signalType`: Filter by 'BUY', 'SELL', or 'HOLD'
+- `startDate`: Filter signals after this date
+- `endDate`: Filter signals before this date
+- `symbols`: Filter by specific symbols (max 30 due to Firestore `whereIn` limit)
+- `limit`: Limit number of results (default: 50)
+
+**Example Usage:**
+```dart
+// Fetch only BUY signals with limit
+await agenticTradingProvider.fetchAllTradeSignals(
+  signalType: 'BUY',
+  limit: 50,
+);
+
+// Fetch signals for specific symbols
+await agenticTradingProvider.fetchAllTradeSignals(
+  symbols: ['AAPL', 'MSFT', 'GOOGL'],
+  limit: 100,
+);
+
+// Fetch all signals (backward compatible)
+await agenticTradingProvider.fetchAllTradeSignals();
+```
+
+**Performance Benefits:**
+- Reduced network payload (50 vs all signals by default)
+- Lower Firestore read operations
+- Server-side indexed queries vs client-side filtering
+- Scalable for growing signal datasets
+
+**Note:** For symbol lists exceeding 30 items, client-side filtering is automatically applied as a fallback due to Firestore's `whereIn` limitation.
+
 ### Mobile App UI
+
+#### Agentic Trading Settings Screen
 
 The Agentic Trading Settings screen displays:
 - Current configuration values
@@ -285,6 +358,35 @@ The Agentic Trading Settings screen displays:
   - ✓ Red arrow down = SELL signal
   - ✓ Gray horizontal line = HOLD signal
 - Overall signal status with highlighting when all 4 are green
+
+#### Search Tab - Trade Signals Section
+
+The Search tab includes a Trade Signals section with filtering capabilities:
+
+**Filter UI:**
+- FilterChips for signal types: All, BUY, SELL, HOLD
+- Color-coded selection:
+  - BUY: Green background with green checkmark
+  - SELL: Red background with red checkmark
+  - HOLD: Grey background with grey checkmark
+- Manual refresh button (icon button with refresh icon)
+- Empty state messages when no signals match filters
+
+**Signal Display:**
+- Grid layout with trade signal cards
+- Each card shows:
+  - Symbol and company name
+  - Signal type badge (BUY/SELL/HOLD)
+  - Date and timestamp
+  - Signal reason
+  - Color-coded borders matching signal type
+- Sorted by timestamp (newest first)
+
+**State Synchronization:**
+- Regenerating a signal in Instrument View automatically updates Search View
+- No manual pull-to-refresh required
+- Both `_tradeSignal` (single) and `_tradeSignals` (list) stay synchronized
+- Maintains timestamp ordering after updates
 
 ## Automated Execution (Cron Job)
 
@@ -393,6 +495,17 @@ Regularly review:
 3. Review Firestore `signals_{SYMBOL}` for indicator status
 4. Check Firebase Functions logs for errors
 5. Verify market data is being fetched (Yahoo Finance API working)
+6. Ensure Firestore indexes are deployed for signal queries
+
+### Signals Not Showing in Search View
+
+**Check:**
+1. Verify signals exist in Firestore `agentic_trading/signals_{SYMBOL}`
+2. Check if filters are too restrictive (try "All" filter)
+3. Verify `fetchAllTradeSignals()` is being called
+4. Check provider is properly connected with Consumer widget
+5. Review Firebase Functions logs for query errors
+6. Ensure Firestore indexes are deployed and active
 
 ### Too Many False Signals
 
