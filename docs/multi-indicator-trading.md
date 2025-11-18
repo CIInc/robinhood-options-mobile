@@ -235,16 +235,172 @@ firebase deploy --only firestore:indexes
 
 These indexes enable efficient server-side filtering of trade signals by signal type, date range, and ordering by timestamp.
 
+## Intraday Trading
+
+### Overview
+
+The system supports multiple trading intervals for different time horizons:
+
+- **15-minute signals**: Ultra-short-term trading opportunities updated every 15 minutes
+- **Hourly signals**: Short-term trading opportunities updated every hour
+- **Daily signals**: End-of-day trading opportunities (existing functionality)
+
+### Interval Selection
+
+Users can select their preferred interval in the mobile app using a SegmentedButton:
+
+```dart
+// Fetch hourly signal
+await provider.fetchTradeSignal(symbol, interval: '1h');
+
+// Fetch 15-minute signal
+await provider.fetchTradeSignal(symbol, interval: '15m');
+
+// Fetch daily signal (default)
+await provider.fetchTradeSignal(symbol, interval: '1d');
+```
+
+### Market Hours Intelligence
+
+The system automatically filters signals based on market hours:
+
+- **During market hours (9:30 AM - 4:00 PM ET, Mon-Fri)**: Shows intraday signals (15m, 1h)
+- **After market hours**: Shows daily signals
+- **Weekends**: Shows daily signals
+
+### Backend Cron Jobs
+
+**Hourly Cron (`agenticTradingIntradayCronJob`):**
+- Schedule: `30 9-16 * * mon-fri` (every hour at 30 minutes past)
+- Generates 1-hour interval signals
+- Runs during market hours only
+
+**15-Minute Cron (`agenticTrading15mCronJob`):**
+- Schedule: `15,30,45,0 9-16 * * mon-fri` (every 15 minutes)
+- Generates 15-minute interval signals
+- Runs during market hours only
+
+**End-of-Day Cron (`agenticTradingCron`):**
+- Schedule: `0 16 * * mon-fri` (4:00 PM ET)
+- Generates daily interval signals
+- Runs after market close
+
+### Signal Storage Schema
+
+**Daily signals (backward compatible):**
+```
+agentic_trading/signals_<SYMBOL>
+```
+
+**Intraday signals:**
+```
+agentic_trading/signals_<SYMBOL>_<INTERVAL>
+```
+
+Examples:
+- `agentic_trading/signals_AAPL` (daily)
+- `agentic_trading/signals_AAPL_1h` (hourly)
+- `agentic_trading/signals_AAPL_15m` (15-minute)
+
+### Cache Strategy
+
+Interval-specific cache TTLs optimize performance:
+
+- **15m interval**: 15-minute cache expiry
+- **30m interval**: 30-minute cache expiry
+- **1h interval**: 1-hour cache expiry
+- **1d interval**: Cache until end of trading day
+
+Cache staleness is checked before fetching new data from Yahoo Finance API.
+
+### Data Fetching
+
+The `getMarketData()` function accepts interval parameters:
+
+```typescript
+await getMarketData(
+  symbol,
+  smaPeriodFast,
+  smaPeriodSlow,
+  interval,  // '15m', '30m', '1h', '1d'
+  range      // '1d', '5d', '1mo', '1y', etc.
+);
+```
+
+Yahoo Finance API provides OHLCV data for all supported intervals.
+
+## Real-Time Signal Updates
+
+### Overview
+
+Trade signals now update in real-time using Firestore snapshot listeners, eliminating the need for manual refresh or polling.
+
+### Implementation
+
+**Previous Approach (Deprecated):**
+```dart
+// One-time fetch - missed backend updates
+final snapshot = await query.get();
+_tradeSignals = snapshot.docs.map(...).toList();
+notifyListeners();
+```
+
+**Current Approach:**
+```dart
+// Real-time listener - automatically updates on changes
+_tradeSignalsSubscription = query.snapshots().listen((snapshot) {
+  _tradeSignals = snapshot.docs.map(...).toList();
+  notifyListeners(); // Fires on every Firestore update
+});
+```
+
+### Subscription Lifecycle
+
+**Setup:**
+```dart
+StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tradeSignalsSubscription;
+```
+
+**Cleanup:**
+```dart
+@override
+void dispose() {
+  _tradeSignalsSubscription?.cancel();
+  super.dispose();
+}
+```
+
+### Server Data Prioritization
+
+The system intelligently handles cached vs server data:
+
+1. **Initial fetch**: Requests server data explicitly with `Source.server`
+2. **First snapshot**: If from cache, waits up to 1 second for server data
+3. **Server arrival**: Immediately processes server data when available
+4. **Fallback**: Uses cached data if server doesn't respond within 1 second
+5. **Subsequent updates**: Processes all snapshots in real-time
+
+### Benefits
+
+- **No manual refresh**: Signals update automatically when EOD cron runs
+- **Real-time updates**: Changes appear immediately across all views
+- **State synchronization**: Single signal and signal list stay consistent
+- **Memory safe**: Proper subscription cleanup prevents leaks
+
 ## Monitoring Trade Signals
 
 ### Firebase Firestore
 
-Trade signals are stored in: `agentic_trading/signals_{SYMBOL}`
+Trade signals are stored in:
+- Daily: `agentic_trading/signals_{SYMBOL}`
+- Intraday: `agentic_trading/signals_{SYMBOL}_{INTERVAL}`
 
 Document structure:
 ```json
 {
   "timestamp": 1234567890000,
+  "symbol": "AAPL",
+  "interval": "1h",
   "signal": "BUY" | "SELL" | "HOLD",
   "reason": "All 4 indicators are GREEN - Strong BUY signal",
   "multiIndicatorResult": {
@@ -296,12 +452,25 @@ Document structure:
 
 Required composite indexes for optimized queries (configured in `firebase/firestore.indexes.json`):
 
+**Signal type + timestamp:**
 ```json
 {
   "collectionGroup": "agentic_trading",
   "queryScope": "COLLECTION",
   "fields": [
     {"fieldPath": "signal", "order": "ASCENDING"},
+    {"fieldPath": "timestamp", "order": "DESCENDING"}
+  ]
+}
+```
+
+**Interval + timestamp:**
+```json
+{
+  "collectionGroup": "agentic_trading",
+  "queryScope": "COLLECTION",
+  "fields": [
+    {"fieldPath": "interval", "order": "ASCENDING"},
     {"fieldPath": "timestamp", "order": "DESCENDING"}
   ]
 }
@@ -388,25 +557,51 @@ The Search tab includes a Trade Signals section with filtering capabilities:
 - Both `_tradeSignal` (single) and `_tradeSignals` (list) stay synchronized
 - Maintains timestamp ordering after updates
 
-## Automated Execution (Cron Job)
+## Automated Execution (Cron Jobs)
+
+### Daily Cron Job
 
 File: `functions/src/agentic-trading-cron.ts`
 
-**Schedule:** Every weekday at 4:00 PM (after market close)
+**Schedule:** Every weekday at 4:00 PM ET (after market close)
 
 **Process:**
 1. Scans all documents in `agentic_trading` collection
 2. For each `chart_{SYMBOL}` document:
    - Loads configuration
-   - Calls `performTradeProposal()` with symbol
+   - Calls `performTradeProposal()` with symbol and `interval: '1d'`
    - Multi-indicator evaluation runs
    - Trade executed if all indicators are green and risk check passes
-3. Results stored in Firestore
+3. Results stored in `agentic_trading/signals_{SYMBOL}`
+
+### Intraday Cron Jobs
+
+File: `functions/src/agentic-trading-intraday-cron.ts`
+
+**Hourly Schedule:** `30 9-16 * * mon-fri` (every hour at 30 minutes past, during market hours)
+
+**15-Minute Schedule:** `15,30,45,0 9-16 * * mon-fri` (every 15 minutes during market hours)
+
+**Process:**
+1. Scans all documents in `agentic_trading` collection
+2. For each `chart_{SYMBOL}` document:
+   - Loads configuration
+   - Calls `performTradeProposal()` with symbol and appropriate interval
+   - Multi-indicator evaluation runs
+   - Trade executed if all indicators are green and risk check passes
+3. Results stored in `agentic_trading/signals_{SYMBOL}_{INTERVAL}`
+
+**Deployment:**
+```bash
+cd src/robinhood_options_mobile/functions
+firebase deploy --only functions:agenticTradingIntradayCronJob,functions:agenticTrading15mCronJob
+```
 
 **Monitoring:**
 - Check Firebase Functions logs
-- View `agentic_trading/signals_{SYMBOL}` documents
+- View `agentic_trading/signals_{SYMBOL}` and `signals_{SYMBOL}_{INTERVAL}` documents
 - Review trade proposals in mobile app
+- Monitor real-time signal updates in Search tab
 
 ## Testing
 
