@@ -15,6 +15,40 @@ All notable changes to this project will be documented in this file.
 - InvestorGroup model with full serialization support
 - Comprehensive Firestore service methods for group CRUD operations
 - Unit tests for InvestorGroup model functionality
+## 0.14.1 - 2025-11-17
+
+### Added
+- Server-side filtering for trade signals with optional parameters:
+  - Filter by signal type (BUY/SELL/HOLD)
+  - Filter by date range (start/end dates)
+  - Filter by specific symbols (max 30, with client-side fallback for larger lists)
+  - Configurable result limit (default: 50)
+- Trade signal filter UI in Search tab:
+  - FilterChips for All/BUY/SELL/HOLD signal types
+  - Color-coded filters (green for BUY, red for SELL, grey for HOLD)
+  - Manual refresh button
+  - Empty state messages for filtered results
+- Firestore composite indexes for optimized trade signal queries:
+  - `signal` (ascending) + `timestamp` (descending)
+  - `timestamp` (descending) single-field index
+
+### Changed
+- `fetchAllTradeSignals()` now accepts optional filtering parameters for server-side queries
+- Trade Signals section now shows filter chips in header
+- Firestore queries use `.orderBy('timestamp', descending: true)` with server-side filtering
+- Default limit of 50 results for trade signal queries to improve performance
+
+### Fixed
+- Trade signal state synchronization between Instrument View and Search View
+- `fetchTradeSignal()` now updates both `_tradeSignal` and `_tradeSignals` list
+- Stale signal data in Search View when regenerating AI Trade Signal in Instrument View
+- Signal list now maintains timestamp ordering after updates
+- Removed signals are properly cleaned from the `_tradeSignals` list
+
+### Performance
+- Reduced network payload by fetching only filtered results
+- Lower Firestore read operations with server-side queries
+- Scalable for growing signal datasets with indexed queries
 
 ## 0.14.0 - 2025-11-16
 

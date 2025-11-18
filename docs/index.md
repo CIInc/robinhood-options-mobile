@@ -46,18 +46,31 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - **Agentic Trading:** Automated agents (Alpha Agent, Risk Guard) monitor markets and execute trades
 - **Risk Assessment:** Comprehensive risk analysis before trade execution with portfolio-aware decision making
 - **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with dates and confidence scores
+- **Server-Side Filtering:** Efficient signal filtering by type (BUY/SELL/HOLD), date range, and symbols with Firestore queries
+- **State Synchronization:** Real-time updates across Instrument View and Search View when signals are regenerated
+
+### Signal Filtering & Search
+- **Filter UI:** FilterChips in Search tab for quick filtering by signal type (All/BUY/SELL/HOLD)
+- **Color-Coded Filters:** Green (BUY), red (SELL), grey (HOLD) for visual clarity
+- **Server-Side Queries:** Optimized Firestore queries with indexed fields reduce network payload
+- **Performance:** Default limit of 50 signals with configurable parameters
+- **Manual Refresh:** Refresh button to reload signals with current filters
+- **Empty States:** Clear messages when no signals match selected filters
 
 ### Configuration
 - Users can enable/disable agentic trading in settings
 - Configurable watchlist for symbols to monitor
 - Risk parameters and portfolio integration
 - Trade signal history and results tracking
+- Optional filtering parameters: signal type, date range, symbols, limit
 
 ### Technical Details
 - Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
 - Firebase Functions for scheduled agent execution
 - Provider pattern (AgenticTradingProvider) for state management
 - Real-time signal updates and notifications
+- Composite Firestore indexes for optimized queries
+- State synchronization between single signal and signal list
 
 For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
 
@@ -117,6 +130,9 @@ For detailed technical documentation, see [Multi-Indicator Trading System](multi
     - [x] Risk Guard integration for trade validation
     - [x] Prominent date and reason display
     - [x] Color-coded borders and badges
+    - [x] Server-side filtering by signal type, date range, and symbols
+    - [x] Filter UI with color-coded chips (All/BUY/SELL/HOLD)
+    - [x] Real-time synchronization between Instrument and Search views
   - [x] S&P movers, losers, and gainers  
     _See daily market leaders and laggards._
   - [x] Top 100 stocks  

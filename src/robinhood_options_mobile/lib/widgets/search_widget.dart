@@ -90,6 +90,12 @@ class _SearchWidgetState extends State<SearchWidget>
   bool yahooScreenerLoading = false;
   String? yahooScreenerError;
 
+  // Trade Signal Filters
+  String? tradeSignalFilter;      // null = all, 'BUY', 'SELL', 'HOLD'
+  DateTime? tradeSignalStartDate;
+  DateTime? tradeSignalEndDate;
+  int tradeSignalLimit = 50;      // Default limit
+
   // Controllers for screener fields
   late TextEditingController marketCapMinCtl;
   late TextEditingController marketCapMaxCtl;
@@ -1123,42 +1129,64 @@ class _SearchWidgetState extends State<SearchWidget>
                   Consumer<AgenticTradingProvider>(
                     builder: (context, agenticTradingProvider, child) {
                       final tradeSignals = agenticTradingProvider.tradeSignals;
-                      if (tradeSignals.isEmpty) {
-                        return const SliverToBoxAdapter(
-                            child: SizedBox.shrink());
-                      }
                       return SliverStickyHeader(
                           header: Material(
                               //elevation: 2,
                               child: Container(
                                   alignment: Alignment.centerLeft,
-                                  child: const ListTile(
-                                    title: Wrap(children: [
-                                      Text(
-                                        "Trade Signals",
-                                        style: TextStyle(fontSize: 19.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const ListTile(
+                                        title: Wrap(children: [
+                                          Text(
+                                            "Trade Signals",
+                                            style: TextStyle(fontSize: 19.0),
+                                          ),
+                                        ]),
                                       ),
-                                    ]),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                                        child: _buildTradeSignalFilterChips(),
+                                      ),
+                                    ],
                                   ))),
-                          sliver: SliverPadding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              sliver: SliverGrid(
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 220.0,
-                                  mainAxisSpacing: 10.0,
-                                  crossAxisSpacing: 10.0,
-                                  childAspectRatio: 1.3,
-                                ),
-                                delegate: SliverChildBuilderDelegate(
-                                  (BuildContext context, int index) {
-                                    return _buildTradeSignalGridItem(
-                                        tradeSignals, index);
-                                  },
-                                  childCount: tradeSignals.length,
-                                ),
-                              )));
+                          sliver: tradeSignals.isEmpty
+                              ? SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        tradeSignalFilter == null
+                                            ? 'No trade signals available'
+                                            : 'No $tradeSignalFilter signals found',
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : SliverPadding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  sliver: SliverGrid(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 220.0,
+                                      mainAxisSpacing: 10.0,
+                                      crossAxisSpacing: 10.0,
+                                      childAspectRatio: 1.3,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (BuildContext context, int index) {
+                                        return _buildTradeSignalGridItem(
+                                            tradeSignals, index);
+                                      },
+                                      childCount: tradeSignals.length,
+                                    ),
+                                  )));
                     },
                   ),
                   _buildScreenerSliver(),
@@ -1864,5 +1892,79 @@ class _SearchWidgetState extends State<SearchWidget>
     }
 
     return sorted;
+  }
+
+  void _fetchTradeSignalsWithFilters() {
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    agenticTradingProvider.fetchAllTradeSignals(
+      signalType: tradeSignalFilter,
+      startDate: tradeSignalStartDate,
+      endDate: tradeSignalEndDate,
+      limit: tradeSignalLimit,
+    );
+  }
+
+  Widget _buildTradeSignalFilterChips() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      children: [
+        FilterChip(
+          label: const Text('All'),
+          selected: tradeSignalFilter == null,
+          onSelected: (selected) {
+            if (tradeSignalFilter != null) {
+              setState(() {
+                tradeSignalFilter = null;
+              });
+              _fetchTradeSignalsWithFilters();
+            }
+          },
+        ),
+        FilterChip(
+          label: const Text('BUY'),
+          selected: tradeSignalFilter == 'BUY',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'BUY' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.green.withOpacity(0.3),
+          checkmarkColor: Colors.green,
+        ),
+        FilterChip(
+          label: const Text('SELL'),
+          selected: tradeSignalFilter == 'SELL',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'SELL' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.red.withOpacity(0.3),
+          checkmarkColor: Colors.red,
+        ),
+        FilterChip(
+          label: const Text('HOLD'),
+          selected: tradeSignalFilter == 'HOLD',
+          onSelected: (selected) {
+            setState(() {
+              tradeSignalFilter = selected ? 'HOLD' : null;
+            });
+            _fetchTradeSignalsWithFilters();
+          },
+          selectedColor: Colors.grey.withOpacity(0.3),
+          checkmarkColor: Colors.grey,
+        ),
+        IconButton(
+          icon: const Icon(Icons.refresh),
+          tooltip: 'Refresh',
+          onPressed: _fetchTradeSignalsWithFilters,
+          iconSize: 20,
+        ),
+      ],
+    );
   }
 }
