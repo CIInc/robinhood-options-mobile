@@ -17,10 +17,11 @@ Quick-start commands an agent can recommend or run (macOS / zsh):
 - Deploy Firebase functions: `cd src/robinhood_options_mobile/functions && npm install && firebase deploy --only functions`.
 
 Architecture notes (what matters to code changes):
-- UI / App state: The app uses `provider` extensively. Look in `src/robinhood_options_mobile/lib/model/` — most business state lives in ChangeNotifier stores (e.g. `PortfolioStore`, `OptionPositionStore`, `QuoteStore`). Edits to stateful logic should update unit tests where available.
+- UI / App state: The app uses `provider` extensively. Look in `src/robinhood_options_mobile/lib/model/` — most business state lives in ChangeNotifier stores (e.g. `PortfolioStore`, `OptionPositionStore`, `QuoteStore`, `AgenticTradingProvider`). Edits to stateful logic should update unit tests where available.
 - App entrypoint: `lib/main.dart` wires Firebase initialization, providers, and `NavigationStatefulWidget` as the main route. Use this file to understand app-wide initializations (Firebase, AdMob, Firestore emulator flag `shouldUseFirestoreEmulator`).
 - Features behind backend: Sensitive or broker API logic is intentionally hosted in Firebase Functions (`functions/`) — avoid moving secrets into client code. Use functions for brokerage interactions.
 - Generative AI: AI features are proxied through Firebase Functions and the `GenerativeProvider` in `lib/model/generative_provider.dart` (search for `GenerativeProvider`). Prefer server-side usage for API keys and rate-limiting.
+- Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` with server-side filtering support. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`.
 
 Patterns & conventions (concrete examples):
 - State containers are `ChangeNotifier` classes under `lib/model` and provided via `MultiProvider` in `main.dart`. Example: `PortfolioHistoricalsStore` and its selection store `PortfolioHistoricalsSelectionStore` are paired.
@@ -43,8 +44,10 @@ Where to look for tests and minimal verification:
 
 Examples of specific file references an agent can use in patches:
 - App initialization: `src/robinhood_options_mobile/lib/main.dart` (providers, Firebase init, AdMob).
-- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`.
+- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`, `agentic_trading_provider.dart`.
+- Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (filter chips, signal display), `instrument_widget.dart` (single signal view).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
+- Firestore indexes: `src/robinhood_options_mobile/firebase/firestore.indexes.json` (deploy with `firebase deploy --only firestore:indexes`).
 
 Quick safety checklist before proposing changes:
 1. Does the change expose secrets or API keys? If yes, move to `functions/` + use `firebase secrets`.
