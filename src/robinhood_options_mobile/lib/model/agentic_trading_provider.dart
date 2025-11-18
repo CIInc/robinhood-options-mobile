@@ -227,8 +227,10 @@ class AgenticTradingProvider with ChangeNotifier {
       }
       
       // Use higher limit to ensure we get both interval and base signals
+      // For '1d', use a much higher limit since we can't filter server-side
+      // and need to fetch enough documents to find all matching signals
       // Client-side filtering will handle market hours logic
-      final queryLimit = 200;
+      final queryLimit = effectiveInterval == '1d' ? 500 : 200;
       
       debugPrint('⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
       
