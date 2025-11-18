@@ -171,8 +171,10 @@ class AgenticTradingProvider with ChangeNotifier {
         query = query.where('signal', isEqualTo: signalType);
       }
 
-      // Apply interval filter
-      if (effectiveInterval != 'all') {
+      // Apply interval filter (server-side when possible)
+      // Note: Only filter server-side for intraday signals to maintain backward
+      // compatibility with legacy daily signals that lack the interval field
+      if (effectiveInterval != 'all' && effectiveInterval != '1d') {
         query = query.where('interval', isEqualTo: effectiveInterval);
       }
 
@@ -216,6 +218,14 @@ class AgenticTradingProvider with ChangeNotifier {
           .where((data) => data != null)
           .cast<Map<String, dynamic>>()
           .toList();
+
+      // Client-side interval filtering for '1d' (handles legacy signals without interval field)
+      if (effectiveInterval == '1d') {
+        _tradeSignals = _tradeSignals.where((signal) {
+          final signalInterval = signal['interval'] ?? '1d';
+          return signalInterval == '1d';
+        }).toList();
+      }
 
       // Client-side filtering for symbols if list > 30 (Firestore limit)
       if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
