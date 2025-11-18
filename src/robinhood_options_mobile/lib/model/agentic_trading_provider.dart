@@ -413,6 +413,12 @@ class AgenticTradingProvider with ChangeNotifier {
           final data = doc.data();
           final interval = data['interval'] as String?;
           
+          // If 'all' interval is selected, include all signals
+          if (effectiveInterval == 'all') {
+            debugPrint('   ✅ ${doc.id}: interval=$interval (showing all)');
+            return true;
+          }
+          
           // Match the selected interval
           // For '1d', include both null (legacy signals) and '1d'
           final include = effectiveInterval == '1d' 
@@ -437,6 +443,7 @@ class AgenticTradingProvider with ChangeNotifier {
         .toList();
 
     // Client-side interval filtering for '1d' (handles legacy signals without interval field)
+    // Skip this if 'all' interval is selected
     if (effectiveInterval == '1d') {
       _tradeSignals = _tradeSignals.where((signal) {
         final signalInterval = signal['interval'] ?? '1d';

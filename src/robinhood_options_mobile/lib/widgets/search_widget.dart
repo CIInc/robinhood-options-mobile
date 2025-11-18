@@ -1131,7 +1131,9 @@ class _SearchWidgetState extends State<SearchWidget>
                       final tradeSignals = agenticTradingProvider.tradeSignals;
                       final isMarketOpen = agenticTradingProvider.isMarketOpen;
                       final selectedInterval = agenticTradingProvider.selectedInterval;
-                      final intervalLabel = selectedInterval == '1d' ? 'Daily' :
+                      // Show "All Intervals" when All filter is active, otherwise show the selected interval
+                      final intervalLabel = tradeSignalFilter == null ? 'All Intervals' :
+                                           selectedInterval == '1d' ? 'Daily' :
                                            selectedInterval == '1h' ? 'Hourly' :
                                            selectedInterval == '30m' ? '30-min' :
                                            selectedInterval == '15m' ? '15-min' : selectedInterval;
@@ -1154,23 +1156,29 @@ class _SearchWidgetState extends State<SearchWidget>
                                             const SizedBox(width: 8),
                                             Chip(
                                               avatar: Icon(
-                                                isMarketOpen ? Icons.access_time : Icons.calendar_today,
+                                                tradeSignalFilter == null ? Icons.all_inclusive : 
+                                                  (isMarketOpen ? Icons.access_time : Icons.calendar_today),
                                                 size: 16,
-                                                color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                                color: tradeSignalFilter == null ? Colors.purple.shade700 :
+                                                  (isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700),
                                               ),
                                               label: Text(
-                                                '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                                                tradeSignalFilter == null ? intervalLabel :
+                                                  '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w600,
-                                                  color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                                  color: tradeSignalFilter == null ? Colors.purple.shade700 :
+                                                    (isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700),
                                                 ),
                                               ),
-                                              backgroundColor: isMarketOpen
+                                              backgroundColor: tradeSignalFilter == null ? Colors.purple.withOpacity(0.1) :
+                                                (isMarketOpen
                                                   ? Colors.green.withOpacity(0.1)
-                                                  : Colors.blue.withOpacity(0.1),
+                                                  : Colors.blue.withOpacity(0.1)),
                                               side: BorderSide(
-                                                color: isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300,
+                                                color: tradeSignalFilter == null ? Colors.purple.shade300 :
+                                                  (isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300),
                                                 width: 1,
                                               ),
                                               visualDensity: VisualDensity.compact,
@@ -1940,6 +1948,7 @@ class _SearchWidgetState extends State<SearchWidget>
       startDate: tradeSignalStartDate,
       endDate: tradeSignalEndDate,
       limit: tradeSignalLimit,
+      interval: tradeSignalFilter == null ? 'all' : null, // Show all intervals when "All" filter is selected
     );
   }
 
