@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -15,6 +16,13 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isTradeInProgress = false;
   Map<String, dynamic>? _tradeSignal;
   List<Map<String, dynamic>> _tradeSignals = [];
+  
+  // Firestore listener for real-time trade signal updates
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tradeSignalsSubscription;
+  String? _currentSignalFilter;
+  DateTime? _currentStartDate;
+  DateTime? _currentEndDate;
+  int _currentLimit = 50;
 
   bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
   Map<String, dynamic> get config => _config;
@@ -27,6 +35,12 @@ class AgenticTradingProvider with ChangeNotifier {
 
   AgenticTradingProvider() {
     _loadConfig();
+  }
+
+  @override
+  void dispose() {
+    _tradeSignalsSubscription?.cancel();
+    super.dispose();
   }
 
   void toggleAgenticTrading(bool? value) {
@@ -146,6 +160,18 @@ class AgenticTradingProvider with ChangeNotifier {
     List<String>? symbols,     // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
     int? limit,                // Limit number of results (default: 50)
   }) async {
+    // Cancel existing subscription if filters have changed
+    if (_tradeSignalsSubscription != null) {
+      _tradeSignalsSubscription!.cancel();
+      _tradeSignalsSubscription = null;
+    }
+
+    // Store current filters for future reference
+    _currentSignalFilter = signalType;
+    _currentStartDate = startDate;
+    _currentEndDate = endDate;
+    _currentLimit = limit ?? 50;
+
     try {
       Query<Map<String, dynamic>> query =
           FirebaseFirestore.instance.collection('agentic_trading');
@@ -174,36 +200,40 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // Apply ordering and limit
       query = query.orderBy('timestamp', descending: true);
-      if (limit != null && limit > 0) {
-        query = query.limit(limit);
-      } else {
-        query = query.limit(50); // Default limit
-      }
+      query = query.limit(_currentLimit);
 
-      final snapshot = await query.get();
-      
-      _tradeSignals = snapshot.docs
-          .where((doc) => doc.id.startsWith('signals_'))
-          .map((doc) {
-            final data = doc.data();
-            // Ensure data has required fields
-            if (data.containsKey('timestamp')) {
-              return data;
-            }
-            return null;
-          })
-          .where((data) => data != null)
-          .cast<Map<String, dynamic>>()
-          .toList();
+      // Set up real-time listener instead of one-time fetch
+      _tradeSignalsSubscription = query.snapshots().listen(
+        (snapshot) {
+          _tradeSignals = snapshot.docs
+              .where((doc) => doc.id.startsWith('signals_'))
+              .map((doc) {
+                final data = doc.data();
+                // Ensure data has required fields
+                if (data.containsKey('timestamp')) {
+                  return data;
+                }
+                return null;
+              })
+              .where((data) => data != null)
+              .cast<Map<String, dynamic>>()
+              .toList();
 
-      // Client-side filtering for symbols if list > 30 (Firestore limit)
-      if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
-        _tradeSignals = _tradeSignals
-            .where((signal) => symbols.contains(signal['symbol']))
-            .toList();
-      }
+          // Client-side filtering for symbols if list > 30 (Firestore limit)
+          if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
+            _tradeSignals = _tradeSignals
+                .where((signal) => symbols.contains(signal['symbol']))
+                .toList();
+          }
 
-      notifyListeners();
+          notifyListeners();
+        },
+        onError: (error) {
+          _tradeSignals = [];
+          _tradeProposalMessage = 'Failed to fetch trade signals: ${error.toString()}';
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _tradeSignals = [];
       _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
