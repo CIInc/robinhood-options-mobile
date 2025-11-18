@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -15,6 +16,12 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isTradeInProgress = false;
   Map<String, dynamic>? _tradeSignal;
   List<Map<String, dynamic>> _tradeSignals = [];
+  
+  // Firestore listener for real-time trade signal updates
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tradeSignalsSubscription;
+  List<String>? _currentSymbols;
+  int _currentLimit = 50;
+  bool _hasReceivedServerData = false;
   String _selectedInterval = '1d'; // Default to daily signals
 
   bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
@@ -30,6 +37,16 @@ class AgenticTradingProvider with ChangeNotifier {
   AgenticTradingProvider() {
     _loadConfig();
   }
+
+  @override
+  void dispose() {
+    print('🧹 Disposing AgenticTradingProvider - cancelling subscription');
+    _tradeSignalsSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Debug method to check subscription status
+  bool get hasActiveSubscription => _tradeSignalsSubscription != null;
 
   void toggleAgenticTrading(bool? value) {
     _isAgenticTradingEnabled = value ?? false;
@@ -151,6 +168,7 @@ class AgenticTradingProvider with ChangeNotifier {
     }
   }
 
+  // Debug method to test real-time updates by adding a test signal
   Future<void> fetchAllTradeSignals({
     String? signalType,        // Filter by 'BUY', 'SELL', or 'HOLD'
     DateTime? startDate,       // Filter signals after this date
@@ -159,6 +177,27 @@ class AgenticTradingProvider with ChangeNotifier {
     int? limit,                // Limit number of results (default: 50)
     String? interval,          // Filter by interval (1d, 1h, 30m, 15m)
   }) async {
+    // Cancel existing subscription and create a new one
+    if (_tradeSignalsSubscription != null) {
+      print('🛑 Cancelling existing trade signals subscription');
+      _tradeSignalsSubscription!.cancel();
+      _tradeSignalsSubscription = null;
+    }
+
+    // Reset server data flag when starting new subscription
+    _hasReceivedServerData = false;
+
+    // Store current filters for future reference
+    _currentSymbols = symbols;
+    _currentLimit = limit ?? 50;
+
+    print('🚀 Setting up new trade signals subscription with filters:');
+    print('   Signal type: $signalType');
+    print('   Start date: $startDate');
+    print('   End date: $endDate');
+    print('   Symbols: ${symbols?.length ?? 0} symbols');
+    print('   Limit: $_currentLimit');
+
     try {
       Query<Map<String, dynamic>> query =
           FirebaseFirestore.instance.collection('agentic_trading');
@@ -177,7 +216,13 @@ class AgenticTradingProvider with ChangeNotifier {
       if (effectiveInterval != 'all' && effectiveInterval != '1d') {
         query = query.where('interval', isEqualTo: effectiveInterval);
       }
-
+      
+      // Use higher limit to ensure we get both interval and base signals
+      // Client-side filtering will handle market hours logic
+      final queryLimit = 200;
+      
+      print('⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
+      
       // Apply date range filters
       if (startDate != null) {
         query = query.where('timestamp',
@@ -197,49 +242,158 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // Apply ordering and limit
       query = query.orderBy('timestamp', descending: true);
-      if (limit != null && limit > 0) {
-        query = query.limit(limit);
-      } else {
-        query = query.limit(50); // Default limit
-      }
+      query = query.limit(queryLimit);
 
-      final snapshot = await query.get();
-      
-      _tradeSignals = snapshot.docs
-          .where((doc) => doc.id.startsWith('signals_'))
-          .map((doc) {
-            final data = doc.data();
-            // Ensure data has required fields
-            if (data.containsKey('timestamp')) {
-              return data;
+      // Do an initial server fetch to ensure fresh data, then set up listener
+      query.get(const GetOptions(source: Source.server)).then((initialSnapshot) {
+        if (!_hasReceivedServerData) {
+          print('📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
+          _hasReceivedServerData = true;
+          _updateTradeSignalsFromSnapshot(initialSnapshot, _currentSymbols, effectiveInterval);
+        }
+      }).catchError((e) {
+        print('⚠️ Initial server fetch failed: $e');
+      });
+
+      // Set up real-time listener for ongoing updates
+      _tradeSignalsSubscription = query.snapshots().listen(
+        (snapshot) {
+          final timestamp = DateTime.now().toString().substring(11, 23);
+          print('🔔 [$timestamp] Firestore snapshot received: ${snapshot.docs.length} documents');
+          print('🔍 [$timestamp] Snapshot metadata - fromCache: ${snapshot.metadata.isFromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites}');
+          
+          // Always process the first snapshot (even if from cache) after a delay,
+          // but prefer server data if it arrives first
+          if (!_hasReceivedServerData) {
+            if (!snapshot.metadata.isFromCache) {
+              // First server snapshot - use it immediately
+              _hasReceivedServerData = true;
+              print('📡 [$timestamp] First server snapshot - processing immediately');
+            } else if (snapshot.metadata.hasPendingWrites) {
+              // Has pending writes - process immediately  
+              print('📝 [$timestamp] Processing cached snapshot with pending writes');
+            } else {
+              // Cached snapshot - use it after waiting for server data
+              Future.delayed(const Duration(milliseconds: 1000), () {
+                if (!_hasReceivedServerData) {
+                  print('⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
+                  _hasReceivedServerData = true;
+                  _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
+                }
+              });
+              return;
             }
-            return null;
-          })
-          .where((data) => data != null)
-          .cast<Map<String, dynamic>>()
-          .toList();
+          }
+          
+          // Mark that we've received server data
+          if (!snapshot.metadata.isFromCache) {
+            _hasReceivedServerData = true;
+            print('📡 [$timestamp] Received data from server');
+          }
+          
+          print('📋 [$timestamp] Document IDs in snapshot:');
+          snapshot.docs.forEach((doc) {
+            final data = doc.data();
+            print('   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
+          });
 
-      // Client-side interval filtering for '1d' (handles legacy signals without interval field)
-      if (effectiveInterval == '1d') {
-        _tradeSignals = _tradeSignals.where((signal) {
-          final signalInterval = signal['interval'] ?? '1d';
-          return signalInterval == '1d';
-        }).toList();
-      }
-
-      // Client-side filtering for symbols if list > 30 (Firestore limit)
-      if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
-        _tradeSignals = _tradeSignals
-            .where((signal) => symbols.contains(signal['symbol']))
-            .toList();
-      }
-
-      notifyListeners();
+          final beforeCount = _tradeSignals.length;
+          _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
+          final afterCount = _tradeSignals.length;
+          
+          print('✅ [$timestamp] Processed ${afterCount} trade signals (was ${beforeCount})');
+          if (_tradeSignals.isNotEmpty) {
+            print('   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');
+          }
+          print('📢 [$timestamp] Called notifyListeners()');
+        },
+        onError: (error) {
+          print('❌ Firestore subscription error: $error');
+          _tradeSignals = [];
+          _tradeProposalMessage = 'Failed to fetch trade signals: ${error.toString()}';
+          notifyListeners();
+        },
+      );
     } catch (e) {
       _tradeSignals = [];
       _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
       notifyListeners();
     }
+  }
+
+  // Helper method to check if market is currently open (US Eastern Time)
+  bool _isMarketOpen() {
+    final now = DateTime.now().toUtc();
+    final etTime = now.subtract(const Duration(hours: 5)); // Convert to ET (simplified)
+    
+    // Market is closed on weekends
+    if (etTime.weekday == DateTime.saturday || etTime.weekday == DateTime.sunday) {
+      return false;
+    }
+    
+    // Market hours: 9:30 AM - 4:00 PM ET
+    final marketOpen = DateTime(etTime.year, etTime.month, etTime.day, 9, 30);
+    final marketClose = DateTime(etTime.year, etTime.month, etTime.day, 16, 0);
+    
+    return etTime.isAfter(marketOpen) && etTime.isBefore(marketClose);
+  }
+
+  // Helper method to process snapshot data
+  void _updateTradeSignalsFromSnapshot(
+    QuerySnapshot<Map<String, dynamic>> snapshot,
+    List<String>? symbols,
+    String effectiveInterval,
+  ) {
+    final isMarketOpen = _isMarketOpen();
+    
+    print('📊 Processing ${snapshot.docs.length} documents (market ${isMarketOpen ? "OPEN" : "CLOSED"})');
+    
+    // Filter by interval based on market hours
+    _tradeSignals = snapshot.docs
+        .where((doc) {
+          final data = doc.data();
+          final interval = data['interval'] as String?;
+          
+          if (isMarketOpen) {
+            // During market hours, show intraday signals (15m, 1h, etc.) - exclude 1d or null
+            final include = interval != null && interval != '1d';
+            if (include) print('   ✅ ${doc.id}: interval=$interval (intraday)');
+            return include;
+          } else {
+            // After hours, show daily signals (1d) or legacy signals without interval field
+            final include = interval == null || interval == '1d';
+            if (include) print('   ✅ ${doc.id}: interval=$interval (daily/base)');
+            return include;
+          }
+        })
+        .map((doc) {
+          final data = doc.data();
+          // Ensure data has required fields
+          if (data.containsKey('timestamp')) {
+            return data;
+          }
+          return null;
+        })
+        .where((data) => data != null)
+        .cast<Map<String, dynamic>>()
+        .toList();
+
+    // Client-side interval filtering for '1d' (handles legacy signals without interval field)
+    if (effectiveInterval == '1d') {
+      _tradeSignals = _tradeSignals.where((signal) {
+        final signalInterval = signal['interval'] ?? '1d';
+        return signalInterval == '1d';
+      }).toList();
+    }
+
+    // Client-side filtering for symbols if list > 30 (Firestore limit)
+    if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
+      _tradeSignals = _tradeSignals
+          .where((signal) => symbols.contains(signal['symbol']))
+          .toList();
+    }
+
+    notifyListeners();
   }
 
   void setSelectedInterval(String interval) {

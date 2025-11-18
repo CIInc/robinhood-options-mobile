@@ -15,6 +15,63 @@ All notable changes to this project will be documented in this file.
 - InvestorGroup model with full serialization support
 - Comprehensive Firestore service methods for group CRUD operations
 - Unit tests for InvestorGroup model functionality
+
+## 0.14.2 - 2025-11-18
+
+### Added
+- Intraday AI trade signal generation with multiple time intervals:
+  - 15-minute signals for ultra-short-term trading
+  - Hourly signals for short-term trading
+  - Daily signals (existing functionality)
+  - Interval selector UI with SegmentedButton (15m, 1h, Daily)
+- Real-time trade signal updates using Firestore snapshot listeners:
+  - Automatic signal refresh when backend updates Firestore
+  - No manual refresh required after EOD cron jobs
+  - StreamSubscription lifecycle management in `AgenticTradingProvider`
+  - Server data prioritization with cache fallback
+- Market hours detection for intelligent signal filtering:
+  - Shows intraday signals (15m, 1h) during market hours
+  - Shows daily signals after market hours
+  - Automatic switching between signal types
+- Two new Firebase Functions for intraday signal generation:
+  - `agenticTradingIntradayCronJob`: Runs hourly during market hours (9:30 AM - 4:00 PM ET)
+  - `agenticTrading15mCronJob`: Runs every 15 minutes during market hours
+- Backend interval-specific caching with appropriate TTLs:
+  - 15-minute cache for 15m intervals
+  - 30-minute cache for 30m intervals
+  - 1-hour cache for 1h intervals
+  - End-of-day cache for daily intervals
+- Firestore composite index for interval-based queries:
+  - `interval` (ascending) + `timestamp` (descending)
+  - Optimized server-side filtering by interval
+
+### Changed
+- `getMarketData()` now accepts `interval` and `range` parameters for flexible data fetching
+- Yahoo Finance API calls updated to support intraday OHLCV data (15m, 30m, 1h)
+- Signal storage schema extended:
+  - Daily signals: `agentic_trading/signals_<SYMBOL>` (backward compatible)
+  - Intraday signals: `agentic_trading/signals_<SYMBOL>_<INTERVAL>`
+- `AgenticTradingProvider` methods updated to accept interval parameter:
+  - `fetchTradeSignal(symbol, {interval})` 
+  - `fetchAllTradeSignals({interval})`
+  - `initiateTradeProposal({interval})`
+- `alpha-agent.ts` now persists interval metadata in signal documents
+- Signal cards display interval label (Daily, Hourly, 30-min, 15-min) with timestamp
+- `fetchAllTradeSignals()` replaced one-time fetch with real-time snapshot listener
+- Added `dispose()` method to `AgenticTradingProvider` for proper cleanup
+
+### Fixed
+- Stale trade signals in Search widget after EOD cron job updates
+- Signal refresh now automatic when backend updates Firestore at market close
+- Memory leaks from uncancelled Firestore subscriptions
+- Cache staleness detection improved for intraday intervals
+
+### Performance
+- Real-time signal updates eliminate polling and manual refresh
+- Interval-specific cache TTLs reduce unnecessary API calls
+- Market hours logic reduces client-side filtering overhead
+- Subscription management prevents memory leaks
+
 ## 0.14.1 - 2025-11-17
 
 ### Added

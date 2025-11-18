@@ -21,12 +21,13 @@ Architecture notes (what matters to code changes):
 - App entrypoint: `lib/main.dart` wires Firebase initialization, providers, and `NavigationStatefulWidget` as the main route. Use this file to understand app-wide initializations (Firebase, AdMob, Firestore emulator flag `shouldUseFirestoreEmulator`).
 - Features behind backend: Sensitive or broker API logic is intentionally hosted in Firebase Functions (`functions/`) — avoid moving secrets into client code. Use functions for brokerage interactions.
 - Generative AI: AI features are proxied through Firebase Functions and the `GenerativeProvider` in `lib/model/generative_provider.dart` (search for `GenerativeProvider`). Prefer server-side usage for API keys and rate-limiting.
-- Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` with server-side filtering support. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`.
+- Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` (daily) or `signals_{SYMBOL}_{INTERVAL}` (intraday) with server-side filtering and real-time Firestore snapshot listeners. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/agentic-trading-cron.ts`, `functions/src/agentic-trading-intraday-cron.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`. Supports multiple intervals (15m, 1h, 1d) with market hours detection.
 
 Patterns & conventions (concrete examples):
 - State containers are `ChangeNotifier` classes under `lib/model` and provided via `MultiProvider` in `main.dart`. Example: `PortfolioHistoricalsStore` and its selection store `PortfolioHistoricalsSelectionStore` are paired.
 - Naming: files and classes follow lower_snake_case for filenames and UpperCamelCase for Dart classes; maintain this convention.
 - Firestore: the app sometimes uses the Firestore emulator flag `shouldUseFirestoreEmulator` (in `main.dart`) — if you add local-only rules or tests, toggle that flag or wire a configuration value.
+- Real-time subscriptions: Use `StreamSubscription` for Firestore snapshot listeners and always implement `dispose()` in providers to cancel subscriptions (see `AgenticTradingProvider` for reference pattern).
 - Ads & analytics: AdMob and FirebaseAnalytics are initialized in `main.dart` — changes to analytics events should reuse `FirebaseAnalytics.instance`.
 
 Developer workflows (notes an agent should surface when changing code):
@@ -44,9 +45,10 @@ Where to look for tests and minimal verification:
 
 Examples of specific file references an agent can use in patches:
 - App initialization: `src/robinhood_options_mobile/lib/main.dart` (providers, Firebase init, AdMob).
-- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`, `agentic_trading_provider.dart`.
-- Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (filter chips, signal display), `instrument_widget.dart` (single signal view).
+- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`, `agentic_trading_provider.dart` (includes real-time Firestore subscriptions).
+- Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (filter chips, signal display), `instrument_widget.dart` (single signal view, interval selector).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
+- Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
 - Firestore indexes: `src/robinhood_options_mobile/firebase/firestore.indexes.json` (deploy with `firebase deploy --only firestore:indexes`).
 
 Quick safety checklist before proposing changes:

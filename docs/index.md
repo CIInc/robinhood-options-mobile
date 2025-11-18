@@ -43,10 +43,13 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 
 ### Key Components
 - **Multi-Indicator Correlation:** Analyzes price patterns, RSI, market direction, and volume to generate high-confidence trade signals
+- **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
+- **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
+- **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours
 - **Agentic Trading:** Automated agents (Alpha Agent, Risk Guard) monitor markets and execute trades
 - **Risk Assessment:** Comprehensive risk analysis before trade execution with portfolio-aware decision making
-- **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with dates and confidence scores
-- **Server-Side Filtering:** Efficient signal filtering by type (BUY/SELL/HOLD), date range, and symbols with Firestore queries
+- **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with interval labels, dates, and confidence scores
+- **Server-Side Filtering:** Efficient signal filtering by type (BUY/SELL/HOLD), date range, symbols, and interval with Firestore queries
 - **State Synchronization:** Real-time updates across Instrument View and Search View when signals are regenerated
 
 ### Signal Filtering & Search
