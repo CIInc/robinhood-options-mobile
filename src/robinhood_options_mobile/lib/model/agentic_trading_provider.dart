@@ -338,6 +338,9 @@ class AgenticTradingProvider with ChangeNotifier {
     return etTime.isAfter(marketOpen) && etTime.isBefore(marketClose);
   }
 
+  // Public getter for market status
+  bool get isMarketOpen => _isMarketOpen();
+
   // Helper method to process snapshot data
   void _updateTradeSignalsFromSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,

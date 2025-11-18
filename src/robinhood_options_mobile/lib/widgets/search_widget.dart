@@ -1906,10 +1906,37 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildTradeSignalFilterChips() {
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final isMarketOpen = agenticTradingProvider.isMarketOpen;
+
     return Wrap(
       spacing: 8,
       runSpacing: 4,
       children: [
+        // Market status indicator chip
+        Chip(
+          avatar: Icon(
+            isMarketOpen ? Icons.access_time : Icons.calendar_today,
+            size: 18,
+            color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+          ),
+          label: Text(
+            isMarketOpen ? 'Market Hours: Intraday' : 'After Hours: Daily',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+            ),
+          ),
+          backgroundColor: isMarketOpen
+              ? Colors.green.withOpacity(0.1)
+              : Colors.blue.withOpacity(0.1),
+          side: BorderSide(
+            color: isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300,
+            width: 1,
+          ),
+        ),
         FilterChip(
           label: const Text('All'),
           selected: tradeSignalFilter == null,

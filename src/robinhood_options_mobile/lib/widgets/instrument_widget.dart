@@ -3610,6 +3610,55 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: TextStyle(fontSize: 19.0),
             ),
           ),
+          // Market status indicator
+          Consumer<AgenticTradingProvider>(
+            builder: (context, provider, child) {
+              final isMarketOpen = provider.isMarketOpen;
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    color: isMarketOpen
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isMarketOpen
+                          ? Colors.green.shade300
+                          : Colors.blue.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isMarketOpen ? Icons.access_time : Icons.calendar_today,
+                        size: 18,
+                        color: isMarketOpen
+                            ? Colors.green.shade700
+                            : Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isMarketOpen
+                            ? 'Market Hours: Showing Intraday Signals'
+                            : 'After Hours: Showing Daily Signals',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isMarketOpen
+                              ? Colors.green.shade700
+                              : Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           // Interval selector
           Consumer<AgenticTradingProvider>(
             builder: (context, provider, child) {
