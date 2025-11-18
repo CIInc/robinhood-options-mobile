@@ -3610,6 +3610,40 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               style: TextStyle(fontSize: 19.0),
             ),
           ),
+          // Interval selector
+          Consumer<AgenticTradingProvider>(
+            builder: (context, provider, child) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: '15m',
+                      label: Text('15m'),
+                      icon: Icon(Icons.access_time, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: '1h',
+                      label: Text('1h'),
+                      icon: Icon(Icons.schedule, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: '1d',
+                      label: Text('Daily'),
+                      icon: Icon(Icons.calendar_today, size: 16),
+                    ),
+                  ],
+                  selected: {provider.selectedInterval},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    provider.setSelectedInterval(newSelection.first);
+                    provider.fetchTradeSignal(symbol, 
+                        interval: newSelection.first);
+                  },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
           Consumer2<AgenticTradingProvider, AccountStore>(
             builder: (context, agenticTradingProvider, accountStore, child) {
               final signal = agenticTradingProvider.tradeSignal;
@@ -3647,6 +3681,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               final timestamp = DateTime.fromMillisecondsSinceEpoch(
                   signal['timestamp'] as int);
               final signalType = signal['signal'] ?? 'HOLD';
+              final signalInterval = signal['interval'] ?? '1d';
               final assessment = signal['assessment'] as Map<String, dynamic>?;
               final multiIndicator =
                   signal['multiIndicatorResult'] as Map<String, dynamic>?;
@@ -3667,6 +3702,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   signalColor = Colors.grey;
                   signalIcon = Icons.trending_flat;
               }
+
+              // Format interval label
+              final intervalLabel = signalInterval == '1d' ? 'Daily' :
+                                    signalInterval == '1h' ? 'Hourly' :
+                                    signalInterval == '30m' ? '30-min' :
+                                    signalInterval == '15m' ? '15-min' : 
+                                    signalInterval;
 
               return Card(
                 elevation: 2,
@@ -3718,10 +3760,19 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                                   ],
                                 ),
                               ),
-                              // Timestamp
+                              // Timestamp and interval
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
+                                  Text(
+                                    intervalLabel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
                                   Text(
                                     formatCompactDateTimeWithHour
                                         .format(timestamp),

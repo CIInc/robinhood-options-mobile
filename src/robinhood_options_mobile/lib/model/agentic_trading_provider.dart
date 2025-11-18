@@ -22,6 +22,7 @@ class AgenticTradingProvider with ChangeNotifier {
   List<String>? _currentSymbols;
   int _currentLimit = 50;
   bool _hasReceivedServerData = false;
+  String _selectedInterval = '1d'; // Default to daily signals
 
   bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
   Map<String, dynamic> get config => _config;
@@ -31,6 +32,7 @@ class AgenticTradingProvider with ChangeNotifier {
   bool get isTradeInProgress => _isTradeInProgress;
   Map<String, dynamic>? get tradeSignal => _tradeSignal;
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
+  String get selectedInterval => _selectedInterval;
 
   AgenticTradingProvider() {
     _loadConfig();
@@ -113,23 +115,31 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTradeSignal(String symbol) async {
+  Future<void> fetchTradeSignal(String symbol, {String? interval}) async {
     try {
       if (symbol.isEmpty) {
         _tradeSignal = null;
         notifyListeners();
         return;
       }
+      
+      final effectiveInterval = interval ?? _selectedInterval;
+      final docId = effectiveInterval == '1d' 
+          ? 'signals_$symbol' 
+          : 'signals_${symbol}_$effectiveInterval';
+      
       final doc = await FirebaseFirestore.instance
           .collection('agentic_trading')
-          .doc('signals_$symbol')
+          .doc(docId)
           .get();
       if (doc.exists && doc.data() != null) {
         _tradeSignal = doc.data();
         
         // Also update the signal in the _tradeSignals list
         final signalData = doc.data()!;
-        final index = _tradeSignals.indexWhere((s) => s['symbol'] == symbol);
+        final index = _tradeSignals.indexWhere((s) => 
+            s['symbol'] == symbol && 
+            (s['interval'] ?? '1d') == effectiveInterval);
         if (index != -1) {
           // Update existing signal in the list
           _tradeSignals[index] = signalData;
@@ -146,7 +156,9 @@ class AgenticTradingProvider with ChangeNotifier {
       } else {
         _tradeSignal = null;
         // Remove signal from list if it no longer exists
-        _tradeSignals.removeWhere((s) => s['symbol'] == symbol);
+        _tradeSignals.removeWhere((s) => 
+            s['symbol'] == symbol && 
+            (s['interval'] ?? '1d') == effectiveInterval);
       }
       notifyListeners();
     } catch (e) {
@@ -163,6 +175,7 @@ class AgenticTradingProvider with ChangeNotifier {
     DateTime? endDate,         // Filter signals before this date
     List<String>? symbols,     // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
     int? limit,                // Limit number of results (default: 50)
+    String? interval,          // Filter by interval (1d, 1h, 30m, 15m)
   }) async {
     // Cancel existing subscription and create a new one
     if (_tradeSignalsSubscription != null) {
@@ -189,9 +202,19 @@ class AgenticTradingProvider with ChangeNotifier {
       Query<Map<String, dynamic>> query =
           FirebaseFirestore.instance.collection('agentic_trading');
 
+      // Apply interval filter
+      final effectiveInterval = interval ?? _selectedInterval;
+      
       // Apply signal type filter
       if (signalType != null && signalType.isNotEmpty) {
         query = query.where('signal', isEqualTo: signalType);
+      }
+
+      // Apply interval filter (server-side when possible)
+      // Note: Only filter server-side for intraday signals to maintain backward
+      // compatibility with legacy daily signals that lack the interval field
+      if (effectiveInterval != 'all' && effectiveInterval != '1d') {
+        query = query.where('interval', isEqualTo: effectiveInterval);
       }
       
       // Use higher limit to ensure we get both interval and base signals
@@ -226,7 +249,7 @@ class AgenticTradingProvider with ChangeNotifier {
         if (!_hasReceivedServerData) {
           print('📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
           _hasReceivedServerData = true;
-          _updateTradeSignalsFromSnapshot(initialSnapshot, _currentSymbols);
+          _updateTradeSignalsFromSnapshot(initialSnapshot, _currentSymbols, effectiveInterval);
         }
       }).catchError((e) {
         print('⚠️ Initial server fetch failed: $e');
@@ -255,7 +278,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 if (!_hasReceivedServerData) {
                   print('⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
                   _hasReceivedServerData = true;
-                  _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols);
+                  _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
                 }
               });
               return;
@@ -275,7 +298,7 @@ class AgenticTradingProvider with ChangeNotifier {
           });
 
           final beforeCount = _tradeSignals.length;
-          _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols);
+          _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
           final afterCount = _tradeSignals.length;
           
           print('✅ [$timestamp] Processed ${afterCount} trade signals (was ${beforeCount})');
@@ -319,6 +342,7 @@ class AgenticTradingProvider with ChangeNotifier {
   void _updateTradeSignalsFromSnapshot(
     QuerySnapshot<Map<String, dynamic>> snapshot,
     List<String>? symbols,
+    String effectiveInterval,
   ) {
     final isMarketOpen = _isMarketOpen();
     
@@ -354,6 +378,14 @@ class AgenticTradingProvider with ChangeNotifier {
         .cast<Map<String, dynamic>>()
         .toList();
 
+    // Client-side interval filtering for '1d' (handles legacy signals without interval field)
+    if (effectiveInterval == '1d') {
+      _tradeSignals = _tradeSignals.where((signal) {
+        final signalInterval = signal['interval'] ?? '1d';
+        return signalInterval == '1d';
+      }).toList();
+    }
+
     // Client-side filtering for symbols if list > 30 (Firestore limit)
     if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
       _tradeSignals = _tradeSignals
@@ -364,19 +396,27 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setSelectedInterval(String interval) {
+    _selectedInterval = interval;
+    notifyListeners();
+  }
+
   Future<void> initiateTradeProposal({
     required String symbol,
     required double currentPrice,
     required Map<String, dynamic> portfolioState,
+    String? interval,
   }) async {
     _isTradeInProgress = true;
     _tradeProposalMessage = 'Initiating trade proposal...';
     notifyListeners();
 
+    final effectiveInterval = interval ?? _selectedInterval;
     final payload = {
       'symbol': symbol,
       'currentPrice': currentPrice,
       'portfolioState': portfolioState,
+      'interval': effectiveInterval,
       'smaPeriodFast': _config['smaPeriodFast'],
       'smaPeriodSlow': _config['smaPeriodSlow'],
       'tradeQuantity': _config['tradeQuantity'],
@@ -392,6 +432,10 @@ class AgenticTradingProvider with ChangeNotifier {
 
       final status = data['status'] as String? ?? 'error';
       final reason = data['reason']?.toString();
+      final intervalLabel = effectiveInterval == '1d' ? 'Daily' :
+                           effectiveInterval == '1h' ? 'Hourly' :
+                           effectiveInterval == '30m' ? '30-min' :
+                           effectiveInterval == '15m' ? '15-min' : effectiveInterval;
       if (status == 'approved') {
         final proposal =
             Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
@@ -402,8 +446,9 @@ class AgenticTradingProvider with ChangeNotifier {
         final reasonMsg =
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
         _tradeProposalMessage =
-            'Trade proposal approved for $symbol.\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
-        _analytics.logEvent(name: 'agentic_trading_trade_approved');
+            'Trade proposal approved for $symbol ($intervalLabel).\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
+        _analytics.logEvent(name: 'agentic_trading_trade_approved',
+            parameters: {'interval': effectiveInterval});
       } else {
         _lastTradeProposal = null;
         _lastAssessment = null;
@@ -411,10 +456,10 @@ class AgenticTradingProvider with ChangeNotifier {
         final reasonMsg =
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
         _tradeProposalMessage =
-            'Trade proposal rejected for $symbol.\n$message\n$reasonMsg';
+            'Trade proposal rejected for $symbol ($intervalLabel).\n$message\n$reasonMsg';
         _analytics.logEvent(
             name: 'agentic_trading_trade_rejected',
-            parameters: {'reason': reason ?? message});
+            parameters: {'reason': reason ?? message, 'interval': effectiveInterval});
       }
     } catch (e) {
       // Fallback to local simulation if function call fails

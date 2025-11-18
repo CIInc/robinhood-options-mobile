@@ -19,6 +19,10 @@ import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
 import * as agenticTradingfunc from "./agentic-trading";
 import { agenticTradingCron } from "./agentic-trading-cron";
+import {
+  agenticTradingIntradayCron,
+  agenticTrading15mCron,
+} from "./agentic-trading-intraday-cron";
 import * as riskguardAgent from "./riskguard-agent";
 // import * as alphaagent from "./alphaagent";
 
@@ -49,5 +53,7 @@ export const getAgenticTradingConfig =
 export const setAgenticTradingConfig =
   agenticTradingfunc.setAgenticTradingConfig;
 export const agenticTradingCronJob = agenticTradingCron;
+export const agenticTradingIntradayCronJob = agenticTradingIntradayCron;
+export const agenticTrading15mCronJob = agenticTrading15mCron;
 // export const alphaagentTask = alphaagent.alphaagentTask;
 export const riskguardTask = riskguardAgent.riskguardTask;
