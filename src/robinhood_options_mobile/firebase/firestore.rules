@@ -81,6 +81,22 @@ service cloud.firestore {
       );
     }
 
+    match /copy_trades/{tradeId} {
+      // Users can read their own copy trades (as source or target)
+      allow read: if request.auth.uid != null && (
+        request.auth.uid == resource.data.sourceUserId ||
+        request.auth.uid == resource.data.targetUserId
+      );
+      // Only the system (backend functions) can create copy trades
+      // In practice, this is enforced by the functions
+      allow create: if false;
+      // Target users can update to mark as executed/rejected
+      allow update: if request.auth.uid != null && 
+        request.auth.uid == resource.data.targetUserId;
+      // Admins can delete
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if
