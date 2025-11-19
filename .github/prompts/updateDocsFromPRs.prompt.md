@@ -21,7 +21,7 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Any other .md files
 
 3. **Update CHANGELOG.md**:
-   - Add a new version section with the current date
+   - Add a new version section with the current date (using the version defined in pubspec.yaml)
    - Document all features added, changed, fixed, removed, and performance improvements
    - Use clear, descriptive bullet points
    - Group related changes together
@@ -53,5 +53,9 @@ Update all markdown documentation based on recently closed or merged pull reques
    - Ensure any mentioned indexes, configurations, or deployment steps are accurate
    - Verify file paths and code references exist
    - Check that API parameters match implementation
+
+9. **Tag release**:
+   - Create a new git tag for the updated version
+   - Push changes and tags to the repository
 
 Provide a summary of all documentation updates made and any consistency issues found.
