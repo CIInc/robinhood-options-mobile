@@ -16,9 +16,10 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isTradeInProgress = false;
   Map<String, dynamic>? _tradeSignal;
   List<Map<String, dynamic>> _tradeSignals = [];
-  
+
   // Firestore listener for real-time trade signal updates
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _tradeSignalsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _tradeSignalsSubscription;
   List<String>? _currentSymbols;
   int _currentLimit = 50;
   bool _hasReceivedServerData = false;
@@ -34,7 +35,8 @@ class AgenticTradingProvider with ChangeNotifier {
   List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
   String get selectedInterval {
     final interval = _selectedInterval ?? _getDefaultInterval();
-    debugPrint('🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
+    debugPrint(
+        '🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
     return interval;
   }
 
@@ -131,23 +133,23 @@ class AgenticTradingProvider with ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       final effectiveInterval = interval ?? _selectedInterval;
-      final docId = effectiveInterval == '1d' 
-          ? 'signals_$symbol' 
+      final docId = effectiveInterval == '1d'
+          ? 'signals_$symbol'
           : 'signals_${symbol}_$effectiveInterval';
-      
+
       final doc = await FirebaseFirestore.instance
           .collection('agentic_trading')
           .doc(docId)
           .get();
       if (doc.exists && doc.data() != null) {
         _tradeSignal = doc.data();
-        
+
         // Also update the signal in the _tradeSignals list
         final signalData = doc.data()!;
-        final index = _tradeSignals.indexWhere((s) => 
-            s['symbol'] == symbol && 
+        final index = _tradeSignals.indexWhere((s) =>
+            s['symbol'] == symbol &&
             (s['interval'] ?? '1d') == effectiveInterval);
         if (index != -1) {
           // Update existing signal in the list
@@ -165,8 +167,8 @@ class AgenticTradingProvider with ChangeNotifier {
       } else {
         _tradeSignal = null;
         // Remove signal from list if it no longer exists
-        _tradeSignals.removeWhere((s) => 
-            s['symbol'] == symbol && 
+        _tradeSignals.removeWhere((s) =>
+            s['symbol'] == symbol &&
             (s['interval'] ?? '1d') == effectiveInterval);
       }
       notifyListeners();
@@ -179,12 +181,13 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Debug method to test real-time updates by adding a test signal
   Future<void> fetchAllTradeSignals({
-    String? signalType,        // Filter by 'BUY', 'SELL', or 'HOLD'
-    DateTime? startDate,       // Filter signals after this date
-    DateTime? endDate,         // Filter signals before this date
-    List<String>? symbols,     // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
-    int? limit,                // Limit number of results (default: 50)
-    String? interval,          // Filter by interval (1d, 1h, 30m, 15m)
+    String? signalType, // Filter by 'BUY', 'SELL', or 'HOLD'
+    DateTime? startDate, // Filter signals after this date
+    DateTime? endDate, // Filter signals before this date
+    List<String>?
+        symbols, // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
+    int? limit, // Limit number of results (default: 50)
+    String? interval, // Filter by interval (1d, 1h, 30m, 15m)
   }) async {
     // Cancel existing subscription and create a new one
     if (_tradeSignalsSubscription != null) {
@@ -213,27 +216,24 @@ class AgenticTradingProvider with ChangeNotifier {
 
       // Apply interval filter - use provided interval or selected interval or default
       final effectiveInterval = interval ?? selectedInterval;
-      
+
       // Apply signal type filter
       if (signalType != null && signalType.isNotEmpty) {
         query = query.where('signal', isEqualTo: signalType);
       }
 
       // Apply interval filter (server-side when possible)
-      // Note: Only filter server-side for intraday signals to maintain backward
-      // compatibility with legacy daily signals that lack the interval field
-      if (effectiveInterval != 'all' && effectiveInterval != '1d') {
-        query = query.where('interval', isEqualTo: effectiveInterval);
-      }
-      
+      query = query.where('interval', isEqualTo: effectiveInterval);
+
       // Use higher limit to ensure we get both interval and base signals
       // For '1d', use a much higher limit since we can't filter server-side
       // and need to fetch enough documents to find all matching signals
       // Client-side filtering will handle market hours logic
-      final queryLimit = effectiveInterval == '1d' ? 500 : 200;
-      
-      debugPrint('⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
-      
+      final queryLimit = 200;
+
+      debugPrint(
+          '⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
+
       // Apply date range filters
       if (startDate != null) {
         query = query.where('timestamp',
@@ -256,11 +256,15 @@ class AgenticTradingProvider with ChangeNotifier {
       query = query.limit(queryLimit);
 
       // Do an initial server fetch to ensure fresh data, then set up listener
-      query.get(const GetOptions(source: Source.server)).then((initialSnapshot) {
+      query
+          .get(const GetOptions(source: Source.server))
+          .then((initialSnapshot) {
         if (!_hasReceivedServerData) {
-          debugPrint('📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
+          debugPrint(
+              '📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
           _hasReceivedServerData = true;
-          _updateTradeSignalsFromSnapshot(initialSnapshot, _currentSymbols, effectiveInterval);
+          _updateTradeSignalsFromSnapshot(
+              initialSnapshot, _currentSymbols, effectiveInterval);
         }
       }).catchError((e) {
         debugPrint('⚠️ Initial server fetch failed: $e');
@@ -270,58 +274,69 @@ class AgenticTradingProvider with ChangeNotifier {
       _tradeSignalsSubscription = query.snapshots().listen(
         (snapshot) {
           final timestamp = DateTime.now().toString().substring(11, 23);
-          debugPrint('🔔 [$timestamp] Firestore snapshot received: ${snapshot.docs.length} documents');
-          debugPrint('🔍 [$timestamp] Snapshot metadata - fromCache: ${snapshot.metadata.isFromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites}');
-          
+          debugPrint(
+              '🔔 [$timestamp] Firestore snapshot received: ${snapshot.docs.length} documents');
+          debugPrint(
+              '🔍 [$timestamp] Snapshot metadata - fromCache: ${snapshot.metadata.isFromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites}');
+
           // Always process the first snapshot (even if from cache) after a delay,
           // but prefer server data if it arrives first
           if (!_hasReceivedServerData) {
             if (!snapshot.metadata.isFromCache) {
               // First server snapshot - use it immediately
               _hasReceivedServerData = true;
-              debugPrint('📡 [$timestamp] First server snapshot - processing immediately');
+              debugPrint(
+                  '📡 [$timestamp] First server snapshot - processing immediately');
             } else if (snapshot.metadata.hasPendingWrites) {
-              // Has pending writes - process immediately  
-              debugPrint('📝 [$timestamp] Processing cached snapshot with pending writes');
+              // Has pending writes - process immediately
+              debugPrint(
+                  '📝 [$timestamp] Processing cached snapshot with pending writes');
             } else {
               // Cached snapshot - use it after waiting for server data
               Future.delayed(const Duration(milliseconds: 1000), () {
                 if (!_hasReceivedServerData) {
-                  debugPrint('⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
+                  debugPrint(
+                      '⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
                   _hasReceivedServerData = true;
-                  _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
+                  _updateTradeSignalsFromSnapshot(
+                      snapshot, _currentSymbols, effectiveInterval);
                 }
               });
               return;
             }
           }
-          
+
           // Mark that we've received server data
           if (!snapshot.metadata.isFromCache) {
             _hasReceivedServerData = true;
             debugPrint('📡 [$timestamp] Received data from server');
           }
-          
+
           debugPrint('📋 [$timestamp] Document IDs in snapshot:');
           snapshot.docs.forEach((doc) {
             final data = doc.data();
-            debugPrint('   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
+            debugPrint(
+                '   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
           });
 
           final beforeCount = _tradeSignals.length;
-          _updateTradeSignalsFromSnapshot(snapshot, _currentSymbols, effectiveInterval);
+          _updateTradeSignalsFromSnapshot(
+              snapshot, _currentSymbols, effectiveInterval);
           final afterCount = _tradeSignals.length;
-          
-          debugPrint('✅ [$timestamp] Processed ${afterCount} trade signals (was ${beforeCount})');
+
+          debugPrint(
+              '✅ [$timestamp] Processed ${afterCount} trade signals (was ${beforeCount})');
           if (_tradeSignals.isNotEmpty) {
-            debugPrint('   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');
+            debugPrint(
+                '   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');
           }
           debugPrint('📢 [$timestamp] Called notifyListeners()');
         },
         onError: (error) {
           debugPrint('❌ Firestore subscription error: $error');
           _tradeSignals = [];
-          _tradeProposalMessage = 'Failed to fetch trade signals: ${error.toString()}';
+          _tradeProposalMessage =
+              'Failed to fetch trade signals: ${error.toString()}';
           notifyListeners();
         },
       );
@@ -335,39 +350,53 @@ class AgenticTradingProvider with ChangeNotifier {
   // Helper method to check if market is currently open (US Eastern Time)
   bool _isMarketOpen() {
     final now = DateTime.now().toUtc();
-    
+
     // Determine if we're in EDT (summer) or EST (winter)
     // DST in US: Second Sunday in March to First Sunday in November
     final year = now.year;
     final isDST = _isDaylightSavingTime(now, year);
     final offset = isDST ? 4 : 5; // EDT is UTC-4, EST is UTC-5
-    
+
     final etTime = now.subtract(Duration(hours: offset));
-    
+
     debugPrint('🕐 Market hours check:');
     debugPrint('   UTC time: $now');
     debugPrint('   DST active: $isDST (offset: -$offset hours)');
     debugPrint('   ET time: $etTime');
-    debugPrint('   Day of week: ${etTime.weekday} (${['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][etTime.weekday]})');
-    
+    debugPrint('   Day of week: ${etTime.weekday} (${[
+      '',
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+      'Sun'
+    ][etTime.weekday]})');
+
     // Market is closed on weekends
-    if (etTime.weekday == DateTime.saturday || etTime.weekday == DateTime.sunday) {
+    if (etTime.weekday == DateTime.saturday ||
+        etTime.weekday == DateTime.sunday) {
       debugPrint('   ❌ Weekend - market closed');
       return false;
     }
-    
+
     // Market hours: 9:30 AM - 4:00 PM ET
     // Create times in UTC to match etTime (which is also UTC)
-    final marketOpen = DateTime.utc(etTime.year, etTime.month, etTime.day, 9, 30);
-    final marketClose = DateTime.utc(etTime.year, etTime.month, etTime.day, 16, 0);
-    
+    final marketOpen =
+        DateTime.utc(etTime.year, etTime.month, etTime.day, 9, 30);
+    final marketClose =
+        DateTime.utc(etTime.year, etTime.month, etTime.day, 16, 0);
+
     final isOpen = etTime.isAfter(marketOpen) && etTime.isBefore(marketClose);
     debugPrint('   Market open: $marketOpen');
     debugPrint('   Market close: $marketClose');
-    debugPrint('   Current ET: ${etTime.hour}:${etTime.minute.toString().padLeft(2, '0')}');
-    debugPrint('   isAfter(open)=${etTime.isAfter(marketOpen)}, isBefore(close)=${etTime.isBefore(marketClose)}');
+    debugPrint(
+        '   Current ET: ${etTime.hour}:${etTime.minute.toString().padLeft(2, '0')}');
+    debugPrint(
+        '   isAfter(open)=${etTime.isAfter(marketOpen)}, isBefore(close)=${etTime.isBefore(marketClose)}');
     debugPrint('   ${isOpen ? "✅ MARKET OPEN" : "❌ MARKET CLOSED"}');
-    
+
     return isOpen;
   }
 
@@ -375,23 +404,26 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isDaylightSavingTime(DateTime utcTime, int year) {
     // DST starts: Second Sunday in March at 2:00 AM local time (7:00 AM UTC during EST)
     // DST ends: First Sunday in November at 2:00 AM local time (6:00 AM UTC during EDT)
-    
+
     // Find second Sunday in March
     DateTime marchFirst = DateTime.utc(year, 3, 1);
     // Calculate days to first Sunday
     int daysToFirstSunday = (DateTime.sunday - marchFirst.weekday) % 7;
     // Second Sunday is 7 days after first Sunday
-    DateTime secondSundayMarch = DateTime.utc(year, 3, 1 + daysToFirstSunday + 7, 7); // 7 AM UTC
-    
+    DateTime secondSundayMarch =
+        DateTime.utc(year, 3, 1 + daysToFirstSunday + 7, 7); // 7 AM UTC
+
     // Find first Sunday in November
     DateTime novemberFirst = DateTime.utc(year, 11, 1);
     int daysToFirstSundayNov = (DateTime.sunday - novemberFirst.weekday) % 7;
-    DateTime firstSundayNovember = DateTime.utc(year, 11, 1 + daysToFirstSundayNov, 6); // 6 AM UTC
-    
+    DateTime firstSundayNovember =
+        DateTime.utc(year, 11, 1 + daysToFirstSundayNov, 6); // 6 AM UTC
+
     debugPrint('   DST period: $secondSundayMarch to $firstSundayNovember');
     debugPrint('   Current UTC: $utcTime');
-    
-    return utcTime.isAfter(secondSundayMarch) && utcTime.isBefore(firstSundayNovember);
+
+    return utcTime.isAfter(secondSundayMarch) &&
+        utcTime.isBefore(firstSundayNovember);
   }
 
   // Public getter for market status
@@ -404,25 +436,26 @@ class AgenticTradingProvider with ChangeNotifier {
     String effectiveInterval,
   ) {
     final isMarketOpen = _isMarketOpen();
-    
+
     debugPrint('📊 Processing ${snapshot.docs.length} documents');
     debugPrint('   Market status: ${isMarketOpen ? "OPEN" : "CLOSED"}');
     debugPrint('   Selected interval: $effectiveInterval');
-    
+
     // Filter by the selected interval (respect user's choice)
     _tradeSignals = snapshot.docs
         .where((doc) {
           final data = doc.data();
           final interval = data['interval'] as String?;
-          
+
           // Match the selected interval
           // For '1d', include both null (legacy signals) and '1d'
-          final include = effectiveInterval == '1d' 
+          final include = effectiveInterval == '1d'
               ? (interval == null || interval == '1d')
               : (interval == effectiveInterval);
-          
+
           if (include) {
-            debugPrint('   ✅ ${doc.id}: interval=$interval matches selected $effectiveInterval');
+            debugPrint(
+                '   ✅ ${doc.id}: interval=$interval matches selected $effectiveInterval');
           }
           return include;
         })
@@ -492,10 +525,15 @@ class AgenticTradingProvider with ChangeNotifier {
 
       final status = data['status'] as String? ?? 'error';
       final reason = data['reason']?.toString();
-      final intervalLabel = effectiveInterval == '1d' ? 'Daily' :
-                           effectiveInterval == '1h' ? 'Hourly' :
-                           effectiveInterval == '30m' ? '30-min' :
-                           effectiveInterval == '15m' ? '15-min' : effectiveInterval;
+      final intervalLabel = effectiveInterval == '1d'
+          ? 'Daily'
+          : effectiveInterval == '1h'
+              ? 'Hourly'
+              : effectiveInterval == '30m'
+                  ? '30-min'
+                  : effectiveInterval == '15m'
+                      ? '15-min'
+                      : effectiveInterval;
       if (status == 'approved') {
         final proposal =
             Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
@@ -507,7 +545,8 @@ class AgenticTradingProvider with ChangeNotifier {
             (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
         _tradeProposalMessage =
             'Trade proposal approved for $symbol ($intervalLabel).\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
-        _analytics.logEvent(name: 'agentic_trading_trade_approved',
+        _analytics.logEvent(
+            name: 'agentic_trading_trade_approved',
             parameters: {'interval': effectiveInterval});
       } else {
         _lastTradeProposal = null;
@@ -519,7 +558,10 @@ class AgenticTradingProvider with ChangeNotifier {
             'Trade proposal rejected for $symbol ($intervalLabel).\n$message\n$reasonMsg';
         _analytics.logEvent(
             name: 'agentic_trading_trade_rejected',
-            parameters: {'reason': reason ?? message, 'interval': effectiveInterval});
+            parameters: {
+              'reason': reason ?? message,
+              'interval': effectiveInterval
+            });
       }
     } catch (e) {
       // Fallback to local simulation if function call fails
