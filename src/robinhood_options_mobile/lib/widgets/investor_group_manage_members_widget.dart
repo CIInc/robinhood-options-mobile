@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -100,27 +102,42 @@ class _InvestorGroupManageMembersWidgetState
             final isCurrentUser = auth.currentUser?.uid == userId;
 
             return FutureBuilder(
-              future:
-                  widget.firestoreService.userCollection.doc(userId).get(),
+              future: widget.firestoreService.userCollection.doc(userId).get(),
               builder: (context, userSnapshot) {
                 String displayName = 'User';
+                String? subtitle;
+                Widget avatar = const CircleAvatar(
+                  radius: 20,
+                  child: Icon(Icons.account_circle),
+                );
+
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName = user?.name ?? user?.email ?? 'User';
+                  displayName =
+                      user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                  subtitle = user?.email ?? user?.phoneNumber ?? '';
+                  if (user?.photoUrl != null) {
+                    avatar = CircleAvatar(
+                      radius: 20,
+                      backgroundImage:
+                          CachedNetworkImageProvider(user!.photoUrl!),
+                    );
+                  }
                 }
 
+                final roleText = isCreator
+                    ? 'Creator'
+                    : isAdmin
+                        ? 'Admin'
+                        : 'Member';
+                final fullSubtitle = subtitle != null && subtitle.isNotEmpty
+                    ? '$subtitle • $roleText'
+                    : roleText;
+
                 return ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.person),
-                  ),
+                  leading: avatar,
                   title: Text(displayName),
-                  subtitle: Text(
-                    isCreator
-                        ? 'Creator'
-                        : isAdmin
-                            ? 'Admin'
-                            : 'Member',
-                  ),
+                  subtitle: Text(fullSubtitle),
                   trailing: !isCreator && !isCurrentUser
                       ? PopupMenuButton(
                           itemBuilder: (context) => [
@@ -202,21 +219,37 @@ class _InvestorGroupManageMembersWidgetState
             final userId = pendingInvitations[index];
 
             return FutureBuilder(
-              future:
-                  widget.firestoreService.userCollection.doc(userId).get(),
+              future: widget.firestoreService.userCollection.doc(userId).get(),
               builder: (context, userSnapshot) {
                 String displayName = 'User';
+                String? subtitle;
+                Widget avatar = const CircleAvatar(
+                  radius: 20,
+                  child: Icon(Icons.account_circle),
+                );
+
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
                   final user = userSnapshot.data!.data();
-                  displayName = user?.name ?? user?.email ?? 'User';
+                  displayName =
+                      user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                  subtitle = user?.email ?? user?.phoneNumber ?? '';
+                  if (user?.photoUrl != null) {
+                    avatar = CircleAvatar(
+                      radius: 20,
+                      backgroundImage:
+                          CachedNetworkImageProvider(user!.photoUrl!),
+                    );
+                  }
                 }
 
+                final fullSubtitle = subtitle != null && subtitle.isNotEmpty
+                    ? '$subtitle • Invitation pending'
+                    : 'Invitation pending';
+
                 return ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.mail_outline),
-                  ),
+                  leading: avatar,
                   title: Text(displayName),
-                  subtitle: const Text('Invitation pending'),
+                  subtitle: Text(fullSubtitle),
                   trailing: IconButton(
                     icon: const Icon(Icons.cancel, color: Colors.red),
                     tooltip: 'Cancel invitation',
@@ -247,8 +280,8 @@ class _InvestorGroupManageMembersWidgetState
             onChanged: (value) {
               setState(() {
                 _searchTerm = value;
-                _userStream =
-                    widget.firestoreService.searchUsers(searchTerm: _searchTerm);
+                _userStream = widget.firestoreService
+                    .searchUsers(searchTerm: _searchTerm);
               });
             },
           ),
@@ -292,12 +325,24 @@ class _InvestorGroupManageMembersWidgetState
                         return const SizedBox.shrink();
                       }
 
+                      final displayName =
+                          user.name ?? user.providerId?.capitalize() ?? 'Guest';
+                      final subtitle = user.email ?? user.phoneNumber ?? '';
+                      final avatar = user.photoUrl != null
+                          ? CircleAvatar(
+                              radius: 20,
+                              backgroundImage:
+                                  CachedNetworkImageProvider(user.photoUrl!),
+                            )
+                          : const CircleAvatar(
+                              radius: 20,
+                              child: Icon(Icons.account_circle),
+                            );
+
                       return ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person),
-                        ),
-                        title: Text(user.name ?? 'User'),
-                        subtitle: Text(user.email ?? ''),
+                        leading: avatar,
+                        title: Text(displayName),
+                        subtitle: Text(subtitle),
                         trailing: ElevatedButton.icon(
                           onPressed: () async {
                             await _sendInvitation(userId, user.name ?? 'User');
@@ -356,7 +401,8 @@ class _InvestorGroupManageMembersWidgetState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Member'),
-        content: Text('Are you sure you want to remove $displayName from the group?'),
+        content: Text(
+            'Are you sure you want to remove $displayName from the group?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -376,8 +422,8 @@ class _InvestorGroupManageMembersWidgetState
 
     if (confirm == true) {
       try {
-        await widget.firestoreService.removeMemberFromGroup(
-            widget.groupId, userId);
+        await widget.firestoreService
+            .removeMemberFromGroup(widget.groupId, userId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('$displayName removed from group')),
@@ -412,8 +458,8 @@ class _InvestorGroupManageMembersWidgetState
 
   Future<void> _cancelInvitation(String userId, String displayName) async {
     try {
-      await widget.firestoreService.declineGroupInvitation(
-          widget.groupId, userId);
+      await widget.firestoreService
+          .declineGroupInvitation(widget.groupId, userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invitation to $displayName cancelled')),

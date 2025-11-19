@@ -1,10 +1,14 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
+import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
+import 'package:robinhood_options_mobile/widgets/shared_portfolio_widget.dart';
 import 'package:intl/intl.dart';
 
 class InvestorGroupDetailWidget extends StatefulWidget {
@@ -28,8 +32,7 @@ class InvestorGroupDetailWidget extends StatefulWidget {
       _InvestorGroupDetailWidgetState();
 }
 
-class _InvestorGroupDetailWidgetState
-    extends State<InvestorGroupDetailWidget> {
+class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
   bool _isLoading = false;
 
   @override
@@ -57,10 +60,10 @@ class _InvestorGroupDetailWidgetState
         }
 
         final group = snapshot.data!;
-        final isAdmin = auth.currentUser != null &&
-            group.isAdmin(auth.currentUser!.uid);
-        final isMember = auth.currentUser != null &&
-            group.isMember(auth.currentUser!.uid);
+        final isAdmin =
+            auth.currentUser != null && group.isAdmin(auth.currentUser!.uid);
+        final isMember =
+            auth.currentUser != null && group.isMember(auth.currentUser!.uid);
 
         return Scaffold(
           appBar: AppBar(
@@ -139,7 +142,8 @@ class _InvestorGroupDetailWidgetState
                               children: [
                                 Text(
                                   group.name,
-                                  style: Theme.of(context).textTheme.headlineSmall,
+                                  style:
+                                      Theme.of(context).textTheme.headlineSmall,
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
@@ -153,12 +157,14 @@ class _InvestorGroupDetailWidgetState
                                     const SizedBox(width: 4),
                                     Text(
                                       group.isPrivate ? 'Private' : 'Public',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                     const SizedBox(width: 16),
                                     Text(
                                       '${group.members.length} members',
-                                      style: Theme.of(context).textTheme.bodySmall,
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
@@ -241,15 +247,26 @@ class _InvestorGroupDetailWidgetState
             future: widget.firestoreService.userCollection.doc(userId).get(),
             builder: (context, snapshot) {
               String displayName = 'User';
+              Widget avatar = const CircleAvatar(
+                radius: 20,
+                child: Icon(Icons.account_circle),
+              );
+
               if (snapshot.hasData && snapshot.data!.exists) {
                 final user = snapshot.data!.data();
-                displayName = user?.name ?? user?.email ?? 'User';
+                displayName =
+                    user?.name ?? user?.providerId?.capitalize() ?? 'Guest';
+                if (user?.photoUrl != null) {
+                  avatar = CircleAvatar(
+                    radius: 20,
+                    backgroundImage:
+                        CachedNetworkImageProvider(user!.photoUrl!),
+                  );
+                }
               }
 
               return ListTile(
-                leading: const CircleAvatar(
-                  child: Icon(Icons.person),
-                ),
+                leading: avatar,
                 title: Text(displayName),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -262,8 +279,29 @@ class _InvestorGroupDetailWidgetState
                       const Chip(
                         label: Text('Admin', style: TextStyle(fontSize: 12)),
                       ),
+                    if (group.isPrivate) const SizedBox(width: 8),
+                    if (group.isPrivate) const Icon(Icons.chevron_right),
                   ],
                 ),
+                onTap:
+                    group.isPrivate && snapshot.hasData && snapshot.data!.exists
+                        ? () {
+                            final user = snapshot.data!.data();
+                            if (user != null) {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => SharedPortfolioWidget(
+                                    user: user,
+                                    userDoc: snapshot.data!.reference,
+                                    brokerageService: RobinhoodService(),
+                                    firestoreService: widget.firestoreService,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        : null,
               );
             },
           );
@@ -306,7 +344,8 @@ class _InvestorGroupDetailWidgetState
     if (group.createdBy == auth.currentUser!.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Group creator cannot leave. Delete the group instead.'),
+          content:
+              Text('Group creator cannot leave. Delete the group instead.'),
         ),
       );
       return;

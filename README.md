@@ -264,12 +264,12 @@ To deploy the Firestore rules and indexes, use the following command.
 firebase deploy --only firestore
 ```
 
-To export the current Firestore rules and indexes to the local files, use the following command.
+To export the current Firestore indexes to the local files, use the following command.
 
 ```bash
-firebase firestore:rules > ./firebase/firestore.rules
 firebase firestore:indexes > ./firebase/firestore.indexes.json
 # firebase firestore:indexes --export
+#firebase firestore:rules > ./firebase/firestore.rules
 ```
 
 ### Android Play Store
