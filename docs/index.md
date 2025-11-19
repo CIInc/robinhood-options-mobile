@@ -83,14 +83,17 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 
 ### Key Components
 - **Group Creation:** Create public or private investor groups with customizable settings
-- **Member Management:** Join, leave, and manage group memberships
-- **Admin Controls:** Group creators and admins can edit group details and manage members
+- **Member Management:** Join, leave, and manage group memberships with invitation system
+- **Admin Controls:** Group creators and admins can edit group details, manage members, and send invitations
 - **Portfolio Sharing:** View portfolios shared within your groups
+- **Private Group Portfolio Viewing:** Tap any member in a private group to view their shared portfolio including stocks, ETFs, and options orders
 - **Discovery:** Browse and join public groups or search for specific communities
 
 ### User Interface
-- **InvestorGroupsWidget:** Main interface with "My Groups" and "Discover" tabs
-- **Group Details:** View member lists, group information, and shared portfolios
+- **InvestorGroupsWidget:** Main interface with "My Groups", "Invitations", and "Discover" tabs
+- **Group Details:** View member lists with avatars, group information, and tappable members for portfolio viewing (private groups only)
+- **Portfolio Navigation:** Seamless navigation from member list to SharedPortfolioWidget showing real-time orders and transactions
+- **Member Management:** 3-tab interface (Members, Pending, Invite) for admin controls
 - **Creation Form:** Simple form with name, description, and privacy toggle
 
 ### Technical Implementation
@@ -101,8 +104,10 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 
 ### Integration Points
 - **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
+- **Direct Portfolio Access:** Tap member in private group detail view to navigate to SharedPortfolioWidget
 - **Navigation:** Access via drawer menu under "Investor Groups"
 - **User Model:** Utilizes existing `sharedGroups` field for membership tracking
+- **Real-Time Updates:** StreamBuilder for Firestore user documents ensures live portfolio data
 
 ### Security
 - Private groups visible only to members
@@ -111,10 +116,13 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 - Member operations properly authenticated
 
 For implementation details, see:
-- `lib/model/investor_group.dart` - Data model
+- `lib/model/investor_group.dart` - Data model with member/admin/invitation tracking
 - `lib/model/investor_group_store.dart` - State management
-- `lib/services/firestore_service.dart` - Backend operations
-- `lib/widgets/investor_groups_widget.dart` - Main UI
+- `lib/services/firestore_service.dart` - Backend operations (15+ methods)
+- `lib/widgets/investor_groups_widget.dart` - Main UI with 3-tab layout
+- `lib/widgets/investor_group_detail_widget.dart` - Group details with member list and portfolio navigation
+- `lib/widgets/investor_group_manage_members_widget.dart` - Admin member management interface
+- `lib/widgets/shared_portfolio_widget.dart` - Portfolio display widget
 - `firebase/firestore.rules` - Security rules
 
 ## Requirements
@@ -359,11 +367,13 @@ flutter test test/user_model_test.dart
 - [x] Public and private group options
 - [x] Portfolio sharing within groups
 - [x] Admin controls and member management
+- [x] Invitation system with accept/decline workflow
+- [x] Direct portfolio viewing for private group members
+- [x] Member list with avatars and role indicators
 - [ ] Group chat/messaging functionality
 - [ ] Group performance analytics and leaderboards
 - [ ] Activity feed for group trades
 - [ ] Group-based watchlists
-- [ ] Invitation system for private groups
 
 ### Trade Signals & AI Trading
 - [x] Multi-indicator correlation system

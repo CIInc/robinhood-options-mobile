@@ -12,6 +12,11 @@ All notable changes to this project will be documented in this file.
   - Group admin controls for editing and deleting groups
   - Integration with Shared Portfolios via new "Groups" tab
   - Firestore security rules for group access control
+  - **Private Group Portfolio Viewing:**
+    - Tap on member in private group to view their shared portfolio
+    - Navigation to SharedPortfolioWidget showing stocks/ETFs and options orders
+    - Consistent avatar display using CachedNetworkImageProvider
+    - Privacy-aware: portfolio viewing only available in private groups
   - **Member Management & Invitations:**
     - Admin interface to manage group members with 3-tab layout (Members, Pending, Invite)
     - Real-time user search functionality to find and invite users
