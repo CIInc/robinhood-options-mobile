@@ -142,7 +142,7 @@ class AgenticTradingProvider with ChangeNotifier {
       final doc = await FirebaseFirestore.instance
           .collection('agentic_trading')
           .doc(docId)
-          .get();
+          .get(const GetOptions(source: Source.server));
       if (doc.exists && doc.data() != null) {
         _tradeSignal = doc.data();
 

@@ -4528,6 +4528,9 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
         portfolioState: portfolioState,
       );
 
+      // Wait briefly to ensure Firestore write has completed
+      await Future.delayed(const Duration(milliseconds: 500));
+
       // Refresh the signal from Firestore
       await provider.fetchTradeSignal(widget.instrument.symbol);
 
