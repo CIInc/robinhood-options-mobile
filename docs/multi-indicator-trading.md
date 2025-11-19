@@ -262,11 +262,22 @@ await provider.fetchTradeSignal(symbol, interval: '1d');
 
 ### Market Hours Intelligence
 
-The system automatically filters signals based on market hours:
+The system automatically filters signals based on market hours with DST awareness:
 
 - **During market hours (9:30 AM - 4:00 PM ET, Mon-Fri)**: Shows intraday signals (15m, 1h)
 - **After market hours**: Shows daily signals
 - **Weekends**: Shows daily signals
+- **DST Support**: Automatically adjusts for Daylight Saving Time transitions
+- **Visual Indicators:** 
+  - Green "Market Open" chip/banner during trading hours
+  - Blue "After Hours" chip/banner outside trading hours
+  - Displays current interval (15m, 1h, Daily)
+
+**Implementation:**
+- `isMarketOpen` getter in `AgenticTradingProvider` exposes market status
+- Checks current time against ET market hours (9:30 AM - 4:00 PM)
+- Handles DST transitions automatically via timezone-aware DateTime calculations
+- Used for intelligent default interval selection and UI display
 
 ### Backend Cron Jobs
 
@@ -284,6 +295,7 @@ The system automatically filters signals based on market hours:
 - Schedule: `0 16 * * mon-fri` (4:00 PM ET)
 - Generates daily interval signals
 - Runs after market close
+- **Manual Execution:** Can be triggered via callable/HTTP endpoint (`runAgenticTradingCron`) for ad-hoc signal generation
 
 ### Signal Storage Schema
 
@@ -487,7 +499,12 @@ The `fetchAllTradeSignals()` function in `AgenticTradingProvider` supports optio
 - `startDate`: Filter signals after this date
 - `endDate`: Filter signals before this date
 - `symbols`: Filter by specific symbols (max 30 due to Firestore `whereIn` limit)
-- `limit`: Limit number of results (default: 50)
+- `limit`: Limit number of results (default: 50 for intraday, 500 for daily)
+
+**Query Limits:**
+- Daily signals: 500 documents (increased to handle mixed interval data)
+- Intraday signals: 200 documents
+- Higher limit for daily prevents truncation when intraday signals are present
 
 **Example Usage:**
 ```dart
@@ -530,7 +547,15 @@ The Agentic Trading Settings screen displays:
 
 #### Search Tab - Trade Signals Section
 
-The Search tab includes a Trade Signals section with filtering capabilities:
+The Search tab includes a Trade Signals section with filtering capabilities and market status indicators:
+
+**Market Status Display:**
+- Market status chip in filter area showing current state
+- Color-coded indicators:
+  - Green with clock icon: "Market Open • [Interval]"
+  - Blue with calendar icon: "After Hours • [Interval]"
+- Real-time updates during market open/close transitions
+- Displays currently selected interval (15m, 1h, Daily)
 
 **Filter UI:**
 - FilterChips for signal types: All, BUY, SELL, HOLD
@@ -538,6 +563,7 @@ The Search tab includes a Trade Signals section with filtering capabilities:
   - BUY: Green background with green checkmark
   - SELL: Red background with red checkmark
   - HOLD: Grey background with grey checkmark
+- "All" filter now correctly includes HOLD signals
 - Manual refresh button (icon button with refresh icon)
 - Empty state messages when no signals match filters
 

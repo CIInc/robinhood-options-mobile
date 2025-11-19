@@ -2,42 +2,78 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## [0.15.0] - 2025-11-18
 
 ### Added
-- Investor Groups feature for collaborative portfolio sharing:
-  - Create public or private investor groups
-  - Join and leave groups with member management
-  - View group details, members, and portfolios
-  - Group admin controls for editing and deleting groups
-  - Integration with Shared Portfolios via new "Groups" tab
-  - Firestore security rules for group access control
-  - **Private Group Portfolio Viewing:**
-    - Tap on member in private group to view their shared portfolio
-    - Navigation to SharedPortfolioWidget showing stocks/ETFs and options orders
-    - Consistent avatar display using CachedNetworkImageProvider
-    - Privacy-aware: portfolio viewing only available in private groups
+- **Investor Groups** - Complete collaborative portfolio sharing system:
+  - Create public or private investor groups with admin controls
+  - Join and leave groups with comprehensive member management
+  - View group details, member lists with avatars, and shared portfolios
   - **Member Management & Invitations:**
-    - Admin interface to manage group members with 3-tab layout (Members, Pending, Invite)
-    - Real-time user search functionality to find and invite users
-    - Send invitations to join groups
-    - Accept or decline group invitations from dedicated "Invitations" tab
-    - Promote/demote admin roles
-    - Remove members from groups
-    - View and cancel pending invitations
-- InvestorGroup model with full serialization support including pending invitations tracking
-- Comprehensive Firestore service methods for group CRUD operations and invitation management (15+ methods)
-- Unit tests for InvestorGroup model functionality including invitation features (230+ lines)
-- Navigation drawer menu item for accessing investor groups
+    - Admin interface with 3-tab layout (Members, Pending, Invite)
+    - Real-time user search to find and invite users
+    - Send, accept, decline, and cancel invitations
+    - Promote/demote admin roles and remove members
+    - Dedicated "Invitations" tab for pending invitations
+  - **Private Group Portfolio Viewing:**
+    - Tap any member in private group to view their shared portfolio
+    - Navigation to SharedPortfolioWidget showing stocks/ETFs and options orders
+    - Privacy-aware: portfolio viewing only in private groups
+  - Integration with Shared Portfolios via new "Groups" tab
+  - InvestorGroup model with full JSON serialization
+  - 15+ Firestore service methods for CRUD, membership, and discovery
+  - Enhanced Firestore security rules for group access control
+  - Unit tests for InvestorGroup model (230+ lines)
+  - Navigation drawer menu item for accessing investor groups
+- **Market Status Indicators** for trade signal clarity:
+  - Market status chip in Search widget filter area
+  - Market status banner in Instrument widget above interval selector
+  - Color-coded visual states: Green (Market Open), Blue (After Hours)
+  - DST-aware `isMarketOpen` logic in AgenticTradingProvider
+- **Ad-hoc Cron Endpoint** - Manual execution via callable/HTTP endpoint (`runAgenticTradingCron`)
+- **Code Refactoring:**
+  - Extracted duplicated portfolio state building logic into `_buildPortfolioState()` helper method
+  - Reduced code duplication by ~72 lines in instrument_widget.dart
+
+### Changed
+- **Trade Signal Query Limits:**
+  - Increased daily signal query limit to 500 (from 200) to prevent truncation
+  - Intraday signals remain at 200 document limit
+- **Automatic Interval Selection:**
+  - Intraday intervals (15m/1h) prioritized during market hours
+  - Daily signals emphasized after market close
+  - Intelligent default selection based on market status
+- **"All" Filter Behavior:**
+  - Now correctly includes HOLD signals alongside BUY and SELL
+  - Consistent signal type display across all filters
+- **Portfolio Cash Calculation:**
+  - Uses actual `portfolioCash` from AccountStore for accuracy
+  - Aligns with existing pattern used in Home widget
+  - Fixed Risk Guard button calculation
+
+### Fixed
+- Missing daily signals when intraday signals filled query window (resolved by higher limit)
+- Edge cases at DST boundaries causing incorrect market status display
+- Portfolio state duplication in trade proposal and Risk Guard handlers
+- Type safety in portfolio cash retrieval using proper AccountStore access
+
+### Performance
+- Fewer missed daily signals with increased retrieval limit
+- Reduced unnecessary interval queries through explicit market status
+- Centralized portfolio state logic for maintainability
 
 ### Technical Details
-- **Files Changed:** 21 files, +2,418 lines
-- **Models:** `InvestorGroup` with JSON serialization, member/admin/invitation tracking
-- **State:** `InvestorGroupStore` ChangeNotifier integrated into MultiProvider
+- **Files Changed:** 21 files for Investor Groups (+2,418 lines)
+- **Models:** InvestorGroup with member/admin/invitation tracking
+- **State:** InvestorGroupStore ChangeNotifier in MultiProvider
 - **UI Widgets:** InvestorGroupsWidget, InvestorGroupDetailWidget, InvestorGroupCreateWidget, InvestorGroupManageMembersWidget
-- **Backend:** 15+ Firestore service methods for CRUD, membership, invitations, and discovery
-- **Security:** Enhanced Firestore rules for group access control including invitation access
-- Placeholder for upcoming changes.
+- **Backend:** FirestoreService with 15+ methods for groups
+- **Security:** Firestore rules for public/private group access
+
+### Documentation
+- Updated multi-indicator-trading.md with market status features
+- Added Investor Groups documentation to docs/index.md
+- Enhanced copilot-instructions.md with group patterns
 
 ## 0.14.3 - 2025-11-18
 

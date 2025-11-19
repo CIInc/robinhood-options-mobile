@@ -46,11 +46,22 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
 - **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
 - **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours
+  - DST-aware market status detection
+  - Intelligent default interval selection based on trading hours
+  - Automatic switching between signal types
+- **Market Status Indicators:** Visual feedback showing current market state
+  - Market status chip in Search widget filter area
+  - Market status banner in Instrument widget above interval selector
+  - Color-coded states: Green (Market Open), Blue (After Hours)
+  - Real-time updates for market open/close transitions
 - **Agentic Trading:** Automated agents (Alpha Agent, Risk Guard) monitor markets and execute trades
 - **Risk Assessment:** Comprehensive risk analysis before trade execution with portfolio-aware decision making
 - **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with interval labels, dates, and confidence scores
 - **Server-Side Filtering:** Efficient signal filtering by type (BUY/SELL/HOLD), date range, symbols, and interval with Firestore queries
+  - Increased daily signal query limit to 500 to handle mixed interval data
+  - "All" filter now correctly includes HOLD signals
 - **State Synchronization:** Real-time updates across Instrument View and Search View when signals are regenerated
+- **Manual Execution:** Ad-hoc cron endpoint for manual signal generation via callable/HTTP function
 
 ### Signal Filtering & Search
 - **Filter UI:** FilterChips in Search tab for quick filtering by signal type (All/BUY/SELL/HOLD)
@@ -83,24 +94,51 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 
 ### Key Components
 - **Group Creation:** Create public or private investor groups with customizable settings
-- **Member Management:** Join, leave, and manage group memberships with invitation system
-- **Admin Controls:** Group creators and admins can edit group details, manage members, and send invitations
+- **Member Management:** Join, leave, and manage group memberships with comprehensive invitation system
+  - Send invitations to users by searching for them in real-time
+  - Accept or decline invitations from dedicated "Invitations" tab
+  - Cancel pending invitations before they're accepted
+  - View all pending invitations in one place
+- **Admin Controls:** Group creators and admins can manage members with full control
+  - Promote members to admin role
+  - Demote admins back to regular members
+  - Remove members from groups
+  - Send and manage invitations
+  - Edit group details and settings
 - **Portfolio Sharing:** View portfolios shared within your groups
 - **Private Group Portfolio Viewing:** Tap any member in a private group to view their shared portfolio including stocks, ETFs, and options orders
 - **Discovery:** Browse and join public groups or search for specific communities
 
 ### User Interface
 - **InvestorGroupsWidget:** Main interface with "My Groups", "Invitations", and "Discover" tabs
+  - **My Groups:** View all groups you're a member of
+  - **Invitations:** Dedicated tab showing all pending invitations with accept/decline actions
+  - **Discover:** Browse public groups and join new communities
 - **Group Details:** View member lists with avatars, group information, and tappable members for portfolio viewing (private groups only)
 - **Portfolio Navigation:** Seamless navigation from member list to SharedPortfolioWidget showing real-time orders and transactions
-- **Member Management:** 3-tab interface (Members, Pending, Invite) for admin controls
+- **Member Management:** Comprehensive 3-tab admin interface
+  - **Members Tab:** View all members, promote/demote admins, remove members
+  - **Pending Tab:** View and cancel pending invitations
+  - **Invite Tab:** Search users in real-time and send invitations
 - **Creation Form:** Simple form with name, description, and privacy toggle
 
 ### Technical Implementation
-- **InvestorGroup Model:** Full serialization support with member/admin tracking
-- **Firestore Integration:** 10+ service methods for CRUD operations and membership management
-- **Security Rules:** Firestore rules enforce proper access control for private/public groups
-- **State Management:** InvestorGroupStore integrated with Provider pattern
+- **InvestorGroup Model:** Full serialization support with member/admin/invitation tracking
+  - `id`, `name`, `description`, `isPrivate` fields
+  - `members`, `admins`, `pendingInvitations` arrays
+  - `createdBy`, `createdAt`, `updatedAt` timestamps
+- **Firestore Integration:** 15+ service methods for comprehensive functionality
+  - CRUD: `createInvestorGroup`, `getInvestorGroup`, `updateInvestorGroup`, `deleteInvestorGroup`
+  - Membership: `joinInvestorGroup`, `leaveInvestorGroup`, `addGroupAdmin`, `removeGroupAdmin`
+  - Invitations: `inviteUserToGroup`, `acceptGroupInvitation`, `declineGroupInvitation`, `getUserPendingInvitations`
+  - Discovery: `getUserInvestorGroups`, `getPublicInvestorGroups`, `searchInvestorGroups`
+  - Management: `removeMemberFromGroup`
+- **Security Rules:** Firestore rules enforce proper access control
+  - Read access for public groups or members/invitees of private groups
+  - Create access for authenticated users
+  - Update access for creators, admins, or users accepting invitations
+  - Delete access for creators only
+- **State Management:** InvestorGroupStore ChangeNotifier integrated with Provider pattern
 
 ### Integration Points
 - **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
@@ -110,10 +148,12 @@ The Investor Groups feature enables collaborative portfolio sharing and communit
 - **Real-Time Updates:** StreamBuilder for Firestore user documents ensures live portfolio data
 
 ### Security
-- Private groups visible only to members
+- Private groups visible only to members and invitees
 - Public groups discoverable by all users
 - Only group creator and admins can edit/delete groups
+- Only group creator and admins can send invitations
 - Member operations properly authenticated
+- Invitation access controlled via Firestore security rules
 
 For implementation details, see:
 - `lib/model/investor_group.dart` - Data model with member/admin/invitation tracking
@@ -121,9 +161,11 @@ For implementation details, see:
 - `lib/services/firestore_service.dart` - Backend operations (15+ methods)
 - `lib/widgets/investor_groups_widget.dart` - Main UI with 3-tab layout
 - `lib/widgets/investor_group_detail_widget.dart` - Group details with member list and portfolio navigation
-- `lib/widgets/investor_group_manage_members_widget.dart` - Admin member management interface
+- `lib/widgets/investor_group_create_widget.dart` - Group creation form
+- `lib/widgets/investor_group_manage_members_widget.dart` - Admin member management interface with 3 tabs
 - `lib/widgets/shared_portfolio_widget.dart` - Portfolio display widget
 - `firebase/firestore.rules` - Security rules
+- `test/investor_group_model_test.dart` - Unit tests (230+ lines)
 
 ## Requirements
 

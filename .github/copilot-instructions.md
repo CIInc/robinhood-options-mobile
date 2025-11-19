@@ -17,11 +17,12 @@ Quick-start commands an agent can recommend or run (macOS / zsh):
 - Deploy Firebase functions: `cd src/robinhood_options_mobile/functions && npm install && firebase deploy --only functions`.
 
 Architecture notes (what matters to code changes):
-- UI / App state: The app uses `provider` extensively. Look in `src/robinhood_options_mobile/lib/model/` — most business state lives in ChangeNotifier stores (e.g. `PortfolioStore`, `OptionPositionStore`, `QuoteStore`, `AgenticTradingProvider`). Edits to stateful logic should update unit tests where available.
+- UI / App state: The app uses `provider` extensively. Look in `src/robinhood_options_mobile/lib/model/` — most business state lives in ChangeNotifier stores (e.g. `PortfolioStore`, `OptionPositionStore`, `QuoteStore`, `AgenticTradingProvider`, `InvestorGroupStore`). Edits to stateful logic should update unit tests where available.
 - App entrypoint: `lib/main.dart` wires Firebase initialization, providers, and `NavigationStatefulWidget` as the main route. Use this file to understand app-wide initializations (Firebase, AdMob, Firestore emulator flag `shouldUseFirestoreEmulator`).
 - Features behind backend: Sensitive or broker API logic is intentionally hosted in Firebase Functions (`functions/`) — avoid moving secrets into client code. Use functions for brokerage interactions.
 - Generative AI: AI features are proxied through Firebase Functions and the `GenerativeProvider` in `lib/model/generative_provider.dart` (search for `GenerativeProvider`). Prefer server-side usage for API keys and rate-limiting.
-- Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` (daily) or `signals_{SYMBOL}_{INTERVAL}` (intraday) with server-side filtering and real-time Firestore snapshot listeners. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/agentic-trading-cron.ts`, `functions/src/agentic-trading-intraday-cron.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`. Supports multiple intervals (15m, 1h, 1d) with market hours detection.
+- Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` (daily) or `signals_{SYMBOL}_{INTERVAL}` (intraday) with server-side filtering and real-time Firestore snapshot listeners. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/agentic-trading-cron.ts`, `functions/src/agentic-trading-intraday-cron.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`. Supports multiple intervals (15m, 1h, 1d) with DST-aware market hours detection and visual market status indicators.
+- Investor Groups: Collaborative portfolio sharing managed by `InvestorGroupStore` in `lib/model/investor_group_store.dart`. Groups stored in Firestore `investor_groups/{groupId}` with 15+ service methods in `FirestoreService`. Supports public/private groups, member management, real-time invitation system (send/accept/decline/cancel), admin controls (promote/demote/remove), and direct portfolio viewing for private group members. UI includes 3-tab admin interface (Members, Pending, Invite).
 
 Patterns & conventions (concrete examples):
 - State containers are `ChangeNotifier` classes under `lib/model` and provided via `MultiProvider` in `main.dart`. Example: `PortfolioHistoricalsStore` and its selection store `PortfolioHistoricalsSelectionStore` are paired.
@@ -45,11 +46,13 @@ Where to look for tests and minimal verification:
 
 Examples of specific file references an agent can use in patches:
 - App initialization: `src/robinhood_options_mobile/lib/main.dart` (providers, Firebase init, AdMob).
-- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`, `agentic_trading_provider.dart` (includes real-time Firestore subscriptions).
-- Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (filter chips, signal display), `instrument_widget.dart` (single signal view, interval selector).
+- State & model examples: `src/robinhood_options_mobile/lib/model/portfolio_store.dart`, `option_position_store.dart`, `generative_provider.dart`, `agentic_trading_provider.dart` (includes real-time Firestore subscriptions), `investor_group_store.dart`.
+- Trade signals UI: `src/robinhood_options_mobile/lib/widgets/search_widget.dart` (filter chips, signal display, market status indicator), `instrument_widget.dart` (single signal view, interval selector, market status banner).
+- Investor Groups UI: `src/robinhood_options_mobile/lib/widgets/investor_groups_widget.dart` (main 3-tab layout), `investor_group_detail_widget.dart` (member list, portfolio navigation), `investor_group_manage_members_widget.dart` (admin 3-tab interface: Members/Pending/Invite), `investor_group_create_widget.dart` (creation form).
 - Firebase Functions entry: `src/robinhood_options_mobile/functions/` (look for `index.ts` or `lib/` depending on TS/JS layout).
-- Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
+- Backend cron jobs: `src/robinhood_options_mobile/functions/src/agentic-trading-cron.ts` (daily EOD with manual callable endpoint), `agentic-trading-intraday-cron.ts` (hourly and 15-min intervals).
 - Firestore indexes: `src/robinhood_options_mobile/firebase/firestore.indexes.json` (deploy with `firebase deploy --only firestore:indexes`).
+- Firestore rules: `src/robinhood_options_mobile/firebase/firestore.rules` (includes investor_groups rules for public/private access, invitation permissions).
 
 Quick safety checklist before proposing changes:
 1. Does the change expose secrets or API keys? If yes, move to `functions/` + use `firebase secrets`.

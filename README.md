@@ -12,9 +12,9 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Options Chain Viewing:** Displays detailed options chains for various underlying assets.
 *   **Historical Data Analysis:** Fetches and visualizes historical price data for instruments.
 *   **Stock Screener:** Advanced stock filtering by sector, market cap, P/E ratio, dividend yield, price, and volume with quick presets and Yahoo Finance integration.
-*   **Trade Signals:** AI-powered agentic trading with multi-indicator correlation system (price patterns, RSI, market direction, volume) for automatic trade detection and execution. Supports both daily and intraday signals (15-minute, hourly, and daily intervals).
-*   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends).
-*   **Investor Groups:** Create and join investor groups to share portfolios and collaborate with other investors. Support for both public and private groups with admin controls, member management, and portfolio viewing for private group members.
+*   **Trade Signals:** AI-powered agentic trading with multi-indicator correlation system (price patterns, RSI, market direction, volume) for automatic trade detection and execution. Supports both daily and intraday signals (15-minute, hourly, and daily intervals) with real-time Firestore updates and market status indicators.
+*   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends) with personalized investment profile integration.
+*   **Investor Groups:** Create and join investor groups to share portfolios and collaborate with other investors. Includes comprehensive member management with invitation system, admin controls for promoting/demoting members, and direct portfolio viewing for private group members. Features real-time user search and 3-tab admin interface (Members, Pending, Invite).
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 
 
