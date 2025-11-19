@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:intl/intl.dart';
 import '../model/user.dart';
 import '../model/instrument_order.dart';
@@ -15,12 +19,17 @@ class SharedPortfolioWidget extends StatelessWidget {
   final DocumentReference<User> userDoc;
   final IBrokerageService brokerageService;
   final FirestoreService firestoreService;
+  final BrokerageUser? currentUser;
+  final CopyTradeSettings? copyTradeSettings;
+  
   const SharedPortfolioWidget({
     super.key,
     required this.user,
     required this.userDoc,
     required this.brokerageService,
     required this.firestoreService,
+    this.currentUser,
+    this.copyTradeSettings,
   });
 
   @override
@@ -129,7 +138,17 @@ class SharedPortfolioWidget extends StatelessWidget {
                             ),
                             trailing: Wrap(
                               spacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
+                                if (currentUser != null &&
+                                    auth.currentUser != null &&
+                                    o.state == 'filled')
+                                  CopyTradeButtonWidget(
+                                    brokerageService: brokerageService,
+                                    currentUser: currentUser!,
+                                    instrumentOrder: o,
+                                    settings: copyTradeSettings,
+                                  ),
                                 Text(
                                   o.price != null && o.quantity != null
                                       ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
@@ -211,16 +230,29 @@ class SharedPortfolioWidget extends StatelessWidget {
                           "${o.chainSymbol} \$${o.legs.isNotEmpty ? formatCompactNumber.format(o.legs.first.strikePrice) : ''} ${o.strategy} ${o.legs.isNotEmpty && o.legs.first.expirationDate != null ? formatCompactDate.format(o.legs.first.expirationDate!) : ''}",
                         ),
                         subtitle: subtitle,
-                        trailing: Wrap(spacing: 8, children: [
-                          Text(
-                            (o.direction == "credit" ? "+" : "-") +
-                                (o.processedPremium != null
-                                    ? formatCurrency.format(o.processedPremium)
-                                    : ""),
-                            style: const TextStyle(fontSize: 18.0),
-                            textAlign: TextAlign.right,
-                          )
-                        ]),
+                        trailing: Wrap(
+                            spacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (currentUser != null &&
+                                  auth.currentUser != null &&
+                                  o.state == 'filled')
+                                CopyTradeButtonWidget(
+                                  brokerageService: brokerageService,
+                                  currentUser: currentUser!,
+                                  optionOrder: o,
+                                  settings: copyTradeSettings,
+                                ),
+                              Text(
+                                (o.direction == "credit" ? "+" : "-") +
+                                    (o.processedPremium != null
+                                        ? formatCurrency
+                                            .format(o.processedPremium)
+                                        : ""),
+                                style: const TextStyle(fontSize: 18.0),
+                                textAlign: TextAlign.right,
+                              )
+                            ]),
                         isThreeLine: o.optionEvents != null &&
                             o.optionEvents!.isNotEmpty,
                         onTap: () {},

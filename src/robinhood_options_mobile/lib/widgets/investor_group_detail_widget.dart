@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared_portfolio_widget.dart';
 import 'package:intl/intl.dart';
@@ -187,7 +188,18 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                       ),
                       const SizedBox(height: 16),
                       if (auth.currentUser != null) ...[
-                        if (isMember)
+                        if (isMember) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading
+                                  ? null
+                                  : () => _showCopyTradeSettings(context, group),
+                              icon: const Icon(Icons.content_copy),
+                              label: const Text('Copy Trade Settings'),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
@@ -201,8 +213,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                 foregroundColor: Colors.white,
                               ),
                             ),
-                          )
-                        else
+                          ),
+                        ] else
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
@@ -288,6 +300,11 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                         ? () {
                             final user = snapshot.data!.data();
                             if (user != null) {
+                              // Get copy trade settings for this user if viewing their own settings
+                              final copyTradeSettings = auth.currentUser != null
+                                  ? group.getCopyTradeSettings(auth.currentUser!.uid)
+                                  : null;
+                              
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -296,6 +313,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                                     userDoc: snapshot.data!.reference,
                                     brokerageService: RobinhoodService(),
                                     firestoreService: widget.firestoreService,
+                                    currentUser: widget.brokerageUser,
+                                    copyTradeSettings: copyTradeSettings,
                                   ),
                                 ),
                               );
@@ -373,6 +392,18 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showCopyTradeSettings(BuildContext context, InvestorGroup group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CopyTradeSettingsWidget(
+          group: group,
+          firestoreService: widget.firestoreService,
+        ),
+      ),
+    );
   }
 
   void _showManageMembersScreen(BuildContext context, InvestorGroup group) {

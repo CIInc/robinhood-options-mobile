@@ -1,5 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Copy trade settings for a member in an investor group
+class CopyTradeSettings {
+  bool enabled;
+  String? targetUserId; // User whose trades to copy
+  bool autoExecute; // If true, automatically execute trades
+  double? maxQuantity; // Maximum quantity to copy
+  double? maxAmount; // Maximum dollar amount to copy
+  bool? overridePrice; // If true, use current market price instead of copied price
+
+  CopyTradeSettings({
+    this.enabled = false,
+    this.targetUserId,
+    this.autoExecute = false,
+    this.maxQuantity,
+    this.maxAmount,
+    this.overridePrice = false,
+  });
+
+  CopyTradeSettings.fromJson(Map<String, Object?> json)
+      : enabled = json['enabled'] as bool? ?? false,
+        targetUserId = json['targetUserId'] as String?,
+        autoExecute = json['autoExecute'] as bool? ?? false,
+        maxQuantity = json['maxQuantity'] as double?,
+        maxAmount = json['maxAmount'] as double?,
+        overridePrice = json['overridePrice'] as bool? ?? false;
+
+  Map<String, Object?> toJson() {
+    return {
+      'enabled': enabled,
+      'targetUserId': targetUserId,
+      'autoExecute': autoExecute,
+      'maxQuantity': maxQuantity,
+      'maxAmount': maxAmount,
+      'overridePrice': overridePrice,
+    };
+  }
+}
+
 class InvestorGroup {
   String id;
   String name;
@@ -11,6 +49,7 @@ class InvestorGroup {
   DateTime dateCreated;
   DateTime? dateUpdated;
   bool isPrivate; // If true, requires approval to join
+  Map<String, CopyTradeSettings>? memberCopyTradeSettings; // Copy trade settings per member
 
   InvestorGroup({
     required this.id,
@@ -23,6 +62,7 @@ class InvestorGroup {
     required this.dateCreated,
     this.dateUpdated,
     this.isPrivate = true,
+    this.memberCopyTradeSettings,
   });
 
   InvestorGroup.fromJson(Map<String, Object?> json)
@@ -46,6 +86,11 @@ class InvestorGroup {
               : null,
           isPrivate:
               json['isPrivate'] != null ? json['isPrivate'] as bool : true,
+          memberCopyTradeSettings: json['memberCopyTradeSettings'] != null
+              ? (json['memberCopyTradeSettings'] as Map<String, dynamic>).map(
+                  (key, value) => MapEntry(
+                      key, CopyTradeSettings.fromJson(value as Map<String, Object?>)))
+              : null,
         );
 
   Map<String, Object?> toJson() {
@@ -60,6 +105,8 @@ class InvestorGroup {
       'dateCreated': dateCreated,
       'dateUpdated': dateUpdated,
       'isPrivate': isPrivate,
+      'memberCopyTradeSettings': memberCopyTradeSettings?.map(
+          (key, value) => MapEntry(key, value.toJson())),
     };
   }
 
@@ -81,5 +128,14 @@ class InvestorGroup {
 
   bool hasPendingInvitation(String userId) {
     return pendingInvitations?.contains(userId) ?? false;
+  }
+
+  CopyTradeSettings? getCopyTradeSettings(String userId) {
+    return memberCopyTradeSettings?[userId];
+  }
+
+  void setCopyTradeSettings(String userId, CopyTradeSettings settings) {
+    memberCopyTradeSettings ??= {};
+    memberCopyTradeSettings![userId] = settings;
   }
 }
