@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+- Placeholder for upcoming changes.
+
+### Changed
+- Placeholder.
+
+### Fixed
+- Placeholder.
+
+### Performance
+- Placeholder.
+
+## 0.14.3 - 2025-11-18
+
+### Added
+- Market status indicator (chip/banner) reflecting open vs closed trading session.
+- Daily trade signal query limit increased to reduce truncation when intraday intervals saturate results.
+- Ad-hoc callable/HTTP endpoint for daily agentic trading cron (`runAgenticTradingCron`) enabling manual execution.
+- DST-aware `isMarketOpen` logic exposed in `AgenticTradingProvider` for intelligent default interval selection.
+
+### Changed
+- Automatic interval selection: intraday (15m/1h) prioritized during market hours; daily signals emphasized after close.
+- Corrected “All” filter behavior to include HOLD signals consistently alongside BUY and SELL.
+- Improved daily retrieval strategy using higher limit to balance additional intraday volume.
+
+### Fixed
+- Missing daily signals due to prior low limit when intraday signals filled query window.
+- Edge cases at DST boundaries causing incorrect open/close status display.
+
+### Performance
+- Fewer missed daily signals from increased retrieval limit.
+- Reduced unnecessary interval queries through explicit market status state.
+
 ## 0.14.2 - 2025-11-18
 
 ### Added
