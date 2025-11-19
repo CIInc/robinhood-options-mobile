@@ -38,6 +38,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -469,6 +470,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           analytics: widget.analytics,
           observer: widget.observer,
         ),
+        InvestorGroupsWidget(
+          firestoreService: _firestoreService,
+          brokerageUser: userStore.currentUser!,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+        if (userRole == UserRole.admin) ...[
+          UsersWidget(auth,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              brokerageUser: userStore.currentUser!)
+        ]
       ],
     ];
   }
@@ -813,6 +826,29 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                   _onPageChanged(4);
                                 },
                               ),
+                              ListTile(
+                                leading: const Icon(Icons.groups),
+                                title: const Text("Investor Groups"),
+                                selected: _pageIndex == 5,
+                                onTap: () {
+                                  Navigator.pop(context); // close the drawer
+                                  _onPageChanged(5);
+                                },
+                                // onTap: () {
+                                //   Navigator.pop(context); // close the drawer
+                                //   Navigator.push(
+                                //     context,
+                                //     MaterialPageRoute(
+                                //       builder: (context) => InvestorGroupsWidget(
+                                //         firestoreService: _firestoreService,
+                                //         brokerageUser: userStore.currentUser!,
+                                //         analytics: widget.analytics,
+                                //         observer: widget.observer,
+                                //       ),
+                                //     ),
+                                //   );
+                                // },
+                              ),
                             ],
                             // ListTile(
                             //   leading: const Icon(Icons.account_circle),
@@ -917,7 +953,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                             ListTile(
                                 leading: const Icon(Icons.person_search),
                                 title: const Text("Users"),
-                                //selected: false,
+                                // selected: _pageIndex == 6,
+                                // onTap: () {
+                                //   Navigator.pop(context); // close the drawer
+                                //   _onPageChanged(6);
+                                // },
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   Navigator.push(

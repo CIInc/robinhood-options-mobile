@@ -5,16 +5,39 @@ All notable changes to this project will be documented in this file.
 ## Unreleased
 
 ### Added
+- Investor Groups feature for collaborative portfolio sharing:
+  - Create public or private investor groups
+  - Join and leave groups with member management
+  - View group details, members, and portfolios
+  - Group admin controls for editing and deleting groups
+  - Integration with Shared Portfolios via new "Groups" tab
+  - Firestore security rules for group access control
+  - **Private Group Portfolio Viewing:**
+    - Tap on member in private group to view their shared portfolio
+    - Navigation to SharedPortfolioWidget showing stocks/ETFs and options orders
+    - Consistent avatar display using CachedNetworkImageProvider
+    - Privacy-aware: portfolio viewing only available in private groups
+  - **Member Management & Invitations:**
+    - Admin interface to manage group members with 3-tab layout (Members, Pending, Invite)
+    - Real-time user search functionality to find and invite users
+    - Send invitations to join groups
+    - Accept or decline group invitations from dedicated "Invitations" tab
+    - Promote/demote admin roles
+    - Remove members from groups
+    - View and cancel pending invitations
+- InvestorGroup model with full serialization support including pending invitations tracking
+- Comprehensive Firestore service methods for group CRUD operations and invitation management (15+ methods)
+- Unit tests for InvestorGroup model functionality including invitation features (230+ lines)
+- Navigation drawer menu item for accessing investor groups
+
+### Technical Details
+- **Files Changed:** 21 files, +2,418 lines
+- **Models:** `InvestorGroup` with JSON serialization, member/admin/invitation tracking
+- **State:** `InvestorGroupStore` ChangeNotifier integrated into MultiProvider
+- **UI Widgets:** InvestorGroupsWidget, InvestorGroupDetailWidget, InvestorGroupCreateWidget, InvestorGroupManageMembersWidget
+- **Backend:** 15+ Firestore service methods for CRUD, membership, invitations, and discovery
+- **Security:** Enhanced Firestore rules for group access control including invitation access
 - Placeholder for upcoming changes.
-
-### Changed
-- Placeholder.
-
-### Fixed
-- Placeholder.
-
-### Performance
-- Placeholder.
 
 ## 0.14.3 - 2025-11-18
 

@@ -1,64 +1,23 @@
 {
   "indexes": [
     {
-      "collectionGroup": "instrument",
+      "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "fundamentalsObj.market_cap",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "fundamentalsObj.pe_ratio",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "instrument",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "fundamentalsObj.market_cap",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "fundamentalsObj.dividend_yield",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "instrument",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "fundamentalsObj.sector",
+          "fieldPath": "interval",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "fundamentalsObj.market_cap",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "instrument",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "fundamentalsObj.sector",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "fundamentalsObj.market_cap",
+          "fieldPath": "timestamp",
           "order": "DESCENDING"
         },
         {
-          "fieldPath": "fundamentalsObj.pe_ratio",
+          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "agentic_trading",
@@ -71,22 +30,150 @@
         {
           "fieldPath": "timestamp",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
-      "collectionGroup": "agentic_trading",
+      "collectionGroup": "instrument",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "interval",
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.dividend_yield",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.pe_ratio",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.sector",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "timestamp",
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.sector",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.pe_ratio",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isPrivate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "members",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "pendingInvitations",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []

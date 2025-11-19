@@ -14,6 +14,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Stock Screener:** Advanced stock filtering by sector, market cap, P/E ratio, dividend yield, price, and volume with quick presets and Yahoo Finance integration.
 *   **Trade Signals:** AI-powered agentic trading with multi-indicator correlation system (price patterns, RSI, market direction, volume) for automatic trade detection and execution. Supports both daily and intraday signals (15-minute, hourly, and daily intervals).
 *   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends).
+*   **Investor Groups:** Create and join investor groups to share portfolios and collaborate with other investors. Support for both public and private groups with admin controls, member management, and portfolio viewing for private group members.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 
 
@@ -263,6 +264,14 @@ To deploy the Firestore rules and indexes, use the following command.
 firebase deploy --only firestore
 ```
 
+To export the current Firestore indexes to the local files, use the following command.
+
+```bash
+firebase firestore:indexes > ./firebase/firestore.indexes.json
+# firebase firestore:indexes --export
+#firebase firestore:rules > ./firebase/firestore.rules
+```
+
 ### Android Play Store
 
 #### Build app bundle
@@ -300,3 +309,18 @@ If you get an error, see Debugging Notes section above to clean the project.
 ```bash
 flutter test
 ```
+
+## Future Enhancements
+
+This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see the [Future Enhancements](docs/index.md#future-enhancements) section in the documentation.
+
+Key areas of planned development include:
+- **Investor Groups**: Enhanced collaboration features, advanced permissions, group analytics
+- **Trade Signals & AI**: Portfolio-wide analysis, custom agent training, ML model optimization
+- **Social & Community**: User profiles, leaderboards, strategy templates
+- **Portfolio Management**: Multi-broker support, asset allocation tools, tax optimization
+- **Advanced Analytics**: Custom dashboards, backtesting engine, performance attribution
+- **Education**: Interactive tutorials, glossary, strategy guides
+- **Mobile Experience**: Widgets, shortcuts, offline mode, tablet optimization
+
+See the [full documentation](docs/index.md) for detailed descriptions of each planned enhancement.

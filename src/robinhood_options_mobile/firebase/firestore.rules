@@ -59,6 +59,28 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
 
+    match /investor_groups/{groupId} {
+      // Anyone can read public groups, members can read private groups, invited users can read
+      allow read: if resource.data.isPrivate == false || 
+        request.auth.uid != null && (
+          request.auth.uid in resource.data.get('members', []) ||
+          request.auth.uid in resource.data.get('pendingInvitations', [])
+        );
+      // Authenticated users can create groups
+      allow create: if request.auth.uid != null;
+      // Only group admins or creator can update (for invitations and member management)
+      // Users with pending invitations can update to accept/decline
+      allow update: if request.auth.uid != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid in resource.data.get('admins', []) ||
+        request.auth.uid in resource.data.get('pendingInvitations', [])
+      );
+      allow delete: if request.auth.uid != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if
