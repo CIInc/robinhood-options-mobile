@@ -14,6 +14,7 @@ void main() {
         createdBy: 'user123',
         members: ['user123', 'user456', 'user789'],
         admins: ['user123', 'user456'],
+        pendingInvitations: ['user999'],
         dateCreated: now,
         dateUpdated: now,
         isPrivate: true,
@@ -29,6 +30,7 @@ void main() {
       expect(json['createdBy'], equals('user123'));
       expect(json['members'], equals(['user123', 'user456', 'user789']));
       expect(json['admins'], equals(['user123', 'user456']));
+      expect(json['pendingInvitations'], equals(['user999']));
       expect(json['dateCreated'], equals(now));
       expect(json['dateUpdated'], equals(now));
       expect(json['isPrivate'], equals(true));
@@ -48,6 +50,7 @@ void main() {
       expect(deserializedGroup.createdBy, equals('user123'));
       expect(deserializedGroup.members, equals(['user123', 'user456', 'user789']));
       expect(deserializedGroup.admins, equals(['user123', 'user456']));
+      expect(deserializedGroup.pendingInvitations, equals(['user999']));
       expect(deserializedGroup.isPrivate, equals(true));
     });
 
@@ -200,6 +203,35 @@ void main() {
       expect(groups[1].id, equals('group2'));
       expect(groups[1].name, equals('Group 2'));
       expect(groups[1].isPrivate, isFalse);
+    });
+
+    test('InvestorGroup.hasPendingInvitation should correctly identify pending invitations', () {
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123'],
+        pendingInvitations: ['user456', 'user789'],
+        dateCreated: DateTime.now(),
+      );
+
+      expect(group.hasPendingInvitation('user456'), isTrue);
+      expect(group.hasPendingInvitation('user789'), isTrue);
+      expect(group.hasPendingInvitation('user123'), isFalse);
+      expect(group.hasPendingInvitation('user999'), isFalse);
+    });
+
+    test('InvestorGroup should handle null pendingInvitations', () {
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123'],
+        dateCreated: DateTime.now(),
+      );
+
+      expect(group.hasPendingInvitation('user456'), isFalse);
+      expect(group.pendingInvitations, isNull);
     });
   });
 }

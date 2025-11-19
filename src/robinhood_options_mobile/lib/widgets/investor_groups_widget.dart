@@ -26,7 +26,7 @@ class InvestorGroupsWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -78,6 +78,7 @@ class InvestorGroupsWidget extends StatelessWidget {
             bottom: const TabBar(
               tabs: [
                 Tab(icon: Icon(Icons.groups), text: 'My Groups'),
+                Tab(icon: Icon(Icons.mail_outline), text: 'Invitations'),
                 Tab(icon: Icon(Icons.public), text: 'Discover'),
               ],
             ),
@@ -86,6 +87,7 @@ class InvestorGroupsWidget extends StatelessWidget {
         body: TabBarView(
           children: [
             _buildMyGroups(context),
+            _buildPendingInvitations(context),
             _buildPublicGroups(context),
           ],
         ),
@@ -219,6 +221,191 @@ class InvestorGroupsWidget extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildPendingInvitations(BuildContext context) {
+    if (auth.currentUser == null) {
+      return CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.mail_outline, size: 64),
+                  const SizedBox(height: 16),
+                  const Text('Sign in to view invitations'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      showProfile(context, auth, firestoreService, analytics,
+                          observer, brokerageUser);
+                    },
+                    child: const Text('Sign In'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return StreamBuilder(
+      stream: firestoreService.getUserPendingInvitations(auth.currentUser!.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        if (!snapshot.hasData || snapshot.data!.size == 0) {
+          return CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.mail_outline, size: 64),
+                      const SizedBox(height: 16),
+                      const Text('No pending invitations'),
+                      const SizedBox(height: 8),
+                      const Text('You\'ll see invitations here when group admins invite you',
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        final groups = snapshot.data!.docs;
+        return CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(8.0),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final group = groups[index].data();
+
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(
+                            group.name.isNotEmpty
+                                ? group.name[0].toUpperCase()
+                                : 'G',
+                          ),
+                        ),
+                        title: Text(group.name),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (group.description != null)
+                              Text(
+                                group.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            Text(
+                              'Invitation from group admin',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              tooltip: 'Accept',
+                              onPressed: () async {
+                                await _acceptInvitation(context, group);
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              tooltip: 'Decline',
+                              onPressed: () async {
+                                await _declineInvitation(context, group);
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => InvestorGroupDetailWidget(
+                                groupId: group.id,
+                                firestoreService: firestoreService,
+                                brokerageUser: brokerageUser,
+                                analytics: analytics,
+                                observer: observer,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  childCount: groups.length,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _acceptInvitation(BuildContext context, InvestorGroup group) async {
+    if (auth.currentUser == null) return;
+
+    try {
+      await firestoreService.acceptGroupInvitation(
+          group.id, auth.currentUser!.uid);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Joined ${group.name}')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error accepting invitation: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _declineInvitation(BuildContext context, InvestorGroup group) async {
+    if (auth.currentUser == null) return;
+
+    try {
+      await firestoreService.declineGroupInvitation(
+          group.id, auth.currentUser!.uid);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Declined invitation to ${group.name}')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error declining invitation: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildPublicGroups(BuildContext context) {

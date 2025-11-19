@@ -7,6 +7,7 @@ class InvestorGroup {
   String createdBy; // User ID of creator
   List<String> members; // List of user IDs
   List<String>? admins; // List of user IDs who are admins
+  List<String>? pendingInvitations; // List of user IDs with pending invitations
   DateTime dateCreated;
   DateTime? dateUpdated;
   bool isPrivate; // If true, requires approval to join
@@ -18,6 +19,7 @@ class InvestorGroup {
     required this.createdBy,
     required this.members,
     this.admins,
+    this.pendingInvitations,
     required this.dateCreated,
     this.dateUpdated,
     this.isPrivate = true,
@@ -35,6 +37,9 @@ class InvestorGroup {
           admins: json['admins'] != null
               ? List<String>.from(json['admins'] as Iterable<dynamic>)
               : null,
+          pendingInvitations: json['pendingInvitations'] != null
+              ? List<String>.from(json['pendingInvitations'] as Iterable<dynamic>)
+              : null,
           dateCreated: (json['dateCreated'] as Timestamp).toDate(),
           dateUpdated: json['dateUpdated'] != null
               ? (json['dateUpdated'] as Timestamp).toDate()
@@ -51,6 +56,7 @@ class InvestorGroup {
       'createdBy': createdBy,
       'members': members,
       'admins': admins,
+      'pendingInvitations': pendingInvitations,
       'dateCreated': dateCreated,
       'dateUpdated': dateUpdated,
       'isPrivate': isPrivate,
@@ -71,5 +77,9 @@ class InvestorGroup {
 
   bool isAdmin(String userId) {
     return admins?.contains(userId) ?? false || createdBy == userId;
+  }
+
+  bool hasPendingInvitation(String userId) {
+    return pendingInvitations?.contains(userId) ?? false;
   }
 }

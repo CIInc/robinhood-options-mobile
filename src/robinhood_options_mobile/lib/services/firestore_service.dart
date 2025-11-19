@@ -947,6 +947,87 @@ class FirestoreService {
       rethrow;
     }
   }
+
+  /// Send an invitation to a user to join an investor group
+  Future<void> inviteUserToGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("Invitation sent to user $userId for group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to invite user to group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Accept an invitation to join an investor group
+  Future<void> acceptGroupInvitation(String groupId, String userId) async {
+    try {
+      // Remove from pending invitations and add to members
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayRemove([userId]),
+        'members': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayUnion([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId accepted invitation to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to accept group invitation: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Decline an invitation to join an investor group
+  Future<void> declineGroupInvitation(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId declined invitation to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to decline group invitation: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove a member from an investor group (admin action)
+  Future<void> removeMemberFromGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayRemove([userId]),
+        'admins': FieldValue.arrayRemove([userId]), // Also remove from admins if present
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayRemove([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId removed from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to remove member from group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get all groups where user has a pending invitation
+  Stream<QuerySnapshot<InvestorGroup>> getUserPendingInvitations(String userId) {
+    return investorGroupCollection
+        .where('pendingInvitations', arrayContains: userId)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
 }
 
 // /// The different ways that we can filter/sort instruments.

@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:intl/intl.dart';
 
 class InvestorGroupDetailWidget extends StatefulWidget {
@@ -69,6 +70,16 @@ class _InvestorGroupDetailWidgetState
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     const PopupMenuItem(
+                      value: 'manage_members',
+                      child: Row(
+                        children: [
+                          Icon(Icons.people),
+                          SizedBox(width: 8),
+                          Text('Manage Members'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
@@ -91,7 +102,9 @@ class _InvestorGroupDetailWidgetState
                     ),
                   ],
                   onSelected: (value) {
-                    if (value == 'edit') {
+                    if (value == 'manage_members') {
+                      _showManageMembersScreen(context, group);
+                    } else if (value == 'edit') {
                       _showEditGroupDialog(context, group);
                     } else if (value == 'delete') {
                       _showDeleteConfirmDialog(context, group);
@@ -321,6 +334,21 @@ class _InvestorGroupDetailWidgetState
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showManageMembersScreen(BuildContext context, InvestorGroup group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => InvestorGroupManageMembersWidget(
+          groupId: widget.groupId,
+          group: group,
+          firestoreService: widget.firestoreService,
+          analytics: widget.analytics,
+          observer: widget.observer,
+        ),
+      ),
+    );
   }
 
   void _showEditGroupDialog(BuildContext context, InvestorGroup group) {
