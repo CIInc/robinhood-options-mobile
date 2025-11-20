@@ -275,15 +275,24 @@ async function createCopyTradeRecord(data: any): Promise<void> {
 }
 
 /**
- * Note: Actual order execution would require:
- * 1. Brokerage API credentials for the target user
- * 2. Proper authentication and authorization
- * 3. Risk management and validation
- * 4. Error handling and retry logic
- * 5. Notification system for users
+ * Note on Order Execution:
  * 
- * This implementation creates copy trade records that can be:
- * - Reviewed by users before execution (manual confirmation)
- * - Processed by a separate service that handles order placement
- * - Used for audit and compliance purposes
+ * This backend implementation creates copy trade records but does NOT execute
+ * orders directly because:
+ * 
+ * 1. Security: Backend doesn't have direct access to user brokerage credentials
+ * 2. User Control: Users must authorize trades through their devices
+ * 3. Risk Management: Orders should be validated on the client with current market data
+ * 
+ * Order execution happens on the client side (copy_trade_button_widget.dart) where:
+ * - User authentication is properly handled
+ * - Orders are placed via the IBrokerageService
+ * - Users can review and confirm before execution
+ * - Real-time market data is available
+ * 
+ * This backend's role is to:
+ * - Monitor trades from users being copied
+ * - Create audit records in copy_trades collection
+ * - Provide data for copy trade history and analytics
+ * - Enable future notification system for pending copy trades
  */

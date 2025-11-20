@@ -24,7 +24,9 @@ When viewing another member's portfolio in a private group:
 - A copy button appears next to each filled order (stocks, ETFs, and options)
 - Clicking the button shows a confirmation dialog with trade details
 - Settings are applied automatically (quantity/amount limits)
-- User confirms before the trade is copied
+- User confirms before the trade is executed
+- **Orders are immediately placed** via the brokerage service
+- Success/error feedback shown with color-coded messages
 
 ### 3. Automated Copy Trading
 
@@ -33,7 +35,8 @@ When auto-execute is enabled:
 - Backend Firebase functions monitor new trades from the target user
 - Trades are automatically filtered based on your settings
 - Copy trade records are created for audit purposes
-- Orders are placed on your behalf (requires implementation)
+- **Note**: Automatic order execution requires client-side implementation for security
+- Users will need to review and execute pending copy trades manually
 
 ## User Interface
 
@@ -135,10 +138,11 @@ Firestore rules for `copy_trades` collection:
 
 ### High Priority
 
-1. **Actual Order Execution**: Implement the brokerage API integration to execute copied orders
+1. ~~**Actual Order Execution**: Implement the brokerage API integration to execute copied orders~~ ✅ **COMPLETED**
 2. **Notifications**: Notify users when trades are copied
 3. **Copy Trade Dashboard**: View history of all copied trades
 4. **Approval Workflow**: Review and approve auto-copied trades before execution
+5. **Auto-Execute for Copy Trades**: Implement client-side automatic execution for flagged copy trades
 
 ### Medium Priority
 
@@ -176,7 +180,10 @@ Tests are included in `test/investor_group_model_test.dart`:
 - [ ] Click copy button on a trade
 - [ ] Verify confirmation dialog shows correct details
 - [ ] Verify limits are applied correctly
+- [ ] Confirm the order is placed successfully
+- [ ] Check order appears in your account
 - [ ] Test with both stock and option orders
+- [ ] Verify error handling for failed orders
 
 ### Backend Function Testing
 
@@ -212,15 +219,17 @@ firebase deploy --only firestore:rules
 
 ## Limitations
 
-1. **No Actual Execution**: The current implementation creates copy trade records but doesn't execute orders. This requires brokerage API integration.
+1. ~~**No Actual Execution**: The current implementation creates copy trade records but doesn't execute orders.~~ ✅ **FIXED** - Manual copy trades now execute immediately via brokerage API.
 
-2. **Single Target**: Users can only copy from one member per group at a time.
+2. **Auto-Execute Not Implemented**: While manual copy trades work, automatic execution when auto-execute is enabled still requires implementation.
 
-3. **No Inverse Copying**: Cannot automatically do the opposite of another user's trades.
+3. **Single Target**: Users can only copy from one member per group at a time.
 
-4. **No Filtering**: Cannot filter by symbol, time, or other criteria (yet).
+4. **No Inverse Copying**: Cannot automatically do the opposite of another user's trades.
 
-5. **Manual Price Override**: The "override price" setting requires fetching current quotes, not yet implemented.
+5. **No Filtering**: Cannot filter by symbol, time, or other criteria (yet).
+
+6. **Manual Price Override**: The "override price" setting requires fetching current quotes, not yet implemented.
 
 ## Security Considerations
 
