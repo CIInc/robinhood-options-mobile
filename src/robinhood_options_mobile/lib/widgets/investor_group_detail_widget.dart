@@ -9,7 +9,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shared_portfolio_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_member_detail_widget.dart';
 import 'package:intl/intl.dart';
 
 class InvestorGroupDetailWidget extends StatefulWidget {
@@ -339,7 +339,8 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => SharedPortfolioWidget(
+                                  builder: (context) =>
+                                      InvestorGroupsMemberDetailWidget(
                                     user: user,
                                     userDoc: snapshot.data!.reference,
                                     brokerageService: RobinhoodService(),
