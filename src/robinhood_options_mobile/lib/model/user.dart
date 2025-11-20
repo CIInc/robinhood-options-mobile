@@ -22,9 +22,7 @@ class User {
   List<Account> accounts = [];
   bool persistToFirebase;
   bool refreshQuotes;
-  List<String>? sharedWith;
-  List<String>? sharedGroups;
-  bool? isPublic;
+
   // Investment Profile fields
   String? investmentGoals;
   String? timeHorizon;
@@ -48,9 +46,6 @@ class User {
       required this.accounts,
       this.persistToFirebase = true,
       this.refreshQuotes = false,
-      this.sharedWith,
-      this.sharedGroups,
-      this.isPublic,
       this.investmentGoals,
       this.timeHorizon,
       this.riskTolerance,
@@ -89,14 +84,6 @@ class User {
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
                 : true,
-            sharedWith: json['sharedWith'] != null
-                ? List<String>.from(json['sharedWith'] as Iterable<dynamic>)
-                : null,
-            sharedGroups: json['sharedGroups'] != null
-                ? List<String>.from(json['sharedGroups'] as Iterable<dynamic>)
-                : null,
-            isPublic:
-                json['isPublic'] != null ? json['isPublic'] as bool : null,
             investmentGoals: json['investmentGoals'] as String?,
             timeHorizon: json['timeHorizon'] as String?,
             riskTolerance: json['riskTolerance'] as String?,
@@ -122,9 +109,6 @@ class User {
       'accounts': accounts.map((e) => e.toJson()).toList(),
       'persistToFirebase': persistToFirebase,
       'refreshQuotes': refreshQuotes,
-      'sharedWith': sharedWith,
-      'sharedGroups': sharedGroups,
-      'isPublic': isPublic,
       'investmentGoals': investmentGoals,
       'timeHorizon': timeHorizon,
       'riskTolerance': riskTolerance,

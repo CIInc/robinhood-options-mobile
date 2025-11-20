@@ -21,7 +21,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
-import 'package:robinhood_options_mobile/widgets/share_portfolio_widget.dart';
+
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -517,34 +517,6 @@ class _UserWidgetState extends State<UserWidget> {
                                               },
                                               secondary: const Icon(
                                                   Icons.cloud_upload_outlined),
-                                            ),
-                                            SharePortfolioWidget(
-                                              userId: userDocumentReference!.id,
-                                              firestoreService:
-                                                  _firestoreService,
-                                              initialSharedWith:
-                                                  user.sharedWith,
-                                              initialSharedGroups:
-                                                  user.sharedGroups,
-                                              initialIsPublic: user.isPublic,
-                                              // When sharing settings change, update Firestore
-                                              // onSharingChanged: (sharedWith,
-                                              //     sharedGroups,
-                                              //     isPublic) async {
-                                              //   await _firestoreService
-                                              //       .setPortfolioSharing(
-                                              //     userDocumentReference!.id,
-                                              //     sharedWithUserIds: sharedWith,
-                                              //     sharedGroups: sharedGroups,
-                                              //     isPublic: isPublic,
-                                              //   );
-                                              //   ScaffoldMessenger.of(context)
-                                              //       .showSnackBar(
-                                              //     const SnackBar(
-                                              //         content: Text(
-                                              //             'Sharing settings updated!')),
-                                              //   );
-                                              // },
                                             ),
                                           ]),
                                     ],
