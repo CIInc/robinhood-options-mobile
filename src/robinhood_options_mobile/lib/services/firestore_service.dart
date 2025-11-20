@@ -13,6 +13,7 @@ import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/group_message.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -221,10 +222,10 @@ class FirestoreService {
   }
 
   /// Advanced Stock Screener
-  /// 
+  ///
   /// Queries the Firestore `instrument` collection with multiple filter criteria
   /// to find stocks matching specific investment parameters.
-  /// 
+  ///
   /// **Parameters:**
   /// - [sector]: Filter by company sector (e.g., 'Technology Services', 'Finance')
   /// - [marketCapMin]/[marketCapMax]: Market capitalization range in USD
@@ -233,9 +234,9 @@ class FirestoreService {
   /// - [limit]: Maximum number of results to return (default: 100)
   /// - [sort]: Field to sort by (default: 'fundamentalsObj.market_cap')
   /// - [sortDescending]: Sort direction (default: true)
-  /// 
+  ///
   /// **Returns:** List of [Instrument] objects matching the criteria
-  /// 
+  ///
   /// **Example:**
   /// ```dart
   /// var results = await firestoreService.stockScreener(
@@ -246,7 +247,7 @@ class FirestoreService {
   ///   peMax: 30,
   /// );
   /// ```
-  /// 
+  ///
   /// **Note:** Requires Firestore composite indexes to be deployed.
   /// See `firebase/firestore.indexes.json` for index definitions.
   Future<List<Instrument>> stockScreener({
@@ -805,7 +806,8 @@ class FirestoreService {
       // Update the group with its own ID
       group.id = docRef.id;
       await docRef.update({'id': docRef.id});
-      debugPrint("Investor group created with ID: ${docRef.id} - ${group.name}");
+      debugPrint(
+          "Investor group created with ID: ${docRef.id} - ${group.name}");
       return docRef;
     } on FirebaseException catch (e) {
       debugPrint('Failed to create investor group: ${e.message}');
@@ -1004,7 +1006,8 @@ class FirestoreService {
     try {
       await investorGroupCollection.doc(groupId).update({
         'members': FieldValue.arrayRemove([userId]),
-        'admins': FieldValue.arrayRemove([userId]), // Also remove from admins if present
+        'admins': FieldValue.arrayRemove(
+            [userId]), // Also remove from admins if present
         'dateUpdated': DateTime.now(),
       });
 
@@ -1022,11 +1025,71 @@ class FirestoreService {
   }
 
   /// Get all groups where user has a pending invitation
-  Stream<QuerySnapshot<InvestorGroup>> getUserPendingInvitations(String userId) {
+  Stream<QuerySnapshot<InvestorGroup>> getUserPendingInvitations(
+      String userId) {
     return investorGroupCollection
         .where('pendingInvitations', arrayContains: userId)
         .orderBy('dateCreated', descending: true)
         .snapshots();
+  }
+
+  /// Group Chat Methods
+
+  /// Get messages for a group
+  Stream<QuerySnapshot<GroupMessage>> getGroupMessages(String groupId) {
+    return investorGroupCollection
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .withConverter<GroupMessage>(
+          fromFirestore: (snapshots, _) => GroupMessage.fromDocument(snapshots),
+          toFirestore: (obj, _) => obj.toJson(),
+        )
+        .snapshots();
+  }
+
+  /// Send a message to a group
+  Future<void> sendGroupMessage(String groupId, GroupMessage message) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .add(message.toJson());
+      debugPrint("Message sent to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to send message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Update a group message
+  Future<void> updateGroupMessage(String groupId, GroupMessage message) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .doc(message.id)
+          .update(message.toJson());
+      debugPrint("Message updated in group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete a group message
+  Future<void> deleteGroupMessage(String groupId, String messageId) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+      debugPrint("Message deleted from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete message: ${e.message}');
+      rethrow;
+    }
   }
 }
 

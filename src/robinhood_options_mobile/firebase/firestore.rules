@@ -79,6 +79,19 @@ service cloud.firestore {
         request.auth.uid == resource.data.createdBy ||
         request.auth.token.role == 'admin'
       );
+
+      match /messages/{messageId} {
+        allow read: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members;
+        allow create: if request.auth.uid != null && 
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.members &&
+          request.resource.data.senderId == request.auth.uid;
+        allow update, delete: if request.auth.uid != null && (
+          resource.data.senderId == request.auth.uid ||
+          request.auth.uid == get(/databases/$(database)/documents/investor_groups/$(groupId)).data.createdBy ||
+          request.auth.uid in get(/databases/$(database)/documents/investor_groups/$(groupId)).data.admins
+        );
+      }
     }
 
     //match /{document=**} {

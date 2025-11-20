@@ -140,8 +140,12 @@ class AuthUtil {
           debugPrint('apnsToken: $apnsToken');
           // APNS token is available, make FCM plugin API requests...
         }
-        fcmToken = await FirebaseMessaging.instance.getToken();
-        debugPrint('fcmToken: $fcmToken');
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+          debugPrint('fcmToken: $fcmToken');
+        } catch (e) {
+          debugPrint('fcmToken: $e');
+        }
       } else {
         debugPrint(
             'The notification permission was not granted and blocked instead.');

@@ -7,6 +7,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/widgets/investor_group_chat_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_manage_members_widget.dart';
 import 'package:robinhood_options_mobile/widgets/shared_portfolio_widget.dart';
 import 'package:intl/intl.dart';
@@ -65,173 +66,220 @@ class _InvestorGroupDetailWidgetState extends State<InvestorGroupDetailWidget> {
         final isMember =
             auth.currentUser != null && group.isMember(auth.currentUser!.uid);
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(group.name),
-            actions: [
-              if (isAdmin)
-                PopupMenuButton(
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'manage_members',
-                      child: Row(
-                        children: [
-                          Icon(Icons.people),
-                          SizedBox(width: 8),
-                          Text('Manage Members'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit),
-                          SizedBox(width: 8),
-                          Text('Edit Group'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete Group',
-                              style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'manage_members') {
-                      _showManageMembersScreen(context, group);
-                    } else if (value == 'edit') {
-                      _showEditGroupDialog(context, group);
-                    } else if (value == 'delete') {
-                      _showDeleteConfirmDialog(context, group);
-                    }
-                  },
-                ),
-            ],
-          ),
-          body: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 32,
-                            child: Text(
-                              group.name.isNotEmpty
-                                  ? group.name[0].toUpperCase()
-                                  : 'G',
-                              style: const TextStyle(fontSize: 24),
+        return DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            body: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverAppBar(
+                  title: Text(group.name),
+                  pinned: true,
+                  floating: true,
+                  forceElevated: innerBoxIsScrolled,
+                  actions: [
+                    if (isAdmin)
+                      PopupMenuButton(
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'manage_members',
+                            child: Row(
+                              children: [
+                                Icon(Icons.people),
+                                SizedBox(width: 8),
+                                Text('Manage Members'),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
                               children: [
-                                Text(
-                                  group.name,
-                                  style:
-                                      Theme.of(context).textTheme.headlineSmall,
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      group.isPrivate
-                                          ? Icons.lock
-                                          : Icons.public,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      group.isPrivate ? 'Private' : 'Public',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      '${group.members.length} members',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
-                                  ],
-                                ),
+                                Icon(Icons.edit),
+                                SizedBox(width: 8),
+                                Text('Edit Group'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text('Delete Group',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
                         ],
+                        onSelected: (value) {
+                          if (value == 'manage_members') {
+                            _showManageMembersScreen(context, group);
+                          } else if (value == 'edit') {
+                            _showEditGroupDialog(context, group);
+                          } else if (value == 'delete') {
+                            _showDeleteConfirmDialog(context, group);
+                          }
+                        },
                       ),
-                      if (group.description != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          group.description!,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Text(
-                        'Created ${DateFormat.yMMMd().format(group.dateCreated)}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 16),
-                      if (auth.currentUser != null) ...[
-                        if (isMember)
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => _leaveGroup(context, group),
-                              icon: const Icon(Icons.exit_to_app),
-                              label: const Text('Leave Group'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                              ),
-                            ),
-                          )
-                        else
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () => _joinGroup(context, group),
-                              icon: const Icon(Icons.group_add),
-                              label: const Text('Join Group'),
-                            ),
-                          ),
-                      ],
+                  ],
+                  bottom: const TabBar(
+                    tabs: [
+                      Tab(text: 'Overview'),
+                      Tab(text: 'Chat'),
                     ],
                   ),
                 ),
+              ],
+              body: TabBarView(
+                children: [
+                  _buildOverview(group, isMember),
+                  _buildChat(group, isMember),
+                ],
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Members',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                ),
-              ),
-              _buildMembersList(group),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildOverview(InvestorGroup group, bool isMember) {
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 32,
+                      child: Text(
+                        group.name.isNotEmpty
+                            ? group.name[0].toUpperCase()
+                            : 'G',
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.name,
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                group.isPrivate ? Icons.lock : Icons.public,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                group.isPrivate ? 'Private' : 'Public',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(width: 16),
+                              Text(
+                                '${group.members.length} members',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (group.description != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    group.description!,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  'Created ${DateFormat.yMMMd().format(group.dateCreated)}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 16),
+                if (auth.currentUser != null) ...[
+                  if (isMember)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () => _leaveGroup(context, group),
+                        icon: const Icon(Icons.exit_to_app),
+                        label: const Text('Leave Group'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading
+                            ? null
+                            : () => _joinGroup(context, group),
+                        icon: const Icon(Icons.group_add),
+                        label: const Text('Join Group'),
+                      ),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Members',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+        ),
+        _buildMembersList(group),
+      ],
+    );
+  }
+
+  Widget _buildChat(InvestorGroup group, bool isMember) {
+    if (!isMember) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Join the group to chat with members'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => _joinGroup(context, group),
+              child: const Text('Join Group'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InvestorGroupChatWidget(
+      group: group,
+      firestoreService: widget.firestoreService,
+      analytics: widget.analytics,
+      observer: widget.observer,
     );
   }
 
