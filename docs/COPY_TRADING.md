@@ -35,8 +35,19 @@ When auto-execute is enabled:
 - Backend Firebase functions monitor new trades from the target user
 - Trades are automatically filtered based on your settings
 - Copy trade records are created for audit purposes
+- **Push notifications sent** to your device when copy trades are detected
+- Notifications include trader name, symbol, quantity, and side
 - **Note**: Automatic order execution requires client-side implementation for security
 - Users will need to review and execute pending copy trades manually
+
+### 4. Notifications
+
+Users receive push notifications when:
+
+- A trader they're copying places a trade (if auto-execute is enabled)
+- Notification shows: trader name, symbol, quantity, and buy/sell side
+- Separate notifications for stocks/ETFs and options
+- Notifications only sent if user has valid FCM tokens registered
 
 ## User Interface
 
@@ -112,6 +123,7 @@ Triggered when a new instrument (stock/ETF) order is created:
 3. Identifies members who are copying from this user
 4. Applies quantity and amount limits
 5. Creates copy trade records
+6. **Sends push notifications** to target users with trade details
 
 #### onOptionOrderCreated
 
@@ -122,6 +134,17 @@ Triggered when a new option order is created:
 3. Identifies members who are copying from this user
 4. Applies quantity and amount limits (accounting for 100 shares per contract)
 5. Creates copy trade records
+6. **Sends push notifications** to target users with trade details
+
+#### Notification System
+
+Push notifications are sent using Firebase Cloud Messaging (FCM):
+
+- Fetches user's FCM tokens from registered devices
+- Sends multicast notification to all user devices
+- Includes trade details (symbol, side, quantity, order type)
+- High priority notifications with sound and badge
+- Handles notification failures gracefully with logging
 
 ### Security Rules
 
@@ -139,7 +162,7 @@ Firestore rules for `copy_trades` collection:
 ### High Priority
 
 1. ~~**Actual Order Execution**: Implement the brokerage API integration to execute copied orders~~ ✅ **COMPLETED**
-2. **Notifications**: Notify users when trades are copied
+2. ~~**Notifications**: Notify users when trades are copied~~ ✅ **COMPLETED**
 3. **Copy Trade Dashboard**: View history of all copied trades
 4. **Approval Workflow**: Review and approve auto-copied trades before execution
 5. **Auto-Execute for Copy Trades**: Implement client-side automatic execution for flagged copy trades
