@@ -39,9 +39,6 @@ class InvestorGroupsMemberDetailWidget extends StatelessWidget {
                   leading: const Icon(Icons.account_circle, size: 40),
                   title: Text(user.name ?? 'User',
                       style: const TextStyle(fontSize: 20)),
-                  subtitle: Text(user.isPublic == true
-                      ? 'Public Portfolio'
-                      : 'Private Portfolio'),
                 ),
                 const Divider(),
               ],

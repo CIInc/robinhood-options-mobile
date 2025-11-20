@@ -37,7 +37,6 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
@@ -463,13 +462,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       ],
       // Shared Portfolios tab
       if (auth.currentUser != null) ...[
-        SharedPortfoliosWidget(
-          firestoreService: _firestoreService,
-          brokerageService: service,
-          brokerageUser: userStore.currentUser!,
-          analytics: widget.analytics,
-          observer: widget.observer,
-        ),
         InvestorGroupsWidget(
           firestoreService: _firestoreService,
           brokerageUser: userStore.currentUser!,
@@ -818,21 +810,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 thickness: 0.25,
                               ),
                               ListTile(
-                                leading: const Icon(Icons.share),
-                                title: const Text("Shared Portfolios"),
+                                leading: const Icon(Icons.groups),
+                                title: const Text("Investor Groups"),
                                 selected: _pageIndex == 4,
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   _onPageChanged(4);
-                                },
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.groups),
-                                title: const Text("Investor Groups"),
-                                selected: _pageIndex == 5,
-                                onTap: () {
-                                  Navigator.pop(context); // close the drawer
-                                  _onPageChanged(5);
                                 },
                                 // onTap: () {
                                 //   Navigator.pop(context); // close the drawer
