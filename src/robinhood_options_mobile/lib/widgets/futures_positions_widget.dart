@@ -49,6 +49,8 @@ class FuturesPositionsWidget extends StatelessWidget {
                     double quantity = 0.0;
                     double avg = 0.0;
                     String accountNumber = '';
+                    double? openPnl;
+                    double? lastPrice;
                     if (pos is Map) {
                       // Get product info for display
                       var product = pos['product'];
@@ -77,6 +79,14 @@ class FuturesPositionsWidget extends StatelessWidget {
                               pos['avgTradePrice']?.toString() ?? '0') ??
                           0.0;
                       accountNumber = pos['accountNumber']?.toString() ?? '';
+                      if (pos['openPnlCalc'] != null) {
+                        openPnl =
+                            double.tryParse(pos['openPnlCalc'].toString());
+                      }
+                      if (pos['lastTradePrice'] != null) {
+                        lastPrice =
+                            double.tryParse(pos['lastTradePrice'].toString());
+                      }
                     }
                     return Card(
                       child: ListTile(
@@ -85,24 +95,48 @@ class FuturesPositionsWidget extends StatelessWidget {
                               ? displaySymbol.replaceAll('/', '')
                               : '—'),
                         ),
-                        title: Text(contractSymbol),
-                        subtitle: Text(
-                            description.isNotEmpty
-                                ? description
-                                : (contractSymbol.isNotEmpty
-                                    ? contractSymbol
-                                    : accountNumber),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                        title: Text(
+                            '$contractSymbol ${quantity > 0 ? '+' : '-'}${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2)}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              description.isNotEmpty
+                                  ? description
+                                  : (contractSymbol.isNotEmpty
+                                      ? contractSymbol
+                                      : accountNumber),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            // Text(
+                            //     'Qty: ${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2)}'),
+                          ],
+                        ),
                         trailing: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                                'Qty: ${quantity.toStringAsFixed(quantity.truncateToDouble() == quantity ? 0 : 2)}'),
-                            if (avg > 0)
-                              Text('\$${avg.toString()}',
+                            if (lastPrice != null)
+                              Text(
+                                  'Last: ${lastPrice.toString()}', // .toStringAsFixed(4)
                                   style: const TextStyle(fontSize: 12)),
+                            if (avg > 0)
+                              Text('Cost: ${avg.toString()}',
+                                  style: const TextStyle(fontSize: 12)),
+                            if (openPnl != null)
+                              Text(
+                                'Open P/L: ${openPnl >= 0 ? '+' : ''}${openPnl.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: openPnl > 0
+                                      ? Colors.green
+                                      : openPnl < 0
+                                          ? Colors.red
+                                          : Colors.grey,
+                                ),
+                              ),
                           ],
                         ),
                       ),

@@ -821,6 +821,35 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
           products = await getFuturesProductsByIds(user, productIds);
         }
 
+        // Fetch quotes for contracts to compute Open P&L
+        // Endpoint returns an array of objects with data: { last_trade_price, instrument_id }
+        List<dynamic> quotes = [];
+        try {
+          var quotesUrl = "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
+          var quotesJson = await getJson(user, quotesUrl);
+          if (quotesJson['data'] != null) {
+            quotes = quotesJson['data'];
+          }
+        } catch (e) {
+          debugPrint('streamFuturePositions: futures quotes fetch error: $e');
+        }
+
+        // Map for quick lookup instrument_id -> last_trade_price
+        Map<String, double> lastTradePriceByContract = {};
+        for (var quoteWrapper in quotes) {
+          if (quoteWrapper is Map && quoteWrapper['data'] != null) {
+            var data = quoteWrapper['data'];
+            var instrumentId = data['instrument_id']?.toString();
+            var lastTradePriceStr = data['last_trade_price']?.toString();
+            if (instrumentId != null && lastTradePriceStr != null) {
+              var lastTrade = double.tryParse(lastTradePriceStr);
+              if (lastTrade != null) {
+                lastTradePriceByContract[instrumentId] = lastTrade;
+              }
+            }
+          }
+        }
+
         // Enrich positions with contract and product data
         for (var position in results) {
           var contractId = position['contractId'];
@@ -841,8 +870,37 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
             if (product != null) {
               position['product'] = product;
             }
+
+            // Attach last trade price if available
+            if (lastTradePriceByContract.containsKey(contractId)) {
+              position['lastTradePrice'] = lastTradePriceByContract[contractId];
+            }
+
+            // Compute Open P&L if we have lastTradePrice, avgTradePrice, quantity, and multiplier
+            var lastTradePrice = position['lastTradePrice'];
+            var avgTradePriceStr = position['avgTradePrice']?.toString();
+            var quantityStr = position['quantity']?.toString();
+            var multiplierStr = contract['multiplier']?.toString();
+            double? avgTradePrice = avgTradePriceStr != null
+                ? double.tryParse(avgTradePriceStr)
+                : null;
+            double? quantity = quantityStr != null
+                ? double.tryParse(quantityStr)
+                : null;
+            double? multiplier = multiplierStr != null
+                ? double.tryParse(multiplierStr)
+                : null;
+            if (lastTradePrice is double &&
+                avgTradePrice != null &&
+                quantity != null &&
+                multiplier != null) {
+              // Open P&L formula: (Last - Avg) * Quantity * Multiplier
+              position['openPnlCalc'] =
+                  (lastTradePrice - avgTradePrice) * quantity * multiplier;
+            }
           }
         }
+        // (Day P&L removed per request; only open P&L retained.)
       }
 
       yield results;
