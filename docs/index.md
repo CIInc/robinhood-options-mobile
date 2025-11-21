@@ -18,6 +18,7 @@
 - Advanced charting tools for technical analysis.
 - Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
 - Integration with social media for sentiment analysis.
+- Futures position monitoring with enriched contract/product metadata and real-time Open P&L calculation.
 
 ## Investment Profile Feature
 
@@ -87,6 +88,28 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 - State synchronization between single signal and signal list
 
 For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
+
+## Futures Positions Feature
+
+The Futures Positions feature enriches raw futures holdings with contract & product metadata (root symbol, expiration, currency, multiplier) and real-time last trade prices to compute transparent Open P&L per contract.
+
+### Key Components
+- **Metadata Enrichment:** Contract and product details fetched before quote integration.
+- **Live Quotes:** Last trade price used for immediate Open P&L visibility.
+- **Open P&L Calculation:** `(lastTradePrice - avgTradePrice) * quantity * multiplier` per position.
+- **UI Display:** Color-coded Open P&L and concise contract summary in the positions widget.
+- **Service-Oriented:** Logic contained in service layer; no secrets moved client-side.
+
+### Limitations (Initial Version)
+- No realized or day P&L yet.
+- No margin requirement or leverage analytics.
+- No contract roll alerts or calendar spread tracking.
+- No Greeks or term structure metrics.
+
+### Roadmap
+- Margin & risk metrics (SPAN-style), realized/day P&L, roll detection, Greeks & volatility surfaces, contract seasonality analytics, VAR integration.
+
+See [Futures Positions](futures.md) for full details.
 
 ## Investor Groups Feature
 

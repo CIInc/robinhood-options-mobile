@@ -1,6 +1,6 @@
 /**
  * Copy Trading Firebase Functions
- * 
+ *
  * Handles automated copy trading for investor groups.
  * Listens to new orders from group members and automatically
  * copies them to other members who have copy trading enabled.
@@ -39,8 +39,27 @@ interface InvestorGroup {
 }
 
 /**
+ * Interface for a copy trade record stored in Firestore
+ */
+interface CopyTradeRecord {
+  sourceUserId: string;
+  targetUserId: string;
+  groupId: string;
+  orderType: "instrument" | "option";
+  originalOrderId: string;
+  symbol: string;
+  side: string;
+  originalQuantity: number;
+  copiedQuantity: number;
+  price: number;
+  strategy?: string;
+  timestamp: FieldValue; // server timestamp placeholder
+  executed: boolean;
+}
+
+/**
  * Processes new instrument orders for copy trading
- * 
+ *
  * Triggered when a new instrument order is created in any user's collection.
  * Checks if the user belongs to any investor groups and if other members
  * have copy trading enabled for this user.
@@ -58,11 +77,14 @@ export const onInstrumentOrderCreated = onDocumentCreated(
         return;
       }
 
-      logger.info("Processing instrument order for copy trading", {
-        userId,
-        orderId,
-        state: orderData.state,
-      });
+      logger.info(
+        "Processing instrument order",
+        {
+          userId,
+          orderId,
+          state: orderData.state,
+        }
+      );
 
       // Only process filled orders
       if (orderData.state !== "filled") {
@@ -88,7 +110,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
-        
+
         if (!group.memberCopyTradeSettings) {
           continue;
         }
@@ -102,11 +124,14 @@ export const onInstrumentOrderCreated = onDocumentCreated(
             settings.autoExecute &&
             settings.targetUserId === userId
           ) {
-            logger.info("Found copy trade target", {
-              sourceUser: userId,
-              targetUser: memberId,
-              groupId: group.id,
-            });
+            logger.info(
+              "Found copy trade target",
+              {
+                sourceUser: userId,
+                targetUser: memberId,
+                groupId: group.id,
+              }
+            );
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
@@ -139,11 +164,14 @@ export const onInstrumentOrderCreated = onDocumentCreated(
               executed: false, // Would be true after actual order placement
             });
 
-            logger.info("Copy trade record created", {
-              sourceUser: userId,
-              targetUser: memberId,
-              symbol: orderData.instrumentObj?.symbol,
-            });
+            logger.info(
+              "Copy trade record created",
+              {
+                sourceUser: userId,
+                targetUser: memberId,
+                symbol: orderData.instrumentObj?.symbol,
+              }
+            );
 
             // Get source user name for notification
             const sourceUserDoc = await db.collection("user").doc(userId).get();
@@ -169,7 +197,7 @@ export const onInstrumentOrderCreated = onDocumentCreated(
 
 /**
  * Processes new option orders for copy trading
- * 
+ *
  * Triggered when a new option order is created in any user's collection.
  */
 export const onOptionOrderCreated = onDocumentCreated(
@@ -185,11 +213,14 @@ export const onOptionOrderCreated = onDocumentCreated(
         return;
       }
 
-      logger.info("Processing option order for copy trading", {
-        userId,
-        orderId,
-        state: orderData.state,
-      });
+      logger.info(
+        "Processing option order",
+        {
+          userId,
+          orderId,
+          state: orderData.state,
+        }
+      );
 
       // Only process filled orders
       if (orderData.state !== "filled") {
@@ -215,7 +246,7 @@ export const onOptionOrderCreated = onDocumentCreated(
       // Process each group
       for (const groupDoc of groupsSnapshot.docs) {
         const group = groupDoc.data() as InvestorGroup;
-        
+
         if (!group.memberCopyTradeSettings) {
           continue;
         }
@@ -229,11 +260,14 @@ export const onOptionOrderCreated = onDocumentCreated(
             settings.autoExecute &&
             settings.targetUserId === userId
           ) {
-            logger.info("Found copy trade target", {
-              sourceUser: userId,
-              targetUser: memberId,
-              groupId: group.id,
-            });
+            logger.info(
+              "Found copy trade target",
+              {
+                sourceUser: userId,
+                targetUser: memberId,
+                groupId: group.id,
+              }
+            );
 
             // Calculate adjusted quantity based on limits
             let quantity = orderData.quantity || 0;
@@ -244,7 +278,8 @@ export const onOptionOrderCreated = onDocumentCreated(
             }
 
             if (settings.maxAmount) {
-              const totalAmount = quantity * price * 100; // Options are per 100 shares
+              const totalAmount =
+                quantity * price * 100; // Options are per 100 shares
               if (totalAmount > settings.maxAmount) {
                 quantity = settings.maxAmount / (price * 100);
               }
@@ -267,11 +302,14 @@ export const onOptionOrderCreated = onDocumentCreated(
               executed: false, // Would be true after actual order placement
             });
 
-            logger.info("Copy trade record created", {
-              sourceUser: userId,
-              targetUser: memberId,
-              symbol: orderData.chainSymbol,
-            });
+            logger.info(
+              "Copy trade record created",
+              {
+                sourceUser: userId,
+                targetUser: memberId,
+                symbol: orderData.chainSymbol,
+              }
+            );
 
             // Get source user name for notification
             const sourceUserDoc = await db.collection("user").doc(userId).get();
@@ -297,13 +335,13 @@ export const onOptionOrderCreated = onDocumentCreated(
 
 /**
  * Sends a notification to a user about a copy trade
- * 
- * @param userId User ID to notify
- * @param sourceUserName Name of the user whose trade was copied
- * @param symbol Trading symbol
- * @param side Buy/sell side
- * @param quantity Quantity of the trade
- * @param orderType Type of order (instrument or option)
+ *
+ * @param {string} userId User ID to notify
+ * @param {string} sourceUserName Name of the user whose trade was copied
+ * @param {string} symbol Trading symbol
+ * @param {string} side Buy/sell side
+ * @param {number} quantity Quantity of the trade
+ * @param {string} orderType Type of order (instrument or option)
  */
 async function sendCopyTradeNotification(
   userId: string,
@@ -322,10 +360,12 @@ async function sendCopyTradeNotification(
     }
 
     const userData = userDoc.data();
-    const devices = userData?.devices || [];
+    // Devices expected as array of objects with optional fcmToken
+    const devices: Array<{ fcmToken?: string | null }> =
+      userData?.devices || [];
     const fcmTokens: string[] = devices
-      .map((device: any) => device.fcmToken)
-      .filter((token: string | null | undefined) => token != null && token !== "");
+      .map((device) => device.fcmToken)
+      .filter((token): token is string => token != null && token !== "");
 
     if (fcmTokens.length === 0) {
       logger.info("No FCM tokens found for user", { userId });
@@ -334,8 +374,10 @@ async function sendCopyTradeNotification(
 
     // Prepare notification
     const title = "Copy Trade Available";
-    const body = `${sourceUserName} ${side} ${quantity.toFixed(0)} ${orderType === "option" ? "contracts" : "shares"} of ${symbol}`;
-    
+    const body =
+      `${sourceUserName} ${side} ${quantity.toFixed(0)} ` +
+      `${orderType === "option" ? "contracts" : "shares"} of ${symbol}`;
+
     // Send notification to all user devices
     const response = await messaging.sendEachForMulticast({
       tokens: fcmTokens,
@@ -368,11 +410,14 @@ async function sendCopyTradeNotification(
       },
     });
 
-    logger.info("Copy trade notification sent", {
-      userId,
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-    });
+    logger.info(
+      "Copy trade notification sent",
+      {
+        userId,
+        successCount: response.successCount,
+        failureCount: response.failureCount,
+      }
+    );
 
     // Log any failures
     if (response.failureCount > 0) {
@@ -396,29 +441,31 @@ async function sendCopyTradeNotification(
 
 /**
  * Creates a copy trade record in Firestore
- * 
- * @param data Copy trade data
+ *
+ * @param {CopyTradeRecord} data Copy trade data
  */
-async function createCopyTradeRecord(data: any): Promise<void> {
+async function createCopyTradeRecord(data: CopyTradeRecord): Promise<void> {
   await db.collection("copy_trades").add(data);
 }
 
 /**
  * Note on Order Execution:
- * 
- * This backend implementation creates copy trade records but does NOT execute
- * orders directly because:
- * 
+ *
+ * This backend implementation creates copy trade records but
+ * does NOT execute orders directly because:
+ *
  * 1. Security: Backend doesn't have direct access to user brokerage credentials
  * 2. User Control: Users must authorize trades through their devices
- * 3. Risk Management: Orders should be validated on the client with current market data
- * 
- * Order execution happens on the client side (copy_trade_button_widget.dart) where:
+ * 3. Risk Management: Orders should be validated on the client with current
+ *    market data
+ *
+ * Order execution happens on the client side
+ * (copy_trade_button_widget.dart) where:
  * - User authentication is properly handled
  * - Orders are placed via the IBrokerageService
  * - Users can review and confirm before execution
  * - Real-time market data is available
- * 
+ *
  * This backend's role is to:
  * - Monitor trades from users being copied
  * - Create audit records in copy_trades collection

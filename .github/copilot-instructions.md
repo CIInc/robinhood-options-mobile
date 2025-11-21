@@ -7,6 +7,7 @@ Key facts (quick):
 - Flutter mobile app (Dart) in `src/robinhood_options_mobile/`.
 - Backend helpers and server code live under `src/robinhood_options_mobile/functions/` and `src/robinhood_options_mobile/firebase/` (Firebase Functions + admin tooling).
 - Firebase is heavily used: `firebase_core`, `firebase_auth`, `cloud_firestore`, `cloud_functions`, `firebase_analytics`, and `firebase_ai`.
+- Futures support: service-layer enrichment only (no secrets) adding contract & product metadata + quotes and computing Open P&L per contract.
 
 Quick-start commands an agent can recommend or run (macOS / zsh):
 - Install and verify environment: `flutter doctor -v`.
@@ -24,6 +25,7 @@ Architecture notes (what matters to code changes):
 - Trade Signals: Agentic trading with multi-indicator correlation managed by `AgenticTradingProvider` in `lib/model/agentic_trading_provider.dart`. Trade signals stored in Firestore `agentic_trading/signals_{SYMBOL}` (daily) or `signals_{SYMBOL}_{INTERVAL}` (intraday) with server-side filtering and real-time Firestore snapshot listeners. Backend logic in `functions/src/agentic-trading.ts`, `functions/src/agentic-trading-cron.ts`, `functions/src/agentic-trading-intraday-cron.ts`, `functions/src/alpha-agent.ts`, and `functions/src/riskguard-agent.ts`. Supports multiple intervals (15m, 1h, 1d) with DST-aware market hours detection and visual market status indicators.
 - Investor Groups: Collaborative portfolio sharing managed by `InvestorGroupStore` in `lib/model/investor_group_store.dart`. Groups stored in Firestore `investor_groups/{groupId}` with 15+ service methods in `FirestoreService`. Supports public/private groups, member management, real-time invitation system (send/accept/decline/cancel), admin controls (promote/demote/remove), and direct portfolio viewing for private group members. UI includes 3-tab admin interface (Members, Pending, Invite).
 - Copy Trading: Integrated with Investor Groups. Settings stored per member via `CopyTradeSettings` map on `InvestorGroup` and configured in `CopyTradeSettingsWidget`. Manual copy trade execution via `CopyTradeButtonWidget` (stocks/options) calls brokerage API client-side. Backend triggers in `functions/src/copy-trading.ts` listen for filled orders, apply quantity/amount limits, create `copy_trades` audit documents, and dispatch FCM push notifications. Auto-execute workflow & dashboard are planned.
+- Futures Positions: Enrichment logic in service method (search for futures position stream) fetching aggregated positions then contract/product metadata and quotes. Adds fields: `rootSymbol`, `expiration`, `currency`, `multiplier`, `lastTradePrice`, and computed `openPnlCalc = (lastTradePrice - avgTradePrice) * quantity * multiplier`. UI widget displays Open P&L only (day/realized P&L deferred). Avoid moving margin or risk calc secrets client-side; future advanced analytics should migrate to functions if broker rate limits or sensitive operations emerge.
 
 Patterns & conventions (concrete examples):
 - State containers are `ChangeNotifier` classes under `lib/model` and provided via `MultiProvider` in `main.dart`. Example: `PortfolioHistoricalsStore` and its selection store `PortfolioHistoricalsSelectionStore` are paired.
@@ -61,6 +63,7 @@ Quick safety checklist before proposing changes:
 2. Does the change modify provider/state classes? Add/update unit tests.
 3. Is this change for native iOS/Android platform code? Verify `flutter build <platform>` and check README notes.
 4. Avoid editing generated files under `build/`.
+5. For futures enhancements (margin, realized/day P&L, roll detection) ensure calculations are test-covered; keep sensitive brokerage interactions in functions.
 
 If you need more context, open these files first:
 - `src/robinhood_options_mobile/lib/main.dart`

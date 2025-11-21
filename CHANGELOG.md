@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
   - Backend Firebase Functions triggers (`functions/src/copy-trading.ts`) for instrument & option orders creating audit trail documents in `copy_trades` collection.
   - Push notifications (FCM) to copying members including symbol, side, quantity, order type.
 - **Audit Trail:** Firestore `copy_trades` documents capture original vs copied quantities, execution status & timestamps for compliance.
+- **Futures Positions:** Added real-time futures position enrichment with contract & product metadata (symbol root, expiration, currency, multiplier) and live quote integration (last trade price). Displays Open P&L per contract in UI using pricing multiplier.
 
 ### Changed
 - Documentation expanded for Copy Trading workflow, limitations, and future roadmap.
@@ -24,14 +25,17 @@ All notable changes to this project will be documented in this file.
 - **Functions:** Triggers differentiate instrument vs option orders; apply limits (quantity, amount) and option contract multiplier (100 shares per contract).
 - **Notifications:** High-priority FCM multicast with graceful failure logging.
 - **Security:** Firestore rules restrict creation to backend functions; users can read their own related records.
+- **Futures Enrichment:** Service layer aggregates positions, fetches contract/product metadata (arsenal), and quotes (marketdata futures). Computed field `openPnlCalc = (lastTradePrice - avgTradePrice) * quantity * multiplier` attached per position. No realized or day P&L yet.
 
 ### Documentation
 - Added/Updated `docs/copy-trading.md` with settings, triggers, notifications, limitations & roadmap.
 - Updated README features list to include Copy Trading.
 - Updated copilot instructions with architecture pointers for Copy Trading.
+- Added `docs/futures.md` detailing enrichment sources, Open P&L formula, limitations, and roadmap. README and docs index updated with Futures feature bullet.
 
 ### Future (Planned)
 - Auto-execute (client-side secure workflow), dashboard/history, approval step, advanced filtering (symbol/time), performance analytics.
+- Futures roadmap: margin impact, realized P&L tracking, contract roll detection, risk metrics (VAR), day P&L derivation from settlement price, Greeks & term structure analytics.
 
 ## [0.15.0] - 2025-11-18
 
