@@ -15,6 +15,7 @@ See our [docs](https://ciinc.github.io/robinhood-options-mobile/) for use cases 
 *   **Trade Signals:** AI-powered agentic trading with multi-indicator correlation system (price patterns, RSI, market direction, volume) for automatic trade detection and execution. Supports both daily and intraday signals (15-minute, hourly, and daily intervals) with real-time Firestore updates and market status indicators.
 *   **AI-Powered Insights:** Leverages Generative AI (like Gemini) to provide analysis on market data (e.g., chart trends) with personalized investment profile integration.
 *   **Investor Groups:** Create and join investor groups to share portfolios and collaborate with other investors. Includes comprehensive member management with invitation system, admin controls for promoting/demoting members, and direct portfolio viewing for private group members. Features real-time user search and 3-tab admin interface (Members, Pending, Invite).
+*   **Copy Trading:** Per-group settings to copy filled stock/ETF and option trades from a selected member with immediate manual execution via brokerage API, quantity/amount limits, audit trail in `copy_trades`, and push notifications. Auto-execute & dashboard planned.
 *   **Cross-Platform:** Built with Flutter for a consistent experience on both Android and iOS.
 
 

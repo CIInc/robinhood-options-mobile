@@ -1,5 +1,7 @@
 # Copy Trading Feature
 
+> Introduced in **v0.16.0**: Manual execution of copied stock/ETF and option trades with per-group settings, push notifications, and Firestore audit trail (`copy_trades`). Auto-execute workflow, dashboard/history, and advanced filtering remain planned enhancements.
+
 ## Overview
 
 The Copy Trading feature allows members of investor groups to automatically or manually copy trades from other group members. This feature supports both stock/ETF trades and options trades.

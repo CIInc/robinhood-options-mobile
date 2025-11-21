@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.0] - 2025-11-21
+
+### Added
+- **Copy Trading (Investor Groups):** Manual execution of copied trades for stocks/ETFs and options with immediate brokerage order placement.
+  - Per-member `CopyTradeSettings` (enable, target user, autoExecute flag, max quantity/amount, price override placeholder).
+  - UI widgets: `CopyTradeSettingsWidget`, `CopyTradeButtonWidget` integrated into member portfolio views.
+  - Backend Firebase Functions triggers (`functions/src/copy-trading.ts`) for instrument & option orders creating audit trail documents in `copy_trades` collection.
+  - Push notifications (FCM) to copying members including symbol, side, quantity, order type.
+- **Audit Trail:** Firestore `copy_trades` documents capture original vs copied quantities, execution status & timestamps for compliance.
+
+### Changed
+- Documentation expanded for Copy Trading workflow, limitations, and future roadmap.
+- Investor Groups documentation cross-referenced with Copy Trading features.
+
+### Fixed
+- Clarified prior limitation: manual copy trade execution now implemented (previously placeholder).
+
+### Technical Details
+- **Data Model:** `CopyTradeSettings` stored in `InvestorGroup.memberCopyTradeSettings` map keyed by userId.
+- **Functions:** Triggers differentiate instrument vs option orders; apply limits (quantity, amount) and option contract multiplier (100 shares per contract).
+- **Notifications:** High-priority FCM multicast with graceful failure logging.
+- **Security:** Firestore rules restrict creation to backend functions; users can read their own related records.
+
+### Documentation
+- Added/Updated `docs/copy-trading.md` with settings, triggers, notifications, limitations & roadmap.
+- Updated README features list to include Copy Trading.
+- Updated copilot instructions with architecture pointers for Copy Trading.
+
+### Future (Planned)
+- Auto-execute (client-side secure workflow), dashboard/history, approval step, advanced filtering (symbol/time), performance analytics.
+
 ## [0.15.0] - 2025-11-18
 
 ### Added
