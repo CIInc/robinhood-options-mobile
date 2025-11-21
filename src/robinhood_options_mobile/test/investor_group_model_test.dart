@@ -234,4 +234,116 @@ void main() {
       expect(group.pendingInvitations, isNull);
     });
   });
+
+  group('CopyTradeSettings Tests', () {
+    test('CopyTradeSettings should serialize and deserialize correctly', () {
+      final settings = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user456',
+        autoExecute: true,
+        maxQuantity: 100,
+        maxAmount: 5000,
+        overridePrice: true,
+      );
+
+      final json = settings.toJson();
+      expect(json['enabled'], equals(true));
+      expect(json['targetUserId'], equals('user456'));
+      expect(json['autoExecute'], equals(true));
+      expect(json['maxQuantity'], equals(100));
+      expect(json['maxAmount'], equals(5000));
+      expect(json['overridePrice'], equals(true));
+
+      final deserializedSettings = CopyTradeSettings.fromJson(json);
+      expect(deserializedSettings.enabled, equals(true));
+      expect(deserializedSettings.targetUserId, equals('user456'));
+      expect(deserializedSettings.autoExecute, equals(true));
+      expect(deserializedSettings.maxQuantity, equals(100));
+      expect(deserializedSettings.maxAmount, equals(5000));
+      expect(deserializedSettings.overridePrice, equals(true));
+    });
+
+    test('CopyTradeSettings should handle default values', () {
+      final settings = CopyTradeSettings();
+
+      expect(settings.enabled, equals(false));
+      expect(settings.targetUserId, isNull);
+      expect(settings.autoExecute, equals(false));
+      expect(settings.maxQuantity, isNull);
+      expect(settings.maxAmount, isNull);
+      expect(settings.overridePrice, equals(false));
+    });
+  });
+
+  group('InvestorGroup CopyTrade Methods Tests', () {
+    test('InvestorGroup should handle copy trade settings', () {
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123', 'user456'],
+        dateCreated: DateTime.now(),
+      );
+
+      final settings = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user456',
+        autoExecute: false,
+      );
+
+      group.setCopyTradeSettings('user123', settings);
+      expect(group.getCopyTradeSettings('user123'), isNotNull);
+      expect(group.getCopyTradeSettings('user123')!.enabled, equals(true));
+      expect(
+          group.getCopyTradeSettings('user123')!.targetUserId, equals('user456'));
+      expect(group.getCopyTradeSettings('user456'), isNull);
+    });
+
+    test('InvestorGroup should serialize and deserialize copy trade settings',
+        () {
+      final now = DateTime.now();
+      final settings1 = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user456',
+        maxQuantity: 50,
+      );
+      final settings2 = CopyTradeSettings(
+        enabled: true,
+        targetUserId: 'user123',
+        maxAmount: 1000,
+      );
+
+      final group = InvestorGroup(
+        id: 'test-group',
+        name: 'Test Group',
+        createdBy: 'user123',
+        members: ['user123', 'user456'],
+        dateCreated: now,
+        memberCopyTradeSettings: {
+          'user123': settings1,
+          'user456': settings2,
+        },
+      );
+
+      final json = group.toJson();
+      expect(json['memberCopyTradeSettings'], isNotNull);
+
+      json['dateCreated'] = Timestamp.fromDate(now);
+      final deserializedGroup = InvestorGroup.fromJson(json);
+
+      expect(deserializedGroup.memberCopyTradeSettings, isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user123'), isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.enabled,
+          equals(true));
+      expect(
+          deserializedGroup.getCopyTradeSettings('user123')!.targetUserId,
+          equals('user456'));
+      expect(deserializedGroup.getCopyTradeSettings('user123')!.maxQuantity,
+          equals(50));
+
+      expect(deserializedGroup.getCopyTradeSettings('user456'), isNotNull);
+      expect(deserializedGroup.getCopyTradeSettings('user456')!.maxAmount,
+          equals(1000));
+    });
+  });
 }

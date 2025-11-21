@@ -729,14 +729,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       child: Card(
                         elevation: 2,
                         color: hasInvestmentProfile
-                            ? colorScheme.primaryContainer.withOpacity(0.5)
-                            : colorScheme.secondaryContainer.withOpacity(0.5),
+                            ? colorScheme.primaryContainer.withOpacity(0.85)
+                            : colorScheme.secondaryContainer.withOpacity(0.85),
                         child: InkWell(
                           onTap: hasInvestmentProfile
                               ? null
                               : () async {
                                   // Navigate to Investment Profile Settings
-                                  final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                                  final firestoreService =
+                                      Provider.of<FirestoreService>(context,
+                                          listen: false);
                                   if (auth.currentUser != null) {
                                     final userDoc = await firestoreService
                                         .userCollection

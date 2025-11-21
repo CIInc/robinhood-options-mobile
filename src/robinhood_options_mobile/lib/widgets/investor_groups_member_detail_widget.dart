@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/main.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/widgets/copy_trade_button_widget.dart';
 import 'package:intl/intl.dart';
 import '../model/user.dart';
 import '../model/instrument_order.dart';
@@ -15,12 +19,17 @@ class InvestorGroupsMemberDetailWidget extends StatelessWidget {
   final DocumentReference<User> userDoc;
   final IBrokerageService brokerageService;
   final FirestoreService firestoreService;
+  final BrokerageUser? currentUser;
+  final CopyTradeSettings? copyTradeSettings;
+
   const InvestorGroupsMemberDetailWidget({
     super.key,
     required this.user,
     required this.userDoc,
     required this.brokerageService,
     required this.firestoreService,
+    this.currentUser,
+    this.copyTradeSettings,
   });
 
   @override
@@ -109,18 +118,33 @@ class InvestorGroupsMemberDetailWidget extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                         subtitle: subtitle,
-                        trailing: Text(
-                          (isCredit ? "+" : "-") +
-                              (o.processedPremium != null
-                                  ? formatCurrency.format(o.processedPremium)
-                                  : o.premium != null
-                                      ? formatCurrency.format(o.premium)
-                                      : ""),
-                          style: TextStyle(
-                            fontSize: 16.0,
-                            color: isCredit ? Colors.green : Colors.red,
-                          ),
-                        ),
+                        trailing: Wrap(
+                            spacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (currentUser != null &&
+                                  auth.currentUser != null &&
+                                  o.state == 'filled')
+                                CopyTradeButtonWidget(
+                                  brokerageService: brokerageService,
+                                  currentUser: currentUser!,
+                                  optionOrder: o,
+                                  settings: copyTradeSettings,
+                                ),
+                              Text(
+                                (isCredit ? "+" : "-") +
+                                    (o.processedPremium != null
+                                        ? formatCurrency
+                                            .format(o.processedPremium)
+                                        : o.premium != null
+                                            ? formatCurrency.format(o.premium)
+                                            : ""),
+                                style: TextStyle(
+                                  fontSize: 16.0,
+                                  color: isCredit ? Colors.green : Colors.red,
+                                ),
+                              ),
+                            ]),
                         isThreeLine: o.optionEvents != null &&
                             o.optionEvents!.isNotEmpty,
                       ),
@@ -199,37 +223,51 @@ class InvestorGroupsMemberDetailWidget extends StatelessWidget {
                           margin: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 4),
                           child: ListTile(
-                            leading: CircleAvatar(
-                              child: Text(
-                                o.quantity != null
-                                    ? formatCompactNumber.format(o.quantity!)
-                                    : '',
-                                style: const TextStyle(fontSize: 14),
-                                overflow: TextOverflow.fade,
-                                softWrap: false,
+                              leading: CircleAvatar(
+                                child: Text(
+                                  o.quantity != null
+                                      ? formatCompactNumber.format(o.quantity!)
+                                      : '',
+                                  style: const TextStyle(fontSize: 14),
+                                  overflow: TextOverflow.fade,
+                                  softWrap: false,
+                                ),
                               ),
-                            ),
-                            title: Text(
-                              "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type} ${o.side} ${o.price != null ? formatCurrency.format(o.price) : o.averagePrice != null ? formatCurrency.format(o.averagePrice) : ''}",
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                              "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}",
-                            ),
-                            trailing: Text(
-                              (o.price != null || o.averagePrice != null) &&
-                                      o.quantity != null
-                                  ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
-                                  : '',
-                              style: TextStyle(
-                                fontSize: 16.0,
-                                color: amount > 0
-                                    ? Colors.green
-                                    : (amount < 0 ? Colors.red : null),
+                              title: Text(
+                                "${o.instrumentObj != null ? o.instrumentObj!.symbol : ''} ${o.type} ${o.side} ${o.price != null ? formatCurrency.format(o.price) : o.averagePrice != null ? formatCurrency.format(o.averagePrice) : ''}",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w500),
                               ),
-                            ),
-                          ),
+                              subtitle: Text(
+                                "${o.state} ${o.updatedAt != null ? formatDate.format(o.updatedAt!) : ''}",
+                              ),
+                              trailing: Wrap(
+                                  spacing: 8,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (currentUser != null &&
+                                        auth.currentUser != null &&
+                                        o.state == 'filled')
+                                      CopyTradeButtonWidget(
+                                        brokerageService: brokerageService,
+                                        currentUser: currentUser!,
+                                        instrumentOrder: o,
+                                        settings: copyTradeSettings,
+                                      ),
+                                    Text(
+                                      (o.price != null ||
+                                                  o.averagePrice != null) &&
+                                              o.quantity != null
+                                          ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
+                                          : '',
+                                      style: TextStyle(
+                                        fontSize: 16.0,
+                                        color: amount > 0
+                                            ? Colors.green
+                                            : (amount < 0 ? Colors.red : null),
+                                      ),
+                                    ),
+                                  ])),
                         );
                       },
                     );

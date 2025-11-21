@@ -21,6 +21,7 @@ import * as agenticTradingfunc from "./agentic-trading";
 import * as agenticTradingCron from "./agentic-trading-cron";
 import * as agenticTradingIntradayCron from "./agentic-trading-intraday-cron";
 import * as riskguardAgent from "./riskguard-agent";
+import * as copyTrading from "./copy-trading";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -58,3 +59,5 @@ export const agenticTrading15mCronJob =
   agenticTradingIntradayCron.agenticTrading15mCron;
 // export const alphaagentTask = alphaagent.alphaagentTask;
 export const riskguardTask = riskguardAgent.riskguardTask;
+export const onInstrumentOrderCreated = copyTrading.onInstrumentOrderCreated;
+export const onOptionOrderCreated = copyTrading.onOptionOrderCreated;
