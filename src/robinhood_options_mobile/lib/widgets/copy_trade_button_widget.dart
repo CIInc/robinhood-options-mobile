@@ -29,23 +29,19 @@ Future<void> showCopyTradeDialog({
   final symbol = isInstrument
       ? instrumentOrder.instrumentObj?.symbol ?? 'Unknown'
       : '${optionOrder!.chainSymbol} \$${optionOrder.legs.isNotEmpty ? optionOrder.legs.first.strikePrice : ""}';
-  
-  final quantity = isInstrument
-      ? instrumentOrder.quantity ?? 0
-      : optionOrder!.quantity ?? 0;
-  
-  final price = isInstrument
-      ? instrumentOrder.price ?? 0
-      : optionOrder!.price ?? 0;
-  
-  final side = isInstrument
-      ? instrumentOrder.side
-      : optionOrder!.direction;
+
+  final quantity =
+      isInstrument ? instrumentOrder.quantity ?? 0 : optionOrder!.quantity ?? 0;
+
+  final price =
+      isInstrument ? instrumentOrder.price ?? 0 : optionOrder!.price ?? 0;
+
+  final side = isInstrument ? instrumentOrder.side : optionOrder!.direction;
 
   // Apply copy trade limits if settings are provided
   double finalQuantity = quantity;
   double finalPrice = price;
-  
+
   if (settings != null) {
     if (settings.maxQuantity != null && quantity > settings.maxQuantity!) {
       finalQuantity = settings.maxQuantity!;
@@ -108,7 +104,8 @@ Future<void> showCopyTradeDialog({
             SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 16),
             Text('Placing order...'),
@@ -146,10 +143,12 @@ Future<void> showCopyTradeDialog({
       if (context.mounted) {
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
 
-        if (orderResponse.statusCode == 200 || orderResponse.statusCode == 201) {
-          final newOrder = InstrumentOrder.fromJson(jsonDecode(orderResponse.body));
-          
-          if (newOrder.state == "confirmed" || 
+        if (orderResponse.statusCode == 200 ||
+            orderResponse.statusCode == 201) {
+          final newOrder =
+              InstrumentOrder.fromJson(jsonDecode(orderResponse.body));
+
+          if (newOrder.state == "confirmed" ||
               newOrder.state == "queued" ||
               newOrder.state == "unconfirmed") {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -165,13 +164,15 @@ Future<void> showCopyTradeDialog({
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 duration: const Duration(seconds: 5),
-                content: Text('Order placed but in unexpected state: ${newOrder.state}'),
+                content: Text(
+                    'Order placed but in unexpected state: ${newOrder.state}'),
                 backgroundColor: Colors.orange,
               ),
             );
           }
         } else {
-          throw Exception('Order failed with status ${orderResponse.statusCode}: ${orderResponse.body}');
+          throw Exception(
+              'Order failed with status ${orderResponse.statusCode}: ${orderResponse.body}');
         }
       }
     } else {
@@ -182,7 +183,7 @@ Future<void> showCopyTradeDialog({
 
       // For now, only support single-leg options
       final leg = optionOrder.legs.first;
-      
+
       // Fetch the option instrument
       final optionInstruments = await brokerageService.getOptionInstrumentByIds(
         currentUser,
@@ -204,7 +205,7 @@ Future<void> showCopyTradeDialog({
         currentUser,
         account,
         optionInstrument,
-        buySell,
+        buySell!,
         positionEffect,
         creditOrDebit,
         finalPrice,
@@ -215,7 +216,7 @@ Future<void> showCopyTradeDialog({
         ScaffoldMessenger.of(context).removeCurrentSnackBar();
 
         final newOrder = OptionOrder.fromJson(orderResponse);
-        
+
         if (newOrder.state == "confirmed" || newOrder.state == "unconfirmed") {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -230,7 +231,8 @@ Future<void> showCopyTradeDialog({
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               duration: const Duration(seconds: 5),
-              content: Text('Order placed but in unexpected state: ${newOrder.state}'),
+              content: Text(
+                  'Order placed but in unexpected state: ${newOrder.state}'),
               backgroundColor: Colors.orange,
             ),
           );
