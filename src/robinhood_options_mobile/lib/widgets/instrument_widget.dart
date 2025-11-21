@@ -55,6 +55,9 @@ import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+
+import 'package:robinhood_options_mobile/model/account_store.dart';
 
 class InstrumentWidget extends StatefulWidget {
   const InstrumentWidget(
@@ -130,6 +133,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
+    Provider.of<AgenticTradingProvider>(context, listen: false)
+        .fetchTradeSignal(widget.instrument.symbol);
   }
 
   @override
@@ -142,6 +147,54 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   // scopes: [acats, balances, document_upload, edocs, funding:all:read, funding:ach:read, funding:ach:write, funding:wire:read, funding:wire:write, internal, investments, margin, read, signup, trade, watchlist, web_limited])
   Request to https://api.robinhood.com/marketdata/options/?instruments=942d3704-7247-454f-9fb6-1f98f5d41702 failed with status 400: Bad Request.
   */
+
+  /// Builds a portfolio state map with cash and all stock positions.
+  ///
+  /// Returns a map containing:
+  /// - 'cash': The available portfolio cash from the account
+  /// - For each position: symbol -> {quantity, price} or just quantity if price unavailable
+  Map<String, dynamic> _buildPortfolioState(BuildContext context) {
+    // Get actual portfolio cash from account (same as Home widget)
+    double cash = 0.0;
+    final accountStore = Provider.of<AccountStore>(context, listen: false);
+    if (accountStore.items.isNotEmpty) {
+      final account = accountStore.items.first;
+      cash = account.portfolioCash ?? 0.0;
+    }
+
+    final stockPositionStore =
+        Provider.of<InstrumentPositionStore>(context, listen: false);
+
+    final Map<String, dynamic> portfolioState = {
+      'cash': cash,
+    };
+
+    // Add all stock positions with their quantities and prices
+    for (final position in stockPositionStore.items) {
+      if (position.instrumentObj != null &&
+          position.quantity != null &&
+          position.quantity! > 0) {
+        final posSymbol = position.instrumentObj!.symbol;
+        final posQuantity = position.quantity!;
+        final posPrice =
+            position.instrumentObj!.quoteObj?.lastExtendedHoursTradePrice ??
+                position.instrumentObj!.quoteObj?.lastTradePrice;
+
+        if (posPrice != null) {
+          // Store as object with quantity and price for accurate valuation
+          portfolioState[posSymbol] = {
+            'quantity': posQuantity,
+            'price': posPrice,
+          };
+        } else {
+          // Fallback to just quantity if price unavailable
+          portfolioState[posSymbol] = posQuantity;
+        }
+      }
+    }
+
+    return portfolioState;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1210,6 +1263,13 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   ]
                 ]));
           }),
+          if (instrument.tradeableChainId != null) ...[
+            const SliverToBoxAdapter(
+                child: SizedBox(
+              height: 8.0,
+            )),
+            _buildAgenticTradeSignals(instrument),
+          ],
           if (instrument.dividendsObj != null &&
               instrument.dividendsObj!.isNotEmpty) ...[
             const SliverToBoxAdapter(
@@ -1375,89 +1435,47 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     }
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          // const SizedBox(width: 8),
-          if (instrument.tradeableChainId != null) ...[
-            FilledButton.tonal(
-              child: const Text('OPTION CHAIN'),
-              onPressed: () {
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentOptionChainWidget(
-                              widget.user,
-                              widget.service,
-                              instrument,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                            )));
-              },
-            ),
-          ],
-          // const Expanded(child: SizedBox()),
-          const SizedBox(width: 8),
-          FilledButton(
-              child: const Text('TRADE'),
-              onPressed: () =>
-                  // showDialog<String>(
-                  //   context: context,
-                  //   builder: (BuildContext context) => AlertDialog(
-                  //     title: const Text('Alert'),
-                  //     content: const Text('This feature is not implemented.'),
-                  //     actions: <Widget>[
-                  //       TextButton(
-                  //         onPressed: () => Navigator.pop(context, 'OK'),
-                  //         child: const Text('OK'),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: <Widget>[
+            if (instrument.tradeableChainId != null) ...[
+              FilledButton.tonal(
+                child: const Text('OPTION CHAIN'),
+                onPressed: () {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => TradeInstrumentWidget(
-                                widget.user, widget.service,
-                                //widget.account,
-                                // stockPosition: positi,
-                                instrument: instrument,
-                                positionType: "Buy",
+                          builder: (context) => InstrumentOptionChainWidget(
+                                widget.user,
+                                widget.service,
+                                instrument,
                                 analytics: widget.analytics,
                                 observer: widget.observer,
-                              )))),
-          // const SizedBox(width: 8),
-          // TextButton(
-          //     child: const Text('SELL'),
-          //     onPressed: () =>
-          //         // showDialog<String>(
-          //         //   context: context,
-          //         //   builder: (BuildContext context) => AlertDialog(
-          //         //     title: const Text('Alert'),
-          //         //     content: const Text('This feature is not implemented.'),
-          //         //     actions: <Widget>[
-          //         //       TextButton(
-          //         //         onPressed: () => Navigator.pop(context, 'OK'),
-          //         //         child: const Text('OK'),
-          //         //       ),
-          //         //     ],
-          //         //   ),
-          //         // ),
-          //         Navigator.push(
-          //             context,
-          //             MaterialPageRoute(
-          //                 builder: (context) => TradeInstrumentWidget(
-          //                       widget.user, widget.service,
-          //                       //widget.account,
-          //                       // stockPosition: positi,
-          //                       instrument: instrument,
-          //                       positionType: "Sell",
-          //                       analytics: widget.analytics,
-          //                       observer: widget.observer,
-          //                     )))),
-          const SizedBox(width: 4),
-        ],
+                                generativeService: widget.generativeService,
+                              )));
+                },
+              ),
+            ],
+            const SizedBox(width: 8),
+            FilledButton(
+              child: const Text('TRADE'),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => TradeInstrumentWidget(
+                            widget.user,
+                            widget.service,
+                            instrument: instrument,
+                            positionType: "Buy",
+                            analytics: widget.analytics,
+                            observer: widget.observer,
+                          ))),
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
       ),
     );
   }
@@ -1824,14 +1842,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               formatCompactNumber.format(instrument.fundamentalsObj!.volume!),
               style: const TextStyle(fontSize: 18)),
         ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Average Volume"),
-          trailing: Text(
-              formatCompactNumber
-                  .format(instrument.fundamentalsObj!.averageVolume!),
-              style: const TextStyle(fontSize: 18)),
-        ),
+        if (instrument.fundamentalsObj!.averageVolume != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Average Volume"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.averageVolume!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
         ListTile(
           minTileHeight: 10,
           title: const Text("Average Volume (2 weeks)"),
@@ -1869,7 +1889,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           title: const Text("Market Cap"),
           trailing: Text(
               formatCompactNumber
-                  .format(instrument.fundamentalsObj!.marketCap!),
+                  .format(instrument.fundamentalsObj!.marketCap ?? 0),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
@@ -1877,7 +1897,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
           title: const Text("Shares Outstanding"),
           trailing: Text(
               formatCompactNumber
-                  .format(instrument.fundamentalsObj!.sharesOutstanding!),
+                  .format(instrument.fundamentalsObj!.sharesOutstanding ?? 0),
               style: const TextStyle(fontSize: 18)),
         ),
         ListTile(
@@ -3426,6 +3446,562 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  Widget _buildMultiIndicatorDisplay(Map<String, dynamic> multiIndicator) {
+    final indicators = multiIndicator['indicators'] as Map<String, dynamic>?;
+    if (indicators == null) return const SizedBox.shrink();
+
+    final allGreen = multiIndicator['allGreen'] as bool? ?? false;
+    final overallSignal = multiIndicator['overallSignal'] as String? ?? 'HOLD';
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.grey.shade900.withOpacity(0.5)
+            : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: allGreen
+              ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+              : (isDark ? Colors.orange.shade700 : Colors.orange.shade200),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics_outlined,
+                size: 20,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Technical Indicators',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildIndicatorRow('Price Movement',
+              indicators['priceMovement'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Momentum (RSI)',
+              indicators['momentum'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Market Direction',
+              indicators['marketDirection'] as Map<String, dynamic>?),
+          _buildIndicatorRow(
+              'Volume', indicators['volume'] as Map<String, dynamic>?),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: allGreen
+                  ? (isDark
+                      ? Colors.green.withOpacity(0.25)
+                      : Colors.green.withOpacity(0.15))
+                  : (isDark
+                      ? Colors.orange.withOpacity(0.25)
+                      : Colors.orange.withOpacity(0.15)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  allGreen ? Icons.check_circle : Icons.warning_amber_rounded,
+                  color: allGreen
+                      ? (isDark ? Colors.green.shade400 : Colors.green.shade800)
+                      : (isDark
+                          ? Colors.orange.shade400
+                          : Colors.orange.shade800),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Overall: $overallSignal ${allGreen ? '✓ All Green!' : ''}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: allGreen
+                        ? (isDark
+                            ? Colors.green.shade400
+                            : Colors.green.shade800)
+                        : (isDark
+                            ? Colors.orange.shade400
+                            : Colors.orange.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicatorRow(String name, Map<String, dynamic>? indicator) {
+    if (indicator == null) return const SizedBox.shrink();
+
+    final signal = indicator['signal'] as String? ?? 'HOLD';
+    final reason = indicator['reason'] as String? ?? '';
+
+    Color signalColor;
+    IconData signalIcon;
+
+    switch (signal) {
+      case 'BUY':
+        signalColor = Colors.green;
+        signalIcon = Icons.arrow_upward;
+        break;
+      case 'SELL':
+        signalColor = Colors.red;
+        signalIcon = Icons.arrow_downward;
+        break;
+      default:
+        signalColor = Colors.grey;
+        signalIcon = Icons.horizontal_rule;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(signalIcon, color: signalColor, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$name: $signal',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: signalColor,
+                  ),
+                ),
+                if (reason.isNotEmpty)
+                  Text(
+                    reason,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAgenticTradeSignals(Instrument instrument) {
+    final symbol = instrument.symbol;
+    return SliverToBoxAdapter(
+      child: Column(
+        children: [
+          const ListTile(
+            title: Text(
+              "Trade Signal",
+              style: TextStyle(fontSize: 19.0),
+            ),
+          ),
+          // Market status indicator
+          Consumer<AgenticTradingProvider>(
+            builder: (context, provider, child) {
+              final isMarketOpen = provider.isMarketOpen;
+              final selectedInterval = provider.selectedInterval;
+              final intervalLabel = selectedInterval == '1d' ? 'Daily' :
+                                   selectedInterval == '1h' ? 'Hourly' :
+                                   selectedInterval == '30m' ? '30-min' :
+                                   selectedInterval == '15m' ? '15-min' : selectedInterval;
+              
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    color: isMarketOpen
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isMarketOpen
+                          ? Colors.green.shade300
+                          : Colors.blue.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isMarketOpen ? Icons.access_time : Icons.calendar_today,
+                        size: 18,
+                        color: isMarketOpen
+                            ? Colors.green.shade700
+                            : Colors.blue.shade700,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${isMarketOpen ? 'Market Open' : 'After Hours'} • Showing $intervalLabel Signals',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isMarketOpen
+                              ? Colors.green.shade700
+                              : Colors.blue.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          // Interval selector
+          Consumer<AgenticTradingProvider>(
+            builder: (context, provider, child) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: '15m',
+                      label: Text('15m'),
+                      icon: Icon(Icons.access_time, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: '1h',
+                      label: Text('1h'),
+                      icon: Icon(Icons.schedule, size: 16),
+                    ),
+                    ButtonSegment(
+                      value: '1d',
+                      label: Text('Daily'),
+                      icon: Icon(Icons.calendar_today, size: 16),
+                    ),
+                  ],
+                  selected: {provider.selectedInterval},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    provider.setSelectedInterval(newSelection.first);
+                    provider.fetchTradeSignal(symbol, 
+                        interval: newSelection.first);
+                  },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Consumer2<AgenticTradingProvider, AccountStore>(
+            builder: (context, agenticTradingProvider, accountStore, child) {
+              final signal = agenticTradingProvider.tradeSignal;
+              if (signal == null || signal.isEmpty) {
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.signal_cellular_nodata,
+                          size: 48,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "No trade signal found for this instrument.",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        _AgenticTradeButton(
+                          instrument: instrument,
+                          buildPortfolioState: () =>
+                              _buildPortfolioState(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              final timestamp = DateTime.fromMillisecondsSinceEpoch(
+                  signal['timestamp'] as int);
+              final signalType = signal['signal'] ?? 'HOLD';
+              final signalInterval = signal['interval'] ?? '1d';
+              final assessment = signal['assessment'] as Map<String, dynamic>?;
+              final multiIndicator =
+                  signal['multiIndicatorResult'] as Map<String, dynamic>?;
+
+              // Determine signal color and icon
+              Color signalColor;
+              IconData signalIcon;
+              switch (signalType) {
+                case 'BUY':
+                  signalColor = Colors.green;
+                  signalIcon = Icons.trending_up;
+                  break;
+                case 'SELL':
+                  signalColor = Colors.red;
+                  signalIcon = Icons.trending_down;
+                  break;
+                default:
+                  signalColor = Colors.grey;
+                  signalIcon = Icons.trending_flat;
+              }
+
+              // Format interval label
+              final intervalLabel = signalInterval == '1d' ? 'Daily' :
+                                    signalInterval == '1h' ? 'Hourly' :
+                                    signalInterval == '30m' ? '30-min' :
+                                    signalInterval == '15m' ? '15-min' : 
+                                    signalInterval;
+
+              return Card(
+                elevation: 2,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    // Header with signal badge and timestamp
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: signalColor.withOpacity(0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Signal Badge
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 8.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: signalColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      signalIcon,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      signalType,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Timestamp and interval
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    intervalLabel,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    formatCompactDateTimeWithHour
+                                        .format(timestamp),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Reason section
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Analysis',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  signal['reason'] ?? 'No reason provided',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Multi-Indicator Display
+                    if (multiIndicator != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
+                        child: _buildMultiIndicatorDisplay(multiIndicator),
+                      ),
+
+                    // Risk Assessment
+                    if (assessment != null) ...[
+                      const Divider(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              size: 20,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Risk Assessment',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Container(
+                          padding: const EdgeInsets.all(12.0),
+                          decoration: BoxDecoration(
+                            color: assessment['approved'] == true
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: assessment['approved'] == true
+                                  ? Colors.green.shade300
+                                  : Colors.red.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    assessment['approved'] == true
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    color: assessment['approved'] == true
+                                        ? Colors.green.shade700
+                                        : Colors.red.shade700,
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    assessment['approved'] == true
+                                        ? 'Trade Approved'
+                                        : 'Trade Rejected',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: assessment['approved'] == true
+                                          ? Colors.green.shade700
+                                          : Colors.red.shade700,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (assessment['reason'] != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  assessment['reason'] ?? '',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // Action Buttons
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _RiskGuardButton(
+                            symbol: symbol,
+                            signalType: signalType,
+                            signal: signal,
+                            assessment: assessment,
+                            buildPortfolioState: () =>
+                                _buildPortfolioState(context),
+                          ),
+                          const SizedBox(height: 8),
+                          _AgenticTradeButton(
+                            instrument: instrument,
+                            buildPortfolioState: () =>
+                                _buildPortfolioState(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Iterable<Widget> get headerWidgets sync* {
     var instrument = widget.instrument;
     // yield Row(children: const [SizedBox(height: 70)]);
@@ -3720,5 +4296,294 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             style: const TextStyle(fontSize: 17.0)),
       ])
       */
+  }
+}
+
+// Risk Guard Button Widget
+class _RiskGuardButton extends StatefulWidget {
+  final String symbol;
+  final String signalType;
+  final Map<String, dynamic> signal;
+  final Map<String, dynamic>? assessment;
+  final Map<String, dynamic> Function() buildPortfolioState;
+
+  const _RiskGuardButton({
+    required this.symbol,
+    required this.signalType,
+    required this.signal,
+    required this.assessment,
+    required this.buildPortfolioState,
+  });
+
+  @override
+  State<_RiskGuardButton> createState() => _RiskGuardButtonState();
+}
+
+class _RiskGuardButtonState extends State<_RiskGuardButton> {
+  bool _isAssessing = false;
+
+  Future<void> _runRiskAssessment() async {
+    if (_isAssessing) return;
+
+    setState(() {
+      _isAssessing = true;
+    });
+
+    try {
+      final proposal = {
+        'symbol': widget.symbol,
+        'action': widget.signalType,
+        'quantity': widget.signal['proposal']?['quantity'] ?? 1,
+        'price': widget.signal['proposal']?['price'] ?? 0,
+      };
+
+      final portfolioState = widget.buildPortfolioState();
+
+      final provider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      final result = await provider.assessTradeRisk(
+        proposal: proposal,
+        portfolioState: portfolioState,
+      );
+
+      // Update assessment in the signal and refresh UI
+      widget.signal['assessment'] = result;
+      if (mounted) {
+        (context as Element).markNeedsBuild();
+      }
+
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  result['approved']
+                      ? Icons.check_circle_outline
+                      : Icons.error_outline,
+                  color: result['approved'] ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    result['approved']
+                        ? 'Risk Assessment Passed'
+                        : 'Risk Assessment Failed',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: result['approved']
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Status:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        result['approved'] ? 'Approved' : 'Rejected',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: result['approved']
+                              ? Colors.green.shade700
+                              : Colors.red.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (result['reason'] != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Reason:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    result['reason'],
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error running risk assessment: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAssessing = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+        ),
+        icon: _isAssessing
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.shield_outlined),
+        label: Text(
+          _isAssessing
+              ? 'Assessing...'
+              : (widget.assessment == null
+                  ? 'Run Risk Guard'
+                  : 'Re-assess Risk'),
+          style: const TextStyle(fontSize: 16),
+        ),
+        onPressed: _isAssessing ? null : _runRiskAssessment,
+      ),
+    );
+  }
+}
+
+class _AgenticTradeButton extends StatefulWidget {
+  final Instrument instrument;
+  final Map<String, dynamic> Function() buildPortfolioState;
+
+  const _AgenticTradeButton({
+    required this.instrument,
+    required this.buildPortfolioState,
+  });
+
+  @override
+  State<_AgenticTradeButton> createState() => _AgenticTradeButtonState();
+}
+
+class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
+  bool _isGenerating = false;
+
+  Future<void> _generateTradeSignal(BuildContext context) async {
+    if (_isGenerating) return;
+
+    setState(() {
+      _isGenerating = true;
+    });
+
+    try {
+      final provider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+
+      final portfolioState = widget.buildPortfolioState();
+      final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
+          widget.instrument.quoteObj?.lastTradePrice;
+
+      if (price == null) {
+        throw Exception('Unable to fetch current price');
+      }
+
+      // Generate new signal via initiateTradeProposal
+      await provider.initiateTradeProposal(
+        symbol: widget.instrument.symbol,
+        currentPrice: price,
+        portfolioState: portfolioState,
+      );
+
+      // Wait briefly to ensure Firestore write has completed
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Refresh the signal from Firestore
+      await provider.fetchTradeSignal(widget.instrument.symbol);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trade signal generated successfully!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating signal: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+        ),
+        icon: _isGenerating
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : const Icon(Icons.auto_awesome),
+        label: Text(
+          _isGenerating ? 'Generating Signal...' : 'Generate AI Trade Signal',
+          style: const TextStyle(fontSize: 16),
+        ),
+        onPressed: _isGenerating ? null : () => _generateTradeSignal(context),
+      ),
+    );
   }
 }

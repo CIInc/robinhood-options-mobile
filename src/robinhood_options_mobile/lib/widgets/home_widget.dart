@@ -54,6 +54,8 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/forex_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/income_transactions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_positions_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart'
+    hide formatCurrency;
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/option_positions_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -573,6 +575,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),
@@ -596,6 +599,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),
@@ -620,8 +624,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 optionPositionStore: optionPositionStore,
                                 forexHoldingStore: forexHoldingStore,
                                 localInference:
-                                    false // Needed for googleTools RAG only available in cloud rn.
-                                );
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
                           },
                         ),
                       ),
@@ -645,8 +649,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 optionPositionStore: optionPositionStore,
                                 forexHoldingStore: forexHoldingStore,
                                 localInference:
-                                    false // Needed for googleTools RAG only available in cloud rn.
-                                );
+                                    false, // Needed for googleTools RAG only available in cloud rn.
+                                user: widget.user);
                           },
                         ),
                       ),
@@ -668,6 +672,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               stockPositionStore: stockPositionStore,
                               optionPositionStore: optionPositionStore,
                               forexHoldingStore: forexHoldingStore,
+                              user: widget.user,
                             );
                           },
                         ),
@@ -676,79 +681,155 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   ),
                 ),
               );
-
-              // return SliverToBoxAdapter(
-              //   child: Column(children: [
-              //     // ListTile(
-              //     //   title: const Text(
-              //     //     "Assistant",
-              //     //     style: TextStyle(fontSize: 19.0),
-              //     //   ),
-              //     // ),
-              //     ListTile(
-              //       title: Text(
-              //         "Insight",
-              //         style: TextStyle(fontSize: listTileTitleFontSize),
-              //       ),
-              //       trailing: Wrap(
-              //         children: [
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider
-              //                     .setGenerativePrompt('portfolio-summary');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key == 'portfolio-summary'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Summary"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-summary') &&
-              //                               generativeProvider.promptResponses['portfolio-summary'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.summarize)),
-              //           TextButton.icon(
-              //               onPressed: () async {
-              //                 generativeProvider.setGenerativePrompt(
-              //                     'portfolio-recommendations');
-              //                 await widget.generativeService
-              //                     .generatePortfolioContent(
-              //                         widget.generativeService.prompts
-              //                             .firstWhere((p) =>
-              //                                 p.key ==
-              //                                 'portfolio-recommendations'),
-              //                         stockPositionStore,
-              //                         optionPositionStore,
-              //                         forexHoldingStore,
-              //                         generativeProvider);
-              //               },
-              //               label: Text("Recommendations"),
-              //               icon: generativeProvider.generating &&
-              //                               generativeProvider.promptResponses.containsKey('portfolio-recommendations') &&
-              //                               generativeProvider.promptResponses['portfolio-recommendations'] == null
-              //                   ? CircularProgressIndicator.adaptive()
-              //                   : const Icon(Icons.recommend)),
-              //         ],
-              //       ),
-              //     ),
-              //     if (generativeProvider.promptResponses != null) ...[
-              //       Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: Card(
-              //             child: SizedBox(
-              //                 height: 280,
-              //                 child: Markdown(
-              //                     data: generativeProvider.response!))),
-              //       ),
-              //     ],
-              //   ]),
-              // );
             }),
+
+            // AI Recommendations Promotional Card
+            if (widget.user != null)
+              Consumer<GenerativeProvider>(
+                builder: (context, generativeProvider, child) {
+                  final hasInvestmentProfile =
+                      widget.user!.investmentGoals != null ||
+                          widget.user!.timeHorizon != null ||
+                          widget.user!.riskTolerance != null ||
+                          widget.user!.totalPortfolioValue != null;
+
+                  // Check if user has ever generated recommendations
+                  final hasUsedRecommendations = generativeProvider
+                      .promptResponses
+                      .containsKey('portfolio-recommendations');
+
+                  // Hide card if user has already used the feature
+                  if (hasUsedRecommendations) {
+                    return const SliverToBoxAdapter(child: SizedBox.shrink());
+                  }
+
+                  final theme = Theme.of(context);
+                  final colorScheme = theme.colorScheme;
+
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+                      child: Card(
+                        elevation: 2,
+                        color: hasInvestmentProfile
+                            ? colorScheme.primaryContainer.withOpacity(0.85)
+                            : colorScheme.secondaryContainer.withOpacity(0.85),
+                        child: InkWell(
+                          onTap: hasInvestmentProfile
+                              ? null
+                              : () async {
+                                  // Navigate to Investment Profile Settings
+                                  final firestoreService =
+                                      Provider.of<FirestoreService>(context,
+                                          listen: false);
+                                  if (auth.currentUser != null) {
+                                    final userDoc = await firestoreService
+                                        .userCollection
+                                        .doc(auth.currentUser!.uid)
+                                        .get();
+                                    if (userDoc.exists && context.mounted) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              InvestmentProfileSettingsWidget(
+                                            user: userDoc.data()!,
+                                            firestoreService: firestoreService,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: hasInvestmentProfile
+                                ? Row(
+                                    children: [
+                                      Icon(
+                                        Icons.stars,
+                                        color: colorScheme.primary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Personalized AI Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onPrimaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Get tailored insights based on your investment profile. Tap "Recommendations" above to generate personalized advice.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onPrimaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Icon(
+                                        Icons.psychology_outlined,
+                                        color: colorScheme.secondary,
+                                        size: 32,
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Unlock AI-Powered Recommendations',
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: colorScheme
+                                                    .onSecondaryContainer,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Complete your investment profile to receive personalized AI portfolio recommendations.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                color: colorScheme
+                                                    .onSecondaryContainer
+                                                    .withOpacity(0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        color: colorScheme.secondary,
+                                        size: 16,
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
 
             Consumer4<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore>(

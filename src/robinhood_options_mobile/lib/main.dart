@@ -16,8 +16,10 @@ import 'package:robinhood_options_mobile/model/chart_selection_store.dart';
 import 'package:robinhood_options_mobile/model/dividend_store.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/generative_provider.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/interest_store.dart';
 import 'package:robinhood_options_mobile/model/logo_provider.dart';
+import 'package:robinhood_options_mobile/model/investor_group_store.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'firebase_options.dart';
 
@@ -39,6 +41,7 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 //import 'package:material_color_utilities/material_color_utilities.dart';
 
@@ -224,6 +227,12 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(
               create: (context) => GenerativeProvider(),
             ),
+            ChangeNotifierProvider(
+              create: (context) => AgenticTradingProvider(),
+            ),
+            ChangeNotifierProvider(
+              create: (context) => InvestorGroupStore(),
+            ),
           ],
           child: MaterialApp(
             title: Constants.appTitle,
@@ -234,6 +243,7 @@ class MyApp extends StatelessWidget {
             routes: {
               '/': (context) => NavigationStatefulWidget(
                   analytics: analytics, observer: observer),
+              '/agentic-trading-settings': (context) => const AgenticTradingSettingsWidget(),
               // '/link': (context) => NavigationStatefulWidget(
               //     analytics: analytics, observer: observer)
               /*

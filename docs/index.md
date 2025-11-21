@@ -9,13 +9,163 @@
 - Centralized view for stocks, options, and crypto assets.
 - Integration with brokerage accounts for real-time data.
 - AI-driven insights and recommendations.
+  - Note: AI portfolio prompts now include per-account cash and a total cash summary when available.
 - Historical data analysis for informed decision-making.
 - Cross-platform access for iOS and Android users.
 - Community-driven features for shared insights and discussions.
 - Enhanced security and privacy for user data.
 - Customizable watchlists and alerts for market movements.
 - Advanced charting tools for technical analysis.
+- Multi-indicator correlated trade signals (price patterns, RSI, market direction, volume) with confidence-scored pattern detection.
 - Integration with social media for sentiment analysis.
+
+## Investment Profile Feature
+
+This feature adds investment profile configuration to user settings, allowing users to specify their investment goals, time horizon, risk tolerance, and portfolio value. These preferences are then integrated into AI Portfolio Recommendations to provide personalized financial advice.
+
+### Model changes
+- Added optional fields on the `User` model: `investmentGoals`, `timeHorizon`, `riskTolerance`, `totalPortfolioValue`.
+
+### AI integration
+- `GenerativeService.portfolioPrompt()` now accepts a `user` parameter and includes an "Investment Profile" section when available.
+- The prompt also includes per-account cash (`portfolioCash`) and an aggregated total cash across accounts when `user.accounts` is present.
+
+### UI
+- New `Investment Profile Settings` widget under user settings for editing goals, time horizon, risk tolerance, and portfolio value.
+
+### Developer notes
+- The AI generation pipelines accept an optional `user` parameter and pass it through to `generateContent()`.
+- When `user` is not provided, behavior is backward compatible.
+
+## Trade Signals Feature
+
+The Trade Signals feature provides AI-powered automatic trading capabilities using agentic trading with multi-indicator correlation and risk assessment.
+
+### Key Components
+- **Multi-Indicator Correlation:** Analyzes price patterns, RSI, market direction, and volume to generate high-confidence trade signals
+- **Intraday Trading:** Support for multiple time intervals (15-minute, hourly, daily) for different trading strategies
+- **Real-Time Updates:** Firestore snapshot listeners provide automatic signal refresh without manual polling
+- **Market Hours Intelligence:** Automatically shows intraday signals during market hours and daily signals after hours
+  - DST-aware market status detection
+  - Intelligent default interval selection based on trading hours
+  - Automatic switching between signal types
+- **Market Status Indicators:** Visual feedback showing current market state
+  - Market status chip in Search widget filter area
+  - Market status banner in Instrument widget above interval selector
+  - Color-coded states: Green (Market Open), Blue (After Hours)
+  - Real-time updates for market open/close transitions
+- **Agentic Trading:** Automated agents (Alpha Agent, Risk Guard) monitor markets and execute trades
+- **Risk Assessment:** Comprehensive risk analysis before trade execution with portfolio-aware decision making
+- **Signal Display:** Trade signals appear prominently in Search and Instrument widgets with interval labels, dates, and confidence scores
+- **Server-Side Filtering:** Efficient signal filtering by type (BUY/SELL/HOLD), date range, symbols, and interval with Firestore queries
+  - Increased daily signal query limit to 500 to handle mixed interval data
+  - "All" filter now correctly includes HOLD signals
+- **State Synchronization:** Real-time updates across Instrument View and Search View when signals are regenerated
+- **Manual Execution:** Ad-hoc cron endpoint for manual signal generation via callable/HTTP function
+
+### Signal Filtering & Search
+- **Filter UI:** FilterChips in Search tab for quick filtering by signal type (All/BUY/SELL/HOLD)
+- **Color-Coded Filters:** Green (BUY), red (SELL), grey (HOLD) for visual clarity
+- **Server-Side Queries:** Optimized Firestore queries with indexed fields reduce network payload
+- **Performance:** Default limit of 50 signals with configurable parameters
+- **Manual Refresh:** Refresh button to reload signals with current filters
+- **Empty States:** Clear messages when no signals match selected filters
+
+### Configuration
+- Users can enable/disable agentic trading in settings
+- Configurable watchlist for symbols to monitor
+- Risk parameters and portfolio integration
+- Trade signal history and results tracking
+- Optional filtering parameters: signal type, date range, symbols, limit
+
+### Technical Details
+- Firestore integration for signal storage: `agentic_trading/signals_{SYMBOL}`
+- Firebase Functions for scheduled agent execution
+- Provider pattern (AgenticTradingProvider) for state management
+- Real-time signal updates and notifications
+- Composite Firestore indexes for optimized queries
+- State synchronization between single signal and signal list
+
+For detailed technical documentation, see [Multi-Indicator Trading System](multi-indicator-trading.md).
+
+## Investor Groups Feature
+
+The Investor Groups feature enables collaborative portfolio sharing and community building among investors.
+
+### Key Components
+- **Group Creation:** Create public or private investor groups with customizable settings
+- **Member Management:** Join, leave, and manage group memberships with comprehensive invitation system
+  - Send invitations to users by searching for them in real-time
+  - Accept or decline invitations from dedicated "Invitations" tab
+  - Cancel pending invitations before they're accepted
+  - View all pending invitations in one place
+- **Admin Controls:** Group creators and admins can manage members with full control
+  - Promote members to admin role
+  - Demote admins back to regular members
+  - Remove members from groups
+  - Send and manage invitations
+  - Edit group details and settings
+- **Portfolio Sharing:** View portfolios shared within your groups
+- **Private Group Portfolio Viewing:** Tap any member in a private group to view their shared portfolio including stocks, ETFs, and options orders
+- **Discovery:** Browse and join public groups or search for specific communities
+
+### User Interface
+- **InvestorGroupsWidget:** Main interface with "My Groups", "Invitations", and "Discover" tabs
+  - **My Groups:** View all groups you're a member of
+  - **Invitations:** Dedicated tab showing all pending invitations with accept/decline actions
+  - **Discover:** Browse public groups and join new communities
+- **Group Details:** View member lists with avatars, group information, and tappable members for portfolio viewing (private groups only)
+- **Portfolio Navigation:** Seamless navigation from member list to SharedPortfolioWidget showing real-time orders and transactions
+- **Member Management:** Comprehensive 3-tab admin interface
+  - **Members Tab:** View all members, promote/demote admins, remove members
+  - **Pending Tab:** View and cancel pending invitations
+  - **Invite Tab:** Search users in real-time and send invitations
+- **Creation Form:** Simple form with name, description, and privacy toggle
+
+### Technical Implementation
+- **InvestorGroup Model:** Full serialization support with member/admin/invitation tracking
+  - `id`, `name`, `description`, `isPrivate` fields
+  - `members`, `admins`, `pendingInvitations` arrays
+  - `createdBy`, `createdAt`, `updatedAt` timestamps
+- **Firestore Integration:** 15+ service methods for comprehensive functionality
+  - CRUD: `createInvestorGroup`, `getInvestorGroup`, `updateInvestorGroup`, `deleteInvestorGroup`
+  - Membership: `joinInvestorGroup`, `leaveInvestorGroup`, `addGroupAdmin`, `removeGroupAdmin`
+  - Invitations: `inviteUserToGroup`, `acceptGroupInvitation`, `declineGroupInvitation`, `getUserPendingInvitations`
+  - Discovery: `getUserInvestorGroups`, `getPublicInvestorGroups`, `searchInvestorGroups`
+  - Management: `removeMemberFromGroup`
+- **Security Rules:** Firestore rules enforce proper access control
+  - Read access for public groups or members/invitees of private groups
+  - Create access for authenticated users
+  - Update access for creators, admins, or users accepting invitations
+  - Delete access for creators only
+- **State Management:** InvestorGroupStore ChangeNotifier integrated with Provider pattern
+
+### Integration Points
+- **Shared Portfolios:** New "Groups" tab shows portfolios from members in your groups
+- **Direct Portfolio Access:** Tap member in private group detail view to navigate to SharedPortfolioWidget
+- **Navigation:** Access via drawer menu under "Investor Groups"
+- **User Model:** Utilizes existing `sharedGroups` field for membership tracking
+- **Real-Time Updates:** StreamBuilder for Firestore user documents ensures live portfolio data
+
+### Security
+- Private groups visible only to members and invitees
+- Public groups discoverable by all users
+- Only group creator and admins can edit/delete groups
+- Only group creator and admins can send invitations
+- Member operations properly authenticated
+- Invitation access controlled via Firestore security rules
+
+For implementation details, see:
+- `lib/model/investor_group.dart` - Data model with member/admin/invitation tracking
+- `lib/model/investor_group_store.dart` - State management
+- `lib/services/firestore_service.dart` - Backend operations (15+ methods)
+- `lib/widgets/investor_groups_widget.dart` - Main UI with 3-tab layout
+- `lib/widgets/investor_group_detail_widget.dart` - Group details with member list and portfolio navigation
+- `lib/widgets/investor_group_create_widget.dart` - Group creation form
+- `lib/widgets/investor_group_manage_members_widget.dart` - Admin member management interface with 3 tabs
+- `lib/widgets/shared_portfolio_widget.dart` - Portfolio display widget
+- `firebase/firestore.rules` - Security rules
+- `test/investor_group_model_test.dart` - Unit tests (230+ lines)
 
 ## Requirements
 
@@ -66,14 +216,26 @@
 - Search tab
   - [x] Search companies by name or symbol  
     _Find stocks, options, or crypto quickly._
+  - [x] Trade Signals  
+    _View AI-generated trade signals with multi-indicator correlation and confidence scores._
+    - [x] Signal cards with BUY/SELL/HOLD recommendations
+    - [x] Risk Guard integration for trade validation
+    - [x] Prominent date and reason display
+    - [x] Color-coded borders and badges
+    - [x] Server-side filtering by signal type, date range, and symbols
+    - [x] Filter UI with color-coded chips (All/BUY/SELL/HOLD)
+    - [x] Real-time synchronization between Instrument and Search views
   - [x] S&P movers, losers, and gainers  
     _See daily market leaders and laggards._
   - [x] Top 100 stocks  
     _Browse the most popular or highest-volume stocks._
+  - [x] Stock Screener  
+    _Filter stocks by sector, market cap, P/E ratio, dividend yield, price, and volume._
+    - [x] Quick presets (High Dividend, Growth, Value, Large Cap)
+    - [x] Yahoo Finance screener integration
+    - [x] Sortable results
   - [ ] Undervalued/Overvalued (Fair value evaluation)  
     _Identify potential bargains or overpriced assets using valuation models._
-  - [ ] Advanced search filters  
-    _Filter by sector, market cap, P/E ratio, dividend yield, etc._
 
 - Lists tab
   - [x] View your lists and its stocks  
@@ -181,6 +343,11 @@
 ### Future Feature Suggestions
 
 - **Social Integration**
+  - [x] Investor Groups for collaborative portfolio sharing
+    - Create public or private investor groups
+    - Join and leave groups with member management
+    - View shared portfolios within groups
+    - Group admin controls
   - [ ] Reddit integration for trending tickers and sharing results.
   - [ ] Twitter sentiment tracking and sharing.
   - [ ] Community-driven trade ideas and discussions.
@@ -202,6 +369,7 @@
   - [ ] Home screen widgets for quick updates.
 
 - **Collaboration & Sharing**
+  - [x] Investor Groups with portfolio sharing
   - [ ] Shared watchlists with friends.
   - [ ] Group discussions for specific assets.
   - [ ] Public leaderboards for portfolio performance.
@@ -209,3 +377,144 @@
 ---
 
 - [App Launcher Icon](https://icon.kitchen/i/H4sIAAAAAAAAAz2PQQvCMAyF%2F8vzuoswQXrdH%2FCwm4h0a9oVu2V0rSJj%2F910ipfk8RLyvax46pBpgVphdHy0A40EZXVYqIJ1TfCzjqmMF5IGQ1bnkFDB9zyJkSJNxk%2FunmdsFTrXvme5gJ4DR1nrXLMrhUNdn7W14qVCMVAp5p1y0aacKJTEM9TxVCF6NwiwyI5T4vGrA9ndFZT9o34hxRvZ5FDeuUJPJrI3JSkvUl%2FU4bZ9AAfiKa7xAAAA)
+
+## Testing
+
+- Run unit tests for the app:
+
+```bash
+cd src/robinhood_options_mobile
+flutter test
+```
+
+- Run a single test file (example):
+
+```bash
+flutter test test/user_model_test.dart
+```
+
+## Developer Reference
+
+- Key files:
+  - `lib/main.dart` - App entrypoint and provider wiring
+  - `lib/model/user.dart` - User model and investment profile fields
+  - `lib/services/generative_service.dart` - AI prompt generation and `portfolioPrompt()`
+  - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
+  - `functions/` - Server-side Firebase Functions and helpers
+
+## Future Enhancements
+
+### Investor Groups (Completed ✅)
+- [x] Create and manage investor groups
+- [x] Public and private group options
+- [x] Portfolio sharing within groups
+- [x] Admin controls and member management
+- [x] Invitation system with accept/decline workflow
+- [x] Direct portfolio viewing for private group members
+- [x] Member list with avatars and role indicators
+- [ ] Group chat/messaging functionality
+- [ ] Group performance analytics and leaderboards
+- [ ] Activity feed for group trades
+- [ ] Group-based watchlists
+
+### Trade Signals & AI Trading
+- [x] Multi-indicator correlation system
+- [x] Intraday signals (15m, 1h, daily)
+- [x] Real-time signal updates
+- [ ] Machine learning-based signal optimization
+- [ ] Backtesting interface for strategies
+- [ ] Custom indicator creation
+- [ ] Strategy templates and presets
+- [ ] Social signal sharing
+- [ ] Performance tracking dashboard
+- [ ] Paper trading mode
+
+### Social & Community
+- [ ] Follow other users and their portfolios
+- [ ] Comment system on shared portfolios
+- [ ] Reddit integration for trending tickers
+- [ ] Twitter sentiment tracking
+- [ ] Community-driven trade ideas
+- [ ] Portfolio comparison tools
+- [ ] Social feed with trade notifications
+- [ ] User reputation system
+- [ ] Achievement badges
+
+### Portfolio Management
+- [ ] Advanced portfolio analytics (Sharpe ratio, alpha, beta)
+- [ ] Risk exposure heatmaps
+- [ ] Sector allocation visualization
+- [ ] Dividend tracking and projections
+- [ ] Tax loss harvesting suggestions
+- [ ] Portfolio rebalancing recommendations
+- [ ] Multi-account aggregation
+- [ ] Import from other brokerages
+- [ ] Export data to Excel/CSV
+
+### Notifications & Alerts
+- [ ] Custom price alerts with conditions
+- [ ] Earnings calendar notifications
+- [ ] Dividend payment reminders
+- [ ] Options expiration alerts
+- [ ] News alerts for holdings
+- [ ] Unusual volume/price movement alerts
+- [ ] Trade signal push notifications
+- [ ] Group activity notifications
+
+### Trading Features
+- [ ] Place stock orders directly
+- [ ] Multi-leg options strategies
+- [ ] Crypto trading integration
+- [ ] Paper trading simulator
+- [ ] Limit/stop-loss orders
+- [ ] Trailing stop orders
+- [ ] Advanced order types
+- [ ] Order templates
+
+### Mobile Experience
+- [ ] Offline mode for portfolio viewing
+- [ ] Home screen widgets
+- [ ] Siri/Google Assistant integration
+- [ ] Dark mode customization
+- [ ] Tablet-optimized layouts
+- [ ] Landscape mode support
+- [ ] Haptic feedback
+- [ ] 3D Touch/Long press shortcuts
+
+### Analytics & Insights
+- [ ] AI-powered price targets
+- [ ] Fair value calculations
+- [ ] Technical analysis tools
+- [ ] Sentiment analysis dashboard
+- [ ] Insider trading activity tracking
+- [ ] Institutional ownership changes
+- [ ] Options flow analysis
+- [ ] Correlation analysis
+
+### Education & Learning
+- [ ] Investment strategy guides
+- [ ] Options education modules
+- [ ] Interactive tutorials
+- [ ] Video explanations
+- [ ] Glossary of terms
+- [ ] Market hours info
+- [ ] FAQ section
+- [ ] Webinar integration
+
+### Data & Integration
+- [ ] Multiple brokerage support
+- [ ] Bank account linking
+- [ ] Plaid integration expansion
+- [ ] Real-time market data subscriptions
+- [ ] Historical data exports
+- [ ] API access for developers
+- [ ] Webhook notifications
+- [ ] Third-party app integrations
+
+## Support
+
+- For issues related to investment profile behavior or AI prompts:
+  1. Check `lib/services/generative_service.dart` for prompt construction
+  2. Review unit tests under `test/`
+  3. Use Firebase emulator for local testing of functions
+  4. Contact the development team with reproducible steps and sample user data

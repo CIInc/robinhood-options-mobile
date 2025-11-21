@@ -37,7 +37,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -462,13 +462,18 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       ],
       // Shared Portfolios tab
       if (auth.currentUser != null) ...[
-        SharedPortfoliosWidget(
+        InvestorGroupsWidget(
           firestoreService: _firestoreService,
-          brokerageService: service,
           brokerageUser: userStore.currentUser!,
           analytics: widget.analytics,
           observer: widget.observer,
         ),
+        if (userRole == UserRole.admin) ...[
+          UsersWidget(auth,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              brokerageUser: userStore.currentUser!)
+        ]
       ],
     ];
   }
@@ -799,18 +804,33 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 _onPageChanged(2);
                               },
                             ),
+                            // Agentic Trading Settings moved to the User page
                             if (auth.currentUser != null) ...[
                               const Divider(
                                 thickness: 0.25,
                               ),
                               ListTile(
-                                leading: const Icon(Icons.share),
-                                title: const Text("Shared Portfolios"),
+                                leading: const Icon(Icons.groups),
+                                title: const Text("Investor Groups"),
                                 selected: _pageIndex == 4,
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   _onPageChanged(4);
                                 },
+                                // onTap: () {
+                                //   Navigator.pop(context); // close the drawer
+                                //   Navigator.push(
+                                //     context,
+                                //     MaterialPageRoute(
+                                //       builder: (context) => InvestorGroupsWidget(
+                                //         firestoreService: _firestoreService,
+                                //         brokerageUser: userStore.currentUser!,
+                                //         analytics: widget.analytics,
+                                //         observer: widget.observer,
+                                //       ),
+                                //     ),
+                                //   );
+                                // },
                               ),
                             ],
                             // ListTile(
@@ -916,7 +936,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                             ListTile(
                                 leading: const Icon(Icons.person_search),
                                 title: const Text("Users"),
-                                //selected: false,
+                                // selected: _pageIndex == 6,
+                                // onTap: () {
+                                //   Navigator.pop(context); // close the drawer
+                                //   _onPageChanged(6);
+                                // },
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   Navigator.push(

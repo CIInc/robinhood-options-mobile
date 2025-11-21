@@ -17,6 +17,12 @@ import * as plaidfunc from "./plaid";
 import * as authfunc from "./auth";
 import * as messagingfunc from "./messaging";
 import * as gemini from "./gemini";
+import * as agenticTradingfunc from "./agentic-trading";
+import * as agenticTradingCron from "./agentic-trading-cron";
+import * as agenticTradingIntradayCron from "./agentic-trading-intraday-cron";
+import * as riskguardAgent from "./riskguard-agent";
+import * as copyTrading from "./copy-trading";
+// import * as alphaagent from "./alphaagent";
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -38,3 +44,20 @@ export const sendEachForMulticast = messagingfunc.sendEachForMulticast;
 export const generateContent = gemini.generateContent;
 export const generateContent2 = gemini.generateContent2;
 export const generateContent25 = gemini.generateContent25;
+export const initiateTradeProposal =
+  agenticTradingfunc.initiateTradeProposal;
+export const getAgenticTradingConfig =
+  agenticTradingfunc.getAgenticTradingConfig;
+export const setAgenticTradingConfig =
+  agenticTradingfunc.setAgenticTradingConfig;
+export const agenticTradingCronJob = agenticTradingCron.agenticTradingCron;
+export const agenticTradingCronInvoke =
+  agenticTradingCron.agenticTradingCronInvoke;
+export const agenticTradingIntradayCronJob =
+  agenticTradingIntradayCron.agenticTradingIntradayCron;
+export const agenticTrading15mCronJob =
+  agenticTradingIntradayCron.agenticTrading15mCron;
+// export const alphaagentTask = alphaagent.alphaagentTask;
+export const riskguardTask = riskguardAgent.riskguardTask;
+export const onInstrumentOrderCreated = copyTrading.onInstrumentOrderCreated;
+export const onOptionOrderCreated = copyTrading.onOptionOrderCreated;

@@ -12,6 +12,8 @@ import 'package:robinhood_options_mobile/model/option_aggregate_position.dart';
 import 'package:robinhood_options_mobile/model/option_event.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/group_message.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -26,6 +28,7 @@ class FirestoreService {
   final String optionEventCollectionName = 'optionEvent';
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
+  final String investorGroupCollectionName = 'investor_groups';
 
   /// A reference to the list of instruments.
   /// We are using `withConverter` to ensure that interactions with the collection
@@ -40,6 +43,13 @@ class FirestoreService {
   late final CollectionReference<User> userCollection =
       _db.collection(userCollectionName).withConverter<User>(
             fromFirestore: (snapshots, _) => User.fromJson(snapshots.data()!),
+            toFirestore: (obj, _) => obj.toJson(),
+          );
+
+  late final CollectionReference<InvestorGroup> investorGroupCollection =
+      _db.collection(investorGroupCollectionName).withConverter<InvestorGroup>(
+            fromFirestore: (snapshots, _) =>
+                InvestorGroup.fromJson(snapshots.data()!),
             toFirestore: (obj, _) => obj.toJson(),
           );
 
@@ -209,6 +219,80 @@ class FirestoreService {
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
     // .map((snapshot) =>
     //     snapshot.docs.map((doc) => Instrument.fromJson(doc.data())).toList());
+  }
+
+  /// Advanced Stock Screener
+  ///
+  /// Queries the Firestore `instrument` collection with multiple filter criteria
+  /// to find stocks matching specific investment parameters.
+  ///
+  /// **Parameters:**
+  /// - [sector]: Filter by company sector (e.g., 'Technology Services', 'Finance')
+  /// - [marketCapMin]/[marketCapMax]: Market capitalization range in USD
+  /// - [peMin]/[peMax]: Price-to-Earnings ratio range
+  /// - [dividendYieldMin]/[dividendYieldMax]: Dividend yield percentage range
+  /// - [limit]: Maximum number of results to return (default: 100)
+  /// - [sort]: Field to sort by (default: 'fundamentalsObj.market_cap')
+  /// - [sortDescending]: Sort direction (default: true)
+  ///
+  /// **Returns:** List of [Instrument] objects matching the criteria
+  ///
+  /// **Example:**
+  /// ```dart
+  /// var results = await firestoreService.stockScreener(
+  ///   sector: 'Technology Services',
+  ///   marketCapMin: 1000000000, // $1B
+  ///   marketCapMax: 100000000000, // $100B
+  ///   peMin: 10,
+  ///   peMax: 30,
+  /// );
+  /// ```
+  ///
+  /// **Note:** Requires Firestore composite indexes to be deployed.
+  /// See `firebase/firestore.indexes.json` for index definitions.
+  Future<List<Instrument>> stockScreener({
+    String? sector,
+    int? marketCapMin,
+    int? marketCapMax,
+    int? peMin,
+    int? peMax,
+    int? dividendYieldMin,
+    int? dividendYieldMax,
+    int limit = 100,
+    String sort = 'fundamentalsObj.market_cap',
+    bool sortDescending = true,
+  }) async {
+    Query<Instrument> query = instrumentCollection;
+    if (sector != null && sector.isNotEmpty) {
+      query = query.where('fundamentalsObj.sector', isEqualTo: sector);
+    }
+    if (marketCapMin != null) {
+      query = query.where('fundamentalsObj.market_cap',
+          isGreaterThanOrEqualTo: marketCapMin);
+    }
+    if (marketCapMax != null) {
+      query = query.where('fundamentalsObj.market_cap',
+          isLessThanOrEqualTo: marketCapMax);
+    }
+    if (peMin != null) {
+      query = query.where('fundamentalsObj.pe_ratio',
+          isGreaterThanOrEqualTo: peMin);
+    }
+    if (peMax != null) {
+      query =
+          query.where('fundamentalsObj.pe_ratio', isLessThanOrEqualTo: peMax);
+    }
+    if (dividendYieldMin != null) {
+      query = query.where('fundamentalsObj.dividend_yield',
+          isGreaterThanOrEqualTo: dividendYieldMin);
+    }
+    if (dividendYieldMax != null) {
+      query = query.where('fundamentalsObj.dividend_yield',
+          isLessThanOrEqualTo: dividendYieldMax);
+    }
+    query = query.orderBy(sort, descending: sortDescending).limit(limit);
+    var results = await query.get();
+    return results.docs.map((doc) => doc.data()).toList();
   }
 
   /// InstrumentPosition Methods
@@ -710,6 +794,302 @@ class FirestoreService {
       batch.set(interestDoc, interest);
     }
     batch.commit();
+  }
+
+  /// Investor Group Methods
+
+  /// Create a new investor group
+  Future<DocumentReference<InvestorGroup>> createInvestorGroup(
+      InvestorGroup group) async {
+    try {
+      final docRef = await investorGroupCollection.add(group);
+      // Update the group with its own ID
+      group.id = docRef.id;
+      await docRef.update({'id': docRef.id});
+      debugPrint(
+          "Investor group created with ID: ${docRef.id} - ${group.name}");
+      return docRef;
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to create investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get a specific investor group
+  Future<InvestorGroup?> getInvestorGroup(String groupId) async {
+    try {
+      final doc = await investorGroupCollection.doc(groupId).get();
+      return doc.data();
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to get investor group: ${e.message}');
+      return null;
+    }
+  }
+
+  /// Get all investor groups where user is a member
+  Stream<QuerySnapshot<InvestorGroup>> getUserInvestorGroups(String userId) {
+    return investorGroupCollection
+        .where('members', arrayContains: userId)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
+
+  /// Get all public investor groups
+  Stream<QuerySnapshot<InvestorGroup>> getPublicInvestorGroups() {
+    return investorGroupCollection
+        .where('isPrivate', isEqualTo: false)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
+
+  /// Search investor groups by name
+  Stream<QuerySnapshot<InvestorGroup>> searchInvestorGroups(
+      {String? searchTerm}) {
+    Query<InvestorGroup> query = investorGroupCollection;
+    if (searchTerm != null && searchTerm.isNotEmpty) {
+      String searchTermLower = searchTerm.toLowerCase();
+      // Note: This is a basic implementation. For better search, consider using
+      // a dedicated search service like Algolia or Elasticsearch
+      query = query
+          .orderBy('name')
+          .startAt([searchTermLower]).endAt(['$searchTermLower\uf8ff']);
+    }
+    return query.orderBy('dateCreated', descending: true).snapshots();
+  }
+
+  /// Update an investor group
+  Future<void> updateInvestorGroup(InvestorGroup group) async {
+    group.dateUpdated = DateTime.now();
+    try {
+      await investorGroupCollection.doc(group.id).update(group.toJson());
+      debugPrint("Investor group updated: ${group.id}");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete an investor group
+  Future<void> deleteInvestorGroup(String groupId) async {
+    try {
+      await investorGroupCollection.doc(groupId).delete();
+      debugPrint("Investor group deleted: $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Add a user to an investor group
+  Future<void> joinInvestorGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayUnion([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId joined group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to join investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove a user from an investor group
+  Future<void> leaveInvestorGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayRemove([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId left group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to leave investor group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Add an admin to an investor group
+  Future<void> addGroupAdmin(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'admins': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId added as admin to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to add group admin: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove an admin from an investor group
+  Future<void> removeGroupAdmin(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'admins': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId removed as admin from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to remove group admin: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Send an invitation to a user to join an investor group
+  Future<void> inviteUserToGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("Invitation sent to user $userId for group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to invite user to group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Accept an invitation to join an investor group
+  Future<void> acceptGroupInvitation(String groupId, String userId) async {
+    try {
+      // Remove from pending invitations and add to members
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayRemove([userId]),
+        'members': FieldValue.arrayUnion([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayUnion([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId accepted invitation to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to accept group invitation: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Decline an invitation to join an investor group
+  Future<void> declineGroupInvitation(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'pendingInvitations': FieldValue.arrayRemove([userId]),
+        'dateUpdated': DateTime.now(),
+      });
+      debugPrint("User $userId declined invitation to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to decline group invitation: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Remove a member from an investor group (admin action)
+  Future<void> removeMemberFromGroup(String groupId, String userId) async {
+    try {
+      await investorGroupCollection.doc(groupId).update({
+        'members': FieldValue.arrayRemove([userId]),
+        'admins': FieldValue.arrayRemove(
+            [userId]), // Also remove from admins if present
+        'dateUpdated': DateTime.now(),
+      });
+
+      // Also update user's sharedGroups
+      await userCollection.doc(userId).update({
+        'sharedGroups': FieldValue.arrayRemove([groupId]),
+        'dateUpdated': DateTime.now(),
+      });
+
+      debugPrint("User $userId removed from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to remove member from group: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Get all groups where user has a pending invitation
+  Stream<QuerySnapshot<InvestorGroup>> getUserPendingInvitations(
+      String userId) {
+    return investorGroupCollection
+        .where('pendingInvitations', arrayContains: userId)
+        .orderBy('dateCreated', descending: true)
+        .snapshots();
+  }
+
+  /// Group Chat Methods
+
+  /// Get messages for a group
+  Stream<QuerySnapshot<GroupMessage>> getGroupMessages(String groupId) {
+    return investorGroupCollection
+        .doc(groupId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .withConverter<GroupMessage>(
+          fromFirestore: (snapshots, _) => GroupMessage.fromDocument(snapshots),
+          toFirestore: (obj, _) => obj.toJson(),
+        )
+        .snapshots();
+  }
+
+  /// Send a message to a group
+  Future<void> sendGroupMessage(String groupId, GroupMessage message) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .add(message.toJson());
+      debugPrint("Message sent to group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to send message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Update a group message
+  Future<void> updateGroupMessage(String groupId, GroupMessage message) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .doc(message.id)
+          .update(message.toJson());
+      debugPrint("Message updated in group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to update message: ${e.message}');
+      rethrow;
+    }
+  }
+
+  /// Delete a group message
+  Future<void> deleteGroupMessage(String groupId, String messageId) async {
+    try {
+      await investorGroupCollection
+          .doc(groupId)
+          .collection('messages')
+          .doc(messageId)
+          .delete();
+      debugPrint("Message deleted from group $groupId");
+    } on FirebaseException catch (e) {
+      debugPrint('Failed to delete message: ${e.message}');
+      rethrow;
+    }
   }
 }
 
