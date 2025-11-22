@@ -309,60 +309,6 @@ class _AgenticTradingSettingsWidgetState
                     child: const Text('Save Settings'),
                   ),
                 ),
-                if (agenticTradingProvider.tradeProposalMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Text(
-                      'Status: ${agenticTradingProvider.tradeProposalMessage}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                if (agenticTradingProvider.lastTradeProposal != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Last Trade Proposal:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                            'Symbol: ${agenticTradingProvider.lastTradeProposal!['symbol']}'),
-                        Text(
-                            'Action: ${agenticTradingProvider.lastTradeProposal!['action']}'),
-                        Text(
-                            'Quantity: ${agenticTradingProvider.lastTradeProposal!['quantity']}'),
-                        Text(
-                            'Price: ${agenticTradingProvider.lastTradeProposal!['price']}'),
-                        if (agenticTradingProvider.lastTradeProposal!
-                            .containsKey('multiIndicatorResult'))
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'Multi-indicator data available. View in Trade Signals.',
-                              style: TextStyle(fontStyle: FontStyle.italic),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                // Placeholder for a button to initiate a trade proposal (for testing)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // This is a placeholder. In a real scenario, this would be triggered by market data.
-                      agenticTradingProvider.initiateTradeProposal(
-                        symbol: 'SPY',
-                        currentPrice: 450.00, // Example price
-                        portfolioState: {
-                          'cash': 10000.00,
-                          'SPY': 10
-                        }, // Example portfolio
-                      );
-                    },
-                    child: const Text('Initiate Test Trade Proposal'),
-                  ),
-                ),
               ],
             ),
           );

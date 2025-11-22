@@ -3450,116 +3450,205 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final indicators = multiIndicator['indicators'] as Map<String, dynamic>?;
     if (indicators == null) return const SizedBox.shrink();
 
-    final allGreen = multiIndicator['allGreen'] as bool? ?? false;
-    final overallSignal = multiIndicator['overallSignal'] as String? ?? 'HOLD';
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.only(top: 12.0),
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey.shade900.withOpacity(0.5)
-            : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: allGreen
-              ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
-              : (isDark ? Colors.orange.shade700 : Colors.orange.shade200),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Consumer<AgenticTradingProvider>(
+      builder: (context, agenticProvider, child) {
+        final enabledIndicators = agenticProvider.config['enabledIndicators']
+                as Map<String, dynamic>? ??
+            {};
+        final enabledCount =
+            enabledIndicators.values.where((v) => v == true).length;
+
+        // Recalculate signals based on only enabled indicators
+        bool displayAllGreen = true;
+        bool displayAllRed = true;
+        if (enabledCount > 0) {
+          for (final key in [
+            'priceMovement',
+            'momentum',
+            'marketDirection',
+            'volume',
+            'macd',
+            'bollingerBands',
+            'stochastic',
+            'atr',
+            'obv'
+          ]) {
+            if (enabledIndicators[key] == true) {
+              final indicator = indicators[key] as Map<String, dynamic>?;
+              final signal = indicator?['signal'];
+              if (indicator == null || signal != 'BUY') {
+                displayAllGreen = false;
+              }
+              if (indicator == null || signal != 'SELL') {
+                displayAllRed = false;
+              }
+            }
+          }
+        } else {
+          displayAllGreen = false;
+          displayAllRed = false;
+        }
+
+        final Color borderColor = displayAllGreen
+            ? (isDark ? Colors.green.shade700 : Colors.green.shade200)
+            : displayAllRed
+                ? (isDark ? Colors.red.shade700 : Colors.red.shade200)
+                : (isDark ? Colors.orange.shade700 : Colors.orange.shade200);
+
+        return Container(
+          margin: const EdgeInsets.only(top: 12.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.grey.shade900.withOpacity(0.5)
+                : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: borderColor,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                Icons.analytics_outlined,
-                size: 20,
-                color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              Row(
+                children: [
+                  Icon(
+                    Icons.analytics_outlined,
+                    size: 20,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Technical Indicators ($enabledCount/9 enabled)',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Technical Indicators (9 signals)',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              const SizedBox(height: 12),
+              Column(
+                children: [
+                  _buildIndicatorRow(
+                      'Price Movement',
+                      indicators['priceMovement'] as Map<String, dynamic>?,
+                      enabledIndicators['priceMovement'] == true),
+                  _buildIndicatorRow(
+                      'Momentum (RSI)',
+                      indicators['momentum'] as Map<String, dynamic>?,
+                      enabledIndicators['momentum'] == true),
+                  _buildIndicatorRow(
+                      'Market Direction',
+                      indicators['marketDirection'] as Map<String, dynamic>?,
+                      enabledIndicators['marketDirection'] == true),
+                  _buildIndicatorRow(
+                      'Volume',
+                      indicators['volume'] as Map<String, dynamic>?,
+                      enabledIndicators['volume'] == true),
+                  _buildIndicatorRow(
+                      'MACD',
+                      indicators['macd'] as Map<String, dynamic>?,
+                      enabledIndicators['macd'] == true),
+                  _buildIndicatorRow(
+                      'Bollinger Bands',
+                      indicators['bollingerBands'] as Map<String, dynamic>?,
+                      enabledIndicators['bollingerBands'] == true),
+                  _buildIndicatorRow(
+                      'Stochastic',
+                      indicators['stochastic'] as Map<String, dynamic>?,
+                      enabledIndicators['stochastic'] == true),
+                  _buildIndicatorRow(
+                      'ATR (Volatility)',
+                      indicators['atr'] as Map<String, dynamic>?,
+                      enabledIndicators['atr'] == true),
+                  _buildIndicatorRow(
+                      'OBV (On-Balance Volume)',
+                      indicators['obv'] as Map<String, dynamic>?,
+                      enabledIndicators['obv'] == true),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12.0),
+                decoration: BoxDecoration(
+                  color: displayAllGreen
+                      ? (isDark
+                          ? Colors.green.withOpacity(0.25)
+                          : Colors.green.withOpacity(0.15))
+                      : displayAllRed
+                          ? (isDark
+                              ? Colors.red.withOpacity(0.25)
+                              : Colors.red.withOpacity(0.15))
+                          : (isDark
+                              ? Colors.orange.withOpacity(0.25)
+                              : Colors.orange.withOpacity(0.15)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      displayAllGreen
+                          ? Icons.check_circle
+                          : displayAllRed
+                              ? Icons.cancel
+                              : Icons.warning_amber_rounded,
+                      color: displayAllGreen
+                          ? (isDark
+                              ? Colors.green.shade400
+                              : Colors.green.shade800)
+                          : displayAllRed
+                              ? (isDark
+                                  ? Colors.red.shade400
+                                  : Colors.red.shade800)
+                              : (isDark
+                                  ? Colors.orange.shade400
+                                  : Colors.orange.shade800),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      displayAllGreen
+                          ? 'Overall: BUY'
+                          : displayAllRed
+                              ? 'Overall: SELL'
+                              : 'Overall: ${multiIndicator['overallSignal'] ?? 'HOLD'}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: displayAllGreen
+                            ? (isDark
+                                ? Colors.green.shade400
+                                : Colors.green.shade800)
+                            : displayAllRed
+                                ? (isDark
+                                    ? Colors.red.shade400
+                                    : Colors.red.shade800)
+                                : (isDark
+                                    ? Colors.orange.shade400
+                                    : Colors.orange.shade800),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _buildIndicatorRow('Price Movement',
-              indicators['priceMovement'] as Map<String, dynamic>?),
-          _buildIndicatorRow('Momentum (RSI)',
-              indicators['momentum'] as Map<String, dynamic>?),
-          _buildIndicatorRow('Market Direction',
-              indicators['marketDirection'] as Map<String, dynamic>?),
-          _buildIndicatorRow(
-              'Volume', indicators['volume'] as Map<String, dynamic>?),
-          _buildIndicatorRow(
-              'MACD', indicators['macd'] as Map<String, dynamic>?),
-          _buildIndicatorRow('Bollinger Bands',
-              indicators['bollingerBands'] as Map<String, dynamic>?),
-          _buildIndicatorRow(
-              'Stochastic', indicators['stochastic'] as Map<String, dynamic>?),
-          _buildIndicatorRow(
-              'ATR (Volatility)', indicators['atr'] as Map<String, dynamic>?),
-          _buildIndicatorRow('OBV (On-Balance Volume)',
-              indicators['obv'] as Map<String, dynamic>?),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: allGreen
-                  ? (isDark
-                      ? Colors.green.withOpacity(0.25)
-                      : Colors.green.withOpacity(0.15))
-                  : (isDark
-                      ? Colors.orange.withOpacity(0.25)
-                      : Colors.orange.withOpacity(0.15)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  allGreen ? Icons.check_circle : Icons.warning_amber_rounded,
-                  color: allGreen
-                      ? (isDark ? Colors.green.shade400 : Colors.green.shade800)
-                      : (isDark
-                          ? Colors.orange.shade400
-                          : Colors.orange.shade800),
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Overall: $overallSignal ${allGreen ? '✓ All 9 Green!' : ''}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: allGreen
-                        ? (isDark
-                            ? Colors.green.shade400
-                            : Colors.green.shade800)
-                        : (isDark
-                            ? Colors.orange.shade400
-                            : Colors.orange.shade800),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildIndicatorRow(String name, Map<String, dynamic>? indicator) {
+  Widget _buildIndicatorRow(
+      String name, Map<String, dynamic>? indicator, bool isEnabled) {
     if (indicator == null) return const SizedBox.shrink();
 
     final signal = indicator['signal'] as String? ?? 'HOLD';
     final reason = indicator['reason'] as String? ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     Color signalColor;
     IconData signalIcon;
@@ -3578,33 +3667,46 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         signalIcon = Icons.horizontal_rule;
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(signalIcon, color: signalColor, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$name: $signal',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: signalColor,
-                  ),
-                ),
-                if (reason.isNotEmpty)
-                  Text(
-                    reason,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-              ],
+    return Opacity(
+      opacity: isEnabled ? 1.0 : 0.4,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              isEnabled ? signalIcon : Icons.remove_circle_outline,
+              color: isEnabled
+                  ? signalColor
+                  : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+              size: 20,
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$name: ${isEnabled ? signal : 'DISABLED'}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isEnabled
+                          ? signalColor
+                          : (isDark
+                              ? Colors.grey.shade500
+                              : Colors.grey.shade600),
+                    ),
+                  ),
+                  if (reason.isNotEmpty && isEnabled)
+                    Text(
+                      reason,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
