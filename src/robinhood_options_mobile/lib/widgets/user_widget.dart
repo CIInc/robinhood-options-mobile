@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firebase_service.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
@@ -580,11 +581,20 @@ class _UserWidgetState extends State<UserWidget> {
                                       subtitle: const Text(
                                           'Configure multi-indicator trading parameters'),
                                       trailing: const Icon(Icons.chevron_right),
-                                      onTap: () {
-                                        // Navigator.pop(
-                                        //     context); // close the user card
-                                        Navigator.pushNamed(context,
-                                            '/agentic-trading-settings');
+                                      onTap: () async {
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  AgenticTradingSettingsWidget(
+                                                user: user!,
+                                                userDocRef:
+                                                    userDocumentReference!,
+                                              ),
+                                            ),
+                                          );
+                                        }
                                       },
                                     ),
                                     // Trade Signal Notification Settings

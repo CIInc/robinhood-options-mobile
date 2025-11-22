@@ -4599,7 +4599,7 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
               )
             : const Icon(Icons.auto_awesome),
         label: Text(
-          _isGenerating ? 'Generating Signal...' : 'Generate AI Trade Signal',
+          _isGenerating ? 'Generating Signal...' : 'Generate Trade Signal',
           style: const TextStyle(fontSize: 16),
         ),
         onPressed: _isGenerating ? null : () => _generateTradeSignal(context),

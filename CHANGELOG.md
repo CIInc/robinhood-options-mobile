@@ -134,7 +134,7 @@ All notable changes to this project will be documented in this file.
 ## 0.14.2 - 2025-11-18
 
 ### Added
-- Intraday AI trade signal generation with multiple time intervals:
+- Intraday trade signal generation with multiple time intervals:
   - 15-minute signals for ultra-short-term trading
   - Hourly signals for short-term trading
   - Daily signals (existing functionality)
@@ -213,7 +213,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 - Trade signal state synchronization between Instrument View and Search View
 - `fetchTradeSignal()` now updates both `_tradeSignal` and `_tradeSignals` list
-- Stale signal data in Search View when regenerating AI Trade Signal in Instrument View
+- Stale signal data in Search View when regenerating Trade Signal in Instrument View
 - Signal list now maintains timestamp ordering after updates
 - Removed signals are properly cleaned from the `_tradeSignals` list
 

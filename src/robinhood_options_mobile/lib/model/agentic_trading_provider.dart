@@ -40,9 +40,7 @@ class AgenticTradingProvider with ChangeNotifier {
     return interval;
   }
 
-  AgenticTradingProvider() {
-    _loadConfig();
-  }
+  AgenticTradingProvider();
 
   // Get default interval based on market hours
   String _getDefaultInterval() {
@@ -61,6 +59,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
   void toggleAgenticTrading(bool? value) {
     _isAgenticTradingEnabled = value ?? false;
+    _config['enabled'] = _isAgenticTradingEnabled;
     _analytics.logEvent(
       name: 'agentic_trading_toggled',
       parameters: {'enabled': _isAgenticTradingEnabled.toString()},
@@ -68,34 +67,15 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _loadConfig() async {
-    try {
-      final result =
-          await _functions.httpsCallable('getAgenticTradingConfig').call();
-      final data = result.data;
-      if (data != null && data['config'] != null) {
-        _config = Map<String, dynamic>.from(data['config']);
-      } else if (data != null &&
-          data is Map &&
-          data.containsKey('smaPeriodFast')) {
-        // support older shape where config fields are at top level
-        _config = Map<String, dynamic>.from(data);
-      } else {
-        // fallback defaults
-        _config = {
-          'smaPeriodFast': 10,
-          'smaPeriodSlow': 30,
-          'tradeQuantity': 1,
-          'maxPositionSize': 100,
-          'maxPortfolioConcentration': 0.5,
-          'rsiPeriod': 14,
-          'marketIndexSymbol': 'SPY',
-        };
-      }
-      _analytics.logEvent(name: 'agentic_trading_config_loaded');
-    } catch (e) {
-      // If functions are not available or call fails, fallback to local defaults
+  /// Load configuration from User model
+  void loadConfigFromUser(dynamic agenticTradingConfig) {
+    if (agenticTradingConfig != null) {
+      _config = agenticTradingConfig.toJson();
+      _isAgenticTradingEnabled = agenticTradingConfig.enabled;
+      _analytics.logEvent(name: 'agentic_trading_config_loaded_from_user');
+    } else {
       _config = {
+        'enabled': false,
         'smaPeriodFast': 10,
         'smaPeriodSlow': 30,
         'tradeQuantity': 1,
@@ -104,24 +84,26 @@ class AgenticTradingProvider with ChangeNotifier {
         'rsiPeriod': 14,
         'marketIndexSymbol': 'SPY',
       };
-      _tradeProposalMessage = 'Loaded local defaults (functions unavailable)';
-      _analytics.logEvent(
-        name: 'agentic_trading_config_loaded_local_fallback',
-        parameters: {'error': e.toString()},
-      );
+      _isAgenticTradingEnabled = false;
+      _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
     }
     notifyListeners();
   }
 
-  Future<void> updateConfig(Map<String, dynamic> newConfig) async {
+  /// Update configuration and save to User document
+  Future<void> updateConfig(
+    Map<String, dynamic> newConfig,
+    DocumentReference userDocRef,
+  ) async {
     _config = newConfig;
     try {
-      // Optionally persist to backend in future via HTTPS Callable
-      await _functions.httpsCallable('setAgenticTradingConfig').call(_config);
-      _analytics.logEvent(name: 'agentic_trading_config_updated_remote');
-    } catch (_) {
-      // If backend not available, keep local and log
-      _analytics.logEvent(name: 'agentic_trading_config_updated_local');
+      await userDocRef.update({'agenticTradingConfig': newConfig});
+      _analytics.logEvent(name: 'agentic_trading_config_updated');
+    } catch (e) {
+      _analytics.logEvent(
+        name: 'agentic_trading_config_update_failed',
+        parameters: {'error': e.toString()},
+      );
     }
     notifyListeners();
   }

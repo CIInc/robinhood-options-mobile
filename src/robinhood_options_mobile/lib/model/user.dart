@@ -5,6 +5,7 @@ import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 class User {
   String? name;
@@ -32,6 +33,9 @@ class User {
   // Trade Signal Notification Settings
   TradeSignalNotificationSettings? tradeSignalNotificationSettings;
 
+  // Agentic Trading Configuration
+  AgenticTradingConfig? agenticTradingConfig;
+
   User(
       {this.name,
       this.nameLower,
@@ -52,7 +56,8 @@ class User {
       this.timeHorizon,
       this.riskTolerance,
       this.totalPortfolioValue,
-      this.tradeSignalNotificationSettings});
+      this.tradeSignalNotificationSettings,
+      this.agenticTradingConfig});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -95,7 +100,11 @@ class User {
                     ? TradeSignalNotificationSettings.fromJson(
                         json['tradeSignalNotificationSettings']
                             as Map<String, dynamic>)
-                    : null);
+                    : null,
+            agenticTradingConfig: json['agenticTradingConfig'] != null
+                ? AgenticTradingConfig.fromJson(
+                    json['agenticTradingConfig'] as Map<String, dynamic>)
+                : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -119,7 +128,8 @@ class User {
       'riskTolerance': riskTolerance,
       'totalPortfolioValue': totalPortfolioValue,
       'tradeSignalNotificationSettings':
-          tradeSignalNotificationSettings?.toJson()
+          tradeSignalNotificationSettings?.toJson(),
+      'agenticTradingConfig': agenticTradingConfig?.toJson()
     };
   }
 

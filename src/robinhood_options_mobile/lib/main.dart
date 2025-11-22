@@ -41,7 +41,6 @@ import 'package:robinhood_options_mobile/model/instrument_order_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/widgets/navigation_widget.dart';
-import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 //import 'package:material_color_utilities/material_color_utilities.dart';
 
@@ -243,8 +242,6 @@ class MyApp extends StatelessWidget {
             routes: {
               '/': (context) => NavigationStatefulWidget(
                   analytics: analytics, observer: observer),
-              '/agentic-trading-settings': (context) =>
-                  const AgenticTradingSettingsWidget(),
               // '/link': (context) => NavigationStatefulWidget(
               //     analytics: analytics, observer: observer)
               /*
