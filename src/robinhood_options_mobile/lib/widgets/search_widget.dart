@@ -91,10 +91,10 @@ class _SearchWidgetState extends State<SearchWidget>
   String? yahooScreenerError;
 
   // Trade Signal Filters
-  String? tradeSignalFilter;      // null = all, 'BUY', 'SELL', 'HOLD'
+  String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
   DateTime? tradeSignalStartDate;
   DateTime? tradeSignalEndDate;
-  int tradeSignalLimit = 50;      // Default limit
+  int tradeSignalLimit = 50; // Default limit
 
   // Controllers for screener fields
   late TextEditingController marketCapMinCtl;
@@ -1130,19 +1130,26 @@ class _SearchWidgetState extends State<SearchWidget>
                     builder: (context, agenticTradingProvider, child) {
                       final tradeSignals = agenticTradingProvider.tradeSignals;
                       final isMarketOpen = agenticTradingProvider.isMarketOpen;
-                      final selectedInterval = agenticTradingProvider.selectedInterval;
-                      final intervalLabel = selectedInterval == '1d' ? 'Daily' :
-                                           selectedInterval == '1h' ? 'Hourly' :
-                                           selectedInterval == '30m' ? '30-min' :
-                                           selectedInterval == '15m' ? '15-min' : selectedInterval;
-                      
+                      final selectedInterval =
+                          agenticTradingProvider.selectedInterval;
+                      final intervalLabel = selectedInterval == '1d'
+                          ? 'Daily'
+                          : selectedInterval == '1h'
+                              ? 'Hourly'
+                              : selectedInterval == '30m'
+                                  ? '30-min'
+                                  : selectedInterval == '15m'
+                                      ? '15-min'
+                                      : selectedInterval;
+
                       return SliverStickyHeader(
                           header: Material(
                               //elevation: 2,
                               child: Container(
                                   alignment: Alignment.centerLeft,
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
                                         title: Row(
@@ -1154,36 +1161,54 @@ class _SearchWidgetState extends State<SearchWidget>
                                             const SizedBox(width: 8),
                                             Chip(
                                               avatar: Icon(
-                                                isMarketOpen ? Icons.access_time : Icons.calendar_today,
+                                                isMarketOpen
+                                                    ? Icons.access_time
+                                                    : Icons.calendar_today,
                                                 size: 16,
-                                                color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                                color: isMarketOpen
+                                                    ? Colors.green.shade700
+                                                    : Colors.blue.shade700,
                                               ),
                                               label: Text(
                                                 '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w600,
-                                                  color: isMarketOpen ? Colors.green.shade700 : Colors.blue.shade700,
+                                                  color: isMarketOpen
+                                                      ? Colors.green.shade700
+                                                      : Colors.blue.shade700,
                                                 ),
                                               ),
                                               backgroundColor: isMarketOpen
-                                                  ? Colors.green.withOpacity(0.1)
-                                                  : Colors.blue.withOpacity(0.1),
+                                                  ? Colors.green
+                                                      .withOpacity(0.1)
+                                                  : Colors.blue
+                                                      .withOpacity(0.1),
                                               side: BorderSide(
-                                                color: isMarketOpen ? Colors.green.shade300 : Colors.blue.shade300,
+                                                color: isMarketOpen
+                                                    ? Colors.green.shade300
+                                                    : Colors.blue.shade300,
                                                 width: 1,
                                               ),
-                                              visualDensity: VisualDensity.compact,
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
                                             ),
                                           ],
                                         ),
                                       ),
                                       Consumer<AgenticTradingProvider>(
-                                        builder: (context, agenticProvider, child) {
+                                        builder:
+                                            (context, agenticProvider, child) {
                                           return Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                                            child: _buildTradeSignalFilterChips(),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 16.0,
+                                                vertical: 4.0),
+                                            child:
+                                                _buildTradeSignalFilterChips(),
                                           );
                                         },
                                       ),
@@ -1944,65 +1969,70 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildTradeSignalFilterChips() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        FilterChip(
-          label: const Text('All'),
-          selected: tradeSignalFilter == null,
-          onSelected: (selected) {
-            if (tradeSignalFilter != null) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          FilterChip(
+            label: const Text('All'),
+            selected: tradeSignalFilter == null,
+            onSelected: (selected) {
+              if (tradeSignalFilter != null) {
+                setState(() {
+                  tradeSignalFilter = null;
+                });
+                _fetchTradeSignalsWithFilters();
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('BUY'),
+            selected: tradeSignalFilter == 'BUY',
+            onSelected: (selected) {
               setState(() {
-                tradeSignalFilter = null;
+                tradeSignalFilter = selected ? 'BUY' : null;
               });
               _fetchTradeSignalsWithFilters();
-            }
-          },
-        ),
-        FilterChip(
-          label: const Text('BUY'),
-          selected: tradeSignalFilter == 'BUY',
-          onSelected: (selected) {
-            setState(() {
-              tradeSignalFilter = selected ? 'BUY' : null;
-            });
-            _fetchTradeSignalsWithFilters();
-          },
-          selectedColor: Colors.green.withOpacity(0.3),
-          checkmarkColor: Colors.green,
-        ),
-        FilterChip(
-          label: const Text('SELL'),
-          selected: tradeSignalFilter == 'SELL',
-          onSelected: (selected) {
-            setState(() {
-              tradeSignalFilter = selected ? 'SELL' : null;
-            });
-            _fetchTradeSignalsWithFilters();
-          },
-          selectedColor: Colors.red.withOpacity(0.3),
-          checkmarkColor: Colors.red,
-        ),
-        FilterChip(
-          label: const Text('HOLD'),
-          selected: tradeSignalFilter == 'HOLD',
-          onSelected: (selected) {
-            setState(() {
-              tradeSignalFilter = selected ? 'HOLD' : null;
-            });
-            _fetchTradeSignalsWithFilters();
-          },
-          selectedColor: Colors.grey.withOpacity(0.3),
-          checkmarkColor: Colors.grey,
-        ),
-        IconButton(
-          icon: const Icon(Icons.refresh),
-          tooltip: 'Refresh',
-          onPressed: _fetchTradeSignalsWithFilters,
-          iconSize: 20,
-        ),
-      ],
+            },
+            selectedColor: Colors.green.withOpacity(0.3),
+            checkmarkColor: Colors.green,
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('SELL'),
+            selected: tradeSignalFilter == 'SELL',
+            onSelected: (selected) {
+              setState(() {
+                tradeSignalFilter = selected ? 'SELL' : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            selectedColor: Colors.red.withOpacity(0.3),
+            checkmarkColor: Colors.red,
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('HOLD'),
+            selected: tradeSignalFilter == 'HOLD',
+            onSelected: (selected) {
+              setState(() {
+                tradeSignalFilter = selected ? 'HOLD' : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            selectedColor: Colors.grey.withOpacity(0.3),
+            checkmarkColor: Colors.grey,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: _fetchTradeSignalsWithFilters,
+            iconSize: 20,
+          ),
+        ],
+      ),
     );
   }
 }

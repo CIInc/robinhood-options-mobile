@@ -2366,60 +2366,62 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               },
             ),
             // FUTURES: If we have futures accounts, stream aggregated positions
-            FutureBuilder<List<dynamic>>(
-                future: futureFuturesAccounts,
-                builder: (context, snapshotAccounts) {
-                  if (snapshotAccounts.hasData &&
-                      snapshotAccounts.data != null) {
-                    var accounts = snapshotAccounts.data!;
-                    var futuresAccount = accounts.firstWhere(
-                        (f) => f['accountType'] == 'FUTURES',
-                        orElse: () => null);
-                    if (futuresAccount != null) {
-                      var accountId = futuresAccount['id'];
-                      var stream = (widget.service as RobinhoodService)
-                          .streamFuturePositions(
-                              widget.brokerageUser, accountId);
-                      return StreamBuilder<List<dynamic>>(
-                          stream: stream,
-                          builder: (context, futSnapshot) {
-                            if (futSnapshot.hasData &&
-                                futSnapshot.data != null) {
-                              var list = futSnapshot.data!;
-                              // Build a store and provide it to descendants
-                              var store = FuturesPositionStore();
-                              store.addAll(list);
-                              return ChangeNotifierProvider<
-                                  FuturesPositionStore>.value(
-                                value: store,
-                                child: FuturesPositionsWidget(
-                                  showList: false,
-                                  onTapHeader: () {
-                                    // navigate to a full futures page if desired
-                                  },
-                                ),
-                              );
-                            } else if (futSnapshot.hasError) {
-                              return SliverToBoxAdapter(
-                                child: Text('${futSnapshot.error}'),
-                              );
-                            } else {
-                              return const SliverToBoxAdapter(
-                                child: Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(12.0),
-                                    child: CircularProgressIndicator(),
+            if (widget.brokerageUser.source == BrokerageSource.robinhood) ...[
+              FutureBuilder<List<dynamic>>(
+                  future: futureFuturesAccounts,
+                  builder: (context, snapshotAccounts) {
+                    if (snapshotAccounts.hasData &&
+                        snapshotAccounts.data != null) {
+                      var accounts = snapshotAccounts.data!;
+                      var futuresAccount = accounts.firstWhere(
+                          (f) => f['accountType'] == 'FUTURES',
+                          orElse: () => null);
+                      if (futuresAccount != null) {
+                        var accountId = futuresAccount['id'];
+                        var stream = (widget.service as RobinhoodService)
+                            .streamFuturePositions(
+                                widget.brokerageUser, accountId);
+                        return StreamBuilder<List<dynamic>>(
+                            stream: stream,
+                            builder: (context, futSnapshot) {
+                              if (futSnapshot.hasData &&
+                                  futSnapshot.data != null) {
+                                var list = futSnapshot.data!;
+                                // Build a store and provide it to descendants
+                                var store = FuturesPositionStore();
+                                store.addAll(list);
+                                return ChangeNotifierProvider<
+                                    FuturesPositionStore>.value(
+                                  value: store,
+                                  child: FuturesPositionsWidget(
+                                    showList: false,
+                                    onTapHeader: () {
+                                      // navigate to a full futures page if desired
+                                    },
                                   ),
-                                ),
-                              );
-                            }
-                          });
+                                );
+                              } else if (futSnapshot.hasError) {
+                                return SliverToBoxAdapter(
+                                  child: Text('${futSnapshot.error}'),
+                                );
+                              } else {
+                                return const SliverToBoxAdapter(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                );
+                              }
+                            });
+                      }
+                      return SliverToBoxAdapter();
+                    } else {
+                      return SliverToBoxAdapter();
                     }
-                    return SliverToBoxAdapter();
-                  } else {
-                    return SliverToBoxAdapter();
-                  }
-                }),
+                  }),
+            ],
             Consumer<OptionPositionStore>(
                 builder: (context, optionPositionStore, child) {
               //if (optionPositions != null) {
