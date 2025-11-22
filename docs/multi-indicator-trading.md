@@ -2,11 +2,11 @@
 
 ## Overview
 
-The multi-indicator automatic trading system correlates 4 technical indicators to generate trade signals. **All 4 indicators must be "green" (BUY signal) to trigger an automatic trade.**
+The multi-indicator automatic trading system correlates **9 technical indicators** to generate trade signals. **All 9 indicators must be "green" (BUY signal) to trigger an automatic trade.**
 
-This system replaces the previous simple SMA crossover strategy with a more robust multi-factor analysis approach.
+This system provides a comprehensive multi-factor analysis approach combining price action, momentum, trend, volume, and volatility indicators.
 
-## The 4 Technical Indicators
+## The 9 Technical Indicators
 
 ### 1. Price Movement (Multi-Pattern Detection)
 
@@ -119,6 +119,115 @@ This system replaces the previous simple SMA crossover strategy with a more robu
 - Correlates volume with price change
 - Identifies accumulation (high volume + price up) and distribution (high volume + price down)
 
+### 5. MACD (Moving Average Convergence Divergence)
+
+**Purpose:** Identifies trend following momentum through the relationship between two exponential moving averages.
+
+**Implementation:** `evaluateMACD()` and `computeMACD()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: MACD histogram crosses above zero (bullish crossover) or positive histogram (bullish momentum)
+- **SELL**: MACD histogram crosses below zero (bearish crossover) or negative histogram (bearish momentum)
+- **HOLD**: Histogram near zero (neutral)
+
+**Configuration:**
+- Fast EMA period: 12
+- Slow EMA period: 26
+- Signal line period: 9
+
+**Technical Details:**
+- MACD Line = Fast EMA - Slow EMA
+- Signal Line = EMA of MACD Line
+- Histogram = MACD Line - Signal Line
+- Crossovers detected by comparing current and previous histogram values
+
+### 6. Bollinger Bands
+
+**Purpose:** Measures price volatility and identifies overbought/oversold conditions relative to recent price range.
+
+**Implementation:** `evaluateBollingerBands()` and `computeBollingerBands()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Price at or below lower band (oversold), or in lower third of bands
+- **SELL**: Price at or above upper band (overbought), or in upper third of bands
+- **HOLD**: Price in middle region of bands
+
+**Configuration:**
+- Period: 20 (SMA)
+- Standard deviations: 2
+
+**Technical Details:**
+- Middle Band = 20-period SMA
+- Upper Band = Middle + (2 × Standard Deviation)
+- Lower Band = Middle - (2 × Standard Deviation)
+- Position calculated as percentage between lower and upper bands
+
+### 7. Stochastic Oscillator
+
+**Purpose:** Compares closing price to price range over a period to identify momentum and overbought/oversold conditions.
+
+**Implementation:** `evaluateStochastic()` and `computeStochastic()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: %K < 20 (oversold), or bullish crossover (%K crosses above %D) in oversold region
+- **SELL**: %K > 80 (overbought), or bearish crossover (%K crosses below %D) in overbought region
+- **HOLD**: %K between 20-80 (neutral zone)
+
+**Configuration:**
+- %K period: 14
+- %D period: 3 (SMA of %K)
+- Oversold threshold: 20
+- Overbought threshold: 80
+
+**Technical Details:**
+- %K = ((Current Close - Lowest Low) / (Highest High - Lowest Low)) × 100
+- %D = 3-period SMA of %K
+- Uses high, low, and close prices
+
+### 8. ATR (Average True Range)
+
+**Purpose:** Measures market volatility to assess risk and potential breakout conditions.
+
+**Implementation:** `evaluateATR()` and `computeATR()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Low volatility (ATR < 60% of average) suggests potential breakout setup
+- **SELL**: Never issues SELL signal (volatility is not directional)
+- **HOLD**: Normal or high volatility
+
+**Configuration:**
+- Period: 14
+
+**Technical Details:**
+- True Range = max(High - Low, |High - Previous Close|, |Low - Previous Close|)
+- ATR = Smoothed average of True Range values
+- Compared to 14-period historical ATR average
+- High volatility (>150% of avg) = caution
+- Low volatility (<60% of avg) = potential breakout
+
+### 9. OBV (On-Balance Volume)
+
+**Purpose:** Tracks volume flow to confirm price trends and detect divergences between price and volume.
+
+**Implementation:** `evaluateOBV()` and `computeOBV()` in `technical-indicators.ts`
+
+**Signals:**
+- **BUY**: Bullish divergence (OBV rising while price falling), or OBV uptrend confirms price rise
+- **SELL**: Bearish divergence (OBV falling while price rising), or OBV downtrend confirms price decline
+- **HOLD**: OBV trend neutral or not significant
+
+**Configuration:**
+- Lookback period: 20 (for trend calculation)
+- Divergence threshold: ±5%
+- Strong trend threshold: ±10%
+
+**Technical Details:**
+- OBV increases by volume on up days
+- OBV decreases by volume on down days
+- OBV unchanged when price unchanged
+- Compares recent 10-period OBV average vs previous 10-period average
+- Detects divergences by comparing OBV trend with price change
+
 ## How It Works
 
 ### Signal Generation Flow
@@ -129,13 +238,13 @@ This system replaces the previous simple SMA crossover strategy with a more robu
    - Minimum 30-60 periods of data required
 
 2. **Indicator Evaluation**
-   - Each indicator is evaluated independently
+   - Each of the 9 indicators is evaluated independently
    - Each returns: `{ signal: "BUY"|"SELL"|"HOLD", reason: string, value: number }`
 
 3. **Multi-Indicator Correlation**
    - Function: `evaluateAllIndicators()` in `technical-indicators.ts`
-   - Checks if ALL 4 indicators signal BUY
-   - Returns `allGreen: true` only when all 4 are BUY
+   - Checks if ALL 9 indicators signal BUY
+   - Returns `allGreen: true` only when all 9 are BUY
 
 4. **Trade Decision**
    - Alpha agent (`alpha-agent.ts`) calls multi-indicator evaluation
@@ -151,20 +260,26 @@ This system replaces the previous simple SMA crossover strategy with a more robu
 ### Code Flow
 
 ```
-agentic-trading.ts (getMarketData)
+agentic-trading.ts (getMarketData with OHLCV)
          ↓
 alpha-agent.ts (handleAlphaTask)
          ↓
 technical-indicators.ts (evaluateAllIndicators)
          ↓
-    ┌────┴────┬────────┬───────────┐
-    ↓         ↓        ↓           ↓
-  Price   Momentum  Market     Volume
-Movement    (RSI)  Direction
-    ↓         ↓        ↓           ↓
-    └────┬────┴────────┴───────────┘
+    ┌────┴────┬────────┬───────────┬──────────┬──────┐
+    ↓         ↓        ↓           ↓          ↓      ↓
+  Price   Momentum  Market     Volume     MACD   Bollinger
+Movement    (RSI)  Direction                      Bands
+    ↓         ↓        ↓           ↓          ↓      ↓
+    └────┬────┴────────┴───────────┴──────────┴──────┘
          ↓
-   All 4 Green?
+    ┌────┴────┬─────────┬────────┐
+    ↓         ↓         ↓        ↓
+Stochastic  ATR       OBV    (9 total)
+    ↓         ↓         ↓        ↓
+    └────┬────┴─────────┴────────┘
+         ↓
+   All 9 Green?
          ↓
     Yes → Trade Proposal → RiskGuard → Execute
     No  → HOLD
@@ -414,7 +529,7 @@ Document structure:
   "symbol": "AAPL",
   "interval": "1h",
   "signal": "BUY" | "SELL" | "HOLD",
-  "reason": "All 4 indicators are GREEN - Strong BUY signal",
+  "reason": "All 9 indicators are GREEN - Strong BUY signal",
   "multiIndicatorResult": {
     "allGreen": true,
     "overallSignal": "BUY",
@@ -543,7 +658,7 @@ The Agentic Trading Settings screen displays:
   - ✓ Green arrow up = BUY signal
   - ✓ Red arrow down = SELL signal
   - ✓ Gray horizontal line = HOLD signal
-- Overall signal status with highlighting when all 4 are green
+- Overall signal status with highlighting when all 9 are green
 
 #### Search Tab - Trade Signals Section
 
@@ -638,7 +753,7 @@ firebase deploy --only functions:agenticTradingIntradayCronJob,functions:agentic
 3. Configure parameters (optional)
 4. Tap "Initiate Test Trade Proposal"
 5. Review indicator status display
-6. Check if all 4 indicators are green
+6. Check if all 9 indicators are green
 
 ### Testing Individual Indicators
 
@@ -656,7 +771,7 @@ You can test individual indicators by:
 - RSI < 30 (oversold)
 - SPY 10-day MA crosses above 30-day MA
 - Volume spike with price increase
-- **Expected Result:** All 4 indicators BUY → Trade executed
+- **Expected Result:** All 9 indicators BUY → Trade executed
 
 **Scenario 2: Mixed Signals**
 - Price in consolidation
@@ -670,7 +785,7 @@ You can test individual indicators by:
 - RSI > 70 (overbought)
 - SPY 10-day MA crosses below 30-day MA
 - Volume spike with price decrease
-- **Expected Result:** All 4 indicators SELL → Potential short (if enabled)
+- **Expected Result:** All 9 indicators SELL → Potential short (if enabled)
 
 ## Best Practices
 
@@ -701,7 +816,7 @@ The multi-indicator system works best when combined with:
 ### Monitoring
 
 Regularly review:
-- Signal frequency (how often all 4 align)
+- Signal frequency (how often all 9 align)
 - False positive rate
 - Trade win/loss ratio
 - Indicator individual performance
@@ -712,7 +827,7 @@ Regularly review:
 
 **Check:**
 1. Is agentic trading enabled in settings?
-2. Are all 4 indicators rarely aligning?
+2. Are all 9 indicators rarely aligning?
 3. Review Firestore `signals_{SYMBOL}` for indicator status
 4. Check Firebase Functions logs for errors
 5. Verify market data is being fetched (Yahoo Finance API working)
@@ -748,10 +863,14 @@ Regularly review:
 
 Potential improvements:
 1. **Additional Indicators:**
-   - MACD (Moving Average Convergence Divergence)
-   - Bollinger Bands
-   - Stochastic Oscillator
+   - ✅ MACD (Moving Average Convergence Divergence) - **IMPLEMENTED**
+   - ✅ Bollinger Bands - **IMPLEMENTED**
+   - ✅ Stochastic Oscillator - **IMPLEMENTED**
+   - ✅ ATR (Average True Range) - **IMPLEMENTED**
+   - ✅ OBV (On-Balance Volume) - **IMPLEMENTED**
    - ADX (Average Directional Index)
+   - Ichimoku Cloud
+   - Fibonacci Retracements
 
 2. **Machine Learning:**
    - Pattern recognition using historical data

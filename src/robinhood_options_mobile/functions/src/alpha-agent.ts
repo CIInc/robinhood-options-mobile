@@ -55,6 +55,9 @@ export async function handleAlphaTask(marketData: any,
     "with multi-indicator analysis";
   logger.info(logMsg, { marketData, portfolioState, config, interval });
 
+  const opens: number[] = marketData?.opens || [];
+  const highs: number[] = marketData?.highs || [];
+  const lows: number[] = marketData?.lows || [];
   const closes: number[] = marketData?.closes || [];
   const volumes: number[] = marketData?.volumes || [];
   const symbol = marketData?.symbol || "SPY";
@@ -69,9 +72,9 @@ export async function handleAlphaTask(marketData: any,
     volumesLength: marketIndexData.volumes.length,
   });
 
-  // Evaluate all 4 technical indicators
+  // Evaluate all 9 technical indicators
   const multiIndicatorResult = indicators.evaluateAllIndicators(
-    { closes: closes, volumes },
+    { opens, highs, lows, closes, volumes },
     marketIndexData,
     {
       rsiPeriod: config?.rsiPeriod || 14,
@@ -92,6 +95,11 @@ export async function handleAlphaTask(marketData: any,
       momentum: indicatorResults.momentum.signal,
       marketDirection: indicatorResults.marketDirection.signal,
       volume: indicatorResults.volume.signal,
+      macd: indicatorResults.macd.signal,
+      bollingerBands: indicatorResults.bollingerBands.signal,
+      stochastic: indicatorResults.stochastic.signal,
+      atr: indicatorResults.atr.signal,
+      obv: indicatorResults.obv.signal,
     },
   });
 
@@ -192,7 +200,7 @@ export async function handleAlphaTask(marketData: any,
   return {
     status: "approved",
     message: `Alpha agent approved ${overallSignal} proposal (${interval}): ` +
-      "All 4 indicators aligned",
+      "All 9 indicators aligned",
     proposal: proposal,
     assessment: assessment,
     interval,
