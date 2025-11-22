@@ -2,6 +2,102 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.0] - 2025-11-22
+
+### Added
+- **Expanded Multi-Indicator System:** Increased from 4 to 9 technical indicators for more comprehensive market analysis:
+  - **New Indicators:** MACD (Moving Average Convergence Divergence), Bollinger Bands, Stochastic Oscillator, ATR (Average True Range), and OBV (On-Balance Volume)
+  - **Existing Indicators:** Price Movement (multi-pattern detection), Momentum (RSI), Market Direction, and Volume
+  - All 9 indicators must signal BUY for automatic trade execution
+- **User-Configurable Trading Settings:**
+  - New `AgenticTradingConfig` model stored in user profile
+  - Configurable parameters: RSI period, market index symbol (SPY/QQQ), SMA periods, trade quantity, position limits
+  - Settings persist across sessions and sync via Firestore
+  - UI integration in `AgenticTradingSettingsWidget` for easy configuration
+- **Indicator Filtering & Customization:**
+  - Filter trade signals by specific indicators in search interface
+  - Enable/disable individual indicators to customize signal generation
+  - View individual indicator signals with detailed reasoning
+  - Overall signal now reflects only enabled indicators
+- **Enhanced Indicator Documentation:**
+  - Comprehensive documentation for each technical indicator accessible via info buttons
+  - Detailed explanations of signal logic, thresholds, and interpretations
+  - Consistent documentation display in both settings and instrument detail views
+  - Educational content helps users understand indicator behavior
+- **Trade Signal Notifications:**
+  - User-configurable push notification settings for BUY/SELL/HOLD signals
+  - Per-interval notification preferences (daily, hourly, 15-minute)
+  - Firestore-backed notification preferences with real-time sync
+  - FCM integration for reliable cross-platform delivery
+
+### Changed
+- **Enhanced Signal Representation:**
+  - Instrument widget now displays enabled indicators and their individual signals
+  - Color-coded indicator status (green=BUY, red=SELL, gray=HOLD/DISABLED)
+  - Visual feedback shows which indicators are active vs disabled
+  - Overall signal message reflects enabled indicator consensus
+- **Improved Data Quality:**
+  - Market data fetching now filters out null values for OHLC prices
+  - Enhanced data validation in cron jobs
+  - Better error handling for incomplete market data
+- **Optimized Cron Job Performance:**
+  - Refined document filtering to exclude 15m and 1h intraday charts from daily EOD processing
+  - Improved query efficiency by filtering at query level rather than post-processing
+- **UI/UX Improvements:**
+  - Refined indicator display with better visual hierarchy
+  - Improved interval label formatting in instrument widget
+  - Enhanced settings interface with clearer configuration options
+
+### Fixed
+- **Data Consistency:** Resolved issues with null OHLC values causing calculation errors
+- **Signal Accuracy:** Improved overall signal calculation to respect enabled/disabled indicator states
+- **Display Bugs:** Fixed indicator visibility and color coding in various UI states
+
+### Technical Details
+- **9-Indicator System Architecture:**
+  - `technical-indicators.ts` expanded with 5 new indicator evaluation functions
+  - Each indicator returns structured data: signal (BUY/SELL/HOLD), value, reason, and metadata
+  - `evaluateAllIndicators()` aggregates results and determines `allGreen` status
+  - Frontend receives complete indicator breakdown for granular UI display
+- **Configuration Model:**
+  - `AgenticTradingConfig` class with JSON serialization in `lib/model/agentic_trading_config.dart`
+  - Stored in `User.agenticTradingConfig` field
+  - Includes: `enabled`, `smaPeriodFast`, `smaPeriodSlow`, `tradeQuantity`, `maxPositionSize`, `maxPortfolioConcentration`, `rsiPeriod`, `marketIndexSymbol`, `enabledIndicators` map
+  - Default values: RSI period 14, market index SPY, fast/slow MAs 10/30
+- **Indicator Details:**
+  - **MACD:** Tracks momentum using 12/26/9 EMA configuration, crossover signals
+  - **Bollinger Bands:** Volatility bands with 2 std dev, identifies overbought/oversold at band extremes
+  - **Stochastic:** Oscillator comparing close to price range, 80/20 thresholds
+  - **ATR:** Measures volatility, high/rising ATR indicates trending markets
+  - **OBV:** Cumulative volume flow, divergences signal potential reversals
+- **Data Model Changes:**
+  - Added `enabledIndicators` map to `AgenticTradingConfig` for per-indicator toggle
+  - Extended `multiIndicatorResult` in Firestore signal documents with 9 indicators
+  - Backward compatible with existing 4-indicator signals
+
+### Documentation
+- **Updated `docs/multi-indicator-trading.md`:**
+  - Expanded from 4 to 9 indicators with detailed descriptions
+  - Added configuration section for new user settings
+  - Documented indicator filtering and customization features
+  - Included technical formulas and thresholds for each indicator
+  - Added troubleshooting guidance for common issues
+- **Updated README.md:**
+  - Revised Trade Signals feature description to reflect 9-indicator system
+  - Added mention of user-configurable settings
+  - Updated technical details to reference new indicators
+- **Updated `.github/copilot-instructions.md`:**
+  - Added `AgenticTradingConfig` model reference
+  - Documented new indicator filtering capabilities
+  - Updated architecture notes with 9-indicator system details
+  - Added file references for new configuration UI components
+
+### Migration Notes
+- Existing users will receive default configuration values on first app launch post-update
+- Historical 4-indicator signals remain valid and displayable
+- No data migration required; new config auto-initializes
+- All 9 indicators enabled by default for consistent behavior
+
 ## [0.16.0] - 2025-11-21
 
 ### Added
