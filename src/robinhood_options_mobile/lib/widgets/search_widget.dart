@@ -92,6 +92,8 @@ class _SearchWidgetState extends State<SearchWidget>
 
   // Trade Signal Filters
   String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
+  List<String> selectedIndicators =
+      []; // Selected indicators from multiIndicatorResult.indicators
   DateTime? tradeSignalStartDate;
   DateTime? tradeSignalEndDate;
   int tradeSignalLimit = 50; // Default limit
@@ -1240,7 +1242,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                       maxCrossAxisExtent: 220.0,
                                       mainAxisSpacing: 10.0,
                                       crossAxisSpacing: 10.0,
-                                      childAspectRatio: 1.3,
+                                      childAspectRatio: 1.25,
                                     ),
                                     delegate: SliverChildBuilderDelegate(
                                       (BuildContext context, int index) {
@@ -1613,6 +1615,34 @@ class _SearchWidgetState extends State<SearchWidget>
     final isBuy = signalType == 'BUY';
     final isSell = signalType == 'SELL';
 
+    // Extract individual indicator signals from multiIndicatorResult
+    final multiIndicatorResult =
+        signal['multiIndicatorResult'] as Map<String, dynamic>?;
+    final indicatorsMap =
+        multiIndicatorResult?['indicators'] as Map<String, dynamic>?;
+
+    Map<String, String> indicatorSignals = {};
+    if (indicatorsMap != null) {
+      const indicatorNames = [
+        'priceMovement',
+        'momentum',
+        'marketDirection',
+        'volume',
+        'macd',
+        'bollingerBands',
+        'stochastic',
+        'atr',
+        'obv',
+      ];
+
+      for (final indicator in indicatorNames) {
+        final indicatorData = indicatorsMap[indicator] as Map<String, dynamic>?;
+        if (indicatorData != null && indicatorData['signal'] != null) {
+          indicatorSignals[indicator] = indicatorData['signal'];
+        }
+      }
+    }
+
     return Card(
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -1688,16 +1718,70 @@ class _SearchWidgetState extends State<SearchWidget>
                           style: TextStyle(
                               fontSize: 12.0, color: Colors.grey.shade600),
                           overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: Text(reason,
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color: Colors.grey.shade700,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis),
-                      ),
+                      // Individual indicator signal tags
+                      if (indicatorSignals.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: indicatorSignals.entries.map((entry) {
+                            final indicatorName = entry.key;
+                            final indicatorSignal = entry.value;
+
+                            Color tagColor;
+                            if (indicatorSignal == 'BUY') {
+                              tagColor = Colors.green;
+                            } else if (indicatorSignal == 'SELL') {
+                              tagColor = Colors.red;
+                            } else {
+                              tagColor = Colors.grey;
+                            }
+
+                            // Short names for display
+                            final displayName = indicatorName == 'priceMovement'
+                                ? 'Price'
+                                : indicatorName == 'marketDirection'
+                                    ? 'Market'
+                                    : indicatorName == 'bollingerBands'
+                                        ? 'BB'
+                                        : indicatorName == 'stochastic'
+                                            ? 'Stoch'
+                                            : indicatorName[0].toUpperCase() +
+                                                indicatorName.substring(1);
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: tagColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: tagColor.withOpacity(0.4),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                displayName, //'$displayName: ${indicatorSignal[0]}',
+                                style: TextStyle(
+                                  fontSize: 9.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: tagColor,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      // const SizedBox(height: 8),
+                      // Expanded(
+                      //   child: Text(reason,
+                      //       style: TextStyle(
+                      //         fontSize: 12.0,
+                      //         color: Colors.grey.shade700,
+                      //       ),
+                      //       maxLines: 3,
+                      //       overflow: TextOverflow.ellipsis),
+                      // ),
                     ])),
             onTap: () async {
               final symbol = signal['symbol'];
@@ -1962,6 +2046,7 @@ class _SearchWidgetState extends State<SearchWidget>
         Provider.of<AgenticTradingProvider>(context, listen: false);
     agenticTradingProvider.fetchAllTradeSignals(
       signalType: tradeSignalFilter,
+      indicators: selectedIndicators.isEmpty ? null : selectedIndicators,
       startDate: tradeSignalStartDate,
       endDate: tradeSignalEndDate,
       limit: tradeSignalLimit,
@@ -1969,23 +2054,35 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildTradeSignalFilterChips() {
+    final indicatorOptions = [
+      'priceMovement',
+      'momentum',
+      'marketDirection',
+      'volume',
+      'macd',
+      'bollingerBands',
+      'stochastic',
+      'atr',
+      'obv',
+    ];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          FilterChip(
-            label: const Text('All'),
-            selected: tradeSignalFilter == null,
-            onSelected: (selected) {
-              if (tradeSignalFilter != null) {
-                setState(() {
-                  tradeSignalFilter = null;
-                });
-                _fetchTradeSignalsWithFilters();
-              }
-            },
-          ),
-          const SizedBox(width: 8),
+          // FilterChip(
+          //   label: const Text('All'),
+          //   selected: tradeSignalFilter == null,
+          //   onSelected: (selected) {
+          //     if (tradeSignalFilter != null) {
+          //       setState(() {
+          //         tradeSignalFilter = null;
+          //       });
+          //       _fetchTradeSignalsWithFilters();
+          //     }
+          //   },
+          // ),
+          // const SizedBox(width: 8),
           FilterChip(
             label: const Text('BUY'),
             selected: tradeSignalFilter == 'BUY',
@@ -2024,13 +2121,46 @@ class _SearchWidgetState extends State<SearchWidget>
             selectedColor: Colors.grey.withOpacity(0.3),
             checkmarkColor: Colors.grey,
           ),
+          // const SizedBox(width: 8),
+          // IconButton(
+          //   icon: const Icon(Icons.refresh),
+          //   tooltip: 'Refresh',
+          //   onPressed: _fetchTradeSignalsWithFilters,
+          //   iconSize: 20,
+          // ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: _fetchTradeSignalsWithFilters,
-            iconSize: 20,
-          ),
+          const Text('•', style: TextStyle(color: Colors.grey)),
+          const SizedBox(width: 8),
+          // Indicator chips
+          ...indicatorOptions.map((indicator) {
+            final indicatorLabel = indicator == 'priceMovement'
+                ? 'Price'
+                : indicator == 'marketDirection'
+                    ? 'Market'
+                    : indicator == 'bollingerBands'
+                        ? 'Bollinger'
+                        : indicator[0].toUpperCase() + indicator.substring(1);
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: FilterChip(
+                label: Text(indicatorLabel),
+                selected: selectedIndicators.contains(indicator),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      selectedIndicators.add(indicator);
+                    } else {
+                      selectedIndicators.remove(indicator);
+                    }
+                  });
+                  _fetchTradeSignalsWithFilters();
+                },
+                backgroundColor: Colors.transparent,
+                selectedColor: Colors.blue.withOpacity(0.2),
+              ),
+            );
+          }).toList(),
         ],
       ),
     );

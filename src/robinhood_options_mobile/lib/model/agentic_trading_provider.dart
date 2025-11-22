@@ -184,6 +184,8 @@ class AgenticTradingProvider with ChangeNotifier {
   // Debug method to test real-time updates by adding a test signal
   Future<void> fetchAllTradeSignals({
     String? signalType, // Filter by 'BUY', 'SELL', or 'HOLD'
+    List<String>?
+        indicators, // Filter by specific indicators from multiIndicatorResult.indicators
     DateTime? startDate, // Filter signals after this date
     DateTime? endDate, // Filter signals before this date
     List<String>?
@@ -207,6 +209,7 @@ class AgenticTradingProvider with ChangeNotifier {
 
     debugPrint('🚀 Setting up new trade signals subscription with filters:');
     debugPrint('   Signal type: $signalType');
+    debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
     debugPrint('   Start date: $startDate');
     debugPrint('   End date: $endDate');
     debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
@@ -219,9 +222,19 @@ class AgenticTradingProvider with ChangeNotifier {
       // Apply interval filter - use provided interval or selected interval or default
       final effectiveInterval = interval ?? selectedInterval;
 
-      // Apply signal type filter
+      // Apply signal type filter (top-level signal only if no indicators selected)
       if (signalType != null && signalType.isNotEmpty) {
-        query = query.where('signal', isEqualTo: signalType);
+        if (indicators == null || indicators.isEmpty) {
+          // No indicators selected: filter by overall signal
+          query = query.where('signal', isEqualTo: signalType);
+        } else {
+          // Indicators selected: filter by each indicator's signal server-side
+          for (final indicator in indicators) {
+            query = query.where(
+                'multiIndicatorResult.indicators.$indicator.signal',
+                isEqualTo: signalType);
+          }
+        }
       }
 
       // Apply interval filter (server-side when possible)
@@ -472,14 +485,6 @@ class AgenticTradingProvider with ChangeNotifier {
         .where((data) => data != null)
         .cast<Map<String, dynamic>>()
         .toList();
-
-    // Client-side interval filtering for '1d' (handles legacy signals without interval field)
-    if (effectiveInterval == '1d') {
-      _tradeSignals = _tradeSignals.where((signal) {
-        final signalInterval = signal['interval'] ?? '1d';
-        return signalInterval == '1d';
-      }).toList();
-    }
 
     // Client-side filtering for symbols if list > 30 (Firestore limit)
     if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
