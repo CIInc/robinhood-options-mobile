@@ -133,8 +133,14 @@ export async function getMarketData(symbol: string,
       delete result.meta?.tradingPeriods;
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
+        const opes = result.indicators.quote[0].open;
+        const higs = result.indicators.quote[0].high;
+        const los = result.indicators.quote[0].low;
         const clos = result.indicators.quote[0].close;
         const vols = result.indicators.quote[0].volume || [];
+        opens = opes.filter((p: any) => p !== null);
+        highs = higs.filter((p: any) => p !== null);
+        lows = los.filter((p: any) => p !== null);
         closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
         logger.info(`Fetched ${closes.length} ${interval} prices and ` +

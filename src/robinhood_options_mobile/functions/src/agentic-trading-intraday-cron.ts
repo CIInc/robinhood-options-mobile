@@ -30,7 +30,9 @@ export const agenticTradingIntradayCron = onSchedule(
       let errorCount = 0;
 
       for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_")) {
+        if (doc.id.startsWith("chart_") &&
+          !doc.id.endsWith("_1h") &&
+          !doc.id.endsWith("_15m")) {
           const symbol = doc.id.replace("chart_", "");
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
@@ -98,7 +100,9 @@ export const agenticTrading15mCron = onSchedule(
       let errorCount = 0;
 
       for (const doc of snapshot.docs) {
-        if (doc.id.startsWith("chart_")) {
+        if (doc.id.startsWith("chart_") &&
+          !doc.id.endsWith("_1h") &&
+          !doc.id.endsWith("_15m")) {
           const symbol = doc.id.replace("chart_", "");
           if (!symbol) {
             logger.warn(`Invalid symbol extracted from document ID: ${doc.id}`);
