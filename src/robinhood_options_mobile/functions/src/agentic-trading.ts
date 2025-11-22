@@ -19,7 +19,10 @@ const db = getFirestore();
 export async function getMarketData(symbol: string,
   smaPeriodFast: number, smaPeriodSlow: number,
   interval = "1d", range?: string) {
-  let prices: any[] = [];
+  let opens: any[] = [];
+  let highs: any[] = [];
+  let lows: any[] = [];
+  let closes: any[] = [];
   let volumes: any[] = [];
   let currentPrice: number | null = null;
 
@@ -67,21 +70,30 @@ export async function getMarketData(symbol: string,
       const isCached = chart && !isCacheStale(chart, interval);
 
       if (isCached && chart.indicators?.quote?.[0]?.close && chart.timestamp) {
-        const closes = chart.indicators.quote[0].close;
+        const opes = chart.indicators.quote[0].open;
+        const higs = chart.indicators.quote[0].high;
+        const los = chart.indicators.quote[0].low;
+        const clos = chart.indicators.quote[0].close;
         const vols = chart.indicators.quote[0].volume || [];
-        prices = closes.filter((p: any) => p !== null);
+        opens = opes.filter((p: any) => p !== null);
+        highs = higs.filter((p: any) => p !== null);
+        lows = los.filter((p: any) => p !== null);
+        closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
         if (chart && typeof chart?.meta?.regularMarketPrice === "number") {
           currentPrice = chart.meta.regularMarketPrice;
-        } else if (Array.isArray(prices) && prices.length > 0) {
-          currentPrice = prices[prices.length - 1];
+        } else if (Array.isArray(closes) && closes.length > 0) {
+          currentPrice = closes[closes.length - 1];
         }
         logger.info(`Loaded cached ${interval} prices and volumes ` +
           `for ${symbol} from Firestore`);
       } else {
         logger.info(`Cached ${interval} data for ${symbol} is stale, ` +
           "will fetch new data");
-        prices = [];
+        opens = [];
+        highs = [];
+        lows = [];
+        closes = [];
         volumes = [];
       }
     }
@@ -90,7 +102,7 @@ export async function getMarketData(symbol: string,
   }
 
   // If still no prices, fetch from Yahoo Finance
-  if (!prices.length) {
+  if (!closes.length) {
     try {
       const maxPeriod = Math.max(smaPeriodFast, smaPeriodSlow);
 
@@ -121,17 +133,17 @@ export async function getMarketData(symbol: string,
       delete result.meta?.tradingPeriods;
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
-        const closes = result.indicators.quote[0].close;
+        const clos = result.indicators.quote[0].close;
         const vols = result.indicators.quote[0].volume || [];
-        prices = closes.filter((p: any) => p !== null);
+        closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
-        logger.info(`Fetched ${prices.length} ${interval} prices and ` +
+        logger.info(`Fetched ${closes.length} ${interval} prices and ` +
           `${volumes.length} volumes for ${symbol} from Yahoo Finance ${url}`);
       }
       if (result && typeof result?.meta?.regularMarketPrice === "number") {
         currentPrice = result.meta.regularMarketPrice;
-      } else if (Array.isArray(prices) && prices.length > 0) {
-        currentPrice = prices[prices.length - 1];
+      } else if (Array.isArray(closes) && closes.length > 0) {
+        currentPrice = closes[closes.length - 1];
       }
       // Cache prices and volumes in Firestore
       try {
@@ -149,7 +161,10 @@ export async function getMarketData(symbol: string,
 
   return {
     symbol,
-    prices,
+    opens,
+    highs,
+    lows,
+    closes,
     volumes,
     currentPrice,
   };

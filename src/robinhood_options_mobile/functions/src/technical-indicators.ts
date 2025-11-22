@@ -721,8 +721,8 @@ export function evaluateVolume(
  * @return {MultiIndicatorResult} Combined result from all indicators.
  */
 export function evaluateAllIndicators(
-  symbolData: { prices: number[]; volumes?: number[] },
-  marketData: { prices: number[]; volumes?: number[] },
+  symbolData: { closes: number[]; volumes?: number[] },
+  marketData: { closes: number[]; volumes?: number[] },
   config: {
     rsiPeriod?: number;
     marketFastPeriod?: number;
@@ -730,26 +730,26 @@ export function evaluateAllIndicators(
   } = {}
 ): MultiIndicatorResult {
   logger.info("Evaluating all technical indicators", {
-    symbolDataLength: symbolData.prices.length,
-    marketDataLength: marketData.prices.length,
+    symbolDataLength: symbolData.closes.length,
+    marketDataLength: marketData.closes.length,
     config,
   });
 
   // 1. Price Movement (chart patterns)
   const priceMovement = detectChartPattern(
-    symbolData.prices,
+    symbolData.closes,
     symbolData.volumes
   );
 
   // 2. Momentum (RSI)
   const momentum = evaluateMomentum(
-    symbolData.prices,
+    symbolData.closes,
     config.rsiPeriod || 14
   );
 
   // 3. Market Direction (SPY/QQQ moving averages)
   const marketDirection = evaluateMarketDirection(
-    marketData.prices,
+    marketData.closes,
     config.marketFastPeriod || 10,
     config.marketSlowPeriod || 30
   );
@@ -757,7 +757,7 @@ export function evaluateAllIndicators(
   // 4. Volume
   const volume = evaluateVolume(
     symbolData.volumes || [],
-    symbolData.prices
+    symbolData.closes
   );
 
   const indicators = {

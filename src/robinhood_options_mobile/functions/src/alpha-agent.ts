@@ -5,25 +5,12 @@ import * as indicators from "./technical-indicators";
 import fetch from "node-fetch";
 
 /**
- * Compute the Simple Moving Average (SMA) for a given period.
- * @param {number[]} prices - Array of prices.
- * @param {number} period - The period for the SMA.
- * @return {number|null} The computed SMA or null if not enough data.
- */
-export function computeSMA(prices: number[], period: number): number | null {
-  if (!prices || prices.length < period || period <= 0) return null;
-  const slice = prices.slice(prices.length - period);
-  const sum = slice.reduce((a, b) => a + b, 0);
-  return sum / period;
-}
-
-/**
  * Fetch market index data (SPY or QQQ) for market direction analysis
  * @param {string} symbol The market index symbol (default: SPY)
  * @return {Promise<{prices: number[], volumes: number[]}>} Market data
  */
 async function fetchMarketData(symbol = "SPY"): Promise<{
-  prices: number[];
+  closes: number[];
   volumes: number[];
 }> {
   try {
@@ -39,23 +26,23 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
       Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
       const closeData = result.indicators.quote[0].close;
       const volumeData = result.indicators.quote[0].volume;
-      const closes = closeData.filter((p: any) => p !== null);
+      const clos = closeData.filter((p: any) => p !== null);
       const vols = volumeData.filter((v: any) => v !== null);
 
-      return { prices: closes, volumes: vols };
+      return { closes: clos, volumes: vols };
     }
   } catch (err) {
     logger.warn(`Failed to fetch market data for ${symbol}`, err);
   }
 
-  return { prices: [], volumes: [] };
+  return { closes: [], volumes: [] };
 }
 
 /**
  * Handle Alpha agent logic for trade signal and risk assessment.
  * Uses multi-indicator analysis (Price Movement, Momentum,
  * Market Direction, Volume)
- * @param {object} marketData - Market data including prices,
+ * @param {object} marketData - Market data including closes,
  *                               volumes, and symbol.
  * @param {object} portfolioState - Current portfolio state.
  * @param {object} config - Trading configuration.
@@ -68,7 +55,7 @@ export async function handleAlphaTask(marketData: any,
     "with multi-indicator analysis";
   logger.info(logMsg, { marketData, portfolioState, config, interval });
 
-  const prices: number[] = marketData?.prices || [];
+  const closes: number[] = marketData?.closes || [];
   const volumes: number[] = marketData?.volumes || [];
   const symbol = marketData?.symbol || "SPY";
 
@@ -78,13 +65,13 @@ export async function handleAlphaTask(marketData: any,
 
   logger.info("Fetched market index data", {
     symbol: marketIndexSymbol,
-    pricesLength: marketIndexData.prices.length,
+    pricesLength: marketIndexData.closes.length,
     volumesLength: marketIndexData.volumes.length,
   });
 
   // Evaluate all 4 technical indicators
   const multiIndicatorResult = indicators.evaluateAllIndicators(
-    { prices, volumes },
+    { closes: closes, volumes },
     marketIndexData,
     {
       rsiPeriod: config?.rsiPeriod || 14,
@@ -108,16 +95,6 @@ export async function handleAlphaTask(marketData: any,
     },
   });
 
-  // Legacy SMA calculation for backward compatibility
-  const smaPeriodFast = config?.smaPeriodFast || 10;
-  const smaPeriodSlow = config?.smaPeriodSlow || 30;
-  const fast = computeSMA(prices, smaPeriodFast);
-  const slow = computeSMA(prices, smaPeriodSlow);
-  const fastPrev = prices.length > smaPeriodFast ?
-    computeSMA(prices.slice(0, prices.length - 1), smaPeriodFast) : null;
-  const slowPrev = prices.length > smaPeriodSlow ?
-    computeSMA(prices.slice(0, prices.length - 1), smaPeriodSlow) : null;
-
   // If not all indicators are green, hold
   if (overallSignal === "HOLD") {
     // Persist signal even when holding
@@ -133,8 +110,6 @@ export async function handleAlphaTask(marketData: any,
         signal: overallSignal,
         reason,
         multiIndicatorResult,
-        [`${smaPeriodFast}-day SMA`]: fast,
-        [`${smaPeriodSlow}-day SMA`]: slow,
         currentPrice: marketData.currentPrice,
         config,
         portfolioState,
@@ -156,8 +131,8 @@ export async function handleAlphaTask(marketData: any,
     };
   }
 
-  const lastPrice = prices.length > 0 ?
-    prices[prices.length - 1] : marketData?.currentPrice || 0;
+  const lastPrice = closes.length > 0 ?
+    closes[closes.length - 1] : marketData?.currentPrice || 0;
   const quantity = config?.tradeQuantity || 1;
 
   const proposal = {
@@ -187,10 +162,6 @@ export async function handleAlphaTask(marketData: any,
       signal: overallSignal,
       reason,
       multiIndicatorResult,
-      [`${smaPeriodFast}-day SMA`]: fast,
-      [`${smaPeriodSlow}-day SMA`]: slow,
-      [`Previous ${smaPeriodFast}-day SMA`]: fastPrev,
-      [`Previous ${smaPeriodSlow}-day SMA`]: slowPrev,
       currentPrice: marketData.currentPrice,
       pricesLength: Array.isArray(marketData.prices) ?
         marketData.prices.length : 0,
