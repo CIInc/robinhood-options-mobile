@@ -3482,7 +3482,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
               const SizedBox(width: 8),
               const Text(
-                'Technical Indicators',
+                'Technical Indicators (9 signals)',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ],
@@ -3496,6 +3496,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               indicators['marketDirection'] as Map<String, dynamic>?),
           _buildIndicatorRow(
               'Volume', indicators['volume'] as Map<String, dynamic>?),
+          _buildIndicatorRow(
+              'MACD', indicators['macd'] as Map<String, dynamic>?),
+          _buildIndicatorRow('Bollinger Bands',
+              indicators['bollingerBands'] as Map<String, dynamic>?),
+          _buildIndicatorRow(
+              'Stochastic', indicators['stochastic'] as Map<String, dynamic>?),
+          _buildIndicatorRow(
+              'ATR (Volatility)', indicators['atr'] as Map<String, dynamic>?),
+          _buildIndicatorRow('OBV (On-Balance Volume)',
+              indicators['obv'] as Map<String, dynamic>?),
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
@@ -3524,7 +3534,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Overall: $overallSignal ${allGreen ? '✓ All Green!' : ''}',
+                  'Overall: $overallSignal ${allGreen ? '✓ All 9 Green!' : ''}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
