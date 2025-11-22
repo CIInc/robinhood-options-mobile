@@ -134,7 +134,9 @@ class AgenticTradingProvider with ChangeNotifier {
         return;
       }
 
-      final effectiveInterval = interval ?? _selectedInterval;
+      // Ensure we always have a valid interval (default if none selected yet)
+      final effectiveInterval =
+          interval ?? _selectedInterval ?? _getDefaultInterval();
       final docId = effectiveInterval == '1d'
           ? 'signals_$symbol'
           : 'signals_${symbol}_$effectiveInterval';

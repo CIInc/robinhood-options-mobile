@@ -116,6 +116,9 @@ export async function getMarketData(symbol: string,
       const resp = await fetch(url);
       const data: any = await resp.json();
       const result = data?.chart?.result?.[0];
+      // Fix for Firebase which does not support arrays inside arrays
+      // INVALID_ARGUMENT: Property chart contains an invalid nested entity
+      delete result.meta?.tradingPeriods;
       if (result && Array.isArray(result?.indicators?.quote?.[0]?.close) &&
         Array.isArray(result?.timestamp)) {
         const closes = result.indicators.quote[0].close;
@@ -123,7 +126,7 @@ export async function getMarketData(symbol: string,
         prices = closes.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
         logger.info(`Fetched ${prices.length} ${interval} prices and ` +
-          `${volumes.length} volumes for ${symbol} from Yahoo Finance`);
+          `${volumes.length} volumes for ${symbol} from Yahoo Finance ${url}`);
       }
       if (result && typeof result?.meta?.regularMarketPrice === "number") {
         currentPrice = result.meta.regularMarketPrice;

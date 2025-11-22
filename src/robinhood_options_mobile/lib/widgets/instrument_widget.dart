@@ -3615,15 +3615,21 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             builder: (context, provider, child) {
               final isMarketOpen = provider.isMarketOpen;
               final selectedInterval = provider.selectedInterval;
-              final intervalLabel = selectedInterval == '1d' ? 'Daily' :
-                                   selectedInterval == '1h' ? 'Hourly' :
-                                   selectedInterval == '30m' ? '30-min' :
-                                   selectedInterval == '15m' ? '15-min' : selectedInterval;
-              
+              final intervalLabel = selectedInterval == '1d'
+                  ? 'Daily'
+                  : selectedInterval == '1h'
+                      ? 'Hourly'
+                      : selectedInterval == '30m'
+                          ? '30-min'
+                          : selectedInterval == '15m'
+                              ? '15-min'
+                              : selectedInterval;
+
               return Padding(
                 padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
                   decoration: BoxDecoration(
                     color: isMarketOpen
                         ? Colors.green.withOpacity(0.1)
@@ -3689,7 +3695,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   selected: {provider.selectedInterval},
                   onSelectionChanged: (Set<String> newSelection) {
                     provider.setSelectedInterval(newSelection.first);
-                    provider.fetchTradeSignal(symbol, 
+                    provider.fetchTradeSignal(symbol,
                         interval: newSelection.first);
                   },
                 ),
@@ -3757,11 +3763,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               }
 
               // Format interval label
-              final intervalLabel = signalInterval == '1d' ? 'Daily' :
-                                    signalInterval == '1h' ? 'Hourly' :
-                                    signalInterval == '30m' ? '30-min' :
-                                    signalInterval == '15m' ? '15-min' : 
-                                    signalInterval;
+              final intervalLabel = signalInterval == '1d'
+                  ? 'Daily'
+                  : signalInterval == '1h'
+                      ? 'Hourly'
+                      : signalInterval == '30m'
+                          ? '30-min'
+                          : signalInterval == '15m'
+                              ? '15-min'
+                              : signalInterval;
 
               return Card(
                 elevation: 2,
