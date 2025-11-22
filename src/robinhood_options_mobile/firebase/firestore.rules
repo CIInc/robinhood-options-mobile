@@ -6,6 +6,8 @@ service cloud.firestore {
       allow read, create: if request.auth.uid != null;
       allow update: if request.auth.uid == uid || request.auth.token.role == 'admin';
       allow delete: if request.auth.token.role == 'admin';
+      // Trade signal notification settings are stored in the user document
+      // and are covered by the parent rules above
       match /instrumentPosition/{id} {
         allow read : if request.auth.uid != null;
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';

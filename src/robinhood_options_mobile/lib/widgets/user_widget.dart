@@ -21,6 +21,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
+import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
 
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
@@ -593,6 +594,31 @@ class _UserWidgetState extends State<UserWidget> {
                                                 user: user!,
                                                 firestoreService:
                                                     _firestoreService,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    // Trade Signal Notification Settings
+                                    ListTile(
+                                      leading: const Icon(
+                                          Icons.notifications_outlined),
+                                      title: const Text(
+                                          'Trade Signal Notifications'),
+                                      subtitle: const Text(
+                                          'Configure push notifications for trade signals'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        if (user != null) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  TradeSignalNotificationSettingsWidget(
+                                                user: user!,
+                                                userDocRef:
+                                                    userDocumentReference!,
                                               ),
                                             ),
                                           );

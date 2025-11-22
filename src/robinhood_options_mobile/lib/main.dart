@@ -243,7 +243,8 @@ class MyApp extends StatelessWidget {
             routes: {
               '/': (context) => NavigationStatefulWidget(
                   analytics: analytics, observer: observer),
-              '/agentic-trading-settings': (context) => const AgenticTradingSettingsWidget(),
+              '/agentic-trading-settings': (context) =>
+                  const AgenticTradingSettingsWidget(),
               // '/link': (context) => NavigationStatefulWidget(
               //     analytics: analytics, observer: observer)
               /*

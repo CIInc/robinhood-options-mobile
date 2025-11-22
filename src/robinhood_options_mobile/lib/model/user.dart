@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 
 class User {
   String? name;
@@ -29,6 +30,9 @@ class User {
   String? riskTolerance;
   double? totalPortfolioValue;
 
+  // Trade Signal Notification Settings
+  TradeSignalNotificationSettings? tradeSignalNotificationSettings;
+
   User(
       {this.name,
       this.nameLower,
@@ -49,7 +53,8 @@ class User {
       this.investmentGoals,
       this.timeHorizon,
       this.riskTolerance,
-      this.totalPortfolioValue});
+      this.totalPortfolioValue,
+      this.tradeSignalNotificationSettings});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -89,7 +94,13 @@ class User {
             riskTolerance: json['riskTolerance'] as String?,
             totalPortfolioValue: json['totalPortfolioValue'] != null
                 ? (json['totalPortfolioValue'] as num).toDouble()
-                : null);
+                : null,
+            tradeSignalNotificationSettings:
+                json['tradeSignalNotificationSettings'] != null
+                    ? TradeSignalNotificationSettings.fromJson(
+                        json['tradeSignalNotificationSettings']
+                            as Map<String, dynamic>)
+                    : null);
 
   Map<String, Object?> toJson() {
     return {
@@ -112,7 +123,9 @@ class User {
       'investmentGoals': investmentGoals,
       'timeHorizon': timeHorizon,
       'riskTolerance': riskTolerance,
-      'totalPortfolioValue': totalPortfolioValue
+      'totalPortfolioValue': totalPortfolioValue,
+      'tradeSignalNotificationSettings':
+          tradeSignalNotificationSettings?.toJson()
     };
   }
 
