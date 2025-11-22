@@ -27,7 +27,6 @@ class BrokerageUser {
   SortDirection? sortDirection = SortDirection.desc;
   bool showPositionDetails = true;
   UserInfo? userInfo;
-  bool persistToFirebase = true;
 
   BrokerageUser(
       this.source, this.userName, this.credentials, this.oauth2Client);
@@ -57,8 +56,7 @@ class BrokerageUser {
         showPositionDetails = json['showPositionDetails'] ?? true,
         userInfo = json['userInfo'] != null
             ? UserInfo.fromJson(json['userInfo'])
-            : null,
-        persistToFirebase = json['persistToFirebase'] ?? true;
+            : null;
 
   Map<String, dynamic> toJson() => {
         'source': source.toString(),
@@ -70,8 +68,7 @@ class BrokerageUser {
         'sortDirection': sortDirection.toString(),
         'displayValue': displayValue.toString(),
         'showPositionDetails': showPositionDetails,
-        'userInfo': userInfo?.toJson(),
-        'persistToFirebase': persistToFirebase
+        'userInfo': userInfo?.toJson()
       };
 
   static List<BrokerageUser> fromJsonArray(dynamic json) {

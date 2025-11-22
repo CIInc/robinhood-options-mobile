@@ -21,7 +21,6 @@ class User {
   DateTime? lastVisited;
   List<BrokerageUser> brokerageUsers = [];
   List<Account> accounts = [];
-  bool persistToFirebase;
   bool refreshQuotes;
 
   // Investment Profile fields
@@ -48,7 +47,6 @@ class User {
       this.lastVisited,
       required this.brokerageUsers,
       required this.accounts,
-      this.persistToFirebase = true,
       this.refreshQuotes = false,
       this.investmentGoals,
       this.timeHorizon,
@@ -83,9 +81,6 @@ class User {
             accounts: json['accounts'] != null
                 ? Account.fromJsonArray(json['accounts'])
                 : [],
-            persistToFirebase: json['persistToFirebase'] != null
-                ? json['persistToFirebase'] as bool
-                : true,
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
                 : true,
@@ -118,7 +113,6 @@ class User {
       'lastVisited': lastVisited,
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
       'accounts': accounts.map((e) => e.toJson()).toList(),
-      'persistToFirebase': persistToFirebase,
       'refreshQuotes': refreshQuotes,
       'investmentGoals': investmentGoals,
       'timeHorizon': timeHorizon,

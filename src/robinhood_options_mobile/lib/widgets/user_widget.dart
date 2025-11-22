@@ -492,34 +492,6 @@ class _UserWidgetState extends State<UserWidget> {
                                         },
                                         secondary: const Icon(Icons.refresh),
                                       ),
-                                      ExpansionTile(
-                                          shape: const Border(),
-                                          leading:
-                                              Icon(Icons.ios_share_outlined),
-                                          title: Text('Sharing'),
-                                          children: [
-                                            SwitchListTile(
-                                              //leading: Icon(Icons.functions),
-                                              title: const Text("Sharing"),
-                                              subtitle: const Text(
-                                                  "Setup for private sharing"),
-                                              value: widget.brokerageUser
-                                                  .persistToFirebase, // user.persistToFirebase,
-                                              onChanged: (bool value) {
-                                                setState(() {
-                                                  user!.persistToFirebase =
-                                                      value;
-                                                });
-                                                // Also set the brokerageUser for unauthenticated users.
-                                                widget.brokerageUser
-                                                    .persistToFirebase = value;
-                                                saveBrokerageUser(context);
-                                                _onSettingsChanged(user: user);
-                                              },
-                                              secondary: const Icon(
-                                                  Icons.cloud_upload_outlined),
-                                            ),
-                                          ]),
                                     ],
 // ListTile(
                                     //     leading: const Icon(Icons.tune),
@@ -600,6 +572,21 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
+                                    // Agentic Trading Settings entry moved here from the app Drawer
+                                    ListTile(
+                                      leading: const Icon(Icons.auto_graph),
+                                      title:
+                                          const Text('Trade Signal Settings'),
+                                      subtitle: const Text(
+                                          'Configure multi-indicator trading parameters'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () {
+                                        // Navigator.pop(
+                                        //     context); // close the user card
+                                        Navigator.pushNamed(context,
+                                            '/agentic-trading-settings');
+                                      },
+                                    ),
                                     // Trade Signal Notification Settings
                                     ListTile(
                                       leading: const Icon(
@@ -623,19 +610,6 @@ class _UserWidgetState extends State<UserWidget> {
                                             ),
                                           );
                                         }
-                                      },
-                                    ),
-                                    // Agentic Trading Settings entry moved here from the app Drawer
-                                    ListTile(
-                                      leading: const Icon(Icons.auto_graph),
-                                      title: const Text(
-                                          'Agentic Trading Settings'),
-                                      trailing: const Icon(Icons.chevron_right),
-                                      onTap: () {
-                                        Navigator.pop(
-                                            context); // close the user card
-                                        Navigator.pushNamed(context,
-                                            '/agentic-trading-settings');
                                       },
                                     ),
 // ExpansionPanelList(
