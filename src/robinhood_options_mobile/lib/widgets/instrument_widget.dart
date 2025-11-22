@@ -3533,38 +3533,47 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 children: [
                   _buildIndicatorRow(
                       'Price Movement',
+                      'priceMovement',
                       indicators['priceMovement'] as Map<String, dynamic>?,
                       enabledIndicators['priceMovement'] == true),
                   _buildIndicatorRow(
                       'Momentum (RSI)',
+                      'momentum',
                       indicators['momentum'] as Map<String, dynamic>?,
                       enabledIndicators['momentum'] == true),
                   _buildIndicatorRow(
                       'Market Direction',
+                      'marketDirection',
                       indicators['marketDirection'] as Map<String, dynamic>?,
                       enabledIndicators['marketDirection'] == true),
                   _buildIndicatorRow(
                       'Volume',
+                      'volume',
                       indicators['volume'] as Map<String, dynamic>?,
                       enabledIndicators['volume'] == true),
                   _buildIndicatorRow(
                       'MACD',
+                      'macd',
                       indicators['macd'] as Map<String, dynamic>?,
                       enabledIndicators['macd'] == true),
                   _buildIndicatorRow(
                       'Bollinger Bands',
+                      'bollingerBands',
                       indicators['bollingerBands'] as Map<String, dynamic>?,
                       enabledIndicators['bollingerBands'] == true),
                   _buildIndicatorRow(
                       'Stochastic',
+                      'stochastic',
                       indicators['stochastic'] as Map<String, dynamic>?,
                       enabledIndicators['stochastic'] == true),
                   _buildIndicatorRow(
                       'ATR (Volatility)',
+                      'atr',
                       indicators['atr'] as Map<String, dynamic>?,
                       enabledIndicators['atr'] == true),
                   _buildIndicatorRow(
                       'OBV (On-Balance Volume)',
+                      'obv',
                       indicators['obv'] as Map<String, dynamic>?,
                       enabledIndicators['obv'] == true),
                 ],
@@ -3642,13 +3651,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  Widget _buildIndicatorRow(
-      String name, Map<String, dynamic>? indicator, bool isEnabled) {
+  Widget _buildIndicatorRow(String name, String key,
+      Map<String, dynamic>? indicator, bool isEnabled) {
     if (indicator == null) return const SizedBox.shrink();
 
     final signal = indicator['signal'] as String? ?? 'HOLD';
     final reason = indicator['reason'] as String? ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final documentation = docInfo['documentation'] ?? '';
+    final docTitle = docInfo['title'] ?? name;
 
     Color signalColor;
     IconData signalIcon;
@@ -3686,16 +3698,56 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '$name: ${isEnabled ? signal : 'DISABLED'}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: isEnabled
-                          ? signalColor
-                          : (isDark
-                              ? Colors.grey.shade500
-                              : Colors.grey.shade600),
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '$name: ${isEnabled ? signal : 'DISABLED'}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isEnabled
+                                ? signalColor
+                                : (isDark
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade600),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: isDark
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade600,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          iconSize: 16,
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text(docTitle),
+                                content: SingleChildScrollView(
+                                  child: Text(documentation),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Close'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                   if (reason.isNotEmpty && isEnabled)
                     Text(
@@ -3710,6 +3762,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
       ),
     );
   }
+
+  // Removed: now using AgenticTradingProvider.indicatorDocumentation(key)
 
   Widget _buildAgenticTradeSignals(Instrument instrument) {
     final symbol = instrument.symbol;

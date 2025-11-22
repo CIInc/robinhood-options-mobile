@@ -87,7 +87,40 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildIndicatorToggle(String key, String title, String description) {
     return SwitchListTile(
-      title: Text(title),
+      title: Row(
+        children: [
+          Text(title),
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: IconButton(
+              icon: const Icon(Icons.info_outline, size: 16),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              iconSize: 16,
+              onPressed: () {
+                final docInfo =
+                    AgenticTradingProvider.indicatorDocumentation(key);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text(docInfo['title'] ?? title),
+                    content: SingleChildScrollView(
+                      child: Text(docInfo['documentation'] ?? ''),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
       subtitle: Text(description),
       value: _enabledIndicators[key] ?? true,
       onChanged: (bool value) {

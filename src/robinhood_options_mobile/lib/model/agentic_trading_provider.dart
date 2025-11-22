@@ -5,6 +5,91 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
+  /// Returns documentation for a given indicator key.
+  /// Returns a Map with 'title' and 'documentation' keys.
+  static Map<String, String> indicatorDocumentation(String key) {
+    switch (key) {
+      case 'priceMovement':
+        return {
+          'title': 'Price Movement',
+          'documentation':
+              'Analyzes recent price trends and chart patterns to identify bullish or bearish momentum. '
+                  'Uses moving averages and price action to determine if the stock is in an uptrend (BUY), '
+                  'downtrend (SELL), or sideways movement (HOLD).'
+        };
+      case 'momentum':
+        return {
+          'title': 'Momentum (RSI)',
+          'documentation':
+              'Relative Strength Index (RSI) measures the speed and magnitude of price changes. '
+                  'Values above 70 indicate overbought conditions (potential SELL), while values below 30 '
+                  'indicate oversold conditions (potential BUY). RSI between 30-70 suggests neutral momentum.'
+        };
+      case 'marketDirection':
+        return {
+          'title': 'Market Direction',
+          'documentation':
+              'Evaluates the overall market trend using moving averages on major indices (SPY/QQQ). '
+                  'When the market index is trending up (fast MA > slow MA), stocks tend to perform better (BUY). '
+                  'When the market is trending down, it suggests caution (SELL/HOLD).'
+        };
+      case 'volume':
+        return {
+          'title': 'Volume',
+          'documentation':
+              'Confirms price movements with trading volume. Strong price moves with high volume are more '
+                  'reliable. BUY signals require increasing volume on up days, SELL signals require volume on down days. '
+                  'Low volume suggests weak conviction and generates HOLD signals.'
+        };
+      case 'macd':
+        return {
+          'title': 'MACD',
+          'documentation':
+              'Moving Average Convergence Divergence (MACD) shows the relationship between two moving averages. '
+                  'When the MACD line crosses above the signal line, it generates a BUY signal. When MACD crosses below the signal line, '
+                  'it generates a SELL signal. The histogram shows the strength of the trend.'
+        };
+      case 'bollingerBands':
+        return {
+          'title': 'Bollinger Bands',
+          'documentation':
+              'Volatility indicator using standard deviations around a moving average. Price near the lower band '
+                  'suggests oversold conditions (potential BUY), while price near the upper band suggests overbought (potential SELL). '
+                  'Price in the middle suggests neutral conditions. Band width indicates volatility levels.'
+        };
+      case 'stochastic':
+        return {
+          'title': 'Stochastic',
+          'documentation':
+              'Stochastic Oscillator compares the closing price to its price range over a period. Values above 80 indicate '
+                  'overbought conditions (potential SELL), below 20 indicates oversold (potential BUY). Crossovers of %K and %D '
+                  'lines provide additional signals. Works best in ranging markets.'
+        };
+      case 'atr':
+        return {
+          'title': 'ATR (Volatility)',
+          'documentation':
+              'Average True Range (ATR) measures market volatility. High ATR indicates large price swings and increased risk. '
+                  'Rising ATR suggests strong trending conditions, while falling ATR indicates consolidation. Used to set stop-loss '
+                  'levels and position sizing based on current market conditions.'
+        };
+      case 'obv':
+        return {
+          'title': 'OBV (On-Balance Volume)',
+          'documentation':
+              'On-Balance Volume (OBV) tracks cumulative volume flow. Rising OBV confirms uptrends (BUY), falling OBV confirms '
+                  'downtrends (SELL). Divergences between OBV and price can signal potential reversals. Volume precedes price, making '
+                  'OBV a leading indicator for trend confirmation.'
+        };
+      default:
+        return {
+          'title': 'Technical Indicator',
+          'documentation':
+              'Technical indicator used to analyze market conditions and generate trading signals.'
+        };
+    }
+  }
+
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
