@@ -14,6 +14,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
+import 'package:robinhood_options_mobile/services/fidelity_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
@@ -178,7 +179,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                       ? RobinhoodService()
                       : source == BrokerageSource.schwab
                           ? SchwabService()
-                          : DemoService();
+                          : source == BrokerageSource.fidelity
+                              ? FidelityService()
+                              : DemoService();
                   client = generateClient(
                       authenticationSnapshot.data!,
                       source == BrokerageSource.robinhood
@@ -295,7 +298,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                           ? BrokerageSource.robinhood
                           : value == 2
                               ? BrokerageSource.schwab
-                              : BrokerageSource.plaid;
+                              : value == 3
+                                  ? BrokerageSource.plaid
+                                  : BrokerageSource.fidelity;
                 });
               },
               // shrinkExtent: 200,
@@ -378,6 +383,24 @@ class _LoginWidgetState extends State<LoginWidget> {
                     onSelected: (bool selected) {
                       setState(() {
                         source = BrokerageSource.plaid;
+                      });
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
+                    label: SizedBox(
+                        width: 125,
+                        child: const Text(
+                          'Fidelity',
+                          textAlign: TextAlign.center,
+                        )),
+                    selected: source == BrokerageSource.fidelity,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = BrokerageSource.fidelity;
                       });
                     },
                   ),
@@ -485,6 +508,20 @@ class _LoginWidgetState extends State<LoginWidget> {
                     icon: const Icon(Icons.login_outlined),
                     onPressed: _login, // () => PlaidLink.open(),
                   )))
+        ] else if (source == BrokerageSource.fidelity) ...[
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
+              child: SizedBox(
+                  width: 340.0,
+                  height: 60,
+                  child: ElevatedButton.icon(
+                    label: const Text(
+                      "Link Fidelity (CSV Import)",
+                      style: TextStyle(fontSize: 20.0),
+                    ),
+                    icon: const Icon(Icons.upload_file),
+                    onPressed: _login,
+                  )))
         ],
       ],
     ));
@@ -501,6 +538,24 @@ class _LoginWidgetState extends State<LoginWidget> {
       await userStore.save();
       if (mounted) {
         Navigator.pop(context, user);
+      }
+    } else if (source == BrokerageSource.fidelity) {
+      // For Fidelity, create a CSV-import based account
+      var user = await FidelityService().getAccessToken();
+      if (user != null) {
+        var userInfo = await FidelityService().getUser(user);
+        user.userName = userInfo!.username;
+        debugPrint('Fidelity CSV Import account created');
+        if (mounted) {
+          var userStore =
+              Provider.of<BrokerageUserStore>(context, listen: false);
+          userStore.addOrUpdate(user);
+          userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+          await userStore.save();
+        }
+        if (mounted) {
+          Navigator.pop(context, user);
+        }
       }
     } else if (source == BrokerageSource.schwab) {
       var user = await SchwabService().login();
