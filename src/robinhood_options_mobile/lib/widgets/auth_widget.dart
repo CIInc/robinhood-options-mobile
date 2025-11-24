@@ -211,7 +211,6 @@ class _AuthGateState extends State<AuthGate> {
                                 children: [
                                   TextFormField(
                                     controller: emailController,
-                                    autofocus: true,
                                     decoration: const InputDecoration(
                                       hintText: 'Email',
                                       border: OutlineInputBorder(),
@@ -240,7 +239,6 @@ class _AuthGateState extends State<AuthGate> {
                               ),
                               secondChild: TextFormField(
                                 controller: phoneController,
-                                autofocus: true,
                                 decoration: const InputDecoration(
                                   hintText: '+12345678910',
                                   // labelText: 'Phone number',
