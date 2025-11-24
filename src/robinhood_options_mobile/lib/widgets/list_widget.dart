@@ -425,10 +425,10 @@ class _ListWidgetState extends State<ListWidget>
         padding: const EdgeInsets.symmetric(horizontal: 2),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 150.0,
-            mainAxisSpacing: 2.0,
-            crossAxisSpacing: 2.0,
-            childAspectRatio: 1.2,
+            maxCrossAxisExtent: 220.0,
+            mainAxisSpacing: 10.0,
+            crossAxisSpacing: 10.0,
+            childAspectRatio: 1.25,
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
@@ -473,97 +473,176 @@ class _ListWidgetState extends State<ListWidget>
       changePercentToday =
           (forexObj.markPrice! - forexObj.openPrice!) / forexObj.openPrice!;
     }
+
+    final isPositive = instrumentObj != null && instrumentObj.quoteObj != null
+        ? instrumentObj.quoteObj!.changeToday > 0
+        : changePercentToday > 0;
+    final isNegative = instrumentObj != null && instrumentObj.quoteObj != null
+        ? instrumentObj.quoteObj!.changeToday < 0
+        : changePercentToday < 0;
+
     return Card(
-        child: Padding(
-            padding: const EdgeInsets.all(6), //.symmetric(horizontal: 6),
-            child: InkWell(
-              child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                if (instrumentObj != null) ...[
-                  Text(instrumentObj.symbol,
-                      style: const TextStyle(fontSize: 16.0)),
-                ],
-                if (forexObj != null) ...[
-                  Text(forexObj.symbol, style: const TextStyle(fontSize: 16.0))
-                ],
-                Wrap(
-                  children: [
-                    if (instrumentObj != null &&
-                        instrumentObj.quoteObj != null) ...[
-                      Icon(
-                          instrumentObj.quoteObj!.changeToday > 0
-                              ? Icons.trending_up
-                              : (instrumentObj.quoteObj!.changeToday < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (instrumentObj.quoteObj!.changeToday > 0
-                              ? Colors.green
-                              : (instrumentObj.quoteObj!.changeToday < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          size: 20),
-                    ],
-                    if (forexObj != null) ...[
-                      Icon(
-                          changePercentToday > 0
-                              ? Icons.trending_up
-                              : (changePercentToday < 0
-                                  ? Icons.trending_down
-                                  : Icons.trending_flat),
-                          color: (changePercentToday > 0
-                              ? Colors.green
-                              : (changePercentToday < 0
-                                  ? Colors.red
-                                  : Colors.grey)),
-                          size: 20),
-                    ],
-                    Container(
-                      width: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: isPositive
+                ? Colors.green.withOpacity(0.3)
+                : (isNegative
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.2)),
+            width: 1.5,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12.0),
+          child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (instrumentObj != null)
+                          Expanded(
+                            child: Text(instrumentObj.symbol,
+                                style: const TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                        if (forexObj != null)
+                          Expanded(
+                            child: Text(forexObj.symbol,
+                                style: const TextStyle(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis),
+                          ),
+                      ],
                     ),
-                    if (instrumentObj != null &&
-                        instrumentObj.quoteObj != null) ...[
-                      Text(
-                          formatPercentage.format(
-                              instrumentObj.quoteObj!.changePercentToday.abs()),
-                          style: const TextStyle(fontSize: 16.0)),
-                    ],
-                    if (forexObj != null) ...[
-                      Text(formatPercentage.format(changePercentToday.abs()),
-                          style: const TextStyle(fontSize: 16.0)),
-                    ],
-                  ],
-                ),
-                Container(
-                  height: 5,
-                ),
-                Wrap(children: [
-                  if (watchLists[index].instrumentObj != null) ...[
-                    Text(
-                        watchLists[index].instrumentObj!.simpleName ??
-                            watchLists[index].instrumentObj!.name,
-                        style: const TextStyle(fontSize: 12.0),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis)
-                  ],
-                ]),
-              ]),
-              onTap: () {
-                /* For navigation within this tab, uncomment
-                widget.navigatorKey!.currentState!.push(MaterialPageRoute(
-                    builder: (context) => InstrumentWidget(ru, widget.account,
-                        watchLists[index].instrumentObj as Instrument)));
-                        */
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => InstrumentWidget(
-                              ru,
-                              widget.service,
-                              watchLists[index].instrumentObj as Instrument,
-                              analytics: widget.analytics,
-                              observer: widget.observer,
-                              generativeService: widget.generativeService,
-                            )));
-              },
-            )));
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isPositive
+                                ? Colors.green.withOpacity(0.15)
+                                : (isNegative
+                                    ? Colors.red.withOpacity(0.15)
+                                    : Colors.grey.withOpacity(0.15)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (instrumentObj != null &&
+                                  instrumentObj.quoteObj != null) ...[
+                                Icon(
+                                    instrumentObj.quoteObj!.changeToday > 0
+                                        ? Icons.trending_up
+                                        : (instrumentObj.quoteObj!.changeToday <
+                                                0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color:
+                                        (instrumentObj.quoteObj!.changeToday > 0
+                                            ? Colors.green
+                                            : (instrumentObj
+                                                        .quoteObj!.changeToday <
+                                                    0
+                                                ? Colors.red
+                                                : Colors.grey)),
+                                    size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                    formatPercentage.format(instrumentObj
+                                        .quoteObj!.changePercentToday
+                                        .abs()),
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          (instrumentObj.quoteObj!.changeToday >
+                                                  0
+                                              ? Colors.green
+                                              : (instrumentObj.quoteObj!
+                                                          .changeToday <
+                                                      0
+                                                  ? Colors.red
+                                                  : Colors.grey)),
+                                    )),
+                              ],
+                              if (forexObj != null) ...[
+                                Icon(
+                                    changePercentToday > 0
+                                        ? Icons.trending_up
+                                        : (changePercentToday < 0
+                                            ? Icons.trending_down
+                                            : Icons.trending_flat),
+                                    color: (changePercentToday > 0
+                                        ? Colors.green
+                                        : (changePercentToday < 0
+                                            ? Colors.red
+                                            : Colors.grey)),
+                                    size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                    formatPercentage
+                                        .format(changePercentToday.abs()),
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.bold,
+                                      color: (changePercentToday > 0
+                                          ? Colors.green
+                                          : (changePercentToday < 0
+                                              ? Colors.red
+                                              : Colors.grey)),
+                                    )),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(children: [
+                      if (watchLists[index].instrumentObj != null) ...[
+                        Text(
+                            watchLists[index].instrumentObj!.simpleName ??
+                                watchLists[index].instrumentObj!.name,
+                            style: TextStyle(
+                                fontSize: 12.0, color: Colors.grey.shade600),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis)
+                      ],
+                    ]),
+                  ])),
+          onTap: () {
+            /* For navigation within this tab, uncomment
+              widget.navigatorKey!.currentState!.push(MaterialPageRoute(
+                  builder: (context) => InstrumentWidget(ru, widget.account,
+                      watchLists[index].instrumentObj as Instrument)));
+                      */
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => InstrumentWidget(
+                          ru,
+                          widget.service,
+                          watchLists[index].instrumentObj as Instrument,
+                          analytics: widget.analytics,
+                          observer: widget.observer,
+                          generativeService: widget.generativeService,
+                        )));
+          },
+        ));
   }
 }

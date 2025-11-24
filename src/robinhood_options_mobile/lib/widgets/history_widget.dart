@@ -93,6 +93,13 @@ class _HistoryPageState extends State<HistoryPage>
 
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
+  // Helper to color amounts consistently (green gain, red loss, neutral gray).
+  Color _amountColor(double v) {
+    if (v > 0) return Colors.green;
+    if (v < 0) return Colors.red;
+    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+  }
+
   double dividendBalance = 0;
   double balance = 0;
 
@@ -780,92 +787,119 @@ class _HistoryPageState extends State<HistoryPage>
                                     : 1);
                           }
                           return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              showShareView
-                                  ? CheckboxListTile(
-                                      value: selectedPositionOrdersToShare
-                                          .contains(
-                                              filteredPositionOrders![index]
-                                                  .id),
-                                      onChanged: (bool? newValue) {
-                                        if (newValue!) {
-                                          setState(() {
-                                            selectedPositionOrdersToShare.add(
-                                                filteredPositionOrders![index]
-                                                    .id);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            selectedPositionOrdersToShare
-                                                .remove(filteredPositionOrders![
-                                                        index]
-                                                    .id);
-                                          });
-                                        }
-                                      },
-                                      title: Text(
-                                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                      subtitle: Text(
-                                          "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                                    )
-                                  : ListTile(
-                                      leading: CircleAvatar(
-                                          //backgroundImage: AssetImage(user.profilePicture),
-                                          child: Text(
-                                        formatCompactNumber.format(
-                                            filteredPositionOrders![index]
-                                                .quantity!),
-                                        style: const TextStyle(fontSize: 17),
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                      )),
-                                      title: Text(
-                                          "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
-                                      subtitle: Text(
-                                          "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
-                                      trailing: Wrap(spacing: 8, children: [
-                                        Text(
-                                          filteredPositionOrders![index]
-                                                      .averagePrice !=
-                                                  null
-                                              ? "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}"
-                                              : "",
-                                          style:
-                                              const TextStyle(fontSize: 18.0),
-                                          textAlign: TextAlign.right,
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  showShareView
+                                      ? CheckboxListTile(
+                                          value: selectedPositionOrdersToShare
+                                              .contains(
+                                                  filteredPositionOrders![index]
+                                                      .id),
+                                          onChanged: (bool? newValue) {
+                                            if (newValue!) {
+                                              setState(() {
+                                                selectedPositionOrdersToShare
+                                                    .add(
+                                                        filteredPositionOrders![
+                                                                index]
+                                                            .id);
+                                              });
+                                            } else {
+                                              setState(() {
+                                                selectedPositionOrdersToShare
+                                                    .remove(
+                                                        filteredPositionOrders![
+                                                                index]
+                                                            .id);
+                                              });
+                                            }
+                                          },
+                                          title: Text(
+                                              "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                          subtitle: Text(
+                                              "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
                                         )
-                                      ]),
+                                      : ListTile(
+                                          leading: CircleAvatar(
+                                              //backgroundImage: AssetImage(user.profilePicture),
+                                              child: Text(
+                                            formatCompactNumber.format(
+                                                filteredPositionOrders![index]
+                                                    .quantity!),
+                                            style:
+                                                const TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                          )),
+                                          title: Text(
+                                              "${filteredPositionOrders![index].instrumentObj != null ? filteredPositionOrders![index].instrumentObj!.symbol : ""} ${filteredPositionOrders![index].type} ${filteredPositionOrders![index].side} ${filteredPositionOrders![index].averagePrice != null ? formatCurrency.format(filteredPositionOrders![index].averagePrice) : ""}"),
+                                          subtitle: Text(
+                                              "${filteredPositionOrders![index].state} ${formatDate.format(filteredPositionOrders![index].updatedAt!)}"),
+                                          trailing: Wrap(spacing: 8, children: [
+                                            if (filteredPositionOrders![index]
+                                                    .averagePrice !=
+                                                null)
+                                              Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                      color: _amountColor(
+                                                              amount)
+                                                          .withOpacity(0.12),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                      border: Border.all(
+                                                          color: _amountColor(
+                                                              amount))),
+                                                  child: Text(
+                                                    "${amount > 0 ? "+" : (amount < 0 ? "-" : "")}${formatCurrency.format(amount.abs())}",
+                                                    style: TextStyle(
+                                                        fontSize: 16.5,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: _amountColor(
+                                                            amount)),
+                                                  ))
+                                          ]),
 
-                                      //isThreeLine: true,
-                                      onTap: () {
-                                        /* For navigation within this tab, uncomment
+                                          //isThreeLine: true,
+                                          onTap: () {
+                                            /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => PositionOrderWidget(
                                           widget.user,
                                           filteredPositionOrders![index])));
                                           */
-                                        Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (context) =>
-                                                    PositionOrderWidget(
-                                                      widget.brokerageUser,
-                                                      widget.service,
-                                                      filteredPositionOrders![
-                                                          index],
-                                                      analytics:
-                                                          widget.analytics,
-                                                      observer: widget.observer,
-                                                      generativeService: widget
-                                                          .generativeService,
-                                                    )));
-                                      },
-                                    ),
-                            ],
-                          ));
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        PositionOrderWidget(
+                                                          widget.brokerageUser,
+                                                          widget.service,
+                                                          filteredPositionOrders![
+                                                              index],
+                                                          analytics:
+                                                              widget.analytics,
+                                                          observer:
+                                                              widget.observer,
+                                                          generativeService: widget
+                                                              .generativeService,
+                                                        )));
+                                          },
+                                        ),
+                                ],
+                              ));
                         },
                         childCount: filteredPositionOrders!.length,
                       ),
@@ -984,97 +1018,125 @@ class _HistoryPageState extends State<HistoryPage>
                             subtitle = Text(
                                 "${optionOrder.state.capitalize()} ${formatDate.format(optionOrder.updatedAt!)}\n${optionEvent.type == "expiration" ? "Expired" : (optionEvent.type == "assignment" ? "Assigned" : (optionEvent.type == "exercise" ? "Exercised" : optionEvent.type))} ${formatCompactDate.format(optionOrder.optionEvents!.first.eventDate!)} at ${optionOrder.optionEvents!.first.underlyingPrice != null ? formatCurrency.format(optionOrder.optionEvents!.first.underlyingPrice) : ""}");
                           }
+                          double displayPremium =
+                              (optionOrder.processedPremium ?? 0) *
+                                  (optionOrder.direction == "credit" ? 1 : -1);
                           return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              showShareView
-                                  ? CheckboxListTile(
-                                      value:
-                                          selectedOptionOrdersToShare.contains(
-                                              filteredOptionOrders![index].id),
-                                      onChanged: (bool? newValue) {
-                                        if (newValue!) {
-                                          setState(() {
-                                            selectedOptionOrdersToShare.add(
-                                                filteredOptionOrders![index]
-                                                    .id);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            selectedOptionOrdersToShare.remove(
-                                                filteredOptionOrders![index]
-                                                    .id);
-                                          });
-                                        }
-                                      },
-                                      title: Text(
-                                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                      subtitle: subtitle,
-                                    )
-                                  : ListTile(
-                                      leading: CircleAvatar(
-                                          //backgroundImage: AssetImage(user.profilePicture),
-                                          /*
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  showShareView
+                                      ? CheckboxListTile(
+                                          value: selectedOptionOrdersToShare
+                                              .contains(
+                                                  filteredOptionOrders![index]
+                                                      .id),
+                                          onChanged: (bool? newValue) {
+                                            if (newValue!) {
+                                              setState(() {
+                                                selectedOptionOrdersToShare.add(
+                                                    filteredOptionOrders![index]
+                                                        .id);
+                                              });
+                                            } else {
+                                              setState(() {
+                                                selectedOptionOrdersToShare
+                                                    .remove(
+                                                        filteredOptionOrders![
+                                                                index]
+                                                            .id);
+                                              });
+                                            }
+                                          },
+                                          title: Text(
+                                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                          subtitle: subtitle,
+                                        )
+                                      : ListTile(
+                                          leading: CircleAvatar(
+                                              //backgroundImage: AssetImage(user.profilePicture),
+                                              /*
                           backgroundColor: optionOrder.optionEvents != null
                               ? Theme.of(context).colorScheme.primary
                               : Theme.of(context).colorScheme.secondary,
                               */
-                                          child: optionOrder.optionEvents !=
-                                                  null
-                                              ? const Icon(Icons.check)
-                                              : Text(
-                                                  '${optionOrder.quantity!.round()}',
-                                                  style: const TextStyle(
-                                                      fontSize: 17))),
-                                      title: Text(
-                                          "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
-                                      subtitle: subtitle,
-                                      trailing: Wrap(spacing: 8, children: [
-                                        Text(
-                                          (optionOrder.direction == "credit"
-                                                  ? "+"
-                                                  : "-") +
-                                              (optionOrder.processedPremium !=
+                                              child: optionOrder.optionEvents !=
                                                       null
-                                                  ? formatCurrency.format(
-                                                      optionOrder
-                                                          .processedPremium)
-                                                  : ""),
-                                          style:
-                                              const TextStyle(fontSize: 18.0),
-                                          textAlign: TextAlign.right,
-                                        )
-                                      ]),
+                                                  ? const Icon(Icons.check)
+                                                  : Text(
+                                                      '${optionOrder.quantity!.round()}',
+                                                      style: const TextStyle(
+                                                          fontSize: 17))),
+                                          title: Text(
+                                              "${optionOrder.chainSymbol} \$${formatCompactNumber.format(optionOrder.legs.first.strikePrice)} ${optionOrder.strategy} ${formatCompactDate.format(optionOrder.legs.first.expirationDate!)}"), // , style: TextStyle(fontSize: 18.0)),
+                                          subtitle: subtitle,
+                                          trailing: Wrap(spacing: 8, children: [
+                                            Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                    color: _amountColor(
+                                                            displayPremium)
+                                                        .withOpacity(0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    border: Border.all(
+                                                        color: _amountColor(
+                                                            displayPremium))),
+                                                child: Text(
+                                                  (displayPremium > 0
+                                                          ? "+"
+                                                          : displayPremium < 0
+                                                              ? "-"
+                                                              : "") +
+                                                      formatCurrency.format(
+                                                          displayPremium.abs()),
+                                                  style: TextStyle(
+                                                      fontSize: 16.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _amountColor(
+                                                          displayPremium)),
+                                                ))
+                                          ]),
 
-                                      isThreeLine:
-                                          optionOrder.optionEvents != null,
-                                      onTap: () {
-                                        /* For navigation within this tab, uncomment
+                                          isThreeLine:
+                                              optionOrder.optionEvents != null,
+                                          onTap: () {
+                                            /* For navigation within this tab, uncomment
                               widget.navigatorKey!.currentState!.push(
                                   MaterialPageRoute(
                                       builder: (context) => OptionOrderWidget(
                                           widget.user,
                                           optionOrder)));
                                           */
-                                        Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (context) =>
-                                                    OptionOrderWidget(
-                                                      widget.brokerageUser,
-                                                      widget.service,
-                                                      optionOrder,
-                                                      analytics:
-                                                          widget.analytics,
-                                                      observer: widget.observer,
-                                                      generativeService: widget
-                                                          .generativeService,
-                                                    )));
-                                      },
-                                    ),
-                            ],
-                          ));
+                                            Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        OptionOrderWidget(
+                                                          widget.brokerageUser,
+                                                          widget.service,
+                                                          optionOrder,
+                                                          analytics:
+                                                              widget.analytics,
+                                                          observer:
+                                                              widget.observer,
+                                                          generativeService: widget
+                                                              .generativeService,
+                                                        )));
+                                          },
+                                        ),
+                                ],
+                              ));
                         },
                         childCount: filteredOptionOrders!.length,
                       ),
@@ -1162,59 +1224,86 @@ class _HistoryPageState extends State<HistoryPage>
                       // delegate: SliverChildListDelegate(widgets),
                       delegate: SliverChildBuilderDelegate(
                         (BuildContext context, int index) {
+                          var eventCash =
+                              (filteredOptionEvents![index].totalCashAmount ??
+                                      0) *
+                                  (filteredOptionEvents![index].direction ==
+                                          "credit"
+                                      ? 1
+                                      : -1);
                           return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              ListTile(
-                                leading: CircleAvatar(
-                                    //backgroundImage: AssetImage(user.profilePicture),
-                                    child: Text(
-                                        '${filteredOptionEvents![index].quantity!.round()}',
-                                        style: const TextStyle(fontSize: 17))),
-                                title: Text(
-                                    "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
-                                subtitle: Text(
-                                    "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
-                                trailing: Wrap(spacing: 8, children: [
-                                  Text(
-                                    (filteredOptionEvents![index].direction ==
-                                                "credit"
-                                            ? "+"
-                                            : "-") +
-                                        (filteredOptionEvents![index]
-                                                    .totalCashAmount !=
-                                                null
-                                            ? formatCurrency.format(
-                                                filteredOptionEvents![index]
-                                                    .totalCashAmount)
-                                            : ""),
-                                    style: const TextStyle(fontSize: 18.0),
-                                    textAlign: TextAlign.right,
-                                  )
-                                ]),
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: CircleAvatar(
+                                        //backgroundImage: AssetImage(user.profilePicture),
+                                        child: Text(
+                                            '${filteredOptionEvents![index].quantity!.round()}',
+                                            style:
+                                                const TextStyle(fontSize: 17))),
+                                    title: Text(
+                                        "${filteredOptionEvents![index].type} ${formatCompactDate.format(filteredOptionEvents![index].eventDate!)} ${filteredOptionEvents![index].underlyingPrice != null ? formatCurrency.format(filteredOptionEvents![index].underlyingPrice) : ""}"), // , style: TextStyle(fontSize: 18.0)),
+                                    subtitle: Text(
+                                        "${filteredOptionEvents![index].state} ${filteredOptionEvents![index].direction} ${filteredOptionEvents![index].state}"),
+                                    trailing: Wrap(spacing: 8, children: [
+                                      if (filteredOptionEvents![index]
+                                              .totalCashAmount !=
+                                          null)
+                                        Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                                color: _amountColor(eventCash)
+                                                    .withOpacity(0.12),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                    color: _amountColor(
+                                                        eventCash))),
+                                            child: Text(
+                                              (eventCash > 0
+                                                      ? "+"
+                                                      : eventCash < 0
+                                                          ? "-"
+                                                          : "") +
+                                                  formatCurrency
+                                                      .format(eventCash.abs()),
+                                              style: TextStyle(
+                                                  fontSize: 16.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      _amountColor(eventCash)),
+                                            ))
+                                    ]),
 
-                                //isThreeLine: true,
-                                onTap: () {
-                                  () => showDialog<String>(
-                                      context: context,
-                                      builder: (BuildContext context) =>
-                                          AlertDialog(
-                                            title: const Text('Alert'),
-                                            content: const Text(
-                                                'This feature is not implemented.'),
-                                            actions: <Widget>[
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    context, 'OK'),
-                                                child: const Text('OK'),
-                                              ),
-                                            ],
-                                          ));
-                                },
-                              ),
-                            ],
-                          ));
+                                    //isThreeLine: true,
+                                    onTap: () {
+                                      () => showDialog<String>(
+                                          context: context,
+                                          builder: (BuildContext context) =>
+                                              AlertDialog(
+                                                title: const Text('Alert'),
+                                                content: const Text(
+                                                    'This feature is not implemented.'),
+                                                actions: <Widget>[
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(
+                                                            context, 'OK'),
+                                                    child: const Text('OK'),
+                                                  ),
+                                                ],
+                                              ));
+                                    },
+                                  ),
+                                ],
+                              ));
                         },
                         childCount: filteredOptionEvents!.length,
                       ),
@@ -1336,118 +1425,146 @@ class _HistoryPageState extends State<HistoryPage>
                           //       ));
                           // }
                           var dividend = filteredDividends![index];
+                          var dividendAmount = double.parse(dividend["amount"]);
                           return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              showShareView
-                                  ? CheckboxListTile(
-                                      value: selectionsToShare.contains(
-                                          filteredDividends![index]["id"]),
-                                      onChanged: (bool? newValue) {
-                                        if (newValue!) {
-                                          setState(() {
-                                            selectionsToShare.add(
-                                                filteredDividends![index]
-                                                    ["id"]);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            selectionsToShare.remove(
-                                                filteredDividends![index]
-                                                    ["id"]);
-                                          });
-                                        }
-                                      },
-                                      title: Text(
-                                        dividend["instrumentObj"] != null
-                                            ? "${dividend["instrumentObj"].symbol}"
-                                            : ""
-                                                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                        style: const TextStyle(fontSize: 18.0),
-                                        //overflow: TextOverflow.visible
-                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                      // title: Text(
-                                      //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
-                                      subtitle: Text(
-                                          "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                          style: const TextStyle(fontSize: 14)),
-                                      // subtitle: Text(
-                                      //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
-                                    )
-                                  : ListTile(
-                                      leading: CircleAvatar(
-                                          //backgroundImage: AssetImage(user.profilePicture),
-                                          child: Text(
-                                        dividend["instrumentObj"] != null
-                                            ? dividend["instrumentObj"].symbol
-                                            : "",
-                                        style: const TextStyle(fontSize: 14),
-                                        overflow: TextOverflow.fade,
-                                        softWrap: false,
-                                      )),
-                                      title: Text(
-                                        dividend["instrumentObj"] != null
-                                            ? "${dividend["instrumentObj"].symbol}"
-                                            : ""
-                                                "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
-                                        style: const TextStyle(fontSize: 18.0),
-                                        //overflow: TextOverflow.visible
-                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                      subtitle: Text(
-                                          "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                          style: const TextStyle(fontSize: 14)),
-                                      trailing: Wrap(spacing: 10.0, children: [
-                                        Column(children: [
-                                          // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                          Text(
-                                              formatCurrency.format(
-                                                  double.parse(
-                                                      dividend!["amount"])),
-                                              style:
-                                                  const TextStyle(fontSize: 18))
-                                        ])
-                                      ]),
-                                      //   onTap: () {
-                                      //     /* For navigation within this tab, uncomment
-                                      // widget.navigatorKey!.currentState!.push(
-                                      //     MaterialPageRoute(
-                                      //         builder: (context) => PositionOrderWidget(
-                                      //             widget.user,
-                                      //             filteredDividends![index])));
-                                      //             */
-                                      //     showDialog<String>(
-                                      //       context: context,
-                                      //       builder: (BuildContext context) =>
-                                      //           AlertDialog(
-                                      //         title: const Text('Alert'),
-                                      //         content: const Text(
-                                      //             'This feature is not implemented.\n'),
-                                      //         actions: <Widget>[
-                                      //           TextButton(
-                                      //             onPressed: () =>
-                                      //                 Navigator.pop(context, 'OK'),
-                                      //             child: const Text('OK'),
-                                      //           ),
-                                      //         ],
-                                      //       ),
-                                      //     );
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  showShareView
+                                      ? CheckboxListTile(
+                                          value: selectionsToShare.contains(
+                                              filteredDividends![index]["id"]),
+                                          onChanged: (bool? newValue) {
+                                            if (newValue!) {
+                                              setState(() {
+                                                selectionsToShare.add(
+                                                    filteredDividends![index]
+                                                        ["id"]);
+                                              });
+                                            } else {
+                                              setState(() {
+                                                selectionsToShare.remove(
+                                                    filteredDividends![index]
+                                                        ["id"]);
+                                              });
+                                            }
+                                          },
+                                          title: Text(
+                                            dividend["instrumentObj"] != null
+                                                ? "${dividend["instrumentObj"].symbol}"
+                                                : ""
+                                                    "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                            style:
+                                                const TextStyle(fontSize: 18.0),
+                                            //overflow: TextOverflow.visible
+                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                          // title: Text(
+                                          //     "${filteredDividends![index]['instrumentObj'] != null ? filteredDividends![index]['instrumentObj'].symbol : ""} ${filteredDividends![index]['type']} ${filteredDividends![index]['side']} ${filteredDividends![index]['averagePrice'] != null ? formatCurrency.format(filteredDividends![index]['averagePrice']) : ""}"),
+                                          subtitle: Text(
+                                              "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                              style: const TextStyle(
+                                                  fontSize: 14)),
+                                          // subtitle: Text(
+                                          //     "${filteredDividends![index]['state']} ${formatDate.format(filteredDividends![index]['updatedAt'] ?? DateTime.parse(filteredDividends![index]['payable_date']))}"),
+                                        )
+                                      : ListTile(
+                                          leading: CircleAvatar(
+                                              //backgroundImage: AssetImage(user.profilePicture),
+                                              child: Text(
+                                            dividend["instrumentObj"] != null
+                                                ? dividend["instrumentObj"]
+                                                    .symbol
+                                                : "",
+                                            style:
+                                                const TextStyle(fontSize: 14),
+                                            overflow: TextOverflow.fade,
+                                            softWrap: false,
+                                          )),
+                                          title: Text(
+                                            dividend["instrumentObj"] != null
+                                                ? "${dividend["instrumentObj"].symbol}"
+                                                : ""
+                                                    "${formatCurrency.format(double.parse(dividend!["rate"]))} ${dividend!["state"]}",
+                                            style:
+                                                const TextStyle(fontSize: 18.0),
+                                            //overflow: TextOverflow.visible
+                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                          subtitle: Text(
+                                              "${formatNumber.format(double.parse(dividend!["position"]))} shares on ${formatDate.format(DateTime.parse(dividend!["payable_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                              style: const TextStyle(
+                                                  fontSize: 14)),
+                                          trailing: Wrap(spacing: 8, children: [
+                                            Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                    color: _amountColor(
+                                                            dividendAmount)
+                                                        .withOpacity(0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    border: Border.all(
+                                                        color: _amountColor(
+                                                            dividendAmount))),
+                                                child: Text(
+                                                  formatCurrency
+                                                      .format(dividendAmount),
+                                                  style: TextStyle(
+                                                      fontSize: 16.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _amountColor(
+                                                          dividendAmount)),
+                                                ))
+                                          ]),
+                                          //   onTap: () {
+                                          //     /* For navigation within this tab, uncomment
+                                          // widget.navigatorKey!.currentState!.push(
+                                          //     MaterialPageRoute(
+                                          //         builder: (context) => PositionOrderWidget(
+                                          //             widget.user,
+                                          //             filteredDividends![index])));
+                                          //             */
+                                          //     showDialog<String>(
+                                          //       context: context,
+                                          //       builder: (BuildContext context) =>
+                                          //           AlertDialog(
+                                          //         title: const Text('Alert'),
+                                          //         content: const Text(
+                                          //             'This feature is not implemented.\n'),
+                                          //         actions: <Widget>[
+                                          //           TextButton(
+                                          //             onPressed: () =>
+                                          //                 Navigator.pop(context, 'OK'),
+                                          //             child: const Text('OK'),
+                                          //           ),
+                                          //         ],
+                                          //       ),
+                                          //     );
 
-                                      //     // Navigator.push(
-                                      //     //     context,
-                                      //     //     MaterialPageRoute(
-                                      //     //         builder: (context) => PositionOrderWidget(
-                                      //     //               widget.user,
-                                      //     //               filteredDividends![index],
-                                      //     //               analytics: widget.analytics,
-                                      //     //               observer: widget.observer,
-                                      //     //             )));
-                                      //   },
+                                          //     // Navigator.push(
+                                          //     //     context,
+                                          //     //     MaterialPageRoute(
+                                          //     //         builder: (context) => PositionOrderWidget(
+                                          //     //               widget.user,
+                                          //     //               filteredDividends![index],
+                                          //     //               analytics: widget.analytics,
+                                          //     //               observer: widget.observer,
+                                          //     //             )));
+                                          //   },
 
-                                      //isThreeLine: true,
-                                    ),
-                            ],
-                          ));
+                                          //isThreeLine: true,
+                                        ),
+                                ],
+                              ));
                         },
                         childCount: filteredDividends!.length,
                       ),
@@ -1544,70 +1661,93 @@ class _HistoryPageState extends State<HistoryPage>
                           //       ));
                           // }
                           var interest = filteredInterests![index];
+                          var interestAmount =
+                              double.parse(interest["amount"]["amount"]);
                           return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                               child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              showShareView
-                                  ? CheckboxListTile(
-                                      value: selectionsToShare
-                                          .contains(interest["id"]),
-                                      onChanged: (bool? newValue) {
-                                        if (newValue!) {
-                                          setState(() {
-                                            selectionsToShare
-                                                .add(interest["id"]);
-                                          });
-                                        } else {
-                                          setState(() {
-                                            selectionsToShare
-                                                .remove(interest["id"]);
-                                          });
-                                        }
-                                      },
-                                      title: Text(interest["payout_type"]
-                                          .toString()
-                                          .replaceAll("_", " ")
-                                          .capitalize()),
-                                      subtitle: Text(
-                                          "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
-                                    )
-                                  : ListTile(
-                                      // leading: CircleAvatar(
-                                      //     //backgroundImage: AssetImage(user.profilePicture),
-                                      //     child: Text(
-                                      //   "INT",
-                                      //   style: const TextStyle(fontSize: 14),
-                                      //   overflow: TextOverflow.fade,
-                                      //   softWrap: false,
-                                      // )),
-                                      title: Text(
-                                        interest["payout_type"]
-                                            .toString()
-                                            .replaceAll("_", " ")
-                                            .capitalize(),
-                                        // style: const TextStyle(fontSize: 18.0),
-                                        //overflow: TextOverflow.visible
-                                      ), // ${formatNumber.format(double.parse(dividend!["position"]))}
-                                      subtitle: Text(
-                                          "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
-                                          style: const TextStyle(fontSize: 14)),
-                                      trailing: Wrap(spacing: 10.0, children: [
-                                        Column(children: [
-                                          // const Text("Actual", style: TextStyle(fontSize: 11)),
-                                          Text(
-                                              formatCurrency.format(
-                                                  double.parse(
-                                                      interest!["amount"]
-                                                          ["amount"])),
-                                              style:
-                                                  const TextStyle(fontSize: 18))
-                                        ])
-                                      ]),
-                                      //isThreeLine: true,
-                                    ),
-                            ],
-                          ));
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  showShareView
+                                      ? CheckboxListTile(
+                                          value: selectionsToShare
+                                              .contains(interest["id"]),
+                                          onChanged: (bool? newValue) {
+                                            if (newValue!) {
+                                              setState(() {
+                                                selectionsToShare
+                                                    .add(interest["id"]);
+                                              });
+                                            } else {
+                                              setState(() {
+                                                selectionsToShare
+                                                    .remove(interest["id"]);
+                                              });
+                                            }
+                                          },
+                                          title: Text(interest["payout_type"]
+                                              .toString()
+                                              .replaceAll("_", " ")
+                                              .capitalize()),
+                                          subtitle: Text(
+                                              "on ${formatDate.format(DateTime.parse(interest["pay_date"]!))}"),
+                                        )
+                                      : ListTile(
+                                          // leading: CircleAvatar(
+                                          //     //backgroundImage: AssetImage(user.profilePicture),
+                                          //     child: Text(
+                                          //   "INT",
+                                          //   style: const TextStyle(fontSize: 14),
+                                          //   overflow: TextOverflow.fade,
+                                          //   softWrap: false,
+                                          // )),
+                                          title: Text(
+                                            interest["payout_type"]
+                                                .toString()
+                                                .replaceAll("_", " ")
+                                                .capitalize(),
+                                            // style: const TextStyle(fontSize: 18.0),
+                                            //overflow: TextOverflow.visible
+                                          ), // ${formatNumber.format(double.parse(dividend!["position"]))}
+                                          subtitle: Text(
+                                              "on ${formatDate.format(DateTime.parse(interest!["pay_date"]))}", // ${formatDate.format(DateTime.parse(dividend!["record_date"]))}s
+                                              style: const TextStyle(
+                                                  fontSize: 14)),
+                                          trailing: Wrap(spacing: 8, children: [
+                                            Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
+                                                decoration: BoxDecoration(
+                                                    color: _amountColor(
+                                                            interestAmount)
+                                                        .withOpacity(0.12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                    border: Border.all(
+                                                        color: _amountColor(
+                                                            interestAmount))),
+                                                child: Text(
+                                                  formatCurrency
+                                                      .format(interestAmount),
+                                                  style: TextStyle(
+                                                      fontSize: 16.5,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _amountColor(
+                                                          interestAmount)),
+                                                ))
+                                          ]),
+                                          //isThreeLine: true,
+                                        ),
+                                ],
+                              ));
                         },
                         childCount: filteredInterests!.length,
                       ),

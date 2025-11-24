@@ -168,6 +168,17 @@ class AgenticTradingProvider with ChangeNotifier {
         'maxPortfolioConcentration': 0.5,
         'rsiPeriod': 14,
         'marketIndexSymbol': 'SPY',
+        'enabledIndicators': {
+          'priceMovement': true,
+          'momentum': true,
+          'marketDirection': true,
+          'volume': true,
+          'macd': true,
+          'bollingerBands': true,
+          'stochastic': true,
+          'atr': true,
+          'obv': true,
+        },
       };
       _isAgenticTradingEnabled = false;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');

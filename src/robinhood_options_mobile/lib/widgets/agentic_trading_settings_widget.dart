@@ -87,40 +87,7 @@ class _AgenticTradingSettingsWidgetState
 
   Widget _buildIndicatorToggle(String key, String title, String description) {
     return SwitchListTile(
-      title: Row(
-        children: [
-          Text(title),
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: IconButton(
-              icon: const Icon(Icons.info_outline, size: 16),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              iconSize: 16,
-              onPressed: () {
-                final docInfo =
-                    AgenticTradingProvider.indicatorDocumentation(key);
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(docInfo['title'] ?? title),
-                    content: SingleChildScrollView(
-                      child: Text(docInfo['documentation'] ?? ''),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+      title: Text(title),
       subtitle: Text(description),
       value: _enabledIndicators[key] ?? true,
       onChanged: (bool value) {
@@ -128,6 +95,33 @@ class _AgenticTradingSettingsWidgetState
           _enabledIndicators[key] = value;
         });
       },
+    );
+  }
+
+  Widget _buildDocSection(String key) {
+    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final title = docInfo['title'] ?? '';
+    final documentation = docInfo['documentation'] ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            documentation,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
     );
   }
 
@@ -276,11 +270,55 @@ class _AgenticTradingSettingsWidgetState
                     return null;
                   },
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
-                  child: Text(
-                    'Technical Indicators',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Technical Indicators',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Indicator Documentation',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Technical Indicators'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDocSection('priceMovement'),
+                                    _buildDocSection('momentum'),
+                                    _buildDocSection('marketDirection'),
+                                    _buildDocSection('volume'),
+                                    _buildDocSection('macd'),
+                                    _buildDocSection('bollingerBands'),
+                                    _buildDocSection('stochastic'),
+                                    _buildDocSection('atr'),
+                                    _buildDocSection('obv'),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
                 const Padding(

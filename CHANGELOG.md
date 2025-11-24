@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.1] - 2025-11-23
+
+### Changed
+- Modernized UI for instrument, history, list, and lists widgets:
+  - Consistent card styling, improved alignment, and color-coded badges.
+  - "Show All" toggle for similar instruments in instrument widget.
+  - Responsive grid layouts for watchlists and lists.
+
+### Fixed
+- Trading signal indicator display issues:
+  - Corrected logic to show/hide based on user settings.
+  - Improved formatting and organization of indicator details.
+
 ## [0.17.0] - 2025-11-22
 
 ### Added

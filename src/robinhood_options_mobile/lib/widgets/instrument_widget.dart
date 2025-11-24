@@ -118,6 +118,8 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
 
   double optionOrdersPremiumBalance = 0;
   double positionOrdersBalance = 0;
+  // Controls whether all similar instruments are shown or only the first 5.
+  bool _showAllSimilar = false;
 
   Timer? refreshTriggerTime;
   //final dataKey = GlobalKey();
@@ -1852,28 +1854,34 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                 style: const TextStyle(fontSize: 18)),
           ),
         ],
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("Average Volume (2 weeks)"),
-          trailing: Text(
-              formatCompactNumber
-                  .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("52 Week High"),
-          trailing: Text(
-              formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
-              style: const TextStyle(fontSize: 18)),
-        ),
-        ListTile(
-          minTileHeight: 10,
-          title: const Text("52 Week Low"),
-          trailing: Text(
-              formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
-              style: const TextStyle(fontSize: 18)),
-        ),
+        if (instrument.fundamentalsObj!.averageVolume2Weeks != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("Average Volume (2 weeks)"),
+            trailing: Text(
+                formatCompactNumber
+                    .format(instrument.fundamentalsObj!.averageVolume2Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
+        if (instrument.fundamentalsObj!.high52Weeks != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("52 Week High"),
+            trailing: Text(
+                formatCurrency.format(instrument.fundamentalsObj!.high52Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
+        if (instrument.fundamentalsObj!.low52Weeks != null) ...[
+          ListTile(
+            minTileHeight: 10,
+            title: const Text("52 Week Low"),
+            trailing: Text(
+                formatCurrency.format(instrument.fundamentalsObj!.low52Weeks!),
+                style: const TextStyle(fontSize: 18)),
+          ),
+        ],
         ListTile(
           minTileHeight: 10,
           title: const Text("Dividend Yield"),
@@ -1949,62 +1957,66 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             trailing: Text(instrument.etpDetails["category"],
                 style: const TextStyle(fontSize: 16)),
           ),
-          ListTile(
-            minTileHeight: 10,
-            title: Wrap(
-              children: [
-                const Text("Holdings"),
-                SizedBox(
-                  height: 24,
-                  child: IconButton(
-                    iconSize: 18,
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.info_outline),
-                    onPressed: () {
-                      // var holdings = instrument.etpDetails["holdings"]
-                      //     .map((h) => "${h["name"]} ${h["weight"]}%")
-                      //     .toList();
-                      showDialog<String>(
-                          context: context,
-                          builder: (BuildContext context) => AlertDialog(
-                                // context: context,
-                                title: Text('${instrument.symbol} Holdings'),
-                                content: Table(
-                                  border: TableBorder.all(),
-                                  columnWidths: {
-                                    0: FlexColumnWidth(4),
-                                    1: FlexColumnWidth(1)
-                                  },
-                                  children: [
-                                    for (var holding in instrument
-                                        .etpDetails["holdings"]) ...[
-                                      TableRow(children: [
-                                        SelectableText(holding["name"]),
-                                        SelectableText(holding["weight"]),
-                                      ])
-                                    ]
-                                  ],
-                                ),
-                                // SelectableText(holdings.join("\n")),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop();
+          if (instrument.etpDetails["total_holdings"] != null) ...[
+            ListTile(
+              minTileHeight: 10,
+              title: Wrap(
+                children: [
+                  const Text("Holdings"),
+                  SizedBox(
+                    height: 24,
+                    child: IconButton(
+                      iconSize: 18,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.info_outline),
+                      onPressed: () {
+                        // var holdings = instrument.etpDetails["holdings"]
+                        //     .map((h) => "${h["name"]} ${h["weight"]}%")
+                        //     .toList();
+                        showDialog<String>(
+                            context: context,
+                            builder: (BuildContext context) => AlertDialog(
+                                  // context: context,
+                                  title: Text('${instrument.symbol} Holdings'),
+                                  content: Table(
+                                    border: TableBorder.all(),
+                                    columnWidths: {
+                                      0: FlexColumnWidth(4),
+                                      1: FlexColumnWidth(1)
                                     },
-                                    child: const Text('OK'),
+                                    children: [
+                                      for (var holding in instrument
+                                          .etpDetails["holdings"]) ...[
+                                        TableRow(children: [
+                                          SelectableText(holding["name"]),
+                                          SelectableText(holding["weight"]),
+                                        ])
+                                      ]
+                                    ],
                                   ),
-                                ],
-                              ));
-                    },
+                                  // SelectableText(holdings.join("\n")),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('OK'),
+                                    ),
+                                  ],
+                                ));
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              trailing: Wrap(children: [
+                Text(
+                    formatNumber
+                        .format(instrument.etpDetails["total_holdings"]),
+                    style: const TextStyle(fontSize: 18)),
+              ]),
             ),
-            trailing: Wrap(children: [
-              Text(formatNumber.format(instrument.etpDetails["total_holdings"]),
-                  style: const TextStyle(fontSize: 18)),
-            ]),
-          ),
+          ],
           ListTile(
             minTileHeight: 10,
             title: const Text("Assets under Management"),
@@ -2672,6 +2684,11 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildSimilarWidget(Instrument instrument) {
+    final similar = instrument.similarObj!;
+    final displayCount = _showAllSimilar
+        ? similar.length
+        : (similar.length > 3 ? 3 : similar.length);
+
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
       const SliverToBoxAdapter(
@@ -2684,7 +2701,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         )
       ])),
       SliverList(
-        // delegate: SliverChildListDelegate(widgets),
         delegate: SliverChildBuilderDelegate((BuildContext context, int index) {
           return Card(
               child: Column(
@@ -2692,55 +2708,43 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             children: <Widget>[
               ListTile(
                 leading: Hero(
-                    tag: 'logo_${instrument.similarObj![index]["symbol"]}',
-                    child: instrument.similarObj![index]["logo_url"] != null
+                    tag: 'logo_${similar[index]["symbol"]}',
+                    child: similar[index]["logo_url"] != null
                         ? Image.network(
-                            instrument.similarObj![index]["logo_url"]
+                            similar[index]["logo_url"]
                                 .toString()
                                 .replaceAll("https:////", "https://"),
                             width: 50,
                             height: 50,
                             errorBuilder: (BuildContext context,
                                 Object exception, StackTrace? stackTrace) {
-                              //RobinhoodService.removeLogo(instrument.similarObj![index]["symbol"]);
                               return CircleAvatar(
                                   radius: 25,
-                                  // foregroundColor:
-                                  //     Theme.of(context).colorScheme.primary,
                                   child: Text(
-                                    instrument.similarObj![index]["symbol"],
+                                    similar[index]["symbol"],
                                   ));
                             },
                           )
                         : CircleAvatar(
                             radius: 25,
-                            // foregroundColor:
-                            //     Theme.of(context).colorScheme.primary,
                             child: Text(
-                              instrument.similarObj![index]["symbol"],
+                              similar[index]["symbol"],
                             ))),
                 title: Text(
-                  "${instrument.similarObj![index]["symbol"]}",
-                ), //style: TextStyle(fontSize: 17.0)),
-                subtitle: Text("${instrument.similarObj![index]["name"]}"),
-                // ["tags"][0]["name"]
-                /*
-                  trailing: Text(instrument.similarObj![index]["extraData"]
-                      ["popularityFraction"]), // ["boostFraction"]
-                      */
-                //isThreeLine: true,
+                  "${similar[index]["symbol"]}",
+                ),
+                subtitle: Text("${similar[index]["name"]}"),
                 onTap: () async {
                   var similarInstruments = await widget.service
                       .getInstrumentsByIds(
                           widget.user,
                           Provider.of<InstrumentStore>(context, listen: false),
-                          [instrument.similarObj![index]["instrument_id"]]);
-                  if (instrument.similarObj![index]["logo_url"] != null &&
-                      instrument.similarObj![index]["logo_url"] !=
+                          [similar[index]["instrument_id"]]);
+                  if (similar[index]["logo_url"] != null &&
+                      similar[index]["logo_url"] !=
                           similarInstruments[0].logoUrl &&
                       auth.currentUser != null) {
-                    similarInstruments[0].logoUrl = instrument
-                        .similarObj![index]["logo_url"]
+                    similarInstruments[0].logoUrl = similar[index]["logo_url"]
                         .toString()
                         .replaceAll("https:////", "https://");
                     await _firestoreService
@@ -2763,11 +2767,24 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               ),
             ],
           ));
-
-          //if (positionOrders.length > index) {
-          //}
-        }, childCount: instrument.similarObj!.length),
-      )
+        }, childCount: displayCount),
+      ),
+      if (similar.length > 5)
+        SliverToBoxAdapter(
+            child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _showAllSimilar = !_showAllSimilar;
+                });
+              },
+              icon:
+                  Icon(_showAllSimilar ? Icons.expand_less : Icons.expand_more),
+              label: Text(_showAllSimilar
+                  ? 'Show Less'
+                  : 'Show All (${similar.length})')),
+        ))
     ]));
   }
 
@@ -3521,14 +3538,57 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Technical Indicators ($enabledCount/9 enabled)',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                  Expanded(
+                    child: Text(
+                      'Technical Indicators', // ($enabledCount/9 enabled)
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color:
+                          isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'Indicator Documentation',
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Technical Indicators'),
+                          content: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildDocSection('priceMovement'),
+                                _buildDocSection('momentum'),
+                                _buildDocSection('marketDirection'),
+                                _buildDocSection('volume'),
+                                _buildDocSection('macd'),
+                                _buildDocSection('bollingerBands'),
+                                _buildDocSection('stochastic'),
+                                _buildDocSection('atr'),
+                                _buildDocSection('obv'),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              // const SizedBox(height: 12),
               Column(
                 children: [
                   _buildIndicatorRow(
@@ -3658,9 +3718,6 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     final signal = indicator['signal'] as String? ?? 'HOLD';
     final reason = indicator['reason'] as String? ?? '';
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
-    final documentation = docInfo['documentation'] ?? '';
-    final docTitle = docInfo['title'] ?? name;
 
     Color signalColor;
     IconData signalIcon;
@@ -3698,56 +3755,16 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '$name: ${isEnabled ? signal : 'DISABLED'}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isEnabled
-                                ? signalColor
-                                : (isDark
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade600),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.info_outline,
-                            size: 16,
-                            color: isDark
-                                ? Colors.grey.shade500
-                                : Colors.grey.shade600,
-                          ),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          iconSize: 16,
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(docTitle),
-                                content: SingleChildScrollView(
-                                  child: Text(documentation),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Close'),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '$name: ${isEnabled ? signal : 'DISABLED'}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isEnabled
+                          ? signalColor
+                          : (isDark
+                              ? Colors.grey.shade500
+                              : Colors.grey.shade600),
+                    ),
                   ),
                   if (reason.isNotEmpty && isEnabled)
                     Text(
@@ -3763,7 +3780,32 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
-  // Removed: now using AgenticTradingProvider.indicatorDocumentation(key)
+  Widget _buildDocSection(String key) {
+    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final title = docInfo['title'] ?? '';
+    final documentation = docInfo['documentation'] ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            documentation,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildAgenticTradeSignals(Instrument instrument) {
     final symbol = instrument.symbol;
