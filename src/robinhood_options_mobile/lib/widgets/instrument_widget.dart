@@ -1186,7 +1186,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                   trailing: Text(formatCurrency.format(position.marketValue),
                       style: const TextStyle(fontSize: 21))),
               _buildDetailScrollRow(
-                  position, summaryValueFontSize, summaryLabelFontSize,
+                  position, badgeValueFontSize, badgeLabelFontSize,
                   iconSize: 27.0),
               // ListTile(
               //   minTileHeight: 10,
@@ -1482,6 +1482,29 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     );
   }
 
+  // Badge helpers extracted for reuse across detail & quote scroll rows.
+  Color _pnlColor(double? value) {
+    if (value == null) return Colors.grey;
+    if (value > 0) return Colors.green;
+    if (value < 0) return Colors.red;
+    return Colors.grey;
+  }
+
+  Widget _pnlBadge(String text, double? value, double fontSize,
+      {bool neutral = false}) {
+    var color = neutral ? Colors.grey : _pnlColor(value);
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.25))),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: fontSize, color: color)) // keep passed font size
+        );
+  }
+
   SingleChildScrollView _buildDetailScrollRow(
       InstrumentPosition ops, double valueFontSize, double labelFontSize,
       {double iconSize = 23.0}) {
@@ -1511,127 +1534,71 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: iconSize);
-
     tiles = [
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            todayIcon,
-            Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
-          ]),
-          /*
-                                    Text(todayReturnText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-          /*
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-          Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(todayReturnText, todayReturn, valueFontSize),
+            Text("Return Today", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(todayReturnPercentText,
-              style: TextStyle(fontSize: valueFontSize)),
-          Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
+                todayReturnPercentText, todayReturnPercent, valueFontSize),
+            Text("Return Today %", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            totalIcon,
-            Text(totalReturnText, style: TextStyle(fontSize: valueFontSize))
-          ]),
-          /*
-                                    Text(totalReturnText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-          /*
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(totalReturnText, totalReturn, valueFontSize),
+            Text("Total Return", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(totalReturnPercentText,
-              style: TextStyle(fontSize: valueFontSize)),
-
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
+                totalReturnPercentText, totalReturnPercent, valueFontSize),
+            Text("Total Return %", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(
-              widget.user.getDisplayText(ops.totalCost,
-                  displayValue: DisplayValue.totalCost),
-              style: TextStyle(fontSize: valueFontSize)),
-
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Cost", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
+                widget.user.getDisplayText(ops.totalCost,
+                    displayValue: DisplayValue.totalCost),
+                null,
+                valueFontSize,
+                neutral: true),
+            Text("Cost", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(
-              widget.user.getDisplayText(ops.averageBuyPrice!,
-                  displayValue: DisplayValue.lastPrice),
-              style: TextStyle(fontSize: valueFontSize)),
-
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Cost per share", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
+                widget.user.getDisplayText(ops.averageBuyPrice!,
+                    displayValue: DisplayValue.lastPrice),
+                null,
+                valueFontSize,
+                neutral: true),
+            Text("Cost per share", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(formatCompactDateYear.format(ops.createdAt!),
-              style: TextStyle(fontSize: valueFontSize)),
-
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Opened", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(formatCompactDateYear.format(ops.createdAt!), null,
+                valueFontSize,
+                neutral: true),
+            Text("Opened", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(formatCompactDateYear.format(ops.updatedAt!),
-              style: TextStyle(fontSize: valueFontSize)),
-
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Updated", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      )
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(formatCompactDateYear.format(ops.updatedAt!), null,
+                valueFontSize,
+                neutral: true),
+            Text("Updated", style: TextStyle(fontSize: labelFontSize))
+          ])),
     ];
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1670,80 +1637,55 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
-    // Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: iconSize);
-
     tiles = [
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            todayIcon,
-            Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
-          ]),
-          Text("Change Today", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(todayReturnText, todayReturn, valueFontSize),
+            Text("Change Today", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(todayReturnPercentText,
-              style: TextStyle(fontSize: valueFontSize)),
-          Text("Change Today %", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
+                todayReturnPercentText, todayReturnPercent, valueFontSize),
+            Text("Change Today %", style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            // totalIcon,
-            Text(
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
                 widget.user.getDisplayText(ops.quoteObj!.bidPrice!,
                     displayValue: DisplayValue.lastPrice),
-                style: TextStyle(fontSize: valueFontSize))
-          ]),
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Bid x ${ops.quoteObj!.bidSize}",
-              style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+                null,
+                valueFontSize,
+                neutral: true),
+            Text("Bid x ${ops.quoteObj!.bidSize}",
+                style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            // totalIcon,
-            Text(
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
                 widget.user.getDisplayText(ops.quoteObj!.askPrice!,
                     displayValue: DisplayValue.lastPrice),
-                style: TextStyle(fontSize: valueFontSize))
-          ]),
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Ask x ${ops.quoteObj!.askSize}",
-              style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+                null,
+                valueFontSize,
+                neutral: true),
+            Text("Ask x ${ops.quoteObj!.askSize}",
+                style: TextStyle(fontSize: labelFontSize))
+          ])),
       Padding(
-        padding:
-            const EdgeInsets.all(summaryEgdeInset), //.symmetric(horizontal: 6),
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Wrap(spacing: 8, children: [
-            // totalIcon,
-            Text(
+          padding: const EdgeInsets.all(summaryEgdeInset),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            _pnlBadge(
                 widget.user.getDisplayText(ops.quoteObj!.adjustedPreviousClose!,
                     displayValue: DisplayValue.lastPrice),
-                style: TextStyle(fontSize: valueFontSize))
-          ]),
-          //Container(height: 5),
-          //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-          Text("Previous Close", style: TextStyle(fontSize: labelFontSize)),
-        ]),
-      ),
+                null,
+                valueFontSize,
+                neutral: true),
+            Text("Previous Close", style: TextStyle(fontSize: labelFontSize))
+          ])),
     ];
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1774,8 +1716,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       instrument.quoteObj!.lastTradePrice),
               style: const TextStyle(fontSize: 21)),
         ),
-        _buildQuoteScrollRow(
-            instrument, summaryValueFontSize, summaryLabelFontSize,
+        _buildQuoteScrollRow(instrument, badgeValueFontSize, badgeLabelFontSize,
             iconSize: 27.0),
       ])),
       SliverToBoxAdapter(

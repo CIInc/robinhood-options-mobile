@@ -215,4 +215,11 @@ class InstrumentOrder {
     await file2.writeAsString(csv);
     return file2;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is InstrumentOrder && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 }

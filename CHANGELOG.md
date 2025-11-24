@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.2] - 2025-11-24
+
+### Added
+- **Selection-Based Batch Copy Trading:** Redesigned copy trading workflow with single and multi-select modes:
+  - **Single-Select Mode:** Tap a filled order to select; floating action button triggers copy with full confirmation dialog
+  - **Multi-Select Mode:** Long-press to enable; tap additional orders to build batch selection (options, stocks/ETFs, or mixed)
+  - **Batch Confirmation Dialog:** Summarizes total trade count, option vs instrument breakdown, and sample symbols before execution
+  - **Visual Selection Highlighting:** Selected rows show tinted background, elevated borders, check icons in leading avatar, and trailing check badges
+  - Toggle between single/multi-select via AppBar checkbox icon; clear selection with X button
+- **Enhanced Confirmation Dialogs:** Instrument-specific and option-specific trade details:
+  - **Stock/ETF Dialog:** Shows symbol, side, type, state, original/adjusted quantity, limit price, estimated total
+  - **Option Dialog:** Displays chain symbol, option type, expiration date, strike price, leg side, direction (credit/debit), original/adjusted contracts, limit price, estimated total
+  - Date formatting with `intl` package for readable expiration display
+- **Model Equality Overrides:** Implemented `==` operator and `hashCode` based on `id` field for `OptionOrder` and `InstrumentOrder`:
+  - Fixes selection persistence across Firestore stream rebuilds
+  - Set-based selection state now correctly identifies orders by ID rather than object identity
+- **Stock Quantity Formatting:** CircleAvatar in instrument orders shows signed quantity (+/− prefix) with decimal precision (max 2 places, integers display without decimals)
+- **Theme-Aware Text Colors:** Member count text in Investor Groups now uses `Colors.grey[700]` on light theme for improved contrast (retains secondary color on dark theme)
+
+### Changed
+- **Removed Per-Row Copy Buttons:** Consolidated from individual copy buttons per order to unified selection + floating action button workflow
+- **Floating Action Button Adaptation:** Label updates dynamically:
+  - Single selection: "Copy Trade"
+  - Multi-selection: "Copy (N)" where N is total selected count
+- **Batch Copy Workflow:** Sequential execution with `skipInitialConfirmation` flag passed to `showCopyTradeDialog`:
+  - Per-trade confirmation dialogs skipped during batch
+  - Quantity/amount limits applied individually per trade
+  - Progress SnackBar shown during batch execution; completion SnackBar on finish
+- **Widget Conversion:** `InvestorGroupsMemberDetailWidget` converted from Stateless to StatefulWidget to manage selection state
+- **Selection State Management:** Uses `Set<OptionOrder>` and `Set<InstrumentOrder>` for selected items; supports toggle between single/multi-select with automatic collapse to single item when exiting multi-select
+
+### Fixed
+- **Selection State Persistence:** `isSelected` now updates correctly after stream rebuilds thanks to model equality overrides
+- **UI Contrast:** Member count and secondary text more readable on light themes
+- **Decimal Overflow:** Stock quantity display limits length to 6 characters to prevent avatar overflow
+
+### Technical Details
+- **Files Changed:**
+  - `lib/widgets/investor_groups_member_detail_widget.dart`: Added selection state, batch logic, highlighting UI
+  - `lib/widgets/copy_trade_button_widget.dart`: Enhanced dialog with type-specific content, added `skipInitialConfirmation` parameter
+  - `lib/model/option_order.dart`, `lib/model/instrument_order.dart`: Added equality/hashCode overrides
+  - `lib/widgets/investor_groups_widget.dart`: Theme-aware text colors
+- **State Management:** Selection sets cleared on mode toggle, navigation exit, or post-copy
+- **Batch Execution:** Iterates `_selectedOptionOrders` then `_selectedInstrumentOrders` with mounted checks; sequential `await` ensures order
+- **Visual Feedback:** Card elevation increases (6 vs 1), border width 1.2px, primary color tint at 8% opacity, leading avatar background at 18% opacity
+
+### Performance
+- Reduced widget complexity by removing individual copy button widgets per row
+- Set-based lookups (`contains()`) efficient for selection checks during list builds
+- Equality override enables O(1) set membership tests instead of linear scans
+
 ## [0.17.1] - 2025-11-23
 
 ### Changed

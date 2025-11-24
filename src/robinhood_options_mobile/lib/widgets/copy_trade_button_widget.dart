@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_order.dart';
 import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:intl/intl.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
 /// Shows a confirmation dialog and copies a trade
@@ -17,6 +17,7 @@ Future<void> showCopyTradeDialog({
   InstrumentOrder? instrumentOrder,
   OptionOrder? optionOrder,
   CopyTradeSettings? settings,
+  bool skipInitialConfirmation = false,
 }) async {
   if (instrumentOrder == null && optionOrder == null) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -56,42 +57,75 @@ Future<void> showCopyTradeDialog({
     // as it requires fetching current quote
   }
 
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Copy Trade'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Symbol: $symbol'),
-          Text('Side: $side'),
-          Text('Original Quantity: ${quantity.toStringAsFixed(2)}'),
-          if (finalQuantity != quantity)
-            Text('Your Quantity: ${finalQuantity.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text('Price: \$${price.toStringAsFixed(2)}'),
-          Text(
-              'Estimated Total: \$${(finalQuantity * price).toStringAsFixed(2)}'),
-          const SizedBox(height: 16),
-          const Text(
-            'Are you sure you want to copy this trade?',
-            style: TextStyle(fontWeight: FontWeight.bold),
+  bool confirmed = true;
+  if (!skipInitialConfirmation) {
+    confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+                'Copy Trade${isInstrument ? ' (Stock/ETF)' : ' (Option)'}'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isInstrument) ...[
+                  Text('Symbol: $symbol'),
+                  Text('Side: $side'),
+                  Text('Type: ${instrumentOrder.type}'),
+                  // Text('State: ${instrumentOrder.state}'),
+                  Text('Quantity: ${finalQuantity.toStringAsFixed(2)}'),
+                  Text(
+                      '${instrumentOrder.price != null ? '' : 'Limit '}Price: \$${instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice!.toStringAsFixed(2) : price.toStringAsFixed(2)}'),
+                  Text(
+                      'Est Total: \$${(finalQuantity * (instrumentOrder.averagePrice != null ? instrumentOrder.averagePrice! : price)).toStringAsFixed(2)}'),
+                ] else ...[
+                  Builder(builder: (_) {
+                    final leg = optionOrder!.legs.isNotEmpty
+                        ? optionOrder.legs.first
+                        : null;
+                    final exp = leg?.expirationDate;
+                    final df = DateFormat('MMM d, yyyy');
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Chain: ${optionOrder.chainSymbol}'),
+                        if (leg != null) Text('Type: ${leg.optionType}'),
+                        if (leg != null && exp != null)
+                          Text('Expiration: ${df.format(exp)}'),
+                        if (leg != null) Text('Strike: \$${leg.strikePrice}'),
+                        Text('Leg Side: ${leg?.side ?? '-'}'),
+                        Text('Direction: ${optionOrder.direction}'),
+                        Text(
+                          'Contracts: ${finalQuantity.toStringAsFixed(0)}',
+                        ),
+                        Text('Limit Price: \$${price.toStringAsFixed(2)}'),
+                        Text(
+                            'Est Total: \$${(finalQuantity * 100 * price).toStringAsFixed(2)}'),
+                      ],
+                    );
+                  }),
+                ],
+                const SizedBox(height: 16),
+                const Text(
+                  'Proceed to place this copied order?',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Copy Trade'),
+              ),
+            ],
           ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Copy Trade'),
-        ),
-      ],
-    ),
-  );
+        ) ??
+        false;
+  }
 
   if (confirmed != true || !context.mounted) return;
 
@@ -126,7 +160,7 @@ Future<void> showCopyTradeDialog({
 
     if (isInstrument) {
       // Copy instrument (stock/ETF) order
-      if (instrumentOrder!.instrumentObj == null) {
+      if (instrumentOrder.instrumentObj == null) {
         throw Exception('Instrument information not available');
       }
 

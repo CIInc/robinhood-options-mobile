@@ -56,6 +56,31 @@ class ForexPositionsWidget extends StatefulWidget {
 class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
 
+  Color _pnlColor(BuildContext context, double v) {
+    if (v > 0) return Colors.green;
+    if (v < 0) return Colors.red;
+    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+  }
+
+  Widget _pnlBadge(BuildContext context, String? text, double? value,
+      {double fontSize = badgeValueFontSize}) {
+    final base = _pnlColor(context, value ?? 0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: base.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text ?? '',
+        style: TextStyle(
+            fontSize: fontSize, fontWeight: FontWeight.w600, color: base),
+        overflow: TextOverflow.fade,
+        softWrap: false,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var sortedFilteredHoldings = widget.filteredHoldings.sortedBy<num>((i) =>
@@ -337,177 +362,17 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   navigateToFullPage(context);
                 },
         ),
-        SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      /*
-                                        Padding(
-                                          padding: const EdgeInsets.all(
-                                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                                          child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: <Widget>[
-                                                Text(marketValueText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                                //Container(height: 5),
-                                                //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                                const Text("Market Value",
-                                                    style: TextStyle(
-                                                        fontSize:
-                                                            summaryLabelFontSize)),
-                                              ]),
-                                        ),
-                                        */
-                      InkWell(
-                        onTap:
-                            // widget.user.displayValue == DisplayValue.todayReturn ? null :
-                            () {
-                          setState(() {
-                            widget.user.displayValue = DisplayValue.todayReturn;
-                          });
-                          // var userStore =
-                          //     Provider.of<BrokerageUserStore>(context, listen: false);
-                          // userStore.addOrUpdate(widget.user);
-                          // userStore.save();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Wrap(spacing: 8, children: [
-                                  todayIcon,
-                                  Text(todayReturnText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize))
-                                ]),
-                                /*
-                                                Text(todayReturnText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                                            */
-                                /*
-                                      Text(todayReturnPercentText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
-                                const Text("Return Today",
-                                    style: TextStyle(
-                                        fontSize: summaryLabelFontSize)),
-                              ]),
-                        ),
-                      ),
-                      InkWell(
-                        onTap:
-                            // widget.user.displayValue == DisplayValue.todayReturnPercent ? null :
-                            () {
-                          setState(() {
-                            widget.user.displayValue =
-                                DisplayValue.todayReturnPercent;
-                          });
-                          // var userStore =
-                          //     Provider.of<BrokerageUserStore>(context, listen: false);
-                          // userStore.addOrUpdate(widget.user);
-                          // userStore.save();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(todayReturnPercentText,
-                                    style: const TextStyle(
-                                        fontSize: summaryValueFontSize)),
-                                const Text("Return Today %",
-                                    style: TextStyle(
-                                        fontSize: summaryLabelFontSize)),
-                              ]),
-                        ),
-                      ),
-                      InkWell(
-                        onTap:
-                            // widget.user.displayValue == DisplayValue.totalReturn ? null :
-                            () {
-                          setState(() {
-                            widget.user.displayValue = DisplayValue.totalReturn;
-                          });
-                          // var userStore =
-                          //     Provider.of<BrokerageUserStore>(context, listen: false);
-                          // userStore.addOrUpdate(widget.user);
-                          // userStore.save();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Wrap(spacing: 8, children: [
-                                  totalIcon,
-                                  Text(totalReturnText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize))
-                                ]),
-                                /*
-                                                Text(totalReturnText,
-                                                    style: const TextStyle(
-                                                        fontSize:
-                                                            summaryValueFontSize)),
-                                      */
-                                /*
-                                      Text(totalReturnPercentText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
-                                //Container(height: 5),
-                                //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                const Text("Total Return",
-                                    style: TextStyle(
-                                        fontSize: summaryLabelFontSize)),
-                              ]),
-                        ),
-                      ),
-                      InkWell(
-                        onTap:
-                            // widget.user.displayValue == DisplayValue.totalReturnPercent ? null :
-                            () {
-                          setState(() {
-                            widget.user.displayValue =
-                                DisplayValue.totalReturnPercent;
-                          });
-                          // var userStore =
-                          //     Provider.of<BrokerageUserStore>(context, listen: false);
-                          // userStore.addOrUpdate(widget.user);
-                          // userStore.save();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(
-                              summaryEgdeInset), //.symmetric(horizontal: 6),
-                          child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(totalReturnPercentText,
-                                    style: const TextStyle(
-                                        fontSize: summaryValueFontSize)),
-
-                                //Container(height: 5),
-                                //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                const Text("Total Return %",
-                                    style: TextStyle(
-                                        fontSize: summaryLabelFontSize)),
-                              ]),
-                        ),
-                      ),
-                    ])))
+        buildDetailScrollView(
+            todayIcon,
+            todayReturnText,
+            todayReturnPercentText,
+            totalIcon,
+            totalReturnText,
+            totalReturnPercentText,
+            todayReturn,
+            todayReturnPercent,
+            totalReturn,
+            totalReturnPercent)
       ])),
       if (
           // user.displayValue != DisplayValue.lastPrice &&
@@ -765,7 +630,11 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             todayReturnPercentText,
             totalIcon,
             totalReturnText,
-            totalReturnPercentText)
+            totalReturnPercentText,
+            todayReturn,
+            todayReturnPercent,
+            totalReturn,
+            totalReturnPercent)
       ]
     ]));
   }
@@ -776,7 +645,11 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
       String todayReturnPercentText,
       Icon totalIcon,
       String totalReturnText,
-      String totalReturnPercentText) {
+      String totalReturnPercentText,
+      double? todayReturn,
+      double? todayReturnPercent,
+      double? totalReturn,
+      double? totalReturnPercent) {
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
@@ -802,82 +675,75 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                                           ]),
                                     ),
                                     */
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Wrap(spacing: 8, children: [
-                    todayIcon,
-                    Text(todayReturnText,
-                        style: const TextStyle(fontSize: summaryValueFontSize))
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.user.displayValue = DisplayValue.todayReturn;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    _pnlBadge(context, todayReturnText, todayReturn),
+                    const SizedBox(height: 4),
+                    const Text("Return Today",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),
-                  /*
-                                          Text(todayReturnText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
-                                                      */
-                  /*
-                                  Text(todayReturnPercentText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize)),
-                                          */
-                  const Text("Return Today",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(todayReturnPercentText,
-                      style: const TextStyle(fontSize: summaryValueFontSize)),
-                  const Text("Return Today %",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Wrap(spacing: 8, children: [
-                    totalIcon,
-                    Text(totalReturnText,
-                        style: const TextStyle(fontSize: summaryValueFontSize))
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.user.displayValue = DisplayValue.todayReturnPercent;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    _pnlBadge(
+                        context, todayReturnPercentText, todayReturnPercent),
+                    const SizedBox(height: 4),
+                    const Text("Return Today %",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),
-                  /*
-                                          Text(totalReturnText,
-                                              style: const TextStyle(
-                                                  fontSize:
-                                                      summaryValueFontSize)),
-                                                      */
-                  /*
-                                  Text(totalReturnPercentText,
-                                      style: const TextStyle(
-                                          fontSize: summaryValueFontSize)),
-                                          */
-                  //Container(height: 5),
-                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                  const Text("Total Return",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
+                ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(
-                    summaryEgdeInset), //.symmetric(horizontal: 6),
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                  Text(totalReturnPercentText,
-                      style: const TextStyle(fontSize: summaryValueFontSize)),
-
-                  //Container(height: 5),
-                  //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                  const Text("Total Return %",
-                      style: TextStyle(fontSize: summaryLabelFontSize)),
-                ]),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.user.displayValue = DisplayValue.totalReturn;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    _pnlBadge(context, totalReturnText, totalReturn),
+                    const SizedBox(height: 4),
+                    const Text("Total Return",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
+                  ]),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    widget.user.displayValue = DisplayValue.totalReturnPercent;
+                  });
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(summaryEgdeInset),
+                  child:
+                      Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    _pnlBadge(
+                        context, totalReturnPercentText, totalReturnPercent),
+                    const SizedBox(height: 4),
+                    const Text("Total Return %",
+                        style: TextStyle(fontSize: summaryLabelFontSize)),
+                  ]),
+                ),
               ),
             ])));
   }
