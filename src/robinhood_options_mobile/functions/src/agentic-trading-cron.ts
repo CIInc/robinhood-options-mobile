@@ -131,19 +131,24 @@ export const agenticTradingCron = onSchedule(
 // Callable function to trigger the cron logic ad-hoc
 // (e.g., from dashboard or admin tooling).
 // Optional: add auth/role checks before execution.
-export const agenticTradingCronInvoke = onRequest(async (request, response) => {
+export const agenticTradingCronInvoke = onRequest(
+  {
+    memory: "512MiB",
+    timeoutSeconds: 540, // 9 minutes
+  },
+  async (request, response) => {
   // logger.info(request.query, { structuredData: true });
   // Example simple auth gating (adjust to project standards):
   // if (!request.auth || request.auth.token.admin !== true) {
   //   throw new HttpsError('permission-denied', 'Admin privileges required');
   // }
-  try {
-    const result = await runAgenticTradingCron();
-    // Send JSON response instead of returning the result
-    // to satisfy onRequest signature (void | Promise<void>)
-    response.json(result);
-  } catch (err) {
-    logger.error("Ad-hoc cron invocation failed", err);
-    response.status(500).json({ error: "Ad-hoc cron invocation failed" });
-  }
-});
+    try {
+      const result = await runAgenticTradingCron();
+      // Send JSON response instead of returning the result
+      // to satisfy onRequest signature (void | Promise<void>)
+      response.json(result);
+    } catch (err) {
+      logger.error("Ad-hoc cron invocation failed", err);
+      response.status(500).json({ error: "Ad-hoc cron invocation failed" });
+    }
+  });
