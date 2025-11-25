@@ -1,17 +1,62 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 import { logger } from "firebase-functions";
 
 const db = getFirestore();
+const auth = getAuth();
 
 /**
  * Diagnostic endpoint to check cron job configuration and Firestore data
  * Call this to debug why cron jobs might not be running
  *
- * Usage: https://us-central1-<project-id>.cloudfunctions.net/cronDiagnostics
+ * REQUIRES AUTHENTICATION: Admin users only
+ *
+ * Usage:
+ *   const token = await firebase.auth().currentUser.getIdToken();
+ *   fetch('https://us-central1-<project-id>.cloudfunctions.net/cronDiagnostics', {
+ *     headers: { 'Authorization': `Bearer ${token}` }
+ *   })
  */
 export const cronDiagnostics = onRequest(async (request, response) => {
-  logger.info("Running cron diagnostics...");
+  // Verify authentication
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    logger.warn("Unauthorized access attempt to cronDiagnostics");
+    response.status(401).json({
+      error: "Unauthorized - Missing or invalid token",
+    });
+    return;
+  }
+
+  try {
+    // Verify the Firebase ID token
+    const token = authHeader.split("Bearer ")[1];
+    const decodedToken = await auth.verifyIdToken(token);
+
+    // Optionally check if user has admin role
+    if (decodedToken.role !== "admin") {
+      logger.warn(
+        `Non-admin user ${decodedToken.uid} attempted to access cronDiagnostics`
+      );
+      response.status(403).json({
+        error: "Forbidden - Admin access required",
+      });
+      return;
+    }
+
+    logger.info(
+      `Admin user ${decodedToken.uid} running cron diagnostics...`
+    );
+  } catch (authError) {
+    logger.error("Token verification failed:", authError);
+    response.status(401).json({
+      error: "Unauthorized - Invalid token",
+      message: authError instanceof Error ?
+        authError.message : String(authError),
+    });
+    return;
+  }
 
   try {
     interface DiagnosticsData {
