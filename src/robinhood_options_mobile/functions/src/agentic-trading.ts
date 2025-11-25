@@ -51,12 +51,16 @@ export async function getMarketData(symbol: string,
     }
 
     // For daily interval, check if it's from a previous trading day
-    const todayStart = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
+    // Use America/New_York timezone for consistent market hours
+    const estNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/New_York" })
     );
-    return endMs < todayStart;
+    const todayStartEST = new Date(
+      estNow.getFullYear(),
+      estNow.getMonth(),
+      estNow.getDate()
+    ).getTime();
+    return endMs < todayStartEST;
   }
 
   // Try to load cached prices from Firestore
