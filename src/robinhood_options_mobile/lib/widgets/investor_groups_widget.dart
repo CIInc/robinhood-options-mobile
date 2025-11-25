@@ -34,8 +34,8 @@ class InvestorGroupsWidget extends StatelessWidget {
             snap: true,
             pinned: true,
             centerTitle: false,
-            title: const Text('Investor Groups',
-                style: TextStyle(fontSize: 20.0)),
+            title:
+                const Text('Investor Groups', style: TextStyle(fontSize: 20.0)),
             actions: [
               IconButton(
                 icon: const Icon(Icons.add),
@@ -187,8 +187,11 @@ class InvestorGroupsWidget extends StatelessWidget {
                             Text(
                               '${group.members.length} members',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.secondary,
                                 fontSize: 12,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.light
+                                    ? Colors.grey[700]
+                                    : Theme.of(context).colorScheme.secondary,
                               ),
                             ),
                           ],
@@ -274,7 +277,8 @@ class InvestorGroupsWidget extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Text('No pending invitations'),
                       const SizedBox(height: 8),
-                      const Text('You\'ll see invitations here when group admins invite you',
+                      const Text(
+                          'You\'ll see invitations here when group admins invite you',
                           style: TextStyle(color: Colors.grey)),
                     ],
                   ),
@@ -326,7 +330,8 @@ class InvestorGroupsWidget extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
+                              icon:
+                                  const Icon(Icons.check, color: Colors.green),
                               tooltip: 'Accept',
                               onPressed: () async {
                                 await _acceptInvitation(context, group);
@@ -368,7 +373,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     );
   }
 
-  Future<void> _acceptInvitation(BuildContext context, InvestorGroup group) async {
+  Future<void> _acceptInvitation(
+      BuildContext context, InvestorGroup group) async {
     if (auth.currentUser == null) return;
 
     try {
@@ -388,7 +394,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     }
   }
 
-  Future<void> _declineInvitation(BuildContext context, InvestorGroup group) async {
+  Future<void> _declineInvitation(
+      BuildContext context, InvestorGroup group) async {
     if (auth.currentUser == null) return;
 
     try {
@@ -475,8 +482,11 @@ class InvestorGroupsWidget extends StatelessWidget {
                             Text(
                               '${group.members.length} members',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.secondary,
                                 fontSize: 12,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.light
+                                    ? Colors.grey[700]
+                                    : Theme.of(context).colorScheme.secondary,
                               ),
                             ),
                           ],

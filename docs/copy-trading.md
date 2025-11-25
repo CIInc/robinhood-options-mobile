@@ -21,14 +21,41 @@ Members can configure copy trading settings for each investor group they belong 
 
 ### 2. Manual Copy Trading
 
-When viewing another member's portfolio in a private group:
+> **Updated in v0.17.2:** Selection-based workflow with single and batch copy modes.
 
-- A copy button appears next to each filled order (stocks, ETFs, and options)
-- Clicking the button shows a confirmation dialog with trade details
-- Settings are applied automatically (quantity/amount limits)
-- User confirms before the trade is executed
-- **Orders are immediately placed** via the brokerage service
-- Success/error feedback shown with color-coded messages
+When viewing another member's portfolio in a private group, you can copy trades using two modes:
+
+#### Single-Trade Copy (Default)
+
+- **Tap** a filled order (stock/ETF or option) to select it
+- Selected row highlights with tinted background, border, and check icons
+- Press the floating **"Copy Trade"** button at the bottom
+- A confirmation dialog appears with **instrument-specific details**:
+  - **Stocks/ETFs:** Symbol, side (buy/sell), type, state, original quantity, adjusted quantity (if limited), limit price, estimated total
+  - **Options:** Chain symbol, option type (call/put), expiration date, strike price, leg side, direction (credit/debit), original contracts, adjusted contracts (if limited), limit price, estimated total
+- Quantity and amount limits from your Copy Trade Settings are **automatically applied** before confirmation
+- Confirm to **immediately place the order** via the brokerage API
+- Success or error feedback shown via SnackBars with color coding
+
+#### Batch Copy (Multi-Select Mode)
+
+- **Long-press** any filled order to enable multi-select mode
+- **Tap** additional filled orders to add them to your selection (mix options and stocks/ETFs freely)
+- Selected rows are **visually highlighted** (tint, elevated border, check icons)
+- The floating button updates to show total count: **"Copy (5)"**
+- Press the button to see a **batch confirmation dialog** summarizing:
+  - Total number of trades selected
+  - Breakdown: Options count vs Stocks/ETFs count
+  - Sample symbols (first 3 of each type)
+- On confirmation, all trades are **copied sequentially**:
+  - Per-trade confirmation dialogs are **skipped** for efficiency
+  - Quantity/amount settings are **applied individually** to each trade
+  - Progress SnackBar shows "Copying N trades..."
+  - Completion SnackBar confirms "Batch copy completed (N trades)"
+- Clear selection at any time with the **X icon** in the AppBar
+- Toggle back to single-select mode using the **checkbox icon** in the AppBar
+
+**Note:** Selection state persists across screen updates thanks to model equality improvements in v0.17.2.
 
 ### 3. Automated Copy Trading
 
@@ -50,6 +77,30 @@ Users receive push notifications when:
 - Notification shows: trader name, symbol, quantity, and buy/sell side
 - Separate notifications for stocks/ETFs and options
 - Notifications only sent if user has valid FCM tokens registered
+
+### 5. Selection-Based UI
+
+> **New in v0.17.2**
+
+The member detail portfolio screen supports a selection-driven copy trading workflow:
+
+- **Single tap** selects one trade; triggers full confirmation dialog with instrument-specific details
+- **Long press** enables multi-select mode; selected rows are visually highlighted:
+  - Tinted background (primary color at 8% opacity)
+  - Elevated card border (1.2px, primary color)
+  - Check circle icon replaces quantity in leading CircleAvatar
+  - Trailing check icon badge appears next to amount
+- **Floating Action Button** adapts label:
+  - Single selection: "Copy Trade"
+  - Multi-selection: "Copy (N)" where N is the total selected count
+- **Batch Confirmation Dialog** uses a compact summary to reduce confirmation fatigue:
+  - Total trade count, option vs instrument breakdown, sample symbols
+  - No per-trade dialogs during batch execution
+- **Equality Overrides:** `OptionOrder` and `InstrumentOrder` models implement `==` operator and `hashCode` based on `id` field:
+  - Ensures selection persists across Firestore stream rebuilds
+  - Set-based selection state works correctly with object identity
+
+This approach consolidates multiple copy buttons into a single contextual action, improving clarity and scalability for users managing many trades.
 
 ## User Interface
 
@@ -202,13 +253,29 @@ Tests are included in `test/investor_group_model_test.dart`:
 - [ ] Configure copy trade settings
 - [ ] Verify settings are saved correctly
 - [ ] View another member's portfolio
-- [ ] Click copy button on a trade
-- [ ] Verify confirmation dialog shows correct details
-- [ ] Verify limits are applied correctly
-- [ ] Confirm the order is placed successfully
-- [ ] Check order appears in your account
+- [ ] **Single-Select Mode:**
+  - [ ] Tap a filled order to select it
+  - [ ] Verify visual highlighting (tint, border, check icons)
+  - [ ] Press floating "Copy Trade" button
+  - [ ] Verify confirmation dialog shows correct instrument-specific details
+  - [ ] Verify quantity/amount limits are applied
+  - [ ] Confirm and verify order is placed successfully
+  - [ ] Check order appears in your account
+- [ ] **Multi-Select Mode:**
+  - [ ] Long-press a filled order to enable multi-select
+  - [ ] Tap additional orders to build selection (mix options and stocks)
+  - [ ] Verify floating button shows "Copy (N)" with correct count
+  - [ ] Verify all selected rows are highlighted
+  - [ ] Press floating button and review batch confirmation dialog
+  - [ ] Verify summary shows correct counts and sample symbols
+  - [ ] Confirm batch copy and verify progress/completion SnackBars
+  - [ ] Verify all orders are placed successfully
+  - [ ] Check all orders appear in your account
+  - [ ] Test clearing selection with X icon
+  - [ ] Test toggling between single/multi-select modes
 - [ ] Test with both stock and option orders
 - [ ] Verify error handling for failed orders
+- [ ] Verify selection persists during screen updates (stream rebuilds)
 
 ### Backend Function Testing
 
@@ -222,7 +289,13 @@ Tests are included in `test/investor_group_model_test.dart`:
 
 ### Frontend Changes
 
-The Flutter app changes are automatically included in the normal app build process.
+The Flutter app includes a selection-based copy trading UI:
+
+- **`investor_groups_member_detail_widget.dart`:** Implements single & multi-select logic, batch confirmation dialog, visual row highlighting, and floating action button adaptation
+- **`copy_trade_button_widget.dart`:** Shows differentiated confirmation dialog content for options vs instruments; supports `skipInitialConfirmation` parameter for batch operations
+- **Model Overrides:** `option_order.dart` and `instrument_order.dart` include equality operators for Set-based selection
+
+These changes are included in standard build artifacts; no special build steps required.
 
 ### Backend Functions
 

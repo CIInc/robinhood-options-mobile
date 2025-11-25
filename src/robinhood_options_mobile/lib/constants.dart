@@ -76,6 +76,9 @@ const summaryValueFontSize = 18.0;
 const summaryLabelFontSize = 9.0;
 const summaryEgdeInset = 10.0;
 
+const badgeLabelFontSize = 9.0;
+const badgeValueFontSize = 13.0;
+
 // OptionPositionsWidget
 const greekValueFontSize = 16.0;
 const greekLabelFontSize = 10.0;

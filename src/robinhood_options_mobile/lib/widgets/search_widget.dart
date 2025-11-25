@@ -1611,7 +1611,7 @@ class _SearchWidgetState extends State<SearchWidget>
         : DateTime.now();
     final symbol = signal['symbol'] ?? 'N/A';
     final signalType = signal['signal'] ?? 'HOLD';
-    final reason = signal['reason'] ?? 'No reason provided';
+    // final reason = signal['reason'] ?? 'No reason provided';
     final isBuy = signalType == 'BUY';
     final isSell = signalType == 'SELL';
 

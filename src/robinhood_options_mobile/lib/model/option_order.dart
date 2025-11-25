@@ -118,16 +118,16 @@ class OptionOrder {
     if (openingStrategy != null) {
       switch (openingStrategy) {
         case "long_call":
-          strat = "Call Buy";
+          strat = "Long Call";
           break;
         case "short_call":
-          strat = "Call Sell";
+          strat = "Short Call";
           break;
         case "long_put":
-          strat = "Put Buy";
+          strat = "Long Put";
           break;
         case "short_put":
-          strat = "Put Sell";
+          strat = "Short Put";
           break;
       }
     } else if (closingStrategy != null) {
@@ -266,4 +266,11 @@ class OptionOrder {
     await file2.writeAsString(csv);
     return file2;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is OptionOrder && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 }
