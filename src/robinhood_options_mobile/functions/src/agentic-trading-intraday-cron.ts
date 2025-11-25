@@ -11,9 +11,14 @@ const db = getFirestore();
  * Scans all symbols with chart_ documents and generates 1h signals
  */
 export const agenticTradingIntradayCron = onSchedule(
-  // Run every hour during market hours (9:30 AM - 4:00 PM ET)
-  // Monday-Friday at 30 minutes past each hour
-  "30 9-16 * * mon-fri",
+  {
+    // Run every hour during market hours (9:30 AM - 4:00 PM ET)
+    // Monday-Friday at 30 minutes past each hour
+    schedule: "30 9-16 * * 1-5",
+    timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
+    memory: "512MiB",
+    timeoutSeconds: 540,
+  },
   async () => {
     logger.info(
       "Intraday Agentic Trading Cron: Scanning all agentic_trading " +
@@ -82,9 +87,14 @@ export const agenticTradingIntradayCron = onSchedule(
  * Runs more frequently during market hours for shorter-term signals
  */
 export const agenticTrading15mCron = onSchedule(
-  // Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
-  // At 15, 30, 45, and 00 minutes past the hour
-  "15,30,45,0 9-16 * * mon-fri",
+  {
+    // Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
+    // At 15, 30, 45, and 00 minutes past the hour
+    schedule: "15,30,45,0 9-16 * * 1-5",
+    timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
+    memory: "512MiB",
+    timeoutSeconds: 540,
+  },
   async () => {
     logger.info(
       "15-minute Agentic Trading Cron: Scanning for 15m signals"
