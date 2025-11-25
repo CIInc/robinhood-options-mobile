@@ -88,9 +88,9 @@ export const agenticTradingIntradayCron = onSchedule(
  */
 export const agenticTrading15mCron = onSchedule(
   {
-    // Run every 15 minutes during market hours (9:30 AM - 4:00 PM ET)
-    // At 15, 30, 45, and 00 minutes past the hour
-    schedule: "15,30,45,0 9-16 * * 1-5",
+    // Run every 15 minutes during market hours (9:15 AM - 4:45 PM ET)
+    // At 15, 30, and 45 minutes past the hour
+    schedule: "15,30,45 9-16 * * 1-5",
     timeZone: "America/New_York", // Eastern Time (handles EST/EDT)
     memory: "512MiB",
     timeoutSeconds: 540,

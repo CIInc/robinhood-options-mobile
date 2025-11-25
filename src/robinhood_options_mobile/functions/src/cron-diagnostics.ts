@@ -8,9 +8,16 @@ const db = getFirestore();
  * Diagnostic endpoint to check cron job configuration and Firestore data
  * Call this to debug why cron jobs might not be running
  *
- * Usage: https://us-central1-<project-id>.cloudfunctions.net/cronDiagnostics
+ * Usage: https://us-central1-<YOUR-PROJECT-ID>.cloudfunctions.net/cronDiagnostics (replace <YOUR-PROJECT-ID> with your Firebase project ID)
  */
 export const cronDiagnostics = onRequest(async (request, response) => {
+  // Add authentication check
+  const authHeader = request.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    response.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   logger.info("Running cron diagnostics...");
 
   try {
@@ -146,42 +153,53 @@ export const cronDiagnostics = onRequest(async (request, response) => {
       }
 
       // Check recent signal updates
-      const recentSignals = await db
-        .collection("agentic_trading")
-        .where(
-          "timestamp",
-          ">",
-          Date.now() - 24 * 60 * 60 * 1000
-        ) // Last 24 hours
-        .orderBy("timestamp", "desc")
-        .limit(5)
-        .get();
+      let recentSignals;
+      try {
+        recentSignals = await db
+          .collection("agentic_trading")
+          .where(
+            "timestamp",
+            ">",
+            Date.now() - 24 * 60 * 60 * 1000
+          ) // Last 24 hours
+          .orderBy("timestamp", "desc")
+          .limit(5)
+          .get();
 
-      diagnostics.firestoreData.recentSignals = {
-        count: recentSignals.docs.length,
-        examples: recentSignals.docs.map(
-          (doc) => ({
-            id: doc.id,
-            timestamp: doc.data().timestamp,
-            signal: doc.data().signal,
-            symbol: doc.data().symbol,
-          })
-        ),
-      };
+        diagnostics.firestoreData.recentSignals = {
+          count: recentSignals.docs.length,
+          examples: recentSignals.docs.map(
+            (doc) => ({
+              id: doc.id,
+              timestamp: doc.data().timestamp,
+              signal: doc.data().signal,
+              symbol: doc.data().symbol,
+            })
+          ),
+        };
 
-      if (recentSignals.docs.length === 0) {
+        if (recentSignals.docs.length === 0) {
+          diagnostics.issues.push(
+            "⚠️ No trade signals updated in the last 24 hours"
+          );
+          diagnostics.recommendations.push(
+            "Check if cron jobs are running. Try manually invoking: " +
+            `https://us-central1-${process.env.GCLOUD_PROJECT}.cloudfunctions.net/` +
+            "agenticTradingCronInvoke"
+          );
+        } else {
+          diagnostics.recommendations.push(
+            `✅ Found ${recentSignals.docs.length} signals ` +
+            "updated in last 24 hours"
+          );
+        }
+      } catch (error) {
         diagnostics.issues.push(
-          "⚠️ No trade signals updated in the last 24 hours"
+          "⚠️ Unable to query recent signals (missing Firestore index?)"
         );
         diagnostics.recommendations.push(
-          "Check if cron jobs are running. Try manually invoking: " +
-          "https://us-central1-<project-id>.cloudfunctions.net/" +
-          "agenticTradingCronInvoke"
-        );
-      } else {
-        diagnostics.recommendations.push(
-          `✅ Found ${recentSignals.docs.length} signals ` +
-          "updated in last 24 hours"
+          "Create a composite index on the agentic_trading collection " +
+          "for: where(timestamp > ...), orderBy(timestamp desc)"
         );
       }
     }
@@ -200,7 +218,7 @@ export const cronDiagnostics = onRequest(async (request, response) => {
         description: "Every hour at :30, 9:30 AM - 4:30 PM ET, Monday-Friday",
       },
       intraday15m: {
-        schedule: "15,30,45,0 9-16 * * 1-5",
+        schedule: "15,30,45 9-16 * * 1-5",
         timezone: "America/New_York",
         description: "Every 15 minutes, 9:15 AM - 4:45 PM ET, Monday-Friday",
       },

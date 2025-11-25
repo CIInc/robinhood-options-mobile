@@ -59,13 +59,24 @@ export async function getMarketData(symbol: string,
 
     // For daily interval, check if it's from a previous trading day
     // Use America/New_York timezone for consistent market hours
-    const estNow = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/New_York" })
-    );
+    // Get the date parts in EST timezone to properly calculate start of day
+    const estDateStr = now.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hour12: false,
+    });
+    // Parse the EST date string to get midnight EST in UTC milliseconds
+    const estParts = estDateStr.match(/(\d+)\/(\d+)\/(\d+),\s*(\d+)/);
+    if (!estParts) {
+      return true; // If we can't parse, treat as stale
+    }
+    const [, month, day, year] = estParts;
+    // Create a date string for midnight EST and convert to timestamp
     const todayStartEST = new Date(
-      estNow.getFullYear(),
-      estNow.getMonth(),
-      estNow.getDate()
+      `${year}-${month}-${day}T00:00:00-05:00`
     ).getTime();
     return endMs < todayStartEST;
   }
