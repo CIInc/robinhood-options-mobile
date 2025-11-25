@@ -34,8 +34,8 @@ export const cronDiagnostics = onRequest(async (request, response) => {
     const token = authHeader.split("Bearer ")[1];
     const decodedToken = await auth.verifyIdToken(token);
 
-    // Optionally check if user has admin role
-    if (decodedToken.role !== "admin") {
+    // Check if user has admin role (required for access)
+    if (!decodedToken.role || decodedToken.role !== "admin") {
       logger.warn(
         `Non-admin user ${decodedToken.uid} attempted to access cronDiagnostics`
       );
@@ -52,8 +52,6 @@ export const cronDiagnostics = onRequest(async (request, response) => {
     logger.error("Token verification failed:", authError);
     response.status(401).json({
       error: "Unauthorized - Invalid token",
-      message: authError instanceof Error ?
-        authError.message : String(authError),
     });
     return;
   }
