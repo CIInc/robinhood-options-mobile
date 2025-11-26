@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.17.3] - 2025-11-26
+
+### Fixed
+- **SnackBar Styling Consistency:** Trade Signal Notification Settings now use default styling without custom background colors and include floating behavior, matching app-wide conventions used in `auth_widget.dart`, `utils/auth.dart`, `agentic_trading_settings_widget.dart`, and `investment_profile_settings_widget.dart`.
+- **Daily Cron Job:** Fixed issues with the daily end-of-day cron job execution to ensure reliable trade signal generation.
+- **Authentication Form UX:** Removed autofocus from email and phone text fields in authentication form to prevent keyboard from auto-showing on load and hiding the Phone/Email mode selector, improving initial form visibility and user navigation.
+
+### Technical Details
+- **Files Changed:**
+  - `lib/widgets/trade_signal_notification_settings_widget.dart`: Removed `backgroundColor: Colors.green` and added `behavior: SnackBarBehavior.floating` to success and error notifications
+  - `functions/src/agentic-trading-cron.ts`: Enhanced error handling and execution reliability
+  - `lib/widgets/auth_widget.dart`: Removed `autofocus: true` from email field (line 214) and phone field (line 242)
+- **UI/UX Improvements:** Users now see the full authentication form including mode selector before keyboard interaction, preventing navigation controls from being obscured
+
 ## [0.17.2] - 2025-11-24
 
 ### Added
