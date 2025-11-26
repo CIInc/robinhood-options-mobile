@@ -48,7 +48,7 @@ class _TradeSignalNotificationSettingsWidgetState
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Notification settings saved successfully'),
-            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -58,6 +58,7 @@ class _TradeSignalNotificationSettingsWidgetState
           SnackBar(
             content: Text('Failed to save settings: $e'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
