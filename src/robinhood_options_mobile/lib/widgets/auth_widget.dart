@@ -81,6 +81,7 @@ class _AuthGateState extends State<AuthGate> {
   AuthMode mode = AuthMode.phone;
 
   bool isLoading = false;
+  bool _obscurePassword = true;
 
   void setIsLoading() {
     setState(() {
@@ -214,41 +215,84 @@ class _AuthGateState extends State<AuthGate> {
                                     decoration: const InputDecoration(
                                       hintText: 'Email',
                                       border: OutlineInputBorder(),
+                                      prefixIcon: Icon(Icons.email_outlined),
                                     ),
                                     keyboardType: TextInputType.emailAddress,
                                     autofillHints: const [AutofillHints.email],
-                                    validator: (value) =>
-                                        mode == AuthMode.phone || value != null && value.isNotEmpty
-                                            ? null
-                                            : 'Required',
+                                    validator: (value) {
+                                      if (mode == AuthMode.phone) return null;
+                                      if (value == null || value.isEmpty) {
+                                        return 'Email is required';
+                                      }
+                                      // Basic email validation
+                                      final emailRegex = RegExp(
+                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                      );
+                                      if (!emailRegex.hasMatch(value)) {
+                                        return 'Please enter a valid email address';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 20),
                                   TextFormField(
                                     controller: passwordController,
-                                    obscureText: true,
-                                    decoration: const InputDecoration(
+                                    obscureText: _obscurePassword,
+                                    decoration: InputDecoration(
                                       hintText: 'Password',
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            _obscurePassword =
+                                                !_obscurePassword;
+                                          });
+                                        },
+                                      ),
                                     ),
-                                    validator: (value) =>
-                                        mode == AuthMode.phone || value != null && value.isNotEmpty
-                                            ? null
-                                            : 'Required',
+                                    validator: (value) {
+                                      if (mode == AuthMode.phone) return null;
+                                      if (value == null || value.isEmpty) {
+                                        return 'Password is required';
+                                      }
+                                      if (mode == AuthMode.register &&
+                                          value.length < 6) {
+                                        return 'Password must be at least 6 characters';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ],
                               ),
                               secondChild: TextFormField(
                                 controller: phoneController,
                                 decoration: const InputDecoration(
-                                  hintText: '+12345678910',
-                                  // labelText: 'Phone number',
+                                  hintText: '+1 234 567 8910',
+                                  labelText: 'Phone number with country code',
+                                  helperText:
+                                      'Format: +[country code] [number]',
                                   border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.phone_outlined),
                                 ),
                                 keyboardType: TextInputType.phone,
-                                validator: (value) =>
-                                    mode != AuthMode.phone || value != null && value.isNotEmpty
-                                        ? null
-                                        : 'Required',
+                                validator: (value) {
+                                  if (mode != AuthMode.phone) return null;
+                                  if (value == null || value.isEmpty) {
+                                    return 'Phone number is required';
+                                  }
+                                  if (!value.startsWith('+')) {
+                                    return 'Please include country code (e.g., +1)';
+                                  }
+                                  if (value.length < 10) {
+                                    return 'Please enter a valid phone number';
+                                  }
+                                  return null;
+                                },
                               ),
                               crossFadeState: mode != AuthMode.phone
                                   ? CrossFadeState.showFirst
@@ -312,7 +356,24 @@ class _AuthGateState extends State<AuthGate> {
                                         _emailAndPassword,
                                       ),
                               child: isLoading
-                                  ? const CircularProgressIndicator.adaptive()
+                                  ? Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                    Colors.white),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text('Signing in...'),
+                                      ],
+                                    )
                                   : Text(mode.label),
                             ),
                           ),
@@ -482,45 +543,93 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future _resetPassword() async {
-    String? email;
+    String email = emailController.text.isNotEmpty ? emailController.text : '';
+    final formKey = GlobalKey<FormState>();
+
     await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
+          title: const Text('Reset Password'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('Send'),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Send Reset Email'),
             ),
           ],
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Enter your email'),
-              const SizedBox(height: 20),
-              TextFormField(
-                onChanged: (value) {
-                  email = value;
-                },
-              ),
-            ],
+          content: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Enter your email address and we\'ll send you a link to reset your password.',
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  initialValue: email,
+                  decoration: const InputDecoration(
+                    hintText: 'Email',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  autofocus: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Email is required';
+                    }
+                    final emailRegex = RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    );
+                    if (!emailRegex.hasMatch(value)) {
+                      return 'Please enter a valid email address';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    email = value;
+                  },
+                ),
+              ],
+            ),
           ),
         );
       },
     );
 
-    if (email != null) {
+    if (email.isNotEmpty) {
       try {
-        await auth.sendPasswordResetEmail(email: email!);
+        await auth.sendPasswordResetEmail(email: email);
         if (mounted) {
-          ScaffoldSnackbar.of(context).show('Password reset email is sent');
+          ScaffoldSnackbar.of(context).show(
+            '✓ Password reset email sent! Check your inbox.',
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        if (mounted) {
+          String errorMsg = 'Error sending reset email';
+          if (e.code == 'user-not-found') {
+            errorMsg = 'No account found with this email';
+          } else if (e.code == 'invalid-email') {
+            errorMsg = 'Invalid email address';
+          }
+          ScaffoldSnackbar.of(context).show(errorMsg);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldSnackbar.of(context).show('Error resetting');
+          ScaffoldSnackbar.of(context).show('Error sending reset email');
         }
       }
     }
@@ -554,6 +663,10 @@ class _AuthGateState extends State<AuthGate> {
     try {
       await authFunction();
       if (widget.onSignin != null && auth.currentUser != null) {
+        // Show success message
+        if (mounted) {
+          ScaffoldSnackbar.of(context).show('✓ Successfully signed in!');
+        }
         widget.onSignin!(auth.currentUser!);
       }
     } on FirebaseAuthMultiFactorException catch (e) {
@@ -614,11 +727,39 @@ class _AuthGateState extends State<AuthGate> {
       );
     } on FirebaseAuthException catch (e) {
       setState(() {
-        error = '${e.message}';
+        // Provide more user-friendly error messages
+        switch (e.code) {
+          case 'user-not-found':
+            error =
+                'No account found with this email. Please check or register.';
+            break;
+          case 'wrong-password':
+            error =
+                'Incorrect password. Please try again or reset your password.';
+            break;
+          case 'email-already-in-use':
+            error = 'This email is already registered. Try signing in instead.';
+            break;
+          case 'weak-password':
+            error = 'Password is too weak. Please use at least 6 characters.';
+            break;
+          case 'invalid-email':
+            error = 'Invalid email format. Please check your email address.';
+            break;
+          case 'network-request-failed':
+            error =
+                'Network error. Please check your connection and try again.';
+            break;
+          case 'too-many-requests':
+            error = 'Too many attempts. Please wait a moment and try again.';
+            break;
+          default:
+            error = e.message ?? 'An error occurred. Please try again.';
+        }
       });
     } catch (e) {
       setState(() {
-        error = '$e';
+        error = 'An unexpected error occurred. Please try again.';
       });
     }
     setIsLoading();
@@ -797,6 +938,7 @@ Future<void> _signInWithMicrosoft() async {
 
 Future<String?> getSmsCodeFromUser(BuildContext context) async {
   String? smsCode;
+  final controller = TextEditingController();
 
   // Update the UI - wait for the user to enter the SMS code
   await showDialog<String>(
@@ -804,14 +946,41 @@ Future<String?> getSmsCodeFromUser(BuildContext context) async {
     barrierDismissible: false,
     builder: (context) {
       return AlertDialog(
-        title: const Text('SMS code:'),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Sign in'),
+        title: const Text('Enter Verification Code'),
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Please enter the verification code sent to your device',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: controller,
+                onChanged: (value) {
+                  smsCode = value;
+                },
+                decoration: const InputDecoration(
+                  hintText: '123456',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.sms_outlined),
+                ),
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                maxLength: 6,
+                style: const TextStyle(
+                  fontSize: 24,
+                  letterSpacing: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
+        ),
+        actions: [
           OutlinedButton(
             onPressed: () {
               smsCode = null;
@@ -819,17 +988,13 @@ Future<String?> getSmsCodeFromUser(BuildContext context) async {
             },
             child: const Text('Cancel'),
           ),
-        ],
-        content: Container(
-          padding: const EdgeInsets.all(20),
-          child: TextField(
-            onChanged: (value) {
-              smsCode = value;
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
             },
-            textAlign: TextAlign.center,
-            autofocus: true,
+            child: const Text('Verify'),
           ),
-        ),
+        ],
       );
     },
   );
