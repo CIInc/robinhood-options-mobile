@@ -37,13 +37,20 @@ export async function getMarketData(symbol: string,
     if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
       return true;
     }
+
+    // If no updated timestamp, treat as stale (legacy cache)
+    if (!chart.updated) {
+      logger.info("⚠️ Cache missing 'updated' field - treating as stale");
+      return true;
+    }
+
     const endSec = chart.meta.currentTradingPeriod.regular.end;
     const endMs = endSec * 1000;
     const now = new Date();
 
     // For intraday intervals, cache is stale after a shorter period
     if (interval !== "1d") {
-      const cacheAge = now.getTime() - (chart.updated || 0);
+      const cacheAge = now.getTime() - chart.updated;
       const maxCacheAge = interval === "15m" ? 15 * 60 * 1000 : // 15 minutes
         interval === "30m" ? 30 * 60 * 1000 : // 30 minutes
           60 * 60 * 1000; // 1 hour for 1h interval
@@ -51,12 +58,16 @@ export async function getMarketData(symbol: string,
     }
 
     // For daily interval, check if it's from a previous trading day
-    const todayStart = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
+    // Use America/New_York timezone for consistent market hours
+    const estNow = new Date(
+      now.toLocaleString("en-US", { timeZone: "America/New_York" })
     );
-    return endMs < todayStart;
+    const todayStartEST = new Date(
+      estNow.getFullYear(),
+      estNow.getMonth(),
+      estNow.getDate()
+    ).getTime();
+    return endMs < todayStartEST;
   }
 
   // Try to load cached prices from Firestore
@@ -85,11 +96,17 @@ export async function getMarketData(symbol: string,
         } else if (Array.isArray(closes) && closes.length > 0) {
           currentPrice = closes[closes.length - 1];
         }
-        logger.info(`Loaded cached ${interval} prices and volumes ` +
-          `for ${symbol} from Firestore`);
+        const lastFew = closes.slice(-5);
+        logger.info(`✅ CACHE HIT: Loaded cached ${interval} data ` +
+          `for ${symbol}`, {
+          count: closes.length,
+          lastFivePrices: lastFew,
+          currentPrice,
+          cacheAge: Date.now() - (chart.updated || 0),
+        });
       } else {
-        logger.info(`Cached ${interval} data for ${symbol} is stale, ` +
-          "will fetch new data");
+        logger.info(`❌ CACHE MISS: Cached ${interval} data for ${symbol} ` +
+          "is stale, will fetch new data");
         opens = [];
         highs = [];
         lows = [];
@@ -143,8 +160,9 @@ export async function getMarketData(symbol: string,
         lows = los.filter((p: any) => p !== null);
         closes = clos.filter((p: any) => p !== null);
         volumes = vols.filter((v: any) => v !== null);
-        logger.info(`Fetched ${closes.length} ${interval} prices and ` +
-          `${volumes.length} volumes for ${symbol} from Yahoo Finance ${url}`);
+        logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} ${interval} ` +
+          `prices and ${volumes.length} volumes for ${symbol} from ` +
+          `Yahoo Finance ${url}`);
       }
       if (result && typeof result?.meta?.regularMarketPrice === "number") {
         currentPrice = result.meta.regularMarketPrice;

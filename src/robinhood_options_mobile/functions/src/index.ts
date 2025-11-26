@@ -23,6 +23,8 @@ import * as agenticTradingIntradayCron from "./agentic-trading-intraday-cron";
 import * as riskguardAgent from "./riskguard-agent";
 import * as copyTrading from "./copy-trading";
 import * as tradeSignalNotifications from "./trade-signal-notifications";
+import * as cronDiagnosticsFuncs from "./cron-diagnostics";
+import * as signalDiagnosticsFuncs from "./signal-diagnostics";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -66,3 +68,5 @@ export const onTradeSignalCreated =
   tradeSignalNotifications.onTradeSignalCreated;
 export const onTradeSignalUpdated =
   tradeSignalNotifications.onTradeSignalUpdated;
+export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
+export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;

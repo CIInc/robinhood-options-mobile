@@ -3,9 +3,92 @@ import { onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as indicators from "./technical-indicators";
 import fetch from "node-fetch";
+import { getFirestore } from "firebase-admin/firestore";
+
+const db = getFirestore();
+
+/**
+ * Check if cached market data is stale
+ * During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
+ * After hours, cache is valid for the rest of the trading day
+ * @param {any} chart The chart data object
+ * @return {boolean} True if stale
+ */
+function isMarketDataCacheStale(chart: any): boolean {
+  if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
+    return true;
+  }
+  const endSec = chart.meta.currentTradingPeriod.regular.end;
+  const endMs = endSec * 1000;
+  const now = new Date();
+
+  // Use America/New_York timezone for consistent market hours
+  const estTimeString = now.toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    hour12: false,
+  });
+
+  // Parse EST time components
+  const estMatch =
+    estTimeString.match(/(\d+)\/(\d+)\/(\d+),?\s+(\d+):(\d+):(\d+)/);
+  if (!estMatch) {
+    logger.warn("Failed to parse EST time", { estTimeString });
+    return true; // Treat as stale if we can't parse
+  }
+
+  const [, month, day, year, hour, minute] = estMatch;
+  const estHour = parseInt(hour, 10);
+  const estMinute = parseInt(minute, 10);
+
+  const todayStartEST = new Date(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10),
+    0,
+    0,
+    0
+  ).getTime();
+
+  // Check if from previous trading day
+  if (endMs < todayStartEST) {
+    return true;
+  }
+
+  // During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
+  const isMarketHours =
+    (estHour > 9 || (estHour === 9 && estMinute >= 30)) && estHour < 16;
+
+  logger.info("📅 Market hours check", {
+    estTimeString,
+    estHour,
+    estMinute,
+    isMarketHours,
+    cacheUpdated: chart.updated,
+    cacheAge: chart.updated ? now.getTime() - chart.updated : null,
+  });
+
+  // If no updated timestamp, treat as stale (legacy cache)
+  if (!chart.updated) {
+    logger.info("⚠️ Cache missing 'updated' field - treating as stale");
+    return true;
+  }
+
+  if (isMarketHours) {
+    const cacheAge = now.getTime() - chart.updated;
+    const maxCacheAge = 15 * 60 * 1000; // 15 minutes
+    const isStale = cacheAge > maxCacheAge;
+    logger.info(`🕐 Cache age check: ${Math.round(cacheAge / 1000 / 60)} min ` +
+      `(max: 15 min) - ${isStale ? "STALE" : "FRESH"}`);
+    return isStale;
+  }
+
+  logger.info("✅ Cache valid (after market hours)");
+  return false;
+}
 
 /**
  * Fetch market index data (SPY or QQQ) for market direction analysis
+ * Now includes Firestore caching with timezone-aware staleness check
  * @param {string} symbol The market index symbol (default: SPY)
  * @return {Promise<{prices: number[], volumes: number[]}>} Market data
  */
@@ -13,10 +96,56 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
   closes: number[];
   volumes: number[];
 }> {
+  let closes: number[] = [];
+  let volumes: number[] = [];
+
+  // Try to load cached data from Firestore
+  const cacheKey = `agentic_trading/chart_${symbol}`;
+  logger.info(`🔍 Checking cache for ${symbol}`, { cacheKey });
+  try {
+    const doc = await db.doc(cacheKey).get();
+    if (doc.exists) {
+      const chart = doc.data()?.chart;
+      logger.info(`📦 Cache document exists for ${symbol}`, {
+        hasChart: !!chart,
+        hasUpdated: !!(chart?.updated),
+        updated: chart?.updated,
+      });
+      const isStale = isMarketDataCacheStale(chart);
+      const isCached = chart && !isStale;
+
+      logger.info(`🎯 Cache decision for ${symbol}`, {
+        isStale,
+        isCached,
+        willUseCache: isCached && chart.indicators?.quote?.[0]?.close,
+      });
+
+      if (isCached && chart.indicators?.quote?.[0]?.close) {
+        const closeData = chart.indicators.quote[0].close;
+        const volumeData = chart.indicators.quote[0].volume || [];
+        closes = closeData.filter((p: any) => p !== null);
+        volumes = volumeData.filter((v: any) => v !== null);
+        const lastFew = closes.slice(-5);
+        logger.info(`✅ CACHE HIT: Loaded cached market data for ${symbol}`, {
+          count: closes.length,
+          lastFivePrices: lastFew,
+          cacheAge: Date.now() - (chart.updated || 0),
+        });
+        return { closes, volumes };
+      } else {
+        logger.info(`❌ CACHE MISS: Cached market data for ${symbol} is ` +
+          "stale, fetching fresh data");
+      }
+    }
+  } catch (err) {
+    logger.warn(`Failed to load cached market data for ${symbol}`, err);
+  }
+
+  // Fetch fresh data from Yahoo Finance
   try {
     const baseUrl = "https://query1.finance.yahoo.com";
     const url = `${baseUrl}/v8/finance/chart/${symbol}` +
-      "?interval=1d&range=1y"; // 3mo
+      "?interval=1d&range=1y";
     const resp = await fetch(url);
     const data: any = await resp.json();
     const result = data?.chart?.result?.[0];
@@ -24,12 +153,29 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
     if (result &&
       Array.isArray(result?.indicators?.quote?.[0]?.close) &&
       Array.isArray(result?.indicators?.quote?.[0]?.volume)) {
+      // Remove nested arrays that cause Firestore errors
+      delete result.meta?.tradingPeriods;
+
       const closeData = result.indicators.quote[0].close;
       const volumeData = result.indicators.quote[0].volume;
-      const clos = closeData.filter((p: any) => p !== null);
-      const vols = volumeData.filter((v: any) => v !== null);
+      closes = closeData.filter((p: any) => p !== null);
+      volumes = volumeData.filter((v: any) => v !== null);
 
-      return { closes: clos, volumes: vols };
+      const lastFew = closes.slice(-5);
+      logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} prices ` +
+        `for ${symbol} from Yahoo Finance`, {
+        lastFivePrices: lastFew,
+      });
+
+      // Cache the data
+      try {
+        await db.doc(cacheKey).set({ chart: result, updated: Date.now() });
+        logger.info(`💾 Cached market data for ${symbol} in Firestore`);
+      } catch (err) {
+        logger.warn(`Failed to cache market data for ${symbol}`, err);
+      }
+
+      return { closes, volumes };
     }
   } catch (err) {
     logger.warn(`Failed to fetch market data for ${symbol}`, err);
@@ -66,21 +212,34 @@ export async function handleAlphaTask(marketData: any,
   const marketIndexSymbol = config?.marketIndexSymbol || "SPY";
   const marketIndexData = await fetchMarketData(marketIndexSymbol);
 
-  logger.info("Fetched market index data", {
+  // Log detailed market data for debugging cache consistency
+  const lastFewPrices = marketIndexData.closes.slice(-5);
+  logger.info("📊 Market index data retrieved", {
     symbol: marketIndexSymbol,
     pricesLength: marketIndexData.closes.length,
     volumesLength: marketIndexData.volumes.length,
+    lastFivePrices: lastFewPrices,
+    lastPrice: lastFewPrices[lastFewPrices.length - 1],
   });
 
   // Evaluate all 9 technical indicators
+  const indicatorConfig = {
+    rsiPeriod: config?.rsiPeriod || 14,
+    marketFastPeriod: config?.smaPeriodFast || 10,
+    marketSlowPeriod: config?.smaPeriodSlow || 30,
+  };
+  
+  logger.info("📊 Evaluating indicators with config", {
+    marketFastPeriod: indicatorConfig.marketFastPeriod,
+    marketSlowPeriod: indicatorConfig.marketSlowPeriod,
+    configSmaPeriodFast: config?.smaPeriodFast,
+    configSmaPeriodSlow: config?.smaPeriodSlow,
+  });
+  
   const multiIndicatorResult = indicators.evaluateAllIndicators(
     { opens, highs, lows, closes, volumes },
     marketIndexData,
-    {
-      rsiPeriod: config?.rsiPeriod || 14,
-      marketFastPeriod: config?.smaPeriodFast || 10,
-      marketSlowPeriod: config?.smaPeriodSlow || 30,
-    }
+    indicatorConfig
   );
 
   const { allGreen, indicators: indicatorResults,
@@ -90,10 +249,18 @@ export async function handleAlphaTask(marketData: any,
     allGreen,
     overallSignal,
     interval,
+    symbol,
+    marketIndexSymbol,
     indicators: {
       priceMovement: indicatorResults.priceMovement.signal,
       momentum: indicatorResults.momentum.signal,
-      marketDirection: indicatorResults.marketDirection.signal,
+      marketDirection: {
+        signal: indicatorResults.marketDirection.signal,
+        reason: indicatorResults.marketDirection.reason,
+        fastMA: indicatorResults.marketDirection.metadata?.fastMA,
+        slowMA: indicatorResults.marketDirection.metadata?.slowMA,
+        trendStrength: indicatorResults.marketDirection.metadata?.trendStrength,
+      },
       volume: indicatorResults.volume.signal,
       macd: indicatorResults.macd.signal,
       bollingerBands: indicatorResults.bollingerBands.signal,
