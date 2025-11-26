@@ -20,26 +20,18 @@ jobs:
     outputs:
       upload_url: ${{ steps.set_url.outputs.upload_url }}
     steps:
-      - name: Resolve upload_url for release event
-        if: github.event_name == 'release'
-        id: set_url
-        run: echo "upload_url=${{ github.event.release.upload_url }}" >> $GITHUB_OUTPUT
-
       - name: Create draft release (manual)
         if: github.event_name == 'workflow_dispatch'
         id: create_release_manual
-        uses: actions/create-release@v1
+        # uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.event.inputs.release_tag }}
-          release_name: ${{ github.event.inputs.release_tag }}
+          # release_name: ${{ github.event.inputs.release_tag }}
           draft: true
-
-      - name: Export upload_url (manual)
-        if: github.event_name == 'workflow_dispatch'
-        id: set_url_manual
-        run: echo "upload_url=${{ steps.create_release_manual.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          generate_release_notes: true
 
       - name: Create draft release (tag push)
         if: github.event_name == 'push'
@@ -52,10 +44,16 @@ jobs:
           release_name: ${{ github.ref_name }}
           draft: true
 
-      - name: Export upload_url (tag push)
-        if: github.event_name == 'push'
-        id: set_url_push
-        run: echo "upload_url=${{ steps.create_release_push.outputs.upload_url }}" >> $GITHUB_OUTPUT
+      - name: Set upload_url output
+        id: set_url
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "upload_url=${{ github.event.release.upload_url }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "upload_url=${{ steps.create_release_manual.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            echo "upload_url=${{ steps.create_release_push.outputs.upload_url }}" >> $GITHUB_OUTPUT
+          fi
 
   build_android:
     runs-on: ubuntu-latest
