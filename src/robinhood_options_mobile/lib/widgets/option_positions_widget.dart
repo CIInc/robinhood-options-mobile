@@ -65,6 +65,54 @@ class OptionPositionsWidget extends StatefulWidget {
 class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
 
+  // P&L badge helpers (mirrors instrument_positions_widget.dart for visual parity)
+  Color _pnlColor(BuildContext context, double v) {
+    if (v > 0) return Colors.green;
+    if (v < 0) return Colors.red;
+    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+  }
+
+  Widget _pnlBadge(BuildContext context, String? text, double? value,
+      {double fontSize = badgeValueFontSize}) {
+    final base = _pnlColor(context, value ?? 0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: base.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text ?? '',
+        style: TextStyle(
+            fontSize: fontSize, fontWeight: FontWeight.w600, color: base),
+        overflow: TextOverflow.fade,
+        softWrap: false,
+      ),
+    );
+  }
+
+  // Neutral badge for Greeks & non-PnL metrics (avoid red/green sign semantics)
+  Widget _neutralBadge(BuildContext context, String? text,
+      {double fontSize = 12}) {
+    final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+    final bg =
+        Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.18);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text ?? '',
+        style: TextStyle(
+            fontSize: fontSize, fontWeight: FontWeight.w600, color: fg),
+        overflow: TextOverflow.fade,
+        softWrap: false,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var groupedOptionAggregatePositions = {};
@@ -886,127 +934,67 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: iconSize);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: iconSize);
-
     tiles = [
       InkWell(
-        onTap:
-            // widget.user.displayValue == DisplayValue.todayReturn ? null :
-            () {
+        onTap: () {
           setState(() {
             widget.user.displayValue = DisplayValue.todayReturn;
           });
-          // var userStore =
-          //     Provider.of<BrokerageUserStore>(context, listen: false);
-          // userStore.addOrUpdate(widget.user);
-          // userStore.save();
         },
         child: Padding(
-          padding: const EdgeInsets.all(
-              summaryEgdeInset), //.symmetric(horizontal: 6),
+          padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Wrap(spacing: 8, children: [
-              todayIcon,
-              Text(todayReturnText, style: TextStyle(fontSize: valueFontSize))
-            ]),
-            /*
-                                      Text(todayReturnText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
-            /*
-                                      Text(todayReturnPercentText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
+            _pnlBadge(context, todayReturnText, todayReturn),
+            const SizedBox(height: 4),
             Text("Return Today", style: TextStyle(fontSize: labelFontSize)),
           ]),
         ),
       ),
       InkWell(
-        onTap:
-            // widget.user.displayValue == DisplayValue.todayReturnPercent ? null :
-            () {
+        onTap: () {
           setState(() {
             widget.user.displayValue = DisplayValue.todayReturnPercent;
           });
-          // var userStore =
-          //     Provider.of<BrokerageUserStore>(context, listen: false);
-          // userStore.addOrUpdate(widget.user);
-          // userStore.save();
         },
         child: Padding(
-          padding: const EdgeInsets.all(
-              summaryEgdeInset), //.symmetric(horizontal: 6),
+          padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Text(todayReturnPercentText,
-                style: TextStyle(fontSize: valueFontSize)),
+            _pnlBadge(context, todayReturnPercentText, todayReturnPercent),
+            const SizedBox(height: 4),
             Text("Return Today %", style: TextStyle(fontSize: labelFontSize)),
           ]),
         ),
       ),
       InkWell(
-        onTap:
-            // widget.user.displayValue == DisplayValue.totalReturn ? null :
-            () {
+        onTap: () {
           setState(() {
             widget.user.displayValue = DisplayValue.totalReturn;
           });
-          // var userStore =
-          //     Provider.of<BrokerageUserStore>(context, listen: false);
-          // userStore.addOrUpdate(widget.user);
-          // userStore.save();
         },
         child: Padding(
-          padding: const EdgeInsets.all(
-              summaryEgdeInset), //.symmetric(horizontal: 6),
+          padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Wrap(spacing: 8, children: [
-              totalIcon,
-              Text(totalReturnText, style: TextStyle(fontSize: valueFontSize))
-            ]),
-            /*
-                                      Text(totalReturnText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
-            /*
-                                      Text(totalReturnPercentText,
-                                          style: const TextStyle(
-                                              fontSize: summaryValueFontSize)),
-                                              */
-            //Container(height: 5),
-            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+            _pnlBadge(context, totalReturnText, totalReturn),
+            const SizedBox(height: 4),
             Text("Total Return", style: TextStyle(fontSize: labelFontSize)),
           ]),
         ),
       ),
       InkWell(
-        onTap:
-            // widget.user.displayValue == DisplayValue.totalReturnPercent ? null :
-            () {
+        onTap: () {
           setState(() {
             widget.user.displayValue = DisplayValue.totalReturnPercent;
           });
-          // var userStore =
-          //     Provider.of<BrokerageUserStore>(context, listen: false);
-          // userStore.addOrUpdate(widget.user);
-          // userStore.save();
         },
         child: Padding(
-          padding: const EdgeInsets.all(
-              summaryEgdeInset), //.symmetric(horizontal: 6),
+          padding: const EdgeInsets.all(summaryEgdeInset),
           child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Text(totalReturnPercentText,
-                style: TextStyle(fontSize: valueFontSize)),
-
-            //Container(height: 5),
-            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+            _pnlBadge(context, totalReturnPercentText, totalReturnPercent),
+            const SizedBox(height: 4),
             Text("Total Return %", style: TextStyle(fontSize: labelFontSize)),
           ]),
         ),
-      )
+      ),
     ];
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
@@ -1020,10 +1008,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatNumber.format(delta),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                    _neutralBadge(context, formatNumber.format(delta)),
+                    const SizedBox(height: 4),
                     Text("Delta Δ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1034,10 +1020,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatNumber.format(gamma),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("Γ", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(context, formatNumber.format(gamma)),
+                    const SizedBox(height: 4),
                     Text("Gamma Γ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1048,10 +1032,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatNumber.format(theta),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("Θ", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(context, formatNumber.format(theta)),
+                    const SizedBox(height: 4),
                     Text("Theta Θ", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1062,10 +1044,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatNumber.format(vega),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("v", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(context, formatNumber.format(vega)),
+                    const SizedBox(height: 4),
                     Text("Vega v", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1076,10 +1056,8 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatNumber.format(rho),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("p", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(context, formatNumber.format(rho)),
+                    const SizedBox(height: 4),
                     Text("Rho p", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1090,10 +1068,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatPercentage.format(impliedVolatility),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("IV", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(
+                        context, formatPercentage.format(impliedVolatility)),
+                    const SizedBox(height: 4),
                     Text("Impl. Vol.",
                         style: TextStyle(fontSize: labelFontSize)),
                   ]),
@@ -1105,10 +1082,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatPercentage.format(chanceOfProfit),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("%", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(
+                        context, formatPercentage.format(chanceOfProfit)),
+                    const SizedBox(height: 4),
                     Text("Chance", style: TextStyle(fontSize: labelFontSize)),
                   ]),
                 )
@@ -1119,10 +1095,9 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
                       greekEgdeInset), //.symmetric(horizontal: 6),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(formatCompactNumber.format(openInterest),
-                        style: TextStyle(fontSize: valueFontSize)),
-                    //Container(height: 5),
-                    //const Text("%", style: TextStyle(fontSize: valueFontSize)),
+                    _neutralBadge(
+                        context, formatCompactNumber.format(openInterest)),
+                    const SizedBox(height: 4),
                     Text("Open Interest",
                         style: TextStyle(fontSize: labelFontSize)),
                   ]),

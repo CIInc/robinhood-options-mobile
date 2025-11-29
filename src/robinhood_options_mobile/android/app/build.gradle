@@ -53,7 +53,7 @@ android {
         applicationId "com.cidevelop.robinhood_options_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 23 // flutter.minSdkVersion = 21 // 24
+        minSdkVersion flutter.minSdkVersion // flutter.minSdkVersion = 21 // 24
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName

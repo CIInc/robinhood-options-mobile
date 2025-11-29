@@ -657,27 +657,582 @@ Response: {
   /*
   FUTURES
   */
-// https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
-  // @override
-  // Future<List<dynamic>> getFutureAccounts(
-  //     BrokerageUser user, Account account) async {
-  //   var results = await RobinhoodService.pagedGet(user,
-  //       "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
-  //   //debugPrint(results);
-  //   return results;
-  // }
 
-// https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
-// https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=c8e338f7-6764-4b68-ac05-d8f431c0f869%2Cc8e338f7-6764-4b68-ac05-d8f431c0f869
-// https://api.robinhood.com/arsenal/v1/futures/products/83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec
+/*
+Futures Accounts
+https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
+{
+    "results": [
+        {
+            "id": "12345691-1664-4e00-ad41-9b4e91008879",
+            "accountNumber": "RH0000123456",
+            "userUuid": "12345687-d864-4297-828b-c9b7662f2c2b",
+            "rhsAccountNumber": "101123456",
+            "clientType": "CUSTOMER",
+            "status": "ACTIVE",
+            "statusReasonCode": "ACTIVE_BROKEBACK_VALIDATION_PASSED",
+            "description": "",
+            "operatorId": "RHDCR27YELHBHHRTXQ",
+            "senderLocationId": "US,CA",
+            "createdAt": "2024-10-29T15:13:21.059221Z",
+            "updatedAt": "2025-01-31T23:50:03.697386Z",
+            "markType": "NORMAL_CUSTOMER",
+            "rhsAccountType": "INDIVIDUAL",
+            "pcoRestricted": false,
+            "pcoRestrictedUpdatedAt": "2024-10-29T15:13:21.217867Z",
+            "signedAttestations": [
+                "RHD_EVENT_CONTRACT_ATTESTATION_ELECTION",
+                "RHD_EVENT_CONTRACT_ATTESTATION_GRIDIRON",
+                "RHD_EVENT_CONTRACT_ATTESTATION_ECONOMIC_INDICATOR",
+                "RHD_EVENT_CONTRACT_ATTESTATION_UNIVERSAL_AGREEMENT"
+            ],
+            "accountType": "SWAP",
+            "rhfAccountNumber": "5Q123456",
+            "signedAttestationsAsStrings": [
+                "rhd_event_contract_attestation_election",
+                "rhd_event_contract_attestation_gridiron",
+                "rhd_event_contract_attestation_economic_indicator",
+                "rhd_event_contract_attestation_universal_agreement"
+            ]
+        },
+        {
+            "id": "123456db-54c9-4610-9922-c18f2b217d2e",
+            "accountNumber": "RH0000123456",
+            "userUuid": "12345687-d864-4297-828b-c9b7662f2c2b",
+            "rhsAccountNumber": "101123456",
+            "clientType": "CUSTOMER",
+            "status": "ACTIVE",
+            "statusReasonCode": "ACTIVE_BROKEBACK_VALIDATION_PASSED",
+            "description": "",
+            "operatorId": "RHDCR27YELHBHHRTXQ",
+            "senderLocationId": "US,IL",
+            "createdAt": "2024-12-19T21:27:55.397068Z",
+            "updatedAt": "2025-10-19T00:06:55.554994Z",
+            "markType": "NORMAL_CUSTOMER",
+            "rhsAccountType": "INDIVIDUAL",
+            "pcoRestricted": false,
+            "pcoRestrictedUpdatedAt": "2025-01-18T21:14:56.325469Z",
+            "goldSubscriptionStatus": "FUTURES_DISCOUNT",
+            "goldSubscriptionStartedAt": "2025-04-26T04:29:25.45418Z",
+            "signedAttestations": [],
+            "accountType": "FUTURES",
+            "rhfAccountNumber": "5Q123456",
+            "signedAttestationsAsStrings": []
+        }
+    ]
+}
+*/
+  Future<List<dynamic>> getFuturesAccounts(
+      BrokerageUser user, Account account) async {
+    var results = await RobinhoodService.pagedGet(user,
+        "$endpoint/ceres/v1/accounts?rhsAccountNumber=${account.accountNumber}");
+    //debugPrint(results);
+    return results;
+  }
+
+  Future<dynamic> getFuturesProduct(
+      BrokerageUser user, String productId) async {
+    var url = "$endpoint/arsenal/v1/futures/products/$productId";
+    var resultJson = await getJson(user, url);
+    return resultJson;
+  }
+
+  Future<List<dynamic>> getFuturesProductsByIds(
+      BrokerageUser user, List<String> productIds) async {
+    if (productIds.isEmpty) {
+      return Future.value([]);
+    }
+    var url =
+        "$endpoint/arsenal/v1/futures/products?productIds=${Uri.encodeComponent(productIds.join(","))}";
+    var resultJson = await getJson(user, url);
+    return resultJson['results'] ?? [];
+  }
+
+  Future<dynamic> getFuturesContract(
+      BrokerageUser user, String contractId) async {
+    var url = "$endpoint/arsenal/v1/futures/contracts?contractIds=$contractId";
+    var resultJson = await getJson(user, url);
+    if (resultJson['result'] != null) {
+      return resultJson['result'];
+    }
+    return null;
+  }
+
+  Future<List<dynamic>> getFuturesContractsByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    if (contractIds.isEmpty) {
+      return Future.value([]);
+    }
+    var url =
+        "$endpoint/arsenal/v1/futures/contracts?contractIds=${Uri.encodeComponent(contractIds.join(","))}";
+    var resultJson = await getJson(user, url);
+    return resultJson['results'] ?? [];
+  }
+
+/*
+https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
+{
+    "results": [
+        {
+            "accountId": "67648fdb-54c9-4610-9922-c18f2b217d2e",
+            "contractId": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+            "quantity": "4",
+            "avgTradePrice": "5.008875",
+            "accountNumber": "RH0000205920"
+        }
+    ]
+}*/
   Stream<List<dynamic>> streamFuturePositions(
     BrokerageUser user,
     String account,
-  ) {
+  ) async* {
     var pageStream = streamedGet(
         user, "$endpoint/ceres/v1/accounts/$account/aggregated_positions");
-    return pageStream;
+
+    await for (final results in pageStream) {
+      if (results.isEmpty) {
+        yield results;
+        continue;
+      }
+
+      // Extract unique contract IDs
+      var contractIds = results
+          .map((e) => e['contractId']?.toString())
+          .where((id) => id != null)
+          .toSet()
+          .toList()
+          .cast<String>();
+
+      if (contractIds.isNotEmpty) {
+        // Fetch contract details
+        var contracts = await getFuturesContractsByIds(user, contractIds);
+
+        // Extract unique product IDs from contracts
+        var productIds = contracts
+            .map((c) => c['productId']?.toString())
+            .where((id) => id != null)
+            .toSet()
+            .toList()
+            .cast<String>();
+
+        List<dynamic> products = [];
+        if (productIds.isNotEmpty) {
+          // Fetch product details
+          products = await getFuturesProductsByIds(user, productIds);
+        }
+
+        // Fetch quotes for contracts to compute Open P&L
+        // Endpoint returns an array of objects with data: { last_trade_price, instrument_id }
+        List<dynamic> quotes = [];
+        try {
+          var quotesUrl = "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
+          var quotesJson = await getJson(user, quotesUrl);
+          if (quotesJson['data'] != null) {
+            quotes = quotesJson['data'];
+          }
+        } catch (e) {
+          debugPrint('streamFuturePositions: futures quotes fetch error: $e');
+        }
+
+        // Map for quick lookup instrument_id -> last_trade_price
+        Map<String, double> lastTradePriceByContract = {};
+        for (var quoteWrapper in quotes) {
+          if (quoteWrapper is Map && quoteWrapper['data'] != null) {
+            var data = quoteWrapper['data'];
+            var instrumentId = data['instrument_id']?.toString();
+            var lastTradePriceStr = data['last_trade_price']?.toString();
+            if (instrumentId != null && lastTradePriceStr != null) {
+              var lastTrade = double.tryParse(lastTradePriceStr);
+              if (lastTrade != null) {
+                lastTradePriceByContract[instrumentId] = lastTrade;
+              }
+            }
+          }
+        }
+
+        // Enrich positions with contract and product data
+        for (var position in results) {
+          var contractId = position['contractId'];
+          var contract = contracts.firstWhere(
+            (c) => c['id'] == contractId,
+            orElse: () => null,
+          );
+
+          if (contract != null) {
+            position['contract'] = contract;
+
+            var productId = contract['productId'];
+            var product = products.firstWhere(
+              (p) => p['id'] == productId,
+              orElse: () => null,
+            );
+
+            if (product != null) {
+              position['product'] = product;
+            }
+
+            // Attach last trade price if available
+            if (lastTradePriceByContract.containsKey(contractId)) {
+              position['lastTradePrice'] = lastTradePriceByContract[contractId];
+            }
+
+            // Compute Open P&L if we have lastTradePrice, avgTradePrice, quantity, and multiplier
+            var lastTradePrice = position['lastTradePrice'];
+            var avgTradePriceStr = position['avgTradePrice']?.toString();
+            var quantityStr = position['quantity']?.toString();
+            var multiplierStr = contract['multiplier']?.toString();
+            double? avgTradePrice = avgTradePriceStr != null
+                ? double.tryParse(avgTradePriceStr)
+                : null;
+            double? quantity = quantityStr != null
+                ? double.tryParse(quantityStr)
+                : null;
+            double? multiplier = multiplierStr != null
+                ? double.tryParse(multiplierStr)
+                : null;
+            if (lastTradePrice is double &&
+                avgTradePrice != null &&
+                quantity != null &&
+                multiplier != null) {
+              // Open P&L formula: (Last - Avg) * Quantity * Multiplier
+              position['openPnlCalc'] =
+                  (lastTradePrice - avgTradePrice) * quantity * multiplier;
+            }
+          }
+        }
+        // (Day P&L removed per request; only open P&L retained.)
+      }
+
+      yield results;
+    }
   }
+
+  /*
+Futures Account PnL
+https://api.robinhood.com/ceres/v1/accounts/6720fb91-1664-4e00-ad41-9b4e91008879/pnl_cost_basis
+{
+    "contractToInfo": {
+        "123456b1-aa39-47db-83da-0fec58d69414": {
+            "openPnlCostBasis": {
+                "amount": "16",
+                "currency": "USD"
+            },
+            "dayPnlCostBasis": {
+                "amount": "16",
+                "currency": "USD"
+            },
+            "signedQuantity": "50",
+            "avgTradePrice": "0.32",
+            "dayOpenPnlCostBasis": {
+                "amount": "16",
+                "currency": "USD"
+            }
+        }
+    }
+}
+
+Futures Orders
+https://api.robinhood.com/ceres/v1/accounts/123456db-54c9-4610-9922-c18f2b217d2e/orders?orderState=QUEUED&orderState=CONFIRMED&orderState=UNCONFIRMED&orderState=PENDING_CANCELLED&orderState=PARTIALLY_FILLED
+{
+    "results": [
+        {
+            "orderId": "12345698-696f-4aff-9e0c-a909e1cc12d7",
+            "accountId": "123456db-54c9-4610-9922-c18f2b217d2e",
+            "orderLegs": [
+                {
+                    "id": "691c0098-c14c-4e8e-93da-4cc8bc39b482",
+                    "legId": "A",
+                    "contractType": "OUTRIGHT",
+                    "contractId": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+                    "ratioQuantity": 1,
+                    "orderSide": "SELL",
+                    "averagePrice": ""
+                }
+            ],
+            "quantity": "4",
+            "filledQuantity": "0",
+            "orderType": "MARKET",
+            "orderTrigger": "STOP",
+            "timeInForce": "GTC",
+            "stopPrice": "4.899",
+            "orderState": "CONFIRMED",
+            "refId": "cac8cc3b-8b84-4d88-b8de-443035958bb8",
+            "createdAt": "2025-11-18T05:14:00.463081Z",
+            "updatedAt": "2025-11-18T05:14:01.355973Z",
+            "orderExecutions": [],
+            "routeToMainst": true,
+            "employeeAlias": "",
+            "accountNumber": "RH0000123456",
+            "enteredReason": "ORDER_ENTERED_REASON_UNSPECIFIED",
+            "totalFee": {
+                "amount": "4.48",
+                "currency": "USD"
+            },
+            "fees": [
+                {
+                    "feeTypeName": "Exchange Fees for Futures Trades",
+                    "feeAmount": {
+                        "amount": "0.6",
+                        "currency": "USD"
+                    }
+                },
+                {
+                    "feeTypeName": "NFA Trade Fee",
+                    "feeAmount": {
+                        "amount": "0.02",
+                        "currency": "USD"
+                    }
+                },
+                {
+                    "feeTypeName": "RHD Trade Commission",
+                    "feeAmount": {
+                        "amount": "0.5",
+                        "currency": "USD"
+                    }
+                }
+            ],
+            "totalCommission": {
+                "amount": "2",
+                "currency": "USD"
+            },
+            "totalGoldSavings": {
+                "amount": "1",
+                "currency": "USD"
+            },
+            "isAutoSendEnabled": false,
+            "positionEffectAtPlacementTime": "CLOSING",
+            "rhsAccountNumber": "101123456",
+            "realizedPnl": {
+                "orderId": "",
+                "realizedPnl": {
+                    "amount": "0",
+                    "currency": "USD"
+                },
+                "realizedPnlWithoutFees": {
+                    "amount": "0",
+                    "currency": "USD"
+                }
+            },
+            "derivedState": "CONFIRMED"
+        }
+    ]
+}
+
+Futures Products
+https://api.robinhood.com/arsenal/v1/futures/products/83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec
+{
+    "id": "83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec",
+    "combinedCommodityId": "0e3e86a6-9286-4d9d-aa8e-1644c24a8083",
+    "symbol": "/MHG:XCEC",
+    "displaySymbol": "/MHG",
+    "description": "Micro Copper Futures",
+    "country": "US",
+    "exchange": "XCEC",
+    "currency": "USD",
+    "futureSubType": "PRODUCT_FUTURE_SUBTYPE_NOT_APPLICABLE",
+    "underlyingAsset": "PRODUCT_UNDERLYING_ASSET_NOT_APPLICABLE",
+    "delivery": "PRODUCT_DELIVERY_CASH",
+    "isStandardized": true,
+    "priceIncrements": "0.0005",
+    "activeFuturesContractId": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+    "longDescription": "Micro Copper futures (/MHG) provide exposure to the price of copper. The micro contract represents 2,500 pounds of copper. The micro contract is 1/10th the size of the standard Copper contract (/HG).",
+    "simpleName": "Micro Copper Futures",
+    "tradingHoursInfo": {
+        "tooltip_markdown": "Markets are open {week_start} to {week_end}, and closed {daily_close_start}-{daily_close_end} each day.",
+        "variables": [
+            {
+                "name": "week_start",
+                "layout": "EEEE 'at' h a",
+                "time": "2025-11-23T17:00:00-06:00"
+            },
+            {
+                "name": "week_end",
+                "layout": "EEEE 'at' h a",
+                "time": "2025-11-21T16:00:00-06:00"
+            },
+            {
+                "name": "daily_close_start",
+                "layout": "h",
+                "time": "2025-11-23T16:00:00-06:00"
+            },
+            {
+                "name": "daily_close_end",
+                "layout": "h a",
+                "time": "2025-11-23T17:00:00-06:00"
+            }
+        ]
+    },
+    "settlementStartTime": "12:00",
+    "searchRank": 13000,
+    "rhdProductGroup": "RHD_PRODUCT_GROUP_METALS"
+}
+
+Futures Contracts
+https://api.robinhood.com/arsenal/v1/futures/contracts/symbol/MHGZ25
+or
+https://api.robinhood.com/arsenal/v1/futures/contracts?contractIds=95a375cb-00a1-4078-aab6-f1a56708cc29%2C95a375cb-00a1-4078-aab6-f1a56708cc29
+{
+    "result": {
+        "id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+        "productId": "83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec",
+        "symbol": "/MHGZ25:XCEC",
+        "displaySymbol": "/MHGZ25",
+        "description": "Micro Copper Futures, Dec-25",
+        "multiplier": "2500",
+        "expirationMmy": "202512",
+        "expiration": "2025-11-25",
+        "customerLastCloseDate": "2025-11-25",
+        "tradability": "FUTURES_TRADABILITY_TRADABLE",
+        "state": "FUTURES_STATE_ACTIVE",
+        "settlementStartTime": "12:00",
+        "firstTradeDate": "2024-05-01",
+        "settlementDate": "2025-11-25"
+    }
+}  
+
+Futures Contracts by Product
+https://api.robinhood.com/arsenal/v1/futures/contracts?productIds=83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec
+{
+    "results": [
+        {
+            "id": "dca78c77-cf89-4a28-9e2a-91b0a99a8cc7",
+            "productId": "83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec",
+            "symbol": "/MHGK26:XCEC",
+            "displaySymbol": "/MHGK26",
+            "description": "Micro Copper Futures, May-26",
+            "multiplier": "2500",
+            "expirationMmy": "202605",
+            "expiration": "2026-04-28",
+            "customerLastCloseDate": "2026-04-28",
+            "tradability": "FUTURES_TRADABILITY_TRADABLE",
+            "state": "FUTURES_STATE_ACTIVE",
+            "settlementStartTime": "12:00",
+            "firstTradeDate": "2022-05-02",
+            "settlementDate": "2026-04-28"
+        },
+        {
+            "id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+            "productId": "83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec",
+            "symbol": "/MHGZ25:XCEC",
+            "displaySymbol": "/MHGZ25",
+            "description": "Micro Copper Futures, Dec-25",
+            "multiplier": "2500",
+            "expirationMmy": "202512",
+            "expiration": "2025-11-25",
+            "customerLastCloseDate": "2025-11-25",
+            "tradability": "FUTURES_TRADABILITY_TRADABLE",
+            "state": "FUTURES_STATE_ACTIVE",
+            "settlementStartTime": "12:00",
+            "firstTradeDate": "2024-05-01",
+            "settlementDate": "2025-11-25"
+        },
+        {
+            "id": "b4daeb2e-ab77-4f22-b49e-ad0db4b14d40",
+            "productId": "83cc60f2-3ffa-4f6d-93d1-3532bdc0b0ec",
+            "symbol": "/MHGH26:XCEC",
+            "displaySymbol": "/MHGH26",
+            "description": "Micro Copper Futures, Mar-26",
+            "multiplier": "2500",
+            "expirationMmy": "202603",
+            "expiration": "2026-02-25",
+            "customerLastCloseDate": "2026-02-25",
+            "tradability": "FUTURES_TRADABILITY_TRADABLE",
+            "state": "FUTURES_STATE_ACTIVE",
+            "settlementStartTime": "12:00",
+            "firstTradeDate": "2024-05-01",
+            "settlementDate": "2026-02-25"
+        }
+    ]
+}
+
+Future Closes
+https://api.robinhood.com/marketdata/futures/closes/v1/?ids=95a375cb-00a1-4078-aab6-f1a56708cc29%2C95a375cb-00a1-4078-aab6-f1a56708cc29
+{
+    "status": "SUCCESS",
+    "data": [
+        {
+            "status": "SUCCESS",
+            "data": {
+                "instrument_id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+                "symbol": "/MHGZ25:XCEC",
+                "previous_close_date": "2025-11-20",
+                "previous_close_price": "4.9685",
+                "previous_close_price_type": "FINAL",
+                "previous_close_source": "DXFEED",
+                "previous_close_price_last_updated_at": "2025-11-20T20:45:54.186019936-05:00",
+                "close_date": "2025-11-21",
+                "close_price": null,
+                "close_price_type": null,
+                "close_source": null,
+                "close_price_last_updated_at": "0001-01-01T00:00:00Z"
+            }
+        },
+        {
+            "status": "SUCCESS",
+            "data": {
+                "instrument_id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+                "symbol": "/MHGZ25:XCEC",
+                "previous_close_date": "2025-11-20",
+                "previous_close_price": "4.9685",
+                "previous_close_price_type": "FINAL",
+                "previous_close_source": "DXFEED",
+                "previous_close_price_last_updated_at": "2025-11-20T20:45:54.186019936-05:00",
+                "close_date": "2025-11-21",
+                "close_price": null,
+                "close_price_type": null,
+                "close_source": null,
+                "close_price_last_updated_at": "0001-01-01T00:00:00Z"
+            }
+        }
+    ]
+}
+
+Futures Quotes
+https://api.robinhood.com/marketdata/futures/quotes/v1/?ids=95a375cb-00a1-4078-aab6-f1a56708cc29%2C95a375cb-00a1-4078-aab6-f1a56708cc29
+{
+    "status": "SUCCESS",
+    "data": [
+        {
+            "status": "SUCCESS",
+            "data": {
+                "ask_price": "4.968",
+                "ask_size": 2,
+                "ask_venue_timestamp": "2025-11-20T20:50:21.116-05:00",
+                "bid_price": "4.9665",
+                "bid_size": 3,
+                "bid_venue_timestamp": "2025-11-20T20:50:22.366-05:00",
+                "last_trade_price": "4.967",
+                "last_trade_size": 1,
+                "last_trade_venue_timestamp": "2025-11-20T20:50:00.596-05:00",
+                "symbol": "/MHGZ25:XCEC",
+                "instrument_id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+                "state": "active",
+                "updated_at": "2025-11-20T20:50:22.366-05:00",
+                "out_of_band": false
+            }
+        },
+        {
+            "status": "SUCCESS",
+            "data": {
+                "ask_price": "4.968",
+                "ask_size": 2,
+                "ask_venue_timestamp": "2025-11-20T20:50:21.116-05:00",
+                "bid_price": "4.9665",
+                "bid_size": 3,
+                "bid_venue_timestamp": "2025-11-20T20:50:22.366-05:00",
+                "last_trade_price": "4.967",
+                "last_trade_size": 1,
+                "last_trade_venue_timestamp": "2025-11-20T20:50:00.596-05:00",
+                "symbol": "/MHGZ25:XCEC",
+                "instrument_id": "95a375cb-00a1-4078-aab6-f1a56708cc29",
+                "state": "active",
+                "updated_at": "2025-11-20T20:50:22.366-05:00",
+                "out_of_band": false
+            }
+        }
+    ]
+}
+  */
 
   /*
   POSITIONS

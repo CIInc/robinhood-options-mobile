@@ -5,7 +5,8 @@ import 'package:robinhood_options_mobile/model/user.dart';
 
 void main() {
   group('User Model Investment Profile Tests', () {
-    test('User model should serialize and deserialize investment profile fields',
+    test(
+        'User model should serialize and deserialize investment profile fields',
         () {
       // Create a user with investment profile data
       final now = DateTime.now();
@@ -28,7 +29,8 @@ void main() {
       final json = user.toJson();
 
       // Verify JSON contains investment profile fields
-      expect(json['investmentGoals'], equals('Retirement planning and wealth building'));
+      expect(json['investmentGoals'],
+          equals('Retirement planning and wealth building'));
       expect(json['timeHorizon'], equals('Long-term (5-10 years)'));
       expect(json['riskTolerance'], equals('Moderate'));
       expect(json['totalPortfolioValue'], equals(100000.00));
@@ -40,7 +42,8 @@ void main() {
       final deserializedUser = User.fromJson(json);
 
       // Verify investment profile fields are correctly deserialized
-      expect(deserializedUser.investmentGoals, equals('Retirement planning and wealth building'));
+      expect(deserializedUser.investmentGoals,
+          equals('Retirement planning and wealth building'));
       expect(deserializedUser.timeHorizon, equals('Long-term (5-10 years)'));
       expect(deserializedUser.riskTolerance, equals('Moderate'));
       expect(deserializedUser.totalPortfolioValue, equals(100000.00));
@@ -85,7 +88,7 @@ void main() {
     test('User model should handle missing investment profile fields in JSON',
         () {
       final now = DateTime.now();
-      
+
       // Create a JSON object without investment profile fields (simulating old data)
       final json = {
         'name': 'Test User',
@@ -96,8 +99,7 @@ void main() {
         'dateCreated': Timestamp.fromDate(now),
         'brokerageUsers': [],
         'accounts': [],
-        'persistToFirebase': true,
-        'refreshQuotes': false,
+        'refreshQuotes': true,
       };
 
       // Deserialize from JSON

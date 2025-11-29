@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
-  const AgenticTradingSettingsWidget({super.key});
+  final User user;
+  final DocumentReference<User> userDocRef;
+
+  const AgenticTradingSettingsWidget({
+    super.key,
+    required this.user,
+    required this.userDocRef,
+  });
 
   @override
   State<AgenticTradingSettingsWidget> createState() =>
@@ -20,33 +29,48 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxPortfolioConcentrationController;
   late TextEditingController _rsiPeriodController;
   late TextEditingController _marketIndexSymbolController;
+  late Map<String, bool> _enabledIndicators;
 
   @override
   void initState() {
     super.initState();
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
+
+    // Load config after frame to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      agenticTradingProvider
+          .loadConfigFromUser(widget.user.agenticTradingConfig);
+    });
+
+    // Initialize controllers from user's config
+    final config = widget.user.agenticTradingConfig?.toJson() ?? {};
+    _enabledIndicators = widget.user.agenticTradingConfig?.enabledIndicators ??
+        {
+          'priceMovement': true,
+          'momentum': true,
+          'marketDirection': true,
+          'volume': true,
+          'macd': true,
+          'bollingerBands': true,
+          'stochastic': true,
+          'atr': true,
+          'obv': true,
+        };
     _smaPeriodFastController = TextEditingController(
-        text:
-            agenticTradingProvider.config['smaPeriodFast']?.toString() ?? '10');
+        text: config['smaPeriodFast']?.toString() ?? '10');
     _smaPeriodSlowController = TextEditingController(
-        text:
-            agenticTradingProvider.config['smaPeriodSlow']?.toString() ?? '30');
-    _tradeQuantityController = TextEditingController(
-        text:
-            agenticTradingProvider.config['tradeQuantity']?.toString() ?? '1');
+        text: config['smaPeriodSlow']?.toString() ?? '30');
+    _tradeQuantityController =
+        TextEditingController(text: config['tradeQuantity']?.toString() ?? '1');
     _maxPositionSizeController = TextEditingController(
-        text: agenticTradingProvider.config['maxPositionSize']?.toString() ??
-            '100');
+        text: config['maxPositionSize']?.toString() ?? '100');
     _maxPortfolioConcentrationController = TextEditingController(
-        text: agenticTradingProvider.config['maxPortfolioConcentration']
-                ?.toString() ??
-            '0.5');
-    _rsiPeriodController = TextEditingController(
-        text: agenticTradingProvider.config['rsiPeriod']?.toString() ?? '14');
+        text: config['maxPortfolioConcentration']?.toString() ?? '0.5');
+    _rsiPeriodController =
+        TextEditingController(text: config['rsiPeriod']?.toString() ?? '14');
     _marketIndexSymbolController = TextEditingController(
-        text: agenticTradingProvider.config['marketIndexSymbol']?.toString() ??
-            'SPY');
+        text: config['marketIndexSymbol']?.toString() ?? 'SPY');
   }
 
   @override
@@ -61,11 +85,52 @@ class _AgenticTradingSettingsWidgetState
     super.dispose();
   }
 
-  void _saveSettings() {
+  Widget _buildIndicatorToggle(String key, String title, String description) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(description),
+      value: _enabledIndicators[key] ?? true,
+      onChanged: (bool value) {
+        setState(() {
+          _enabledIndicators[key] = value;
+        });
+      },
+    );
+  }
+
+  Widget _buildDocSection(String key) {
+    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final title = docInfo['title'] ?? '';
+    final documentation = docInfo['documentation'] ?? '';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            documentation,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
       final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
       final newConfig = {
+        'enabled': agenticTradingProvider.isAgenticTradingEnabled,
         'smaPeriodFast': int.parse(_smaPeriodFastController.text),
         'smaPeriodSlow': int.parse(_smaPeriodSlowController.text),
         'tradeQuantity': int.parse(_tradeQuantityController.text),
@@ -74,11 +139,14 @@ class _AgenticTradingSettingsWidgetState
             double.parse(_maxPortfolioConcentrationController.text),
         'rsiPeriod': int.parse(_rsiPeriodController.text),
         'marketIndexSymbol': _marketIndexSymbolController.text,
+        'enabledIndicators': _enabledIndicators,
       };
-      agenticTradingProvider.updateConfig(newConfig);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved!')),
-      );
+      await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved!')),
+        );
+      }
     }
   }
 
@@ -202,83 +270,114 @@ class _AgenticTradingSettingsWidgetState
                     return null;
                   },
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    'Multi-Indicator System',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Technical Indicators',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.info_outline, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: 'Indicator Documentation',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Technical Indicators'),
+                              content: SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDocSection('priceMovement'),
+                                    _buildDocSection('momentum'),
+                                    _buildDocSection('marketDirection'),
+                                    _buildDocSection('volume'),
+                                    _buildDocSection('macd'),
+                                    _buildDocSection('bollingerBands'),
+                                    _buildDocSection('stochastic'),
+                                    _buildDocSection('atr'),
+                                    _buildDocSection('obv'),
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  padding: EdgeInsets.only(bottom: 8.0),
                   child: Text(
-                    'All 4 indicators must be GREEN for automatic trade:\n'
-                    '1. Price Movement (chart patterns)\n'
-                    '2. Momentum (RSI)\n'
-                    '3. Market Direction (moving averages on selected index)\n'
-                    '4. Volume (volume with price correlation)',
-                    style: TextStyle(fontSize: 14),
+                    'All enabled indicators must be GREEN for a trade signal',
+                    style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
                   ),
+                ),
+                _buildIndicatorToggle(
+                  'priceMovement',
+                  'Price Movement',
+                  'Chart patterns and trend analysis',
+                ),
+                _buildIndicatorToggle(
+                  'momentum',
+                  'Momentum (RSI)',
+                  'Relative Strength Index - overbought/oversold conditions',
+                ),
+                _buildIndicatorToggle(
+                  'marketDirection',
+                  'Market Direction',
+                  'Moving averages on market index (SPY/QQQ)',
+                ),
+                _buildIndicatorToggle(
+                  'volume',
+                  'Volume',
+                  'Volume confirmation with price movement',
+                ),
+                _buildIndicatorToggle(
+                  'macd',
+                  'MACD',
+                  'Moving Average Convergence Divergence',
+                ),
+                _buildIndicatorToggle(
+                  'bollingerBands',
+                  'Bollinger Bands',
+                  'Volatility and price level analysis',
+                ),
+                _buildIndicatorToggle(
+                  'stochastic',
+                  'Stochastic Oscillator',
+                  'Momentum indicator comparing closing price to price range',
+                ),
+                _buildIndicatorToggle(
+                  'atr',
+                  'ATR',
+                  'Average True Range - volatility measurement',
+                ),
+                _buildIndicatorToggle(
+                  'obv',
+                  'OBV',
+                  'On-Balance Volume - volume flow indicator',
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   child: ElevatedButton(
                     onPressed: _saveSettings,
                     child: const Text('Save Settings'),
-                  ),
-                ),
-                if (agenticTradingProvider.tradeProposalMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Text(
-                      'Status: ${agenticTradingProvider.tradeProposalMessage}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                if (agenticTradingProvider.lastTradeProposal != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Last Trade Proposal:',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                            'Symbol: ${agenticTradingProvider.lastTradeProposal!['symbol']}'),
-                        Text(
-                            'Action: ${agenticTradingProvider.lastTradeProposal!['action']}'),
-                        Text(
-                            'Quantity: ${agenticTradingProvider.lastTradeProposal!['quantity']}'),
-                        Text(
-                            'Price: ${agenticTradingProvider.lastTradeProposal!['price']}'),
-                        if (agenticTradingProvider.lastTradeProposal!
-                            .containsKey('multiIndicatorResult'))
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8.0),
-                            child: Text(
-                              'Multi-indicator data available. View in Trade Signals.',
-                              style: TextStyle(fontStyle: FontStyle.italic),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                // Placeholder for a button to initiate a trade proposal (for testing)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // This is a placeholder. In a real scenario, this would be triggered by market data.
-                      agenticTradingProvider.initiateTradeProposal(
-                        symbol: 'SPY',
-                        currentPrice: 450.00, // Example price
-                        portfolioState: {
-                          'cash': 10000.00,
-                          'SPY': 10
-                        }, // Example portfolio
-                      );
-                    },
-                    child: const Text('Initiate Test Trade Proposal'),
                   ),
                 ),
               ],

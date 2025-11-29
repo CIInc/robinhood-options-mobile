@@ -4,6 +4,8 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
+import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
 class User {
   String? name;
@@ -20,16 +22,19 @@ class User {
   DateTime? lastVisited;
   List<BrokerageUser> brokerageUsers = [];
   List<Account> accounts = [];
-  bool persistToFirebase;
   bool refreshQuotes;
-  List<String>? sharedWith;
-  List<String>? sharedGroups;
-  bool? isPublic;
+
   // Investment Profile fields
   String? investmentGoals;
   String? timeHorizon;
   String? riskTolerance;
   double? totalPortfolioValue;
+
+  // Trade Signal Notification Settings
+  TradeSignalNotificationSettings? tradeSignalNotificationSettings;
+
+  // Agentic Trading Configuration
+  AgenticTradingConfig? agenticTradingConfig;
 
   User(
       {this.name,
@@ -46,15 +51,13 @@ class User {
       this.lastVisited,
       required this.brokerageUsers,
       required this.accounts,
-      this.persistToFirebase = true,
       this.refreshQuotes = false,
-      this.sharedWith,
-      this.sharedGroups,
-      this.isPublic,
       this.investmentGoals,
       this.timeHorizon,
       this.riskTolerance,
-      this.totalPortfolioValue});
+      this.totalPortfolioValue,
+      this.tradeSignalNotificationSettings,
+      this.agenticTradingConfig});
 
   User.fromJson(Map<String, Object?> json)
       : this(
@@ -83,25 +86,24 @@ class User {
             accounts: json['accounts'] != null
                 ? Account.fromJsonArray(json['accounts'])
                 : [],
-            persistToFirebase: json['persistToFirebase'] != null
-                ? json['persistToFirebase'] as bool
-                : true,
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
                 : true,
-            sharedWith: json['sharedWith'] != null
-                ? List<String>.from(json['sharedWith'] as Iterable<dynamic>)
-                : null,
-            sharedGroups: json['sharedGroups'] != null
-                ? List<String>.from(json['sharedGroups'] as Iterable<dynamic>)
-                : null,
-            isPublic:
-                json['isPublic'] != null ? json['isPublic'] as bool : null,
             investmentGoals: json['investmentGoals'] as String?,
             timeHorizon: json['timeHorizon'] as String?,
             riskTolerance: json['riskTolerance'] as String?,
             totalPortfolioValue: json['totalPortfolioValue'] != null
                 ? (json['totalPortfolioValue'] as num).toDouble()
+                : null,
+            tradeSignalNotificationSettings:
+                json['tradeSignalNotificationSettings'] != null
+                    ? TradeSignalNotificationSettings.fromJson(
+                        json['tradeSignalNotificationSettings']
+                            as Map<String, dynamic>)
+                    : null,
+            agenticTradingConfig: json['agenticTradingConfig'] != null
+                ? AgenticTradingConfig.fromJson(
+                    json['agenticTradingConfig'] as Map<String, dynamic>)
                 : null);
 
   Map<String, Object?> toJson() {
@@ -120,15 +122,14 @@ class User {
       'lastVisited': lastVisited,
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
       'accounts': accounts.map((e) => e.toJson()).toList(),
-      'persistToFirebase': persistToFirebase,
       'refreshQuotes': refreshQuotes,
-      'sharedWith': sharedWith,
-      'sharedGroups': sharedGroups,
-      'isPublic': isPublic,
       'investmentGoals': investmentGoals,
       'timeHorizon': timeHorizon,
       'riskTolerance': riskTolerance,
-      'totalPortfolioValue': totalPortfolioValue
+      'totalPortfolioValue': totalPortfolioValue,
+      'tradeSignalNotificationSettings':
+          tradeSignalNotificationSettings?.toJson(),
+      'agenticTradingConfig': agenticTradingConfig?.toJson()
     };
   }
 

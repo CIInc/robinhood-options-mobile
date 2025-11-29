@@ -90,6 +90,14 @@ class _SearchWidgetState extends State<SearchWidget>
   bool yahooScreenerLoading = false;
   String? yahooScreenerError;
 
+  // Trade Signal Filters
+  String? tradeSignalFilter; // null = all, 'BUY', 'SELL', 'HOLD'
+  List<String> selectedIndicators =
+      []; // Selected indicators from multiIndicatorResult.indicators
+  DateTime? tradeSignalStartDate;
+  DateTime? tradeSignalEndDate;
+  int tradeSignalLimit = 50; // Default limit
+
   // Controllers for screener fields
   late TextEditingController marketCapMinCtl;
   late TextEditingController marketCapMaxCtl;
@@ -1123,42 +1131,127 @@ class _SearchWidgetState extends State<SearchWidget>
                   Consumer<AgenticTradingProvider>(
                     builder: (context, agenticTradingProvider, child) {
                       final tradeSignals = agenticTradingProvider.tradeSignals;
-                      if (tradeSignals.isEmpty) {
-                        return const SliverToBoxAdapter(
-                            child: SizedBox.shrink());
-                      }
+                      final isMarketOpen = agenticTradingProvider.isMarketOpen;
+                      final selectedInterval =
+                          agenticTradingProvider.selectedInterval;
+                      final intervalLabel = selectedInterval == '1d'
+                          ? 'Daily'
+                          : selectedInterval == '1h'
+                              ? 'Hourly'
+                              : selectedInterval == '30m'
+                                  ? '30-min'
+                                  : selectedInterval == '15m'
+                                      ? '15-min'
+                                      : selectedInterval;
+
                       return SliverStickyHeader(
                           header: Material(
                               //elevation: 2,
                               child: Container(
                                   alignment: Alignment.centerLeft,
-                                  child: const ListTile(
-                                    title: Wrap(children: [
-                                      Text(
-                                        "Trade Signals",
-                                        style: TextStyle(fontSize: 19.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ListTile(
+                                        title: Row(
+                                          children: [
+                                            const Text(
+                                              "Trade Signals",
+                                              style: TextStyle(fontSize: 19.0),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Chip(
+                                              avatar: Icon(
+                                                isMarketOpen
+                                                    ? Icons.access_time
+                                                    : Icons.calendar_today,
+                                                size: 16,
+                                                color: isMarketOpen
+                                                    ? Colors.green.shade700
+                                                    : Colors.blue.shade700,
+                                              ),
+                                              label: Text(
+                                                '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isMarketOpen
+                                                      ? Colors.green.shade700
+                                                      : Colors.blue.shade700,
+                                                ),
+                                              ),
+                                              backgroundColor: isMarketOpen
+                                                  ? Colors.green
+                                                      .withOpacity(0.1)
+                                                  : Colors.blue
+                                                      .withOpacity(0.1),
+                                              side: BorderSide(
+                                                color: isMarketOpen
+                                                    ? Colors.green.shade300
+                                                    : Colors.blue.shade300,
+                                                width: 1,
+                                              ),
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ]),
+                                      Consumer<AgenticTradingProvider>(
+                                        builder:
+                                            (context, agenticProvider, child) {
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 16.0,
+                                                vertical: 4.0),
+                                            child:
+                                                _buildTradeSignalFilterChips(),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ))),
-                          sliver: SliverPadding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2),
-                              sliver: SliverGrid(
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 220.0,
-                                  mainAxisSpacing: 10.0,
-                                  crossAxisSpacing: 10.0,
-                                  childAspectRatio: 1.3,
-                                ),
-                                delegate: SliverChildBuilderDelegate(
-                                  (BuildContext context, int index) {
-                                    return _buildTradeSignalGridItem(
-                                        tradeSignals, index);
-                                  },
-                                  childCount: tradeSignals.length,
-                                ),
-                              )));
+                          sliver: tradeSignals.isEmpty
+                              ? SliverToBoxAdapter(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Center(
+                                      child: Text(
+                                        tradeSignalFilter == null
+                                            ? 'No trade signals available'
+                                            : 'No $tradeSignalFilter signals found',
+                                        style: TextStyle(
+                                          fontSize: 16.0,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : SliverPadding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  sliver: SliverGrid(
+                                    gridDelegate:
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 220.0,
+                                      mainAxisSpacing: 10.0,
+                                      crossAxisSpacing: 10.0,
+                                      childAspectRatio: 1.25,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (BuildContext context, int index) {
+                                        return _buildTradeSignalGridItem(
+                                            tradeSignals, index);
+                                      },
+                                      childCount: tradeSignals.length,
+                                    ),
+                                  )));
                     },
                   ),
                   _buildScreenerSliver(),
@@ -1518,9 +1611,37 @@ class _SearchWidgetState extends State<SearchWidget>
         : DateTime.now();
     final symbol = signal['symbol'] ?? 'N/A';
     final signalType = signal['signal'] ?? 'HOLD';
-    final reason = signal['reason'] ?? 'No reason provided';
+    // final reason = signal['reason'] ?? 'No reason provided';
     final isBuy = signalType == 'BUY';
     final isSell = signalType == 'SELL';
+
+    // Extract individual indicator signals from multiIndicatorResult
+    final multiIndicatorResult =
+        signal['multiIndicatorResult'] as Map<String, dynamic>?;
+    final indicatorsMap =
+        multiIndicatorResult?['indicators'] as Map<String, dynamic>?;
+
+    Map<String, String> indicatorSignals = {};
+    if (indicatorsMap != null) {
+      const indicatorNames = [
+        'priceMovement',
+        'momentum',
+        'marketDirection',
+        'volume',
+        'macd',
+        'bollingerBands',
+        'stochastic',
+        'atr',
+        'obv',
+      ];
+
+      for (final indicator in indicatorNames) {
+        final indicatorData = indicatorsMap[indicator] as Map<String, dynamic>?;
+        if (indicatorData != null && indicatorData['signal'] != null) {
+          indicatorSignals[indicator] = indicatorData['signal'];
+        }
+      }
+    }
 
     return Card(
         elevation: 2,
@@ -1597,16 +1718,70 @@ class _SearchWidgetState extends State<SearchWidget>
                           style: TextStyle(
                               fontSize: 12.0, color: Colors.grey.shade600),
                           overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: Text(reason,
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color: Colors.grey.shade700,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis),
-                      ),
+                      // Individual indicator signal tags
+                      if (indicatorSignals.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: indicatorSignals.entries.map((entry) {
+                            final indicatorName = entry.key;
+                            final indicatorSignal = entry.value;
+
+                            Color tagColor;
+                            if (indicatorSignal == 'BUY') {
+                              tagColor = Colors.green;
+                            } else if (indicatorSignal == 'SELL') {
+                              tagColor = Colors.red;
+                            } else {
+                              tagColor = Colors.grey;
+                            }
+
+                            // Short names for display
+                            final displayName = indicatorName == 'priceMovement'
+                                ? 'Price'
+                                : indicatorName == 'marketDirection'
+                                    ? 'Market'
+                                    : indicatorName == 'bollingerBands'
+                                        ? 'BB'
+                                        : indicatorName == 'stochastic'
+                                            ? 'Stoch'
+                                            : indicatorName[0].toUpperCase() +
+                                                indicatorName.substring(1);
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: tagColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: tagColor.withOpacity(0.4),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Text(
+                                displayName, //'$displayName: ${indicatorSignal[0]}',
+                                style: TextStyle(
+                                  fontSize: 9.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: tagColor,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      // const SizedBox(height: 8),
+                      // Expanded(
+                      //   child: Text(reason,
+                      //       style: TextStyle(
+                      //         fontSize: 12.0,
+                      //         color: Colors.grey.shade700,
+                      //       ),
+                      //       maxLines: 3,
+                      //       overflow: TextOverflow.ellipsis),
+                      // ),
                     ])),
             onTap: () async {
               final symbol = signal['symbol'];
@@ -1864,5 +2039,130 @@ class _SearchWidgetState extends State<SearchWidget>
     }
 
     return sorted;
+  }
+
+  void _fetchTradeSignalsWithFilters() {
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    agenticTradingProvider.fetchAllTradeSignals(
+      signalType: tradeSignalFilter,
+      indicators: selectedIndicators.isEmpty ? null : selectedIndicators,
+      startDate: tradeSignalStartDate,
+      endDate: tradeSignalEndDate,
+      limit: tradeSignalLimit,
+    );
+  }
+
+  Widget _buildTradeSignalFilterChips() {
+    final indicatorOptions = [
+      'priceMovement',
+      'momentum',
+      'marketDirection',
+      'volume',
+      'macd',
+      'bollingerBands',
+      'stochastic',
+      'atr',
+      'obv',
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // FilterChip(
+          //   label: const Text('All'),
+          //   selected: tradeSignalFilter == null,
+          //   onSelected: (selected) {
+          //     if (tradeSignalFilter != null) {
+          //       setState(() {
+          //         tradeSignalFilter = null;
+          //       });
+          //       _fetchTradeSignalsWithFilters();
+          //     }
+          //   },
+          // ),
+          // const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('BUY'),
+            selected: tradeSignalFilter == 'BUY',
+            onSelected: (selected) {
+              setState(() {
+                tradeSignalFilter = selected ? 'BUY' : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            selectedColor: Colors.green.withOpacity(0.3),
+            checkmarkColor: Colors.green,
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('SELL'),
+            selected: tradeSignalFilter == 'SELL',
+            onSelected: (selected) {
+              setState(() {
+                tradeSignalFilter = selected ? 'SELL' : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            selectedColor: Colors.red.withOpacity(0.3),
+            checkmarkColor: Colors.red,
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            label: const Text('HOLD'),
+            selected: tradeSignalFilter == 'HOLD',
+            onSelected: (selected) {
+              setState(() {
+                tradeSignalFilter = selected ? 'HOLD' : null;
+              });
+              _fetchTradeSignalsWithFilters();
+            },
+            selectedColor: Colors.grey.withOpacity(0.3),
+            checkmarkColor: Colors.grey,
+          ),
+          // const SizedBox(width: 8),
+          // IconButton(
+          //   icon: const Icon(Icons.refresh),
+          //   tooltip: 'Refresh',
+          //   onPressed: _fetchTradeSignalsWithFilters,
+          //   iconSize: 20,
+          // ),
+          const SizedBox(width: 8),
+          const Text('•', style: TextStyle(color: Colors.grey)),
+          const SizedBox(width: 8),
+          // Indicator chips
+          ...indicatorOptions.map((indicator) {
+            final indicatorLabel = indicator == 'priceMovement'
+                ? 'Price'
+                : indicator == 'marketDirection'
+                    ? 'Market'
+                    : indicator == 'bollingerBands'
+                        ? 'Bollinger'
+                        : indicator[0].toUpperCase() + indicator.substring(1);
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: FilterChip(
+                label: Text(indicatorLabel),
+                selected: selectedIndicators.contains(indicator),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      selectedIndicators.add(indicator);
+                    } else {
+                      selectedIndicators.remove(indicator);
+                    }
+                  });
+                  _fetchTradeSignalsWithFilters();
+                },
+                backgroundColor: Colors.transparent,
+                selectedColor: Colors.blue.withOpacity(0.2),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
   }
 }

@@ -11,6 +11,7 @@ import 'package:robinhood_options_mobile/enums.dart';
 import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -37,7 +38,7 @@ import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
-import 'package:robinhood_options_mobile/widgets/shared_portfolios_widget.dart';
+import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -212,6 +213,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                   }
                 }
               }
+              // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Provider.of<AgenticTradingProvider>(context, listen: false)
+                    .loadConfigFromUser(user?.agenticTradingConfig);
+              });
+
               widget.analytics.setUserId(id: userInfo!.username);
               /*
                     List<dynamic> data = dataSnapshot.data as List<dynamic>;
@@ -460,15 +467,20 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             generativeService: _generativeService,
             navigatorKey: navigatorKeys[3]),
       ],
+      InvestorGroupsWidget(
+        firestoreService: _firestoreService,
+        brokerageUser: userStore.currentUser!,
+        analytics: widget.analytics,
+        observer: widget.observer,
+      ),
       // Shared Portfolios tab
       if (auth.currentUser != null) ...[
-        SharedPortfoliosWidget(
-          firestoreService: _firestoreService,
-          brokerageService: service,
-          brokerageUser: userStore.currentUser!,
-          analytics: widget.analytics,
-          observer: widget.observer,
-        ),
+        if (userRole == UserRole.admin) ...[
+          UsersWidget(auth,
+              analytics: widget.analytics,
+              observer: widget.observer,
+              brokerageUser: userStore.currentUser!)
+        ]
       ],
     ];
   }
@@ -800,20 +812,34 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                               },
                             ),
                             // Agentic Trading Settings moved to the User page
-                            if (auth.currentUser != null) ...[
-                              const Divider(
-                                thickness: 0.25,
-                              ),
-                              ListTile(
-                                leading: const Icon(Icons.share),
-                                title: const Text("Shared Portfolios"),
-                                selected: _pageIndex == 4,
-                                onTap: () {
-                                  Navigator.pop(context); // close the drawer
-                                  _onPageChanged(4);
-                                },
-                              ),
-                            ],
+                            // if (auth.currentUser != null) ...[
+                            const Divider(
+                              thickness: 0.25,
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.groups),
+                              title: const Text("Investor Groups"),
+                              selected: _pageIndex == 4,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(4);
+                              },
+                              // onTap: () {
+                              //   Navigator.pop(context); // close the drawer
+                              //   Navigator.push(
+                              //     context,
+                              //     MaterialPageRoute(
+                              //       builder: (context) => InvestorGroupsWidget(
+                              //         firestoreService: _firestoreService,
+                              //         brokerageUser: userStore.currentUser!,
+                              //         analytics: widget.analytics,
+                              //         observer: widget.observer,
+                              //       ),
+                              //     ),
+                              //   );
+                              // },
+                            ),
+                            // ],
                             // ListTile(
                             //   leading: const Icon(Icons.account_circle),
                             //   title: const Text("Account"),
@@ -917,7 +943,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                             ListTile(
                                 leading: const Icon(Icons.person_search),
                                 title: const Text("Users"),
-                                //selected: false,
+                                // selected: _pageIndex == 6,
+                                // onTap: () {
+                                //   Navigator.pop(context); // close the drawer
+                                //   _onPageChanged(6);
+                                // },
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
                                   Navigator.push(

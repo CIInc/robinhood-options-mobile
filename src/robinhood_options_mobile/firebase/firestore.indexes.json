@@ -1,18 +1,42 @@
 {
   "indexes": [
     {
-      "collectionGroup": "instrument",
+      "collectionGroup": "agentic_trading",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "fundamentalsObj.market_cap",
+          "fieldPath": "interval",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
           "order": "DESCENDING"
         },
         {
-          "fieldPath": "fundamentalsObj.pe_ratio",
+          "fieldPath": "__name__",
           "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "agentic_trading",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "signal",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "instrument",
@@ -25,8 +49,32 @@
         {
           "fieldPath": "fundamentalsObj.dividend_yield",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "instrument",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fundamentalsObj.market_cap",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "fundamentalsObj.pe_ratio",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "instrument",
@@ -39,8 +87,13 @@
         {
           "fieldPath": "fundamentalsObj.market_cap",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
     },
     {
       "collectionGroup": "instrument",
@@ -57,8 +110,70 @@
         {
           "fieldPath": "fundamentalsObj.pe_ratio",
           "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-      ]
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "isPrivate",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "members",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "investor_groups",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "pendingInvitations",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "dateCreated",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []

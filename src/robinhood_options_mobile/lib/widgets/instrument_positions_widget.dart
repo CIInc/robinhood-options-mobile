@@ -53,6 +53,32 @@ class InstrumentPositionsWidget extends StatefulWidget {
 class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
   // final FirestoreService _firestoreService = FirestoreService();
 
+  Color _pnlColor(BuildContext context, double v) {
+    if (v > 0) return Colors.green;
+    if (v < 0) return Colors.red;
+    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
+  }
+
+  Widget _pnlBadge(BuildContext context, String? text, double? value) {
+    final base = _pnlColor(context, value ?? 0);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: base.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text ?? '',
+        style: TextStyle(
+            fontSize: badgeValueFontSize,
+            fontWeight: FontWeight.w600,
+            color: base),
+        overflow: TextOverflow.fade,
+        softWrap: false,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     var sortedFilteredPositions = widget.filteredPositions.sortedBy<num>((i) =>
@@ -377,44 +403,46 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
           subtitle: Text(
               "${formatCompactNumber.format(sortedFilteredPositions.length)} positions"), // , ${formatCurrency.format(positionEquity)} market value // of ${formatCompactNumber.format(positions.length)}
           trailing: InkWell(
-            // customBorder: StadiumBorder(),
-            onTap:
-                //widget.user.displayValue == DisplayValue.marketValue ? null :
-                () {
+            onTap: () {
               setState(() {
                 widget.user.displayValue = DisplayValue.marketValue;
               });
-              // var userStore =
-              //     Provider.of<BrokerageUserStore>(context, listen: false);
-              // userStore.addOrUpdate(widget.user);
-              // userStore.save();
             },
-            child: Wrap(spacing: 8, children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
-                child: AnimatedSwitcher(
-                  duration: Duration(milliseconds: 200),
-                  // transitionBuilder:
-                  //     (Widget child, Animation<double> animation) {
-                  //   return SlideTransition(
-                  //       position: (Tween<Offset>(
-                  //               begin: Offset(0, -0.25), end: Offset.zero))
-                  //           .animate(animation),
-                  //       child: child);
-                  // },
-                  transitionBuilder:
-                      (Widget child, Animation<double> animation) {
-                    return ScaleTransition(scale: animation, child: child);
-                  },
-                  child: Text(
-                    key: ValueKey<String>(marketValueText),
-                    marketValueText,
-                    style: const TextStyle(fontSize: assetValueFontSize),
-                    textAlign: TextAlign.right,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8.0, 8.0, 0.0, 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Text(
+                      key: ValueKey<String>(marketValueText),
+                      marketValueText,
+                      style: const TextStyle(fontSize: assetValueFontSize),
+                      textAlign: TextAlign.right,
+                    ),
                   ),
-                ),
+                  // if (sortedFilteredPositions.isNotEmpty) ...[
+                  //   const SizedBox(height: 6),
+                  //   Row(
+                  //     mainAxisSize: MainAxisSize.min,
+                  //     children: [
+                  //       _pnlBadge(context, todayReturnPercentText,
+                  //           todayReturnPercent),
+                  //       const SizedBox(width: 8),
+                  //       _pnlBadge(context, totalReturnPercentText,
+                  //           totalReturnPercent),
+                  //     ],
+                  //   ),
+                  // ]
+                ],
               ),
-            ]),
+            ),
           ),
           onTap: widget.showList
               ? null
@@ -443,7 +471,11 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
             todayReturnPercentText,
             totalIcon,
             totalReturnText,
-            totalReturnPercentText)
+            totalReturnPercentText,
+            todayReturn,
+            todayReturnPercent,
+            totalReturn,
+            totalReturnPercent)
       ])),
       if (barChartSeriesList.isNotEmpty &&
           barChartSeriesList.first.data.isNotEmpty) ...[
@@ -611,97 +643,123 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
     Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 27.0);
     Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 27.0);
 
-    return Card(
-        child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      ListTile(
-        /*
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+        child: Card(
+            elevation: 2,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                /*
         leading: CircleAvatar(
             child: Text(formatCompactNumber.format(positions[index].quantity!),
                 style: const TextStyle(fontSize: 17))),
                 */
-        leading: instrument != null
-            ? Hero(
-                tag: 'logo_${instrument.symbol}${instrument.id}',
-                child: instrument.logoUrl != null
-                    ? Image.network(
-                        instrument.logoUrl!,
-                        width: 50,
-                        height: 50,
-                        errorBuilder: (BuildContext context, Object exception,
-                            StackTrace? stackTrace) {
-                          RobinhoodService.removeLogo(instrument);
-                          return CircleAvatar(
-                              radius: 25,
-                              // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
-                              //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                              child: Text(instrument.symbol,
-                                  overflow: TextOverflow.fade,
-                                  softWrap: false));
-                        },
-                      )
-                    : CircleAvatar(
-                        radius: 25,
-                        // foregroundColor: Theme.of(context).colorScheme.primary,
-                        child: Text(instrument.symbol,
-                            overflow: TextOverflow.fade, softWrap: false)))
-            : null,
-        title: Text(
-          instrument != null ? instrument.simpleName ?? instrument.name : "",
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text("${positions[index].quantity} shares"),
-        //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
-        /*
+                leading: instrument != null
+                    ? Hero(
+                        tag: 'logo_${instrument.symbol}${instrument.id}',
+                        child: instrument.logoUrl != null
+                            ? Image.network(
+                                instrument.logoUrl!,
+                                width: 50,
+                                height: 50,
+                                errorBuilder: (BuildContext context,
+                                    Object exception, StackTrace? stackTrace) {
+                                  RobinhoodService.removeLogo(instrument);
+                                  return CircleAvatar(
+                                      radius: 25,
+                                      // foregroundColor: Theme.of(context).colorScheme.primary, //.onBackground,
+                                      //backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                                      child: Text(instrument.symbol,
+                                          overflow: TextOverflow.fade,
+                                          softWrap: false));
+                                },
+                              )
+                            : CircleAvatar(
+                                radius: 25,
+                                // foregroundColor: Theme.of(context).colorScheme.primary,
+                                child: Text(instrument.symbol,
+                                    overflow: TextOverflow.fade,
+                                    softWrap: false)))
+                    : null,
+                title: Text(
+                  instrument != null
+                      ? instrument.simpleName ?? instrument.name
+                      : "",
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text("${positions[index].quantity} shares"),
+                //'Average cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
+                /*
         subtitle: Text(
             '${positions[index].quantity} shares\navg cost ${formatCurrency.format(positions[index].averageBuyPrice)}'),
             */
-        trailing: //GestureDetector(child:
-            Wrap(spacing: 8, children: [
-          if (icon != null) ...[
-            icon,
-          ],
-          Text(
-            trailingText,
-            style: const TextStyle(fontSize: positionValueFontSize),
-            textAlign: TextAlign.right,
-          )
-        ]),
-        //, onTap: () => showSettings()),
-        // isThreeLine: true,
-        onTap: () {
-          /* For navigation within this tab, uncomment
+                trailing: //GestureDetector(child:
+                    Wrap(spacing: 8, children: [
+                  if (icon != null) ...[
+                    icon,
+                  ],
+                  Text(
+                    trailingText,
+                    style: const TextStyle(fontSize: positionValueFontSize),
+                    textAlign: TextAlign.right,
+                  )
+                ]),
+                //, onTap: () => showSettings()),
+                // isThreeLine: true,
+                onTap: () {
+                  /* For navigation within this tab, uncomment
           navigatorKey!.currentState!.push(MaterialPageRoute(
               builder: (context) => InstrumentWidget(ru, accounts!.first,
                   positions[index].instrumentObj as Instrument,
                   position: positions[index])));
                   */
-          // var futureFromInstrument =
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => InstrumentWidget(
-                        widget.user,
-                        widget.service,
-                        instrument!,
-                        heroTag: 'logo_${instrument.symbol}${instrument.id}',
-                        analytics: widget.analytics,
-                        observer: widget.observer,
-                        generativeService: widget.generativeService,
-                      )));
-          // Refresh in case settings were updated.
-          // futureFromInstrument.then((value) => setState(() {}));
-        },
-      ),
-      if (widget.user.showPositionDetails) ...[
-        buildDetailScrollView(
-            todayIcon,
-            todayReturnText,
-            todayReturnPercentText,
-            totalIcon,
-            totalReturnText,
-            totalReturnPercentText)
-      ]
-    ]));
+                  // var futureFromInstrument =
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => InstrumentWidget(
+                                widget.user,
+                                widget.service,
+                                instrument!,
+                                heroTag:
+                                    'logo_${instrument.symbol}${instrument.id}',
+                                analytics: widget.analytics,
+                                observer: widget.observer,
+                                generativeService: widget.generativeService,
+                              )));
+                  // Refresh in case settings were updated.
+                  // futureFromInstrument.then((value) => setState(() {}));
+                },
+              ),
+              // Compact color-coded badges
+              // Padding(
+              //   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              //   child: Row(
+              //     children: [
+              //       _pnlBadge(context, todayReturnText, todayReturn),
+              //       const SizedBox(width: 8),
+              //       _pnlBadge(context, totalReturnText, totalReturn),
+              //     ],
+              //   ),
+              // ),
+              if (widget.user.showPositionDetails) ...[
+                buildDetailScrollView(
+                    todayIcon,
+                    todayReturnText,
+                    todayReturnPercentText,
+                    totalIcon,
+                    totalReturnText,
+                    totalReturnPercentText,
+                    todayReturn,
+                    todayReturnPercent,
+                    totalReturn,
+                    totalReturnPercent)
+              ]
+            ])));
   }
 
   Widget buildDetailCarousel(
@@ -858,162 +916,85 @@ class _InstrumentPositionsWidgetState extends State<InstrumentPositionsWidget> {
 
   SingleChildScrollView buildDetailScrollView(
       Icon todayIcon,
-      String todayReturnText,
-      String todayReturnPercentText,
+      String? todayReturnText,
+      String? todayReturnPercentText,
       Icon totalIcon,
-      String totalReturnText,
-      String totalReturnPercentText) {
+      String? totalReturnText,
+      String? totalReturnPercentText,
+      double? todayReturn,
+      double? todayReturnPercent,
+      double? totalReturn,
+      double? totalReturnPercent) {
     return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              /*
-                                    Padding(
-                                      padding: const EdgeInsets.all(
-                                          summaryEgdeInset), //.symmetric(horizontal: 6),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Text(marketValueText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                            //Container(height: 5),
-                                            //const Text("Δ", style: TextStyle(fontSize: 15.0)),
-                                            const Text("Market Value",
-                                                style: TextStyle(
-                                                    fontSize:
-                                                        summaryLabelFontSize)),
-                                          ]),
-                                    ),
-                                    */
+            child: Row(children: [
               InkWell(
-                onTap:
-                    // widget.user.displayValue == DisplayValue.todayReturn ? null :
-                    () {
+                onTap: () {
                   setState(() {
                     widget.user.displayValue = DisplayValue.todayReturn;
                   });
-                  // var userStore =
-                  //     Provider.of<BrokerageUserStore>(context, listen: false);
-                  // userStore.addOrUpdate(widget.user);
-                  // userStore.save();
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(
-                      summaryEgdeInset), //.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Wrap(spacing: 8, children: [
-                      todayIcon,
-                      Text(todayReturnText,
-                          style:
-                              const TextStyle(fontSize: summaryValueFontSize))
-                    ]),
-                    /*
-                                            Text(todayReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                                        */
-                    /*
-                                    Text(todayReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
+                    _pnlBadge(context, todayReturnText, todayReturn),
+                    const SizedBox(height: 4),
                     const Text("Return Today",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),
                 ),
               ),
               InkWell(
-                onTap:
-                    // widget.user.displayValue == DisplayValue.todayReturnPercent ? null :
-                    () {
+                onTap: () {
                   setState(() {
                     widget.user.displayValue = DisplayValue.todayReturnPercent;
                   });
-                  // var userStore =
-                  //     Provider.of<BrokerageUserStore>(context, listen: false);
-                  // userStore.addOrUpdate(widget.user);
-                  // userStore.save();
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(
-                      summaryEgdeInset), //.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(todayReturnPercentText,
-                        style: const TextStyle(fontSize: summaryValueFontSize)),
+                    _pnlBadge(
+                        context, todayReturnPercentText, todayReturnPercent),
+                    const SizedBox(height: 4),
                     const Text("Return Today %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),
                 ),
               ),
               InkWell(
-                onTap:
-                    // widget.user.displayValue == DisplayValue.totalReturn ? null :
-                    () {
+                onTap: () {
                   setState(() {
                     widget.user.displayValue = DisplayValue.totalReturn;
                   });
-                  // var userStore =
-                  //     Provider.of<BrokerageUserStore>(context, listen: false);
-                  // userStore.addOrUpdate(widget.user);
-                  // userStore.save();
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(
-                      summaryEgdeInset), //.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Wrap(spacing: 8, children: [
-                      totalIcon,
-                      Text(totalReturnText,
-                          style:
-                              const TextStyle(fontSize: summaryValueFontSize))
-                    ]),
-                    /*
-                                            Text(totalReturnText,
-                                                style: const TextStyle(
-                                                    fontSize:
-                                                        summaryValueFontSize)),
-                                                        */
-                    /*
-                                    Text(totalReturnPercentText,
-                                        style: const TextStyle(
-                                            fontSize: summaryValueFontSize)),
-                                            */
-                    //Container(height: 5),
-                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                    _pnlBadge(context, totalReturnText, totalReturn),
+                    const SizedBox(height: 4),
                     const Text("Total Return",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),
                 ),
               ),
               InkWell(
-                onTap:
-                    // widget.user.displayValue == DisplayValue.todayReturnPercent ? null :
-                    () {
+                onTap: () {
                   setState(() {
                     widget.user.displayValue = DisplayValue.totalReturnPercent;
                   });
-                  // var userStore =
-                  //     Provider.of<BrokerageUserStore>(context, listen: false);
-                  // userStore.addOrUpdate(widget.user);
-                  // userStore.save();
                 },
                 child: Padding(
-                  padding: const EdgeInsets.all(
-                      summaryEgdeInset), //.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.all(summaryEgdeInset),
                   child:
                       Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Text(totalReturnPercentText,
-                        style: const TextStyle(fontSize: summaryValueFontSize)),
-
-                    //Container(height: 5),
-                    //const Text("Δ", style: TextStyle(fontSize: 15.0)),
+                    _pnlBadge(
+                        context, totalReturnPercentText, totalReturnPercent),
+                    const SizedBox(height: 4),
                     const Text("Total Return %",
                         style: TextStyle(fontSize: summaryLabelFontSize)),
                   ]),

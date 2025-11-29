@@ -37,11 +37,14 @@ import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/futures_position_store.dart';
+import 'package:robinhood_options_mobile/widgets/futures_positions_widget.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/user_info.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
@@ -190,6 +193,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   _HomePageState();
 
+  // Badge helpers for portfolio historical chart change metrics
+  Color _pnlColor(double? value) {
+    if (value == null) return Colors.grey;
+    if (value > 0) return Colors.green;
+    if (value < 0) return Colors.red;
+    return Colors.grey;
+  }
+
+  Widget _pnlBadge(String text, double? value, double fontSize,
+      {bool neutral = false}) {
+    var color = neutral ? Colors.grey : _pnlColor(value);
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.25))),
+        child: Text(text,
+            style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: FontWeight.w600,
+                color: color)));
+  }
+
   /*
   @override
   bool get wantKeepAlive => true;
@@ -324,10 +351,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
             account = null;
           }
 
-          // if (widget.brokerageUser.source == BrokerageSource.robinhood) {
-          //   futureFuturesAccounts = (widget.service as RobinhoodService)
-          //       .getFutureAccounts(widget.brokerageUser, account!);
-          // }
+          if (widget.brokerageUser.source == BrokerageSource.robinhood) {
+            futureFuturesAccounts = (widget.service as RobinhoodService)
+                .getFuturesAccounts(widget.brokerageUser, account!);
+          }
 
           // var futuresAccounts = data[1] as List<dynamic>;
 
@@ -523,26 +550,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 child: Align(alignment: Alignment.center, child: welcomeWidget),
               ))
             ],
-            // FUTURES
-            // StreamBuilder(
-            //     stream: futuresStream,
-            //     builder: (BuildContext context,
-            //         AsyncSnapshot<List<dynamic>> futuressnapshot) {
-            //       if (futuressnapshot.hasData) {
-            //         var futures = futuressnapshot.data!;
-            //         return SliverToBoxAdapter();
-            //       } else if (futuressnapshot.hasError) {
-            //         return SliverToBoxAdapter(
-            //           child: Text('${futuressnapshot.error}'),
-            //         );
-            //       } else {
-            //         return SliverToBoxAdapter(
-            //           child: const Center(
-            //             child: CircularProgressIndicator(),
-            //           ),
-            //         );
-            //       }
-            //     }),
             Consumer5<PortfolioStore, InstrumentPositionStore,
                     OptionPositionStore, ForexHoldingStore, GenerativeProvider>(
                 builder: (context,
@@ -728,15 +735,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
                       child: Card(
                         elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         color: hasInvestmentProfile
-                            ? colorScheme.primaryContainer.withOpacity(0.5)
-                            : colorScheme.secondaryContainer.withOpacity(0.5),
+                            ? colorScheme.primaryContainer.withOpacity(0.90)
+                            : colorScheme.secondaryContainer.withOpacity(0.90),
                         child: InkWell(
                           onTap: hasInvestmentProfile
                               ? null
                               : () async {
                                   // Navigate to Investment Profile Settings
-                                  final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+                                  final firestoreService =
+                                      Provider.of<FirestoreService>(context,
+                                          listen: false);
                                   if (auth.currentUser != null) {
                                     final userDoc = await firestoreService
                                         .userCollection
@@ -760,12 +772,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             padding: const EdgeInsets.all(16.0),
                             child: hasInvestmentProfile
                                 ? Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.stars,
-                                        color: colorScheme.primary,
-                                        size: 32,
-                                      ),
+                                      Icon(Icons.stars,
+                                          color: colorScheme.primary, size: 34),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Column(
@@ -776,34 +787,56 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                               'Personalized AI Recommendations',
                                               style: theme.textTheme.titleMedium
                                                   ?.copyWith(
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.w600,
                                                 color: colorScheme
                                                     .onPrimaryContainer,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 6),
                                             Text(
-                                              'Get tailored insights based on your investment profile. Tap "Recommendations" above to generate personalized advice.',
+                                              'Tap "Recommendations" above to generate tailored insights based on your profile.',
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(
                                                 color: colorScheme
                                                     .onPrimaryContainer
-                                                    .withOpacity(0.8),
+                                                    .withOpacity(0.75),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
+                                      Icon(Icons.arrow_forward_ios,
+                                          color: colorScheme.primary, size: 16),
                                     ],
                                   )
                                 : Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.psychology_outlined,
-                                        color: colorScheme.secondary,
-                                        size: 32,
-                                      ),
+                                      Icon(Icons.psychology_outlined,
+                                          color: colorScheme.secondary,
+                                          size: 34),
                                       const SizedBox(width: 16),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.secondary
+                                              .withOpacity(0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'NEW',
+                                          style: theme.textTheme.labelSmall
+                                              ?.copyWith(
+                                            color: colorScheme.secondary,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
@@ -813,29 +846,47 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                               'Unlock AI-Powered Recommendations',
                                               style: theme.textTheme.titleMedium
                                                   ?.copyWith(
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.w600,
                                                 color: colorScheme
                                                     .onSecondaryContainer,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 6),
                                             Text(
-                                              'Complete your investment profile to receive personalized AI portfolio recommendations.',
+                                              'Complete your investment profile to receive personalized portfolio guidance.',
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(
                                                 color: colorScheme
                                                     .onSecondaryContainer
-                                                    .withOpacity(0.8),
+                                                    .withOpacity(0.75),
                                               ),
                                             ),
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.touch_app,
+                                                    size: 16,
+                                                    color:
+                                                        colorScheme.secondary),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  'Tap to configure profile',
+                                                  style: theme
+                                                      .textTheme.labelSmall
+                                                      ?.copyWith(
+                                                    color:
+                                                        colorScheme.secondary,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            )
                                           ],
                                         ),
                                       ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        color: colorScheme.secondary,
-                                        size: 16,
-                                      ),
+                                      Icon(Icons.arrow_forward_ios,
+                                          color: colorScheme.secondary,
+                                          size: 16),
                                     ],
                                   ),
                           ),
@@ -846,71 +897,71 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 },
               ),
 
-            Consumer4<PortfolioStore, InstrumentPositionStore,
-                    OptionPositionStore, ForexHoldingStore>(
-                builder: (context, portfolioStore, stockPositionStore,
-                    optionPositionStore, forexHoldingStore, child) {
-              double close = 0;
-              DateTime? updatedAt;
-              if (portfolioStore.items.isNotEmpty && account != null) {
-                // close = (portfolioStore.items[0].equity ?? 0) +
-                //     forexHoldingStore.equity;
-                close = account.portfolioCash! +
-                    // (account.unsettledDebit ?? 0) +
-                    // (account.settledAmountBorrowed ?? 0) +
-                    stockPositionStore.equity +
-                    optionPositionStore.equity +
-                    forexHoldingStore.equity;
-                updatedAt = portfolioStore.items[0].updatedAt!;
-              }
+            // Consumer4<PortfolioStore, InstrumentPositionStore,
+            //         OptionPositionStore, ForexHoldingStore>(
+            //     builder: (context, portfolioStore, stockPositionStore,
+            //         optionPositionStore, forexHoldingStore, child) {
+            //   double close = 0;
+            //   DateTime? updatedAt;
+            //   if (portfolioStore.items.isNotEmpty && account != null) {
+            //     // close = (portfolioStore.items[0].equity ?? 0) +
+            //     //     forexHoldingStore.equity;
+            //     close = account.portfolioCash! +
+            //         // (account.unsettledDebit ?? 0) +
+            //         // (account.settledAmountBorrowed ?? 0) +
+            //         stockPositionStore.equity +
+            //         optionPositionStore.equity +
+            //         forexHoldingStore.equity;
+            //     updatedAt = portfolioStore.items[0].updatedAt!;
+            //   }
 
-              return SliverToBoxAdapter(
-                  child: ListTile(
-                // leading: Icon(Icons.account_balance),
-                title: const Text(
-                  "Portfolio",
-                  style: TextStyle(fontSize: 19.0),
-                ),
-                subtitle: Text(
-                  // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
-                  updatedAt != null
-                      ? formatLongDateTime.format(updatedAt.toLocal())
-                      : '',
-                  // selection != null
-                  // ? selection!.beginsAt!.toLocal()
-                  // : lastHistorical!.beginsAt!.toLocal()),
-                  style: const TextStyle(fontSize: 10.0),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Wrap(spacing: 8, children: [
-                  AnimatedSwitcher(
-                    duration: Duration(milliseconds: 200),
-                    // transitionBuilder:
-                    //     (Widget child, Animation<double> animation) {
-                    //   return SlideTransition(
-                    //       position: (Tween<Offset>(
-                    //               begin: Offset(0, -0.25), end: Offset.zero))
-                    //           .animate(animation),
-                    //       child: child);
-                    // },
-                    transitionBuilder:
-                        (Widget child, Animation<double> animation) {
-                      return ScaleTransition(scale: animation, child: child);
-                    },
-                    child: Text(
-                      key: ValueKey<String>(close.toString()),
-                      formatCurrency.format(close),
-                      // selection != null
-                      //  ? selection!.adjustedCloseEquity
-                      //  : close),
-                      style: const TextStyle(
-                          fontSize: totalValueFontSize), //  21.0
-                      textAlign: TextAlign.right,
-                    ),
-                  )
-                ]),
-              ));
-            }),
+            //   return SliverToBoxAdapter(
+            //       child: ListTile(
+            //     // leading: Icon(Icons.account_balance),
+            //     title: const Text(
+            //       "Portfolio",
+            //       style: TextStyle(fontSize: 19.0),
+            //     ),
+            //     subtitle: Text(
+            //       // '${formatMediumDate.format(firstHistorical!.beginsAt!.toLocal())} -
+            //       updatedAt != null
+            //           ? formatLongDateTime.format(updatedAt.toLocal())
+            //           : '',
+            //       // selection != null
+            //       // ? selection!.beginsAt!.toLocal()
+            //       // : lastHistorical!.beginsAt!.toLocal()),
+            //       style: const TextStyle(fontSize: 10.0),
+            //       overflow: TextOverflow.ellipsis,
+            //     ),
+            //     trailing: Wrap(spacing: 8, children: [
+            //       AnimatedSwitcher(
+            //         duration: Duration(milliseconds: 200),
+            //         // transitionBuilder:
+            //         //     (Widget child, Animation<double> animation) {
+            //         //   return SlideTransition(
+            //         //       position: (Tween<Offset>(
+            //         //               begin: Offset(0, -0.25), end: Offset.zero))
+            //         //           .animate(animation),
+            //         //       child: child);
+            //         // },
+            //         transitionBuilder:
+            //             (Widget child, Animation<double> animation) {
+            //           return ScaleTransition(scale: animation, child: child);
+            //         },
+            //         child: Text(
+            //           key: ValueKey<String>(close.toString()),
+            //           formatCurrency.format(close),
+            //           // selection != null
+            //           //  ? selection!.adjustedCloseEquity
+            //           //  : close),
+            //           style: const TextStyle(
+            //               fontSize: totalValueFontSize), //  21.0
+            //           textAlign: TextAlign.right,
+            //         ),
+            //       )
+            //     ]),
+            //   ));
+            // }),
             if (widget.brokerageUser.source == BrokerageSource.robinhood ||
                 widget.brokerageUser.source == BrokerageSource.demo) ...[
               Consumer<
@@ -1193,15 +1244,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       )
                     ],
                     Column(children: [
-                      SizedBox(
-                          height: 460, // 240,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(
-                                10.0, 10.0, 10.0, 10.0),
-                            //padding: EdgeInsets.symmetric(horizontal: 10.0),
-                            //padding: const EdgeInsets.all(10.0),
-                            child: historicalChart,
-                          )),
+                      // Badges moved above the chart
                       Consumer<PortfolioHistoricalsSelectionStore>(
                           builder: (context, value, child) {
                         var selection = value.selection;
@@ -1223,8 +1266,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                         String? returnPercentText = widget.brokerageUser
                             .getDisplayText(changePercentInPeriod,
                                 displayValue: DisplayValue.totalReturnPercent);
-                        Icon todayIcon = widget.brokerageUser
-                            .getDisplayIcon(changeInPeriod, size: 26.0);
+                        // Icon todayIcon = widget.brokerageUser
+                        //     .getDisplayIcon(changeInPeriod, size: 26.0);
 
                         //return Text(value.selection!.beginsAt.toString());
                         return SizedBox(
@@ -1246,17 +1289,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
-                                                  Text(
+                                                  _pnlBadge(
                                                       formatCurrency.format(
                                                           selection != null
                                                               ? selection
                                                                   .adjustedCloseEquity
                                                               : close),
-                                                      textAlign:
-                                                          TextAlign.right,
-                                                      style: const TextStyle(
-                                                          fontSize:
-                                                              summaryValueFontSize)),
+                                                      null,
+                                                      summaryValueFontSize,
+                                                      neutral: true),
                                                   Text(
                                                       formatMediumDateTime
                                                           .format(selection !=
@@ -1278,13 +1319,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
-                                                  Wrap(spacing: 8, children: [
-                                                    todayIcon,
-                                                    Text(returnText,
-                                                        style: const TextStyle(
-                                                            fontSize:
-                                                                summaryValueFontSize))
-                                                  ]),
+                                                  _pnlBadge(
+                                                      returnText,
+                                                      changeInPeriod,
+                                                      summaryValueFontSize),
                                                   const Text("Change",
                                                       style: TextStyle(
                                                           fontSize:
@@ -1297,10 +1335,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                             child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: <Widget>[
-                                                  Text(returnPercentText,
-                                                      style: const TextStyle(
-                                                          fontSize:
-                                                              summaryValueFontSize)),
+                                                  _pnlBadge(
+                                                      returnPercentText,
+                                                      changePercentInPeriod,
+                                                      summaryValueFontSize),
                                                   const Text("Change %",
                                                       style: TextStyle(
                                                           fontSize:
@@ -1466,6 +1504,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                           ],
                         ));
                       }),
+                      SizedBox(
+                          height: 460, // 240,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                10.0, 0.0, 10.0, 10.0),
+                            child: historicalChart,
+                          )),
                       SizedBox(
                           height: 56,
                           child: ListView.builder(
@@ -2380,6 +2425,92 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 );
               },
             ),
+            // FUTURES: If we have futures accounts, stream aggregated positions
+            if (widget.brokerageUser.source == BrokerageSource.robinhood) ...[
+              FutureBuilder<List<dynamic>>(
+                  future: futureFuturesAccounts,
+                  builder: (context, snapshotAccounts) {
+                    if (snapshotAccounts.hasData &&
+                        snapshotAccounts.data != null) {
+                      var accounts = snapshotAccounts.data!;
+                      var futuresAccount = accounts.firstWhere(
+                          (f) => f['accountType'] == 'FUTURES',
+                          orElse: () => null);
+                      if (futuresAccount != null) {
+                        var accountId = futuresAccount['id'];
+                        var stream = (widget.service as RobinhoodService)
+                            .streamFuturePositions(
+                                widget.brokerageUser, accountId);
+                        return StreamBuilder<List<dynamic>>(
+                            stream: stream,
+                            builder: (context, futSnapshot) {
+                              if (futSnapshot.hasData &&
+                                  futSnapshot.data != null) {
+                                var list = futSnapshot.data!;
+                                // Build a store and provide it to descendants
+                                var store = FuturesPositionStore();
+                                store.addAll(list);
+                                return ChangeNotifierProvider<
+                                    FuturesPositionStore>.value(
+                                  value: store,
+                                  child: FuturesPositionsWidget(
+                                    showList: false,
+                                    onTapHeader: () {
+                                      // navigate to a full futures page if desired
+                                    },
+                                  ),
+                                );
+                              } else if (futSnapshot.hasError) {
+                                return SliverToBoxAdapter(
+                                  child: Text('${futSnapshot.error}'),
+                                );
+                              } else {
+                                return const SliverToBoxAdapter(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(12.0),
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                );
+                              }
+                            });
+                      }
+                      return SliverToBoxAdapter();
+                    } else {
+                      return SliverToBoxAdapter();
+                    }
+                  }),
+            ],
+            Consumer<OptionPositionStore>(
+                builder: (context, optionPositionStore, child) {
+              //if (optionPositions != null) {
+              var filteredOptionAggregatePositions = optionPositionStore.items
+                  .where((element) =>
+                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
+                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
+                              (!hasQuantityFilters[1] ||
+                                  element.quantity! <= 0)) &&
+                      (positionFilters.isEmpty ||
+                          positionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionFilters.isEmpty ||
+                          optionFilters
+                              .contains(element.legs.first.positionType)) &&
+                      (optionSymbolFilters.isEmpty ||
+                          optionSymbolFilters.contains(element.symbol)))
+                  .toList();
+
+              return OptionPositionsWidget(
+                widget.brokerageUser,
+                widget.service,
+                filteredOptionAggregatePositions,
+                showList: false,
+                analytics: widget.analytics,
+                observer: widget.observer,
+                generativeService: widget.generativeService,
+              );
+            }),
             Consumer<InstrumentPositionStore>(
                 builder: (context, stockPositionStore, child) {
               //if (positions != null) {
@@ -2417,35 +2548,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                 widget.brokerageUser,
                 widget.service,
                 filteredPositions,
-                showList: false,
-                analytics: widget.analytics,
-                observer: widget.observer,
-                generativeService: widget.generativeService,
-              );
-            }),
-            Consumer<OptionPositionStore>(
-                builder: (context, optionPositionStore, child) {
-              //if (optionPositions != null) {
-              var filteredOptionAggregatePositions = optionPositionStore.items
-                  .where((element) =>
-                      ((hasQuantityFilters[0] && hasQuantityFilters[1]) ||
-                          (!hasQuantityFilters[0] || element.quantity! > 0) &&
-                              (!hasQuantityFilters[1] ||
-                                  element.quantity! <= 0)) &&
-                      (positionFilters.isEmpty ||
-                          positionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionFilters.isEmpty ||
-                          optionFilters
-                              .contains(element.legs.first.positionType)) &&
-                      (optionSymbolFilters.isEmpty ||
-                          optionSymbolFilters.contains(element.symbol)))
-                  .toList();
-
-              return OptionPositionsWidget(
-                widget.brokerageUser,
-                widget.service,
-                filteredOptionAggregatePositions,
                 showList: false,
                 analytics: widget.analytics,
                 observer: widget.observer,

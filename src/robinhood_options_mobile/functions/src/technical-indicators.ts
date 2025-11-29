@@ -19,6 +19,11 @@ export interface MultiIndicatorResult {
     momentum: IndicatorResult;
     marketDirection: IndicatorResult;
     volume: IndicatorResult;
+    macd: IndicatorResult;
+    bollingerBands: IndicatorResult;
+    stochastic: IndicatorResult;
+    atr: IndicatorResult;
+    obv: IndicatorResult;
   };
   overallSignal: "BUY" | "SELL" | "HOLD";
   reason: string;
@@ -103,6 +108,208 @@ export function computeRSI(prices: number[], period = 14): number | null {
   const rsi = 100 - (100 / (1 + rs));
 
   return rsi;
+}
+
+/**
+ * Compute MACD (Moving Average Convergence Divergence)
+ * @param {number[]} prices - Array of prices.
+ * @param {number} fastPeriod - Fast EMA period (default 12).
+ * @param {number} slowPeriod - Slow EMA period (default 26).
+ * @param {number} signalPeriod - Signal line EMA period (default 9).
+ * @return {{macd: number, signal: number, histogram: number}|null}
+ */
+export function computeMACD(
+  prices: number[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9
+): { macd: number; signal: number; histogram: number } | null {
+  if (!prices || prices.length < slowPeriod + signalPeriod) return null;
+
+  const fastEMA = computeEMA(prices, fastPeriod);
+  const slowEMA = computeEMA(prices, slowPeriod);
+
+  if (!fastEMA || !slowEMA) return null;
+
+  const macdLine = fastEMA - slowEMA;
+
+  // Compute signal line (EMA of MACD values)
+  const macdValues: number[] = [];
+  for (let i = slowPeriod - 1; i < prices.length; i++) {
+    const fEMA = computeEMA(prices.slice(0, i + 1), fastPeriod);
+    const sEMA = computeEMA(prices.slice(0, i + 1), slowPeriod);
+    if (fEMA && sEMA) {
+      macdValues.push(fEMA - sEMA);
+    }
+  }
+
+  const signalLine = computeEMA(macdValues, signalPeriod);
+  if (!signalLine) return null;
+
+  const histogram = macdLine - signalLine;
+
+  return {
+    macd: macdLine,
+    signal: signalLine,
+    histogram,
+  };
+}
+
+/**
+ * Compute Bollinger Bands
+ * @param {number[]} prices - Array of prices.
+ * @param {number} period - Period for SMA (default 20).
+ * @param {number} stdDev - Number of standard deviations (default 2).
+ * @return {{upper: number, middle: number, lower: number}|null}
+ */
+export function computeBollingerBands(
+  prices: number[],
+  period = 20,
+  stdDev = 2
+): { upper: number; middle: number; lower: number } | null {
+  if (!prices || prices.length < period) return null;
+
+  const middle = computeSMA(prices, period);
+  if (!middle) return null;
+
+  const slice = prices.slice(prices.length - period);
+  const squaredDiffs = slice.map((p) => Math.pow(p - middle, 2));
+  const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+  const standardDeviation = Math.sqrt(variance);
+
+  const upper = middle + stdDev * standardDeviation;
+  const lower = middle - stdDev * standardDeviation;
+
+  return { upper, middle, lower };
+}
+
+/**
+ * Compute Stochastic Oscillator
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} kPeriod - %K period (default 14).
+ * @param {number} dPeriod - %D period (default 3).
+ * @return {{k: number, d: number}|null}
+ */
+export function computeStochastic(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  kPeriod = 14,
+  dPeriod = 3
+): { k: number; d: number } | null {
+  if (!highs || !lows || !closes ||
+    highs.length < kPeriod ||
+    lows.length < kPeriod ||
+    closes.length < kPeriod) {
+    return null;
+  }
+
+  const recentHighs = highs.slice(-kPeriod);
+  const recentLows = lows.slice(-kPeriod);
+  const currentClose = closes[closes.length - 1];
+
+  const highestHigh = Math.max(...recentHighs);
+  const lowestLow = Math.min(...recentLows);
+
+  if (highestHigh === lowestLow) return null;
+
+  const k = ((currentClose - lowestLow) / (highestHigh - lowestLow)) * 100;
+
+  // Compute %D (SMA of %K values)
+  const kValues: number[] = [];
+  for (let i = kPeriod - 1; i < closes.length; i++) {
+    const hh = Math.max(...highs.slice(i - kPeriod + 1, i + 1));
+    const ll = Math.min(...lows.slice(i - kPeriod + 1, i + 1));
+    if (hh !== ll) {
+      kValues.push(((closes[i] - ll) / (hh - ll)) * 100);
+    }
+  }
+
+  if (kValues.length < dPeriod) return { k, d: k };
+
+  const d = kValues.slice(-dPeriod).reduce((a, b) => a + b, 0) / dPeriod;
+
+  return { k, d };
+}
+
+/**
+ * Compute Average True Range (ATR)
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for ATR (default 14).
+ * @return {number|null}
+ */
+export function computeATR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): number | null {
+  if (!highs || !lows || !closes ||
+    highs.length < period + 1 ||
+    lows.length < period + 1 ||
+    closes.length < period + 1) {
+    return null;
+  }
+
+  const trueRanges: number[] = [];
+  for (let i = 1; i < closes.length; i++) {
+    const high = highs[i];
+    const low = lows[i];
+    const prevClose = closes[i - 1];
+
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    trueRanges.push(tr);
+  }
+
+  if (trueRanges.length < period) return null;
+
+  // Initial ATR (simple average of first period TRs)
+  let atr = trueRanges.slice(0, period).reduce((a, b) => a + b, 0) / period;
+
+  // Smoothed ATR
+  for (let i = period; i < trueRanges.length; i++) {
+    atr = (atr * (period - 1) + trueRanges[i]) / period;
+  }
+
+  return atr;
+}
+
+/**
+ * Compute On-Balance Volume (OBV)
+ * @param {number[]} closes - Array of close prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @return {number[]|null} Array of OBV values or null if insufficient data.
+ */
+export function computeOBV(
+  closes: number[],
+  volumes: number[]
+): number[] | null {
+  if (!closes || !volumes || closes.length < 2 || volumes.length < 2 ||
+    closes.length !== volumes.length) {
+    return null;
+  }
+
+  const obv: number[] = [volumes[0]];
+
+  for (let i = 1; i < closes.length; i++) {
+    if (closes[i] > closes[i - 1]) {
+      obv.push(obv[obv.length - 1] + volumes[i]);
+    } else if (closes[i] < closes[i - 1]) {
+      obv.push(obv[obv.length - 1] - volumes[i]);
+    } else {
+      obv.push(obv[obv.length - 1]);
+    }
+  }
+
+  return obv;
 }
 
 /**
@@ -714,15 +921,522 @@ export function evaluateVolume(
 }
 
 /**
- * Evaluate all 4 indicators and determine if all are "green" meeting criteria
- * @param {object} symbolData - Symbol price and volume data.
+ * Evaluate MACD indicator
+ * @param {number[]} prices - Array of historical prices.
+ * @param {number} fastPeriod - Fast EMA period (default 12).
+ * @param {number} slowPeriod - Slow EMA period (default 26).
+ * @param {number} signalPeriod - Signal line period (default 9).
+ * @return {IndicatorResult} The MACD evaluation result.
+ */
+export function evaluateMACD(
+  prices: number[],
+  fastPeriod = 12,
+  slowPeriod = 26,
+  signalPeriod = 9
+): IndicatorResult {
+  const minPeriods = slowPeriod + signalPeriod;
+  if (!prices || prices.length < minPeriods) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for MACD (need ${minPeriods} periods)`,
+    };
+  }
+
+  const macd = computeMACD(prices, fastPeriod, slowPeriod, signalPeriod);
+  if (!macd) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute MACD",
+    };
+  }
+
+  const { histogram } = macd;
+
+  // Compute previous MACD for crossover detection
+  let prevHistogram: number | null = null;
+  if (prices.length > minPeriods + 1) {
+    const prevMACD = computeMACD(
+      prices.slice(0, -1),
+      fastPeriod,
+      slowPeriod,
+      signalPeriod
+    );
+    if (prevMACD) prevHistogram = prevMACD.histogram;
+  }
+
+  // Bullish crossover: histogram crosses above zero
+  if (prevHistogram !== null && histogram > 0 && prevHistogram <= 0) {
+    return {
+      value: histogram,
+      signal: "BUY",
+      reason: `MACD bullish crossover (hist: ${histogram.toFixed(4)})`,
+      metadata: { ...macd, crossover: "bullish" },
+    };
+  }
+
+  // Bearish crossover: histogram crosses below zero
+  if (prevHistogram !== null && histogram < 0 && prevHistogram >= 0) {
+    return {
+      value: histogram,
+      signal: "SELL",
+      reason: `MACD bearish crossover (hist: ${histogram.toFixed(4)})`,
+      metadata: { ...macd, crossover: "bearish" },
+    };
+  }
+
+  // Strong positive histogram (bullish momentum)
+  if (histogram > 0) {
+    return {
+      value: histogram,
+      signal: "BUY",
+      reason: `MACD bullish momentum (hist: ${histogram.toFixed(4)})`,
+      metadata: macd,
+    };
+  }
+
+  // Strong negative histogram (bearish momentum)
+  if (histogram < 0) {
+    return {
+      value: histogram,
+      signal: "SELL",
+      reason: `MACD bearish momentum (hist: ${histogram.toFixed(4)})`,
+      metadata: macd,
+    };
+  }
+
+  return {
+    value: histogram,
+    signal: "HOLD",
+    reason: "MACD neutral",
+    metadata: macd,
+  };
+}
+
+/**
+ * Evaluate Bollinger Bands indicator
+ * @param {number[]} prices - Array of historical prices.
+ * @param {number} period - Period for calculation (default 20).
+ * @param {number} stdDev - Standard deviation multiplier (default 2).
+ * @return {IndicatorResult} The Bollinger Bands evaluation result.
+ */
+export function evaluateBollingerBands(
+  prices: number[],
+  period = 20,
+  stdDev = 2
+): IndicatorResult {
+  if (!prices || prices.length < period) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for Bollinger Bands (need ${period})`,
+    };
+  }
+
+  const bb = computeBollingerBands(prices, period, stdDev);
+  if (!bb) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute Bollinger Bands",
+    };
+  }
+
+  const currentPrice = prices[prices.length - 1];
+  const bandwidth = (bb.upper - bb.lower) / bb.middle;
+  const position = (currentPrice - bb.lower) / (bb.upper - bb.lower);
+
+  // Price at or below lower band (oversold)
+  if (currentPrice <= bb.lower * 1.005) {
+    const cp = currentPrice.toFixed(2);
+    const low = bb.lower.toFixed(2);
+    return {
+      value: position,
+      signal: "BUY",
+      reason: `Price at lower BB (${cp} ≤ ${low})`,
+      metadata: { ...bb, currentPrice, bandwidth, position },
+    };
+  }
+
+  // Price at or above upper band (overbought)
+  if (currentPrice >= bb.upper * 0.995) {
+    const cp = currentPrice.toFixed(2);
+    const up = bb.upper.toFixed(2);
+    return {
+      value: position,
+      signal: "SELL",
+      reason: `Price at upper BB (${cp} ≥ ${up})`,
+      metadata: { ...bb, currentPrice, bandwidth, position },
+    };
+  }
+
+  // Price in lower third (potential buy)
+  if (position < 0.3) {
+    const pos = (position * 100).toFixed(0);
+    return {
+      value: position,
+      signal: "BUY",
+      reason: `Price in lower BB region (${pos}%)`,
+      metadata: { ...bb, currentPrice, bandwidth, position },
+    };
+  }
+
+  // Price in upper third (potential sell)
+  if (position > 0.7) {
+    const pos = (position * 100).toFixed(0);
+    return {
+      value: position,
+      signal: "SELL",
+      reason: `Price in upper BB region (${pos}%)`,
+      metadata: { ...bb, currentPrice, bandwidth, position },
+    };
+  }
+
+  const pos = (position * 100).toFixed(0);
+  return {
+    value: position,
+    signal: "HOLD",
+    reason: `Price in middle BB region (${pos}%)`,
+    metadata: { ...bb, currentPrice, bandwidth, position },
+  };
+}
+
+/**
+ * Evaluate Stochastic Oscillator
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} kPeriod - %K period (default 14).
+ * @param {number} dPeriod - %D period (default 3).
+ * @return {IndicatorResult} The Stochastic evaluation result.
+ */
+export function evaluateStochastic(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  kPeriod = 14,
+  dPeriod = 3
+): IndicatorResult {
+  if (!highs || !lows || !closes || closes.length < kPeriod) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for Stochastic (need ${kPeriod})`,
+    };
+  }
+
+  const stoch = computeStochastic(highs, lows, closes, kPeriod, dPeriod);
+  if (!stoch) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute Stochastic",
+    };
+  }
+
+  const { k, d } = stoch;
+  const oversoldThreshold = 20;
+  const overboughtThreshold = 80;
+
+  // Detect crossovers
+  let prevStoch: { k: number; d: number } | null = null;
+  if (closes.length > kPeriod) {
+    prevStoch = computeStochastic(
+      highs.slice(0, -1),
+      lows.slice(0, -1),
+      closes.slice(0, -1),
+      kPeriod,
+      dPeriod
+    );
+  }
+
+  // Bullish crossover in oversold region
+  const bullishCross = prevStoch && k > d &&
+    prevStoch.k <= prevStoch.d && k < oversoldThreshold;
+  if (bullishCross) {
+    const kStr = k.toFixed(1);
+    const dStr = d.toFixed(1);
+    return {
+      value: k,
+      signal: "BUY",
+      reason: `Stochastic bullish cross oversold (K:${kStr}, D:${dStr})`,
+      metadata: { k, d, crossover: "bullish" },
+    };
+  }
+
+  // Bearish crossover in overbought region
+  const bearishCross = prevStoch && k < d &&
+    prevStoch.k >= prevStoch.d && k > overboughtThreshold;
+  if (bearishCross) {
+    const kStr = k.toFixed(1);
+    const dStr = d.toFixed(1);
+    return {
+      value: k,
+      signal: "SELL",
+      reason: `Stochastic bearish cross overbought (K:${kStr}, D:${dStr})`,
+      metadata: { k, d, crossover: "bearish" },
+    };
+  }
+
+  // Oversold condition
+  if (k < oversoldThreshold && d < oversoldThreshold) {
+    const kStr = k.toFixed(1);
+    const dStr = d.toFixed(1);
+    return {
+      value: k,
+      signal: "BUY",
+      reason: `Stochastic oversold (K:${kStr}, D:${dStr})`,
+      metadata: { k, d, interpretation: "oversold" },
+    };
+  }
+
+  // Overbought condition
+  if (k > overboughtThreshold && d > overboughtThreshold) {
+    const kStr = k.toFixed(1);
+    const dStr = d.toFixed(1);
+    return {
+      value: k,
+      signal: "SELL",
+      reason: `Stochastic overbought (K:${kStr}, D:${dStr})`,
+      metadata: { k, d, interpretation: "overbought" },
+    };
+  }
+
+  const kStr = k.toFixed(1);
+  const dStr = d.toFixed(1);
+  return {
+    value: k,
+    signal: "HOLD",
+    reason: `Stochastic neutral (K:${kStr}, D:${dStr})`,
+    metadata: { k, d },
+  };
+}
+
+/**
+ * Evaluate ATR for volatility context
+ * @param {number[]} highs - Array of high prices.
+ * @param {number[]} lows - Array of low prices.
+ * @param {number[]} closes - Array of close prices.
+ * @param {number} period - Period for ATR (default 14).
+ * @return {IndicatorResult} The ATR evaluation result.
+ */
+export function evaluateATR(
+  highs: number[],
+  lows: number[],
+  closes: number[],
+  period = 14
+): IndicatorResult {
+  if (!highs || !lows || !closes || closes.length < period + 1) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: `Insufficient data for ATR (need ${period + 1})`,
+    };
+  }
+
+  const atr = computeATR(highs, lows, closes, period);
+  if (atr === null) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute ATR",
+    };
+  }
+
+  const currentPrice = closes[closes.length - 1];
+  const atrPercent = (atr / currentPrice) * 100;
+
+  // Compare with historical ATR values
+  const atrValues: number[] = [];
+  for (let i = period; i < closes.length; i++) {
+    const historicalATR = computeATR(
+      highs.slice(0, i + 1),
+      lows.slice(0, i + 1),
+      closes.slice(0, i + 1),
+      period
+    );
+    if (historicalATR !== null) atrValues.push(historicalATR);
+  }
+
+  if (atrValues.length < 10) {
+    const atrStr = atr.toFixed(2);
+    const pct = atrPercent.toFixed(2);
+    return {
+      value: atr,
+      signal: "HOLD",
+      reason: `ATR: ${atrStr} (${pct}% of price)`,
+      metadata: { atr, atrPercent, currentPrice },
+    };
+  }
+
+  const avgATR = atrValues.reduce((a, b) => a + b, 0) / atrValues.length;
+  const atrRatio = atr / avgATR;
+
+  // High volatility (expanding ranges) - caution
+  if (atrRatio > 1.5) {
+    const atrStr = atr.toFixed(2);
+    const pct = (atrRatio * 100).toFixed(0);
+    return {
+      value: atr,
+      signal: "HOLD",
+      reason: `High volatility (ATR: ${atrStr}, ${pct}% of avg)`,
+      metadata: {
+        atr, atrPercent, avgATR, atrRatio,
+        interpretation: "high_volatility",
+      },
+    };
+  }
+
+  // Low volatility (contracting ranges) - potential breakout
+  if (atrRatio < 0.6) {
+    const atrStr = atr.toFixed(2);
+    const pct = (atrRatio * 100).toFixed(0);
+    return {
+      value: atr,
+      signal: "BUY",
+      reason: `Low volatility - breakout setup (ATR: ${atrStr}, ${pct}%)`,
+      metadata: {
+        atr, atrPercent, avgATR, atrRatio,
+        interpretation: "low_volatility",
+      },
+    };
+  }
+
+  const atrStr = atr.toFixed(2);
+  const pct = atrPercent.toFixed(2);
+  return {
+    value: atr,
+    signal: "HOLD",
+    reason: `Normal volatility (ATR: ${atrStr}, ${pct}%)`,
+    metadata: { atr, atrPercent, avgATR, atrRatio },
+  };
+}
+
+/**
+ * Evaluate OBV (On-Balance Volume) indicator
+ * @param {number[]} closes - Array of close prices.
+ * @param {number[]} volumes - Array of volumes.
+ * @return {IndicatorResult} The OBV evaluation result.
+ */
+export function evaluateOBV(
+  closes: number[],
+  volumes: number[]
+): IndicatorResult {
+  if (!closes || !volumes || closes.length < 20 || volumes.length < 20) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Insufficient data for OBV (need 20+ periods)",
+    };
+  }
+
+  const obv = computeOBV(closes, volumes);
+  if (!obv || obv.length < 20) {
+    return {
+      value: null,
+      signal: "HOLD",
+      reason: "Unable to compute OBV",
+    };
+  }
+
+  const currentOBV = obv[obv.length - 1];
+  const recentOBV = obv.slice(-10);
+  const olderOBV = obv.slice(-20, -10);
+
+  const recentAvg = recentOBV.reduce((a, b) => a + b, 0) / recentOBV.length;
+  const olderAvg = olderOBV.reduce((a, b) => a + b, 0) / olderOBV.length;
+
+  const obvTrend = ((recentAvg - olderAvg) / Math.abs(olderAvg)) * 100;
+
+  const currentPrice = closes[closes.length - 1];
+  const priceChange = closes.length >= 10 ?
+    ((currentPrice - closes[closes.length - 10]) /
+      closes[closes.length - 10]) * 100 : 0;
+
+  // Bullish divergence: OBV rising while price falling
+  if (obvTrend > 5 && priceChange < 0) {
+    const obvStr = obvTrend.toFixed(1);
+    const prStr = priceChange.toFixed(1);
+    return {
+      value: currentOBV,
+      signal: "BUY",
+      reason: `OBV bullish divergence (OBV +${obvStr}%, price ${prStr}%)`,
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "bullish_divergence",
+      },
+    };
+  }
+
+  // Bearish divergence: OBV falling while price rising
+  if (obvTrend < -5 && priceChange > 0) {
+    const obvStr = obvTrend.toFixed(1);
+    const prStr = priceChange.toFixed(1);
+    return {
+      value: currentOBV,
+      signal: "SELL",
+      reason: `OBV bearish divergence (OBV ${obvStr}%, price +${prStr}%)`,
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "bearish_divergence",
+      },
+    };
+  }
+
+  // Strong OBV uptrend with price confirmation
+  if (obvTrend > 10 && priceChange > 0) {
+    const obvStr = obvTrend.toFixed(1);
+    return {
+      value: currentOBV,
+      signal: "BUY",
+      reason: `Strong OBV uptrend (+${obvStr}%) confirms price rise`,
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "confirmed_uptrend",
+      },
+    };
+  }
+
+  // Strong OBV downtrend with price confirmation
+  if (obvTrend < -10 && priceChange < 0) {
+    const obvStr = obvTrend.toFixed(1);
+    return {
+      value: currentOBV,
+      signal: "SELL",
+      reason: `Strong OBV downtrend (${obvStr}%) confirms decline`,
+      metadata: {
+        currentOBV, obvTrend, priceChange,
+        interpretation: "confirmed_downtrend",
+      },
+    };
+  }
+
+  const obvStr = obvTrend.toFixed(1);
+  return {
+    value: currentOBV,
+    signal: "HOLD",
+    reason: `OBV neutral (trend: ${obvStr}%)`,
+    metadata: { currentOBV, obvTrend, priceChange },
+  };
+}
+
+/**
+ * Evaluate all 9 indicators and determine if all are "green" meeting criteria
+ * @param {object} symbolData - Symbol OHLCV data.
  * @param {object} marketData - Market index price and volume data.
  * @param {object} config - Configuration for indicator parameters.
  * @return {MultiIndicatorResult} Combined result from all indicators.
  */
 export function evaluateAllIndicators(
-  symbolData: { prices: number[]; volumes?: number[] },
-  marketData: { prices: number[]; volumes?: number[] },
+  symbolData: {
+    opens?: number[];
+    highs?: number[];
+    lows?: number[];
+    closes: number[];
+    volumes?: number[];
+  },
+  marketData: { closes: number[]; volumes?: number[] },
   config: {
     rsiPeriod?: number;
     marketFastPeriod?: number;
@@ -730,26 +1444,26 @@ export function evaluateAllIndicators(
   } = {}
 ): MultiIndicatorResult {
   logger.info("Evaluating all technical indicators", {
-    symbolDataLength: symbolData.prices.length,
-    marketDataLength: marketData.prices.length,
+    symbolDataLength: symbolData.closes.length,
+    marketDataLength: marketData.closes.length,
     config,
   });
 
   // 1. Price Movement (chart patterns)
   const priceMovement = detectChartPattern(
-    symbolData.prices,
+    symbolData.closes,
     symbolData.volumes
   );
 
   // 2. Momentum (RSI)
   const momentum = evaluateMomentum(
-    symbolData.prices,
+    symbolData.closes,
     config.rsiPeriod || 14
   );
 
   // 3. Market Direction (SPY/QQQ moving averages)
   const marketDirection = evaluateMarketDirection(
-    marketData.prices,
+    marketData.closes,
     config.marketFastPeriod || 10,
     config.marketSlowPeriod || 30
   );
@@ -757,7 +1471,33 @@ export function evaluateAllIndicators(
   // 4. Volume
   const volume = evaluateVolume(
     symbolData.volumes || [],
-    symbolData.prices
+    symbolData.closes
+  );
+
+  // 5. MACD
+  const macd = evaluateMACD(symbolData.closes);
+
+  // 6. Bollinger Bands
+  const bollingerBands = evaluateBollingerBands(symbolData.closes);
+
+  // 7. Stochastic
+  const stochastic = evaluateStochastic(
+    symbolData.highs || symbolData.closes,
+    symbolData.lows || symbolData.closes,
+    symbolData.closes
+  );
+
+  // 8. ATR (volatility)
+  const atr = evaluateATR(
+    symbolData.highs || symbolData.closes,
+    symbolData.lows || symbolData.closes,
+    symbolData.closes
+  );
+
+  // 9. OBV
+  const obv = evaluateOBV(
+    symbolData.closes,
+    symbolData.volumes || []
   );
 
   const indicators = {
@@ -765,31 +1505,32 @@ export function evaluateAllIndicators(
     momentum,
     marketDirection,
     volume,
+    macd,
+    bollingerBands,
+    stochastic,
+    atr,
+    obv,
   };
 
-  // Check if all 4 indicators are "green" (BUY signal)
-  const allGreen =
-    priceMovement.signal === "BUY" &&
-    momentum.signal === "BUY" &&
-    marketDirection.signal === "BUY" &&
-    volume.signal === "BUY";
+  // Check if all 9 indicators are "green" (BUY signal)
+  const allGreen = Object.values(indicators).every(
+    (ind) => ind.signal === "BUY"
+  );
 
-  // Check if all 4 indicators are "red" (SELL signal)
-  const allRed =
-    priceMovement.signal === "SELL" &&
-    momentum.signal === "SELL" &&
-    marketDirection.signal === "SELL" &&
-    volume.signal === "SELL";
+  // Check if all 9 indicators are "red" (SELL signal)
+  const allRed = Object.values(indicators).every(
+    (ind) => ind.signal === "SELL"
+  );
 
   let overallSignal: "BUY" | "SELL" | "HOLD";
   let reason: string;
 
   if (allGreen) {
     overallSignal = "BUY";
-    reason = "All 4 indicators are GREEN - Strong BUY signal";
+    reason = "All 9 indicators are GREEN - Strong BUY signal";
   } else if (allRed) {
     overallSignal = "SELL";
-    reason = "All 4 indicators are RED - Strong SELL signal";
+    reason = "All 9 indicators are RED - Strong SELL signal";
   } else {
     overallSignal = "HOLD";
     const vals = Object.values(indicators);
@@ -799,7 +1540,7 @@ export function evaluateAllIndicators(
 
     reason = `Mixed signals - BUY: ${buyCount}, ` +
       `SELL: ${sellCount}, HOLD: ${holdCount}. ` +
-      "Need all 4 indicators aligned for action.";
+      "Need all 9 indicators aligned for action.";
   }
 
   logger.info("Multi-indicator evaluation complete", {
@@ -810,6 +1551,11 @@ export function evaluateAllIndicators(
       momentum: momentum.signal,
       marketDirection: marketDirection.signal,
       volume: volume.signal,
+      macd: macd.signal,
+      bollingerBands: bollingerBands.signal,
+      stochastic: stochastic.signal,
+      atr: atr.signal,
+      obv: obv.signal,
     },
   });
 
