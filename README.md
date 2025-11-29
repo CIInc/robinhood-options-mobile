@@ -314,7 +314,7 @@ flutter test
 
 ## Future Enhancements
 
-This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see the [Future Enhancements](docs/index.md#future-enhancements) section in the documentation.
+This project is actively evolving. For a comprehensive roadmap of planned features and enhancements, see [ROADMAP.md](ROADMAP.md).
 
 Key areas of planned development include:
 - **Investor Groups**: Enhanced collaboration features, advanced permissions, group analytics
