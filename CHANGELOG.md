@@ -4,8 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.4] - 2025-11-30
+
 ### Added
-- **Portfolio Position Diversification Chart:** New pie chart in the portfolio allocation carousel that displays diversification by individual stock positions. Shows top 8 holdings with remaining positions grouped as "Others". Users can now visualize portfolio concentration across positions, sectors, and industries.
+- **Portfolio Position Diversification Chart:** New pie chart in the portfolio allocation carousel that displays diversification by individual stock positions. Shows top 5 holdings with remaining positions grouped as "Others". Users can now visualize portfolio concentration across positions, sectors, and industries.
+- **Carousel Page Indicators:** Added visual dot indicators below the allocation carousel to show which chart page is currently active (Asset, Position, Sector, or Industry).
+
+### Fixed
+- **Pie Chart Slice Highlighting:** Fixed interactive highlighting in allocation pie charts. Clicking on pie chart slices now properly highlights both the slice and corresponding legend entry. Clicking legend entries now selects and highlights the corresponding pie slice.
+- **Selection Model Configuration:** Reordered chart behaviors to place `SelectNearest()` and `DomainHighlighter()` before `DatumLegend` for proper bidirectional selection between chart and legend.
+- **Null Selection Handling:** Added null checks in `onSelected` callbacks to prevent `NoSuchMethodError` when selections are cleared or deselected.
+
+### Changed
+- **Position Chart Display:** Reduced maximum positions shown from 8 to 5 to better fit available screen space and improve readability.
+- **Position Percentage Calculation:** Position percentages now calculated relative to total portfolio value instead of just stock positions, providing more accurate allocation representation.
+- **Carousel State Management:** Replaced `setState` with `ValueNotifier` for carousel page indicators to avoid rebuilding the entire home widget on page changes, improving performance.
+
+### Technical Details
+- **Files Changed:**
+  - `lib/widgets/home_widget.dart`:
+    - Added `ValueNotifier<int>` for carousel page tracking
+    - Implemented carousel scroll listener with viewport-based page calculation
+    - Added null-safe `onSelected` callbacks for all pie charts
+    - Reordered behaviors: `SelectNearest()`, `DomainHighlighter()`, then `legendBehavior`
+    - Added percentage labels to position diversification matching Asset allocation format
+    - Changed `maxPositions` constant from 8 to 5
+    - Used `fold` instead of `reduce` for safer aggregation with empty data handling
 
 ## [0.17.3] - 2025-11-26
 
