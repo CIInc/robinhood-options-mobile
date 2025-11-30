@@ -269,7 +269,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     // Calculate page based on scroll position and viewport width
     // itemExtent is double.infinity, so each item takes full viewport width
     final viewportWidth = _carouselController.position.viewportDimension;
-    final page = ((_carouselController.offset + viewportWidth / 2) / viewportWidth).floor();
+    final page =
+        ((_carouselController.offset + viewportWidth / 2) / viewportWidth)
+            .floor();
     if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 4) {
       _currentCarouselPageNotifier.value = page;
     }
@@ -1807,16 +1809,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       : 'Unknown');
               final groupedPositions = groupedByPosition
                   .map((k, v) {
-                    return MapEntry(
-                        k, v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b));
+                    return MapEntry(k,
+                        v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b));
                   })
                   .entries
                   .toList();
               groupedPositions.sort((a, b) => b.value.compareTo(a.value));
               for (var position in groupedPositions.take(maxPositions)) {
-                final positionPercent = portfolioValue > 0 
-                    ? position.value / portfolioValue 
-                    : 0.0;
+                final positionPercent =
+                    portfolioValue > 0 ? position.value / portfolioValue : 0.0;
                 diversificationPositionData.add(PieChartData(
                     '${position.key} ${formatPercentageInteger.format(positionPercent)}',
                     position.value));
@@ -1826,9 +1827,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     .skip(maxPositions)
                     .map((e) => e.value)
                     .fold(0.0, (a, b) => a + b);
-                final othersPercent = portfolioValue > 0 
-                    ? othersValue / portfolioValue 
-                    : 0.0;
+                final othersPercent =
+                    portfolioValue > 0 ? othersValue / portfolioValue : 0.0;
                 diversificationPositionData.add(PieChartData(
                     'Others ${formatPercentageInteger.format(othersPercent)}',
                     othersValue));
@@ -1993,14 +1993,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   color: axisLabelColor))
                               //     ]),
                               behaviors: [
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
                                 legendBehavior,
                                 charts.ChartTitle('Asset',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
                                     behaviorPosition:
                                         charts.BehaviorPosition.end),
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
                                 charts.LinePointHighlighter(
                                   symbolRenderer: TextSymbolRenderer(() =>
                                       // widget.chartSelectionStore.selection != null
@@ -2027,7 +2027,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 )
                               ],
                               onSelected: (value) {
-                                debugPrint(value.value.toString());
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
                               },
                             ),
                             PieChart(
@@ -2055,11 +2057,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               ],
                               animate: false,
                               renderer: charts.ArcRendererConfig(),
-                              onSelected: (_) {},
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
                               behaviors: [
-                                legendBehavior,
                                 charts.SelectNearest(),
                                 charts.DomainHighlighter(),
+                                legendBehavior,
                                 charts.ChartTitle('Position',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
@@ -2110,11 +2116,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   fontSize: 12,
                               //                   color: axisLabelColor))
                               //     ]),
-                              onSelected: (_) {},
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
                               behaviors: [
-                                legendBehavior,
                                 charts.SelectNearest(),
                                 charts.DomainHighlighter(),
+                                legendBehavior,
                                 charts.ChartTitle('Sector',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
@@ -2159,17 +2169,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   fontSize: 12,
                               //                   color: axisLabelColor))
                               //     ]),
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
                               behaviors: [
-                                legendBehavior,
                                 charts.SelectNearest(),
                                 charts.DomainHighlighter(),
+                                legendBehavior,
                                 charts.ChartTitle('Industry',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
                                     behaviorPosition:
                                         charts.BehaviorPosition.end)
                               ],
-                              onSelected: (_) {},
                             )
                             //],
                           ])),
@@ -2185,7 +2199,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             return Container(
                               width: 8.0,
                               height: 8.0,
-                              margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: currentPage == index
