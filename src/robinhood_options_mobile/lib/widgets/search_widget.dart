@@ -245,7 +245,7 @@ class _SearchWidgetState extends State<SearchWidget>
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: screenerSector,
+            initialValue: screenerSector,
             items: sectors
                 .map((s) => DropdownMenuItem(
                       value: s == 'All' ? null : s,
@@ -840,7 +840,7 @@ class _SearchWidgetState extends State<SearchWidget>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DropdownButtonFormField<ScreenerId>(
-            value: selectedYahooScreener,
+            initialValue: selectedYahooScreener,
             items: YahooService.scrIds
                 .map((s) => DropdownMenuItem(
                       value: s,
@@ -2160,7 +2160,7 @@ class _SearchWidgetState extends State<SearchWidget>
                 selectedColor: Colors.blue.withOpacity(0.2),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
