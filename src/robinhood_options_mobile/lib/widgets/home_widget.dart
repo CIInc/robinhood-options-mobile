@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   late final CarouselController _carouselController;
   // late final Timer _carouselTimer;
-  int _currentCarouselPage = 0;
+  final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
 
   _HomePageState();
 
@@ -258,6 +258,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     // _carouselTimer.cancel();
     _carouselController.removeListener(_onCarouselScroll);
     _carouselController.dispose();
+    _currentCarouselPageNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _stopRefreshTimer();
     super.dispose();
@@ -266,10 +267,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   void _onCarouselScroll() {
     if (!_carouselController.hasClients) return;
     final page = (_carouselController.offset / 245).round();
-    if (page != _currentCarouselPage && page >= 0 && page < 4) {
-      setState(() {
-        _currentCarouselPage = page;
-      });
+    if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 4) {
+      _currentCarouselPageNotifier.value = page;
     }
   }
 
@@ -2173,27 +2172,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             //],
                           ])),
                   // Carousel page indicators
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(4, (index) {
-                        return Container(
-                          width: 8.0,
-                          height: 8.0,
-                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: _currentCarouselPage == index
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.3),
-                          ),
-                        );
-                      }),
-                    ),
+                  ValueListenableBuilder<int>(
+                    valueListenable: _currentCarouselPageNotifier,
+                    builder: (context, currentPage, child) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            return Container(
+                              width: 8.0,
+                              height: 8.0,
+                              margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: currentPage == index
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.3),
+                              ),
+                            );
+                          }),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ));
