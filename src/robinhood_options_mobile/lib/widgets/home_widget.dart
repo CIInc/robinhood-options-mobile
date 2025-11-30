@@ -1786,21 +1786,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
               // Position diversification - group by individual stock symbol
               List<PieChartData> diversificationPositionData = [];
-              var groupedByPosition = stockPositionStore.items
-                  .where((item) => item.instrumentObj != null)
-                  .map((item) => MapEntry(
-                      item.instrumentObj!.symbol, item.marketValue))
+              var groupedByPosition = stockPositionStore.items.groupListsBy(
+                  (item) => item.instrumentObj != null
+                      ? item.instrumentObj!.symbol
+                      : 'Unknown');
+              final groupedPositions = groupedByPosition
+                  .map((k, v) {
+                    return MapEntry(
+                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
+                  })
+                  .entries
                   .toList();
-              groupedByPosition.sort((a, b) => b.value.compareTo(a.value));
+              groupedPositions.sort((a, b) => b.value.compareTo(a.value));
               
-              for (var position in groupedByPosition.take(maxPositions)) {
+              for (var position in groupedPositions.take(maxPositions)) {
                 diversificationPositionData
                     .add(PieChartData(position.key, position.value));
               }
-              if (groupedByPosition.length > maxPositions) {
+              if (groupedPositions.length > maxPositions) {
                 diversificationPositionData.add(PieChartData(
                     'Others',
-                    groupedByPosition
+                    groupedPositions
                         .skip(maxPositions)
                         .map((e) => e.value)
                         .reduce((a, b) => a + b)));
