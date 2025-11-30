@@ -190,6 +190,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   late final CarouselController _carouselController;
   // late final Timer _carouselTimer;
+  int _currentCarouselPage = 0;
 
   _HomePageState();
 
@@ -241,6 +242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
 
     _carouselController = CarouselController();
+    _carouselController.addListener(_onCarouselScroll);
     // _carouselTimer = Timer.periodic(
     //   const Duration(seconds: 4),
     //   (_) => _animateToNextItem(),
@@ -254,10 +256,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void dispose() {
     // _carouselTimer.cancel();
+    _carouselController.removeListener(_onCarouselScroll);
     _carouselController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _stopRefreshTimer();
     super.dispose();
+  }
+
+  void _onCarouselScroll() {
+    if (!_carouselController.hasClients) return;
+    final page = (_carouselController.offset / 245).round();
+    if (page != _currentCarouselPage && page >= 0 && page < 4) {
+      setState(() {
+        _currentCarouselPage = page;
+      });
+    }
   }
 
   @override
@@ -1946,7 +1959,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               itemSnapping: true,
                               itemExtent: double.infinity, // 360, //
                               shrinkExtent: 245,
-                              // controller: _carouselController,
+                              controller: _carouselController,
                               onTap: (value) {},
                               children: [
                             //if (total > 0) ...[
@@ -2159,6 +2172,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                             )
                             //],
                           ])),
+                  // Carousel page indicators
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        return Container(
+                          width: 8.0,
+                          height: 8.0,
+                          margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _currentCarouselPage == index
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.3),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
                 ],
               ));
             }),
