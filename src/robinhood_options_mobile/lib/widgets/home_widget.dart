@@ -1809,7 +1809,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     groupedPositions
                         .skip(maxPositions)
                         .map((e) => e.value)
-                        .reduce((a, b) => a + b)));
+                        .fold(0.0, (a, b) => a + b)));
               }
 
               List<PieChartData> diversificationSectorData = [];
