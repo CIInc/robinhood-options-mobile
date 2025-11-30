@@ -1793,7 +1793,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               final groupedPositions = groupedByPosition
                   .map((k, v) {
                     return MapEntry(
-                        k, v.map((m) => m.marketValue).reduce((a, b) => a + b));
+                        k, v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b));
                   })
                   .entries
                   .toList();
