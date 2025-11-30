@@ -1813,10 +1813,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .entries
                   .toList();
               groupedPositions.sort((a, b) => b.value.compareTo(a.value));
-              final totalPositionValue = groupedPositions.fold(0.0, (sum, e) => sum + e.value);
               for (var position in groupedPositions.take(maxPositions)) {
-                final positionPercent = totalPositionValue > 0 
-                    ? position.value / totalPositionValue 
+                final positionPercent = portfolioValue > 0 
+                    ? position.value / portfolioValue 
                     : 0.0;
                 diversificationPositionData.add(PieChartData(
                     '${position.key} ${formatPercentageInteger.format(positionPercent)}',
@@ -1827,8 +1826,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                     .skip(maxPositions)
                     .map((e) => e.value)
                     .fold(0.0, (a, b) => a + b);
-                final othersPercent = totalPositionValue > 0 
-                    ? othersValue / totalPositionValue 
+                final othersPercent = portfolioValue > 0 
+                    ? othersValue / portfolioValue 
                     : 0.0;
                 diversificationPositionData.add(PieChartData(
                     'Others ${formatPercentageInteger.format(othersPercent)}',
