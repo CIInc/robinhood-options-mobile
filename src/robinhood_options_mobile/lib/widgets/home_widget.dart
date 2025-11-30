@@ -1780,9 +1780,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
-              final maxPositions = 8;
-              final maxSectors = 5;
-              final maxIndustries = 5;
+              const maxPositions = 8;
+              const maxSectors = 5;
+              const maxIndustries = 5;
 
               // Position diversification - group by individual stock symbol
               List<PieChartData> diversificationPositionData = [];
@@ -1798,7 +1798,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                   .entries
                   .toList();
               groupedPositions.sort((a, b) => b.value.compareTo(a.value));
-              
               for (var position in groupedPositions.take(maxPositions)) {
                 diversificationPositionData
                     .add(PieChartData(position.key, position.value));
