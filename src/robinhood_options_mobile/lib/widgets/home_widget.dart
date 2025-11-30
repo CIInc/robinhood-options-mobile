@@ -266,7 +266,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   void _onCarouselScroll() {
     if (!_carouselController.hasClients) return;
-    final page = (_carouselController.offset / 245).round();
+    // Calculate page based on scroll position and viewport width
+    // itemExtent is double.infinity, so each item takes full viewport width
+    final viewportWidth = _carouselController.position.viewportDimension;
+    final page = ((_carouselController.offset + viewportWidth / 2) / viewportWidth).floor();
     if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 4) {
       _currentCarouselPageNotifier.value = page;
     }
