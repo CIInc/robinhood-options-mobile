@@ -1795,7 +1795,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
-              const maxPositions = 8;
+              const maxPositions = 5;
               const maxSectors = 5;
               const maxIndustries = 5;
 
