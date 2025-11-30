@@ -1780,8 +1780,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
+              final maxPositions = 8;
               final maxSectors = 5;
               final maxIndustries = 5;
+
+              // Position diversification - group by individual stock symbol
+              List<PieChartData> diversificationPositionData = [];
+              var groupedByPosition = stockPositionStore.items
+                  .where((item) => item.instrumentObj != null)
+                  .map((item) => MapEntry(
+                      item.instrumentObj!.symbol, item.marketValue))
+                  .toList();
+              groupedByPosition.sort((a, b) => b.value.compareTo(a.value));
+              
+              for (var position in groupedByPosition.take(maxPositions)) {
+                diversificationPositionData
+                    .add(PieChartData(position.key, position.value));
+              }
+              if (groupedByPosition.length > maxPositions) {
+                diversificationPositionData.add(PieChartData(
+                    'Others',
+                    groupedByPosition
+                        .skip(maxPositions)
+                        .map((e) => e.value)
+                        .reduce((a, b) => a + b)));
+              }
 
               List<PieChartData> diversificationSectorData = [];
               var groupedBySector = stockPositionStore.items.groupListsBy(
@@ -1978,6 +2001,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               onSelected: (value) {
                                 debugPrint(value.value.toString());
                               },
+                            ),
+                            PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Diversification Position',
+                                  colorFn: (_, index) =>
+                                      charts.ColorUtil.fromDartColor(
+                                          Colors.accents[index! %
+                                              Colors.accents
+                                                  .length]), // shades[index!],
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label.length > maxLabelChars
+                                          ? val.label.replaceRange(
+                                              maxLabelChars,
+                                              val.label.length,
+                                              '...')
+                                          : val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  labelAccessorFn: (PieChartData val, _) =>
+                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                  data: diversificationPositionData,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(),
+                              onSelected: (_) {},
+                              behaviors: [
+                                legendBehavior,
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
+                                charts.ChartTitle('Position',
+                                    titleStyleSpec: charts.TextStyleSpec(
+                                        color: axisLabelColor),
+                                    behaviorPosition:
+                                        charts.BehaviorPosition.end)
+                              ],
                             ),
                             PieChart(
                               [
