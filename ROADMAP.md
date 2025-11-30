@@ -8,13 +8,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 **RealizeAlpha** is a comprehensive mobile trading platform with advanced AI-powered features. This roadmap tracks both completed achievements and planned enhancements across 18 major categories.
 
 ### Quick Stats
-- **Completed Features**: 5 major categories (25+ items)
+- **Completed Features**: 6 major categories (30+ items)
 - **Planned Enhancements**: 18 categories (165+ items)
 - **Open GitHub Issues**: 12 tracked features
 - **Focus Areas**: Trading automation, social features, brokerage integrations, security
 
 ### Key Highlights
-- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence
+- ✅ **Completed**: Investor Groups, AI Trade Signals, Copy Trading, Futures Trading, Firestore Persistence, Portfolio Visualization
 - 🔥 **In Progress**: Agentic Trading, Plaid/Schwab/Fidelity Integrations
 - 🎯 **Upcoming**: Option Screener, Social Platform, Testing & Security Infrastructure
 
@@ -47,6 +47,13 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 
 ### Data Persistence
 - [x] Firestore persisted portfolios, positions, and transactions ([#29](https://github.com/CIInc/robinhood-options-mobile/issues/29))
+
+### Portfolio Visualization
+- [x] Portfolio allocation pie charts (Asset, Position, Sector, Industry) ([#127](https://github.com/CIInc/robinhood-options-mobile/pull/127))
+- [x] Interactive carousel with page indicators
+- [x] Bidirectional highlighting between chart slices and legend entries
+- [x] Top 5 holdings display with percentage labels
+- [x] "Others" grouping for remaining positions
 
 ## Planned Enhancements 🚀
 
@@ -108,7 +115,6 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 ### Portfolio Management ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
 - [ ] Advanced portfolio analytics (Sharpe ratio, alpha, beta)
 - [ ] Risk exposure heatmaps
-- [ ] Sector allocation visualization
 - [ ] Dividend tracking and projections
 - [ ] Tax loss harvesting suggestions
 - [ ] Portfolio rebalancing recommendations
@@ -120,7 +126,6 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - [ ] **Income Chart** ([#17](https://github.com/CIInc/robinhood-options-mobile/issues/17)): Visualize portfolio income over time
 - [ ] **Income Interest List** ([#6](https://github.com/CIInc/robinhood-options-mobile/issues/6)): Track interest payments
 - [ ] **Dividend History** ([#3](https://github.com/CIInc/robinhood-options-mobile/issues/3)): View historical dividend payments
-- [ ] **Diversification Charts** ([#2](https://github.com/CIInc/robinhood-options-mobile/issues/2)): Analyze portfolio diversification
 - [ ] **Benchmark Comparison** ([#18](https://github.com/CIInc/robinhood-options-mobile/issues/18)): Compare performance against market indices
 - [ ] **Income View NAV** ([#20](https://github.com/CIInc/robinhood-options-mobile/issues/20)): Net Asset Value tracking
 
