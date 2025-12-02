@@ -769,6 +769,17 @@ https://api.robinhood.com/ceres/v1/accounts?rhsAccountNumber={accountNumber}
     return resultJson['results'] ?? [];
   }
 
+  Future<List<dynamic>> getFuturesClosesByIds(
+      BrokerageUser user, List<String> contractIds) async {
+    if (contractIds.isEmpty) {
+      return Future.value([]);
+    }
+    var url =
+        "$endpoint/marketdata/futures/closes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
+    var resultJson = await getJson(user, url);
+    return resultJson['data'] ?? [];
+  }
+
 /*
 https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
 {
@@ -825,13 +836,22 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
         // Endpoint returns an array of objects with data: { last_trade_price, instrument_id }
         List<dynamic> quotes = [];
         try {
-          var quotesUrl = "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
+          var quotesUrl =
+              "$endpoint/marketdata/futures/quotes/v1/?ids=${Uri.encodeComponent(contractIds.join(","))}";
           var quotesJson = await getJson(user, quotesUrl);
           if (quotesJson['data'] != null) {
             quotes = quotesJson['data'];
           }
         } catch (e) {
           debugPrint('streamFuturePositions: futures quotes fetch error: $e');
+        }
+
+        // Fetch closes for contracts to compute Day P&L
+        List<dynamic> closes = [];
+        try {
+          closes = await getFuturesClosesByIds(user, contractIds);
+        } catch (e) {
+          debugPrint('streamFuturePositions: futures closes fetch error: $e');
         }
 
         // Map for quick lookup instrument_id -> last_trade_price
@@ -845,6 +865,23 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               var lastTrade = double.tryParse(lastTradePriceStr);
               if (lastTrade != null) {
                 lastTradePriceByContract[instrumentId] = lastTrade;
+              }
+            }
+          }
+        }
+
+        // Map for quick lookup instrument_id -> previous_close_price
+        Map<String, double> previousClosePriceByContract = {};
+        for (var closeWrapper in closes) {
+          if (closeWrapper is Map && closeWrapper['data'] != null) {
+            var data = closeWrapper['data'];
+            var instrumentId = data['instrument_id']?.toString();
+            var previousClosePriceStr =
+                data['previous_close_price']?.toString();
+            if (instrumentId != null && previousClosePriceStr != null) {
+              var previousClose = double.tryParse(previousClosePriceStr);
+              if (previousClose != null) {
+                previousClosePriceByContract[instrumentId] = previousClose;
               }
             }
           }
@@ -876,6 +913,12 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               position['lastTradePrice'] = lastTradePriceByContract[contractId];
             }
 
+            // Attach previous close price if available
+            if (previousClosePriceByContract.containsKey(contractId)) {
+              position['previousClosePrice'] =
+                  previousClosePriceByContract[contractId];
+            }
+
             // Compute Open P&L if we have lastTradePrice, avgTradePrice, quantity, and multiplier
             var lastTradePrice = position['lastTradePrice'];
             var avgTradePriceStr = position['avgTradePrice']?.toString();
@@ -884,12 +927,10 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
             double? avgTradePrice = avgTradePriceStr != null
                 ? double.tryParse(avgTradePriceStr)
                 : null;
-            double? quantity = quantityStr != null
-                ? double.tryParse(quantityStr)
-                : null;
-            double? multiplier = multiplierStr != null
-                ? double.tryParse(multiplierStr)
-                : null;
+            double? quantity =
+                quantityStr != null ? double.tryParse(quantityStr) : null;
+            double? multiplier =
+                multiplierStr != null ? double.tryParse(multiplierStr) : null;
             if (lastTradePrice is double &&
                 avgTradePrice != null &&
                 quantity != null &&
@@ -898,9 +939,19 @@ https://api.robinhood.com/ceres/v1/accounts/{accountGuid}/aggregated_positions
               position['openPnlCalc'] =
                   (lastTradePrice - avgTradePrice) * quantity * multiplier;
             }
+
+            // Compute Day P&L if we have lastTradePrice, previousClosePrice, quantity, and multiplier
+            var previousClosePrice = position['previousClosePrice'];
+            if (lastTradePrice is double &&
+                previousClosePrice is double &&
+                quantity != null &&
+                multiplier != null) {
+              // Day P&L formula: (Last - PreviousClose) * Quantity * Multiplier
+              position['dayPnlCalc'] =
+                  (lastTradePrice - previousClosePrice) * quantity * multiplier;
+            }
           }
         }
-        // (Day P&L removed per request; only open P&L retained.)
       }
 
       yield results;

@@ -228,14 +228,14 @@ export async function handleAlphaTask(marketData: any,
     marketFastPeriod: config?.smaPeriodFast || 10,
     marketSlowPeriod: config?.smaPeriodSlow || 30,
   };
-  
+
   logger.info("📊 Evaluating indicators with config", {
     marketFastPeriod: indicatorConfig.marketFastPeriod,
     marketSlowPeriod: indicatorConfig.marketSlowPeriod,
     configSmaPeriodFast: config?.smaPeriodFast,
     configSmaPeriodSlow: config?.smaPeriodSlow,
   });
-  
+
   const multiIndicatorResult = indicators.evaluateAllIndicators(
     { opens, highs, lows, closes, volumes },
     marketIndexData,

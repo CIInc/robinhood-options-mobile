@@ -96,7 +96,7 @@ class _OptionPositionsWidgetState extends State<OptionPositionsWidget> {
       {double fontSize = 12}) {
     final fg = Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
     final bg =
-        Theme.of(context).colorScheme.surfaceVariant.withValues(alpha: 0.18);
+        Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.18);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
