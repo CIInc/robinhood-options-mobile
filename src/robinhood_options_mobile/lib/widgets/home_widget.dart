@@ -190,6 +190,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
 
   late final CarouselController _carouselController;
   // late final Timer _carouselTimer;
+  final ValueNotifier<int> _currentCarouselPageNotifier = ValueNotifier<int>(0);
 
   _HomePageState();
 
@@ -241,6 +242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
 
     _carouselController = CarouselController();
+    _carouselController.addListener(_onCarouselScroll);
     // _carouselTimer = Timer.periodic(
     //   const Duration(seconds: 4),
     //   (_) => _animateToNextItem(),
@@ -254,10 +256,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
   @override
   void dispose() {
     // _carouselTimer.cancel();
+    _carouselController.removeListener(_onCarouselScroll);
     _carouselController.dispose();
+    _currentCarouselPageNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _stopRefreshTimer();
     super.dispose();
+  }
+
+  void _onCarouselScroll() {
+    if (!_carouselController.hasClients) return;
+    // Calculate page based on scroll position and viewport width
+    // itemExtent is double.infinity, so each item takes full viewport width
+    final viewportWidth = _carouselController.position.viewportDimension;
+    final page =
+        ((_carouselController.offset + viewportWidth / 2) / viewportWidth)
+            .floor();
+    if (page != _currentCarouselPageNotifier.value && page >= 0 && page < 4) {
+      _currentCarouselPageNotifier.value = page;
+    }
   }
 
   @override
@@ -1780,8 +1797,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               data.sort((a, b) => b.value.compareTo(a.value));
 
               const maxLabelChars = 15;
-              final maxSectors = 5;
-              final maxIndustries = 5;
+              const maxPositions = 5;
+              const maxSectors = 5;
+              const maxIndustries = 5;
+
+              // Position diversification - group by individual stock symbol
+              List<PieChartData> diversificationPositionData = [];
+              var groupedByPosition = stockPositionStore.items.groupListsBy(
+                  (item) => item.instrumentObj != null
+                      ? item.instrumentObj!.symbol
+                      : 'Unknown');
+              final groupedPositions = groupedByPosition
+                  .map((k, v) {
+                    return MapEntry(k,
+                        v.map((m) => m.marketValue).fold(0.0, (a, b) => a + b));
+                  })
+                  .entries
+                  .toList();
+              groupedPositions.sort((a, b) => b.value.compareTo(a.value));
+              for (var position in groupedPositions.take(maxPositions)) {
+                final positionPercent =
+                    portfolioValue > 0 ? position.value / portfolioValue : 0.0;
+                diversificationPositionData.add(PieChartData(
+                    '${position.key} ${formatPercentageInteger.format(positionPercent)}',
+                    position.value));
+              }
+              if (groupedPositions.length > maxPositions) {
+                final othersValue = groupedPositions
+                    .skip(maxPositions)
+                    .map((e) => e.value)
+                    .fold(0.0, (a, b) => a + b);
+                final othersPercent =
+                    portfolioValue > 0 ? othersValue / portfolioValue : 0.0;
+                diversificationPositionData.add(PieChartData(
+                    'Others ${formatPercentageInteger.format(othersPercent)}',
+                    othersValue));
+              }
 
               List<PieChartData> diversificationSectorData = [];
               var groupedBySector = stockPositionStore.items.groupListsBy(
@@ -1909,7 +1960,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               itemSnapping: true,
                               itemExtent: double.infinity, // 360, //
                               shrinkExtent: 245,
-                              // controller: _carouselController,
+                              controller: _carouselController,
                               onTap: (value) {},
                               children: [
                             //if (total > 0) ...[
@@ -1942,14 +1993,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   color: axisLabelColor))
                               //     ]),
                               behaviors: [
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
                                 legendBehavior,
                                 charts.ChartTitle('Asset',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
                                     behaviorPosition:
                                         charts.BehaviorPosition.end),
-                                charts.SelectNearest(),
-                                charts.DomainHighlighter(),
                                 charts.LinePointHighlighter(
                                   symbolRenderer: TextSymbolRenderer(() =>
                                       // widget.chartSelectionStore.selection != null
@@ -1976,8 +2027,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                                 )
                               ],
                               onSelected: (value) {
-                                debugPrint(value.value.toString());
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
                               },
+                            ),
+                            PieChart(
+                              [
+                                charts.Series<PieChartData, String>(
+                                  id: 'Diversification Position',
+                                  colorFn: (_, index) =>
+                                      charts.ColorUtil.fromDartColor(
+                                          Colors.accents[index! %
+                                              Colors.accents
+                                                  .length]), // shades[index!],
+                                  domainFn: (PieChartData val, index) =>
+                                      val.label.length > maxLabelChars
+                                          ? val.label.replaceRange(
+                                              maxLabelChars,
+                                              val.label.length,
+                                              '...')
+                                          : val.label,
+                                  measureFn: (PieChartData val, index) =>
+                                      val.value,
+                                  labelAccessorFn: (PieChartData val, _) =>
+                                      '${val.label}\n${formatCompactNumber.format(val.value)}',
+                                  data: diversificationPositionData,
+                                ),
+                              ],
+                              animate: false,
+                              renderer: charts.ArcRendererConfig(),
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
+                              behaviors: [
+                                charts.SelectNearest(),
+                                charts.DomainHighlighter(),
+                                legendBehavior,
+                                charts.ChartTitle('Position',
+                                    titleStyleSpec: charts.TextStyleSpec(
+                                        color: axisLabelColor),
+                                    behaviorPosition:
+                                        charts.BehaviorPosition.end)
+                              ],
                             ),
                             PieChart(
                               [
@@ -2022,11 +2116,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   fontSize: 12,
                               //                   color: axisLabelColor))
                               //     ]),
-                              onSelected: (_) {},
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
                               behaviors: [
-                                legendBehavior,
                                 charts.SelectNearest(),
                                 charts.DomainHighlighter(),
+                                legendBehavior,
                                 charts.ChartTitle('Sector',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
@@ -2071,20 +2169,53 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                               //                   fontSize: 12,
                               //                   color: axisLabelColor))
                               //     ]),
+                              onSelected: (value) {
+                                if (value != null) {
+                                  debugPrint(value.value.toString());
+                                }
+                              },
                               behaviors: [
-                                legendBehavior,
                                 charts.SelectNearest(),
                                 charts.DomainHighlighter(),
+                                legendBehavior,
                                 charts.ChartTitle('Industry',
                                     titleStyleSpec: charts.TextStyleSpec(
                                         color: axisLabelColor),
                                     behaviorPosition:
                                         charts.BehaviorPosition.end)
                               ],
-                              onSelected: (_) {},
                             )
                             //],
                           ])),
+                  // Carousel page indicators
+                  ValueListenableBuilder<int>(
+                    valueListenable: _currentCarouselPageNotifier,
+                    builder: (context, currentPage, child) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (index) {
+                            return Container(
+                              width: 8.0,
+                              height: 8.0,
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: currentPage == index
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.3),
+                              ),
+                            );
+                          }),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ));
             }),

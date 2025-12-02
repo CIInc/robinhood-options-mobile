@@ -297,7 +297,7 @@ class _InvestorGroupsMemberDetailWidgetState
                                   o.optionEvents!.isNotEmpty
                               ? const Icon(Icons.check, size: 20)
                               : Text(
-                                  "${o.legs.length > 0 && o.legs.first.side!.toLowerCase() == 'buy' ? '+' : '-'}${o.quantity != null ? o.quantity!.round().toString() : ''}",
+                                  "${o.legs.isNotEmpty && o.legs.first.side!.toLowerCase() == 'buy' ? '+' : '-'}${o.quantity != null ? o.quantity!.round().toString() : ''}",
                                   style: const TextStyle(fontSize: 14)),
                         ),
                         title: Text(
@@ -342,7 +342,9 @@ class _InvestorGroupsMemberDetailWidgetState
                         onTap: () {
                           if (widget.currentUser == null ||
                               auth.currentUser == null ||
-                              o.state != 'filled') return;
+                              o.state != 'filled') {
+                            return;
+                          }
                           setState(() {
                             if (_multiSelectMode) {
                               if (isSelected) {
@@ -361,7 +363,9 @@ class _InvestorGroupsMemberDetailWidgetState
                         onLongPress: () {
                           if (widget.currentUser == null ||
                               auth.currentUser == null ||
-                              o.state != 'filled') return;
+                              o.state != 'filled') {
+                            return;
+                          }
                           setState(() {
                             _multiSelectMode = true;
                             _selectedOptionOrders.add(o);
@@ -539,7 +543,9 @@ class _InvestorGroupsMemberDetailWidgetState
                             onTap: () {
                               if (widget.currentUser == null ||
                                   auth.currentUser == null ||
-                                  o.state != 'filled') return;
+                                  o.state != 'filled') {
+                                return;
+                              }
                               setState(() {
                                 if (_multiSelectMode) {
                                   if (isSelected) {
@@ -558,7 +564,9 @@ class _InvestorGroupsMemberDetailWidgetState
                             onLongPress: () {
                               if (widget.currentUser == null ||
                                   auth.currentUser == null ||
-                                  o.state != 'filled') return;
+                                  o.state != 'filled') {
+                                return;
+                              }
                               setState(() {
                                 _multiSelectMode = true;
                                 _selectedInstrumentOrders.add(o);

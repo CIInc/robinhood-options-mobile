@@ -112,7 +112,7 @@ class _InvestmentProfileSettingsWidgetState
           content: Text(
               'Unable to auto-import portfolio value. Please enter manually.'),
           behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -141,7 +141,8 @@ class _InvestmentProfileSettingsWidgetState
       var usersCollection = widget.firestoreService.userCollection;
       var userDocumentReference =
           usersCollection.doc(fb_auth.FirebaseAuth.instance.currentUser!.uid);
-      await widget.firestoreService.updateUser(userDocumentReference, widget.user);
+      await widget.firestoreService
+          .updateUser(userDocumentReference, widget.user);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -226,7 +227,7 @@ class _InvestmentProfileSettingsWidgetState
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedTimeHorizon,
+              initialValue: _selectedTimeHorizon,
               decoration: InputDecoration(
                 labelText: 'Time Horizon',
                 helperText: 'How long do you plan to invest?',
@@ -249,7 +250,7 @@ class _InvestmentProfileSettingsWidgetState
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedRiskTolerance,
+              initialValue: _selectedRiskTolerance,
               decoration: InputDecoration(
                 labelText: 'Risk Tolerance',
                 helperText: 'How comfortable are you with market volatility?',

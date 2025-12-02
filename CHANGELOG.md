@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [0.17.4] - 2025-11-30
+
+### Added
+- **Portfolio Position Diversification Chart:** New pie chart in the portfolio allocation carousel that displays diversification by individual stock positions. Shows top 5 holdings with remaining positions grouped as "Others". Users can now visualize portfolio concentration across positions, sectors, and industries.
+- **Carousel Page Indicators:** Added visual dot indicators below the allocation carousel to show which chart page is currently active (Asset, Position, Sector, or Industry).
+
+### Fixed
+- **Pie Chart Slice Highlighting:** Fixed interactive highlighting in allocation pie charts. Clicking on pie chart slices now properly highlights both the slice and corresponding legend entry. Clicking legend entries now selects and highlights the corresponding pie slice.
+- **Selection Model Configuration:** Reordered chart behaviors to place `SelectNearest()` and `DomainHighlighter()` before `DatumLegend` for proper bidirectional selection between chart and legend.
+- **Null Selection Handling:** Added null checks in `onSelected` callbacks to prevent `NoSuchMethodError` when selections are cleared or deselected.
+
+### Changed
+- **Position Chart Display:** Reduced maximum positions shown from 8 to 5 to better fit available screen space and improve readability.
+- **Position Percentage Calculation:** Position percentages now calculated relative to total portfolio value instead of just stock positions, providing more accurate allocation representation.
+- **Carousel State Management:** Replaced `setState` with `ValueNotifier` for carousel page indicators to avoid rebuilding the entire home widget on page changes, improving performance.
+
+### Technical Details
+- **Files Changed:**
+  - `lib/widgets/home_widget.dart`:
+    - Added `ValueNotifier<int>` for carousel page tracking
+    - Implemented carousel scroll listener with viewport-based page calculation
+    - Added null-safe `onSelected` callbacks for all pie charts
+    - Reordered behaviors: `SelectNearest()`, `DomainHighlighter()`, then `legendBehavior`
+    - Added percentage labels to position diversification matching Asset allocation format
+    - Changed `maxPositions` constant from 8 to 5
+    - Used `fold` instead of `reduce` for safer aggregation with empty data handling
+
+## [0.17.3] - 2025-11-26
+
+### Added
+- **Enhanced Firebase Authentication UX:**
+  - Password visibility toggle with eye icon for better usability
+  - Real-time email format validation with user-friendly error messages
+  - Enhanced phone number input with country code guidance and validation
+  - Improved SMS verification code dialog with larger input, number keyboard, and helper text
+  - Success feedback with checkmark snackbar on successful sign-in
+  - Loading state improvements with "Signing in..." text and properly sized spinner
+- **Keyboard-Responsive Bottom Sheet:** Authentication modal now dynamically adjusts height when keyboard appears, ensuring input fields remain visible and accessible above the keyboard
+
+### Changed
+- **Improved Error Messages:** Firebase authentication errors now display contextual, actionable messages:
+  - `user-not-found` → "No account found with this email. Please check or register."
+  - `wrong-password` → "Incorrect password. Please try again or reset your password."
+  - `email-already-in-use` → "This email is already registered. Try signing in instead."
+  - `weak-password` → "Password is too weak. Please use at least 6 characters."
+  - `invalid-email` → "Invalid email format. Please check your email address."
+  - `network-request-failed` → "Network error. Please check your connection and try again."
+  - `too-many-requests` → "Too many attempts. Please wait a moment and try again."
+- **Enhanced Password Reset Dialog:** Pre-fills email, includes validation, descriptive instructions, and better button labels ("Send Reset Email" vs "Send")
+- **Password Requirements:** Registration now validates minimum 6 characters with clear error guidance
+- **Visual Improvements:** Added icon prefixes to all input fields (email, phone, password, SMS) for better visual clarity
+
+### Fixed
+- **SnackBar Styling Consistency:** Trade Signal Notification Settings now use default styling without custom background colors and include floating behavior, matching app-wide conventions used in `auth_widget.dart`, `utils/auth.dart`, `agentic_trading_settings_widget.dart`, and `investment_profile_settings_widget.dart`.
+- **Daily Cron Job:** Fixed issues with the daily end-of-day cron job execution to ensure reliable trade signal generation.
+- **Authentication Form UX:** Removed autofocus from email and phone text fields in authentication form to prevent keyboard from auto-showing on load and hiding the Phone/Email mode selector, improving initial form visibility and user navigation.
+- **Bottom Sheet Keyboard Overlap:** Authentication fields no longer hidden behind keyboard; bottom sheet expands dynamically using `MediaQuery.viewInsets.bottom` with additional padding
+
+### Technical Details
+- **Files Changed:**
+  - `lib/widgets/trade_signal_notification_settings_widget.dart`: Removed `backgroundColor: Colors.green` and added `behavior: SnackBarBehavior.floating` to success and error notifications
+  - `functions/src/agentic-trading-cron.ts`: Enhanced error handling and execution reliability
+  - `lib/widgets/auth_widget.dart`: 
+    - Added `_obscurePassword` state variable for password visibility toggle
+    - Implemented `MediaQuery.of(context).viewInsets.bottom` for keyboard-responsive padding
+    - Added `resizeToAvoidBottomInset: true` to Scaffold
+    - Enhanced all text field decorations with icons and improved validation
+    - Improved error handling with user-friendly messages via FirebaseAuthException switch cases
+    - Enhanced SMS code dialog with styled input (24pt font, 8px letter spacing, bold, number keyboard, 6-char limit)
+    - Improved password reset dialog with Form validation and pre-filled email
+    - Added success snackbar with checkmark on successful authentication
+  - `lib/widgets/auth_widget.dart`: Removed `autofocus: true` from email field (line 214) and phone field (line 242)
+- **UI/UX Improvements:** 
+  - Users now see the full authentication form including mode selector before keyboard interaction, preventing navigation controls from being obscured
+  - Password toggle provides visibility control for verification
+  - Email regex validation: `^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`
+  - Phone validation ensures "+" prefix and minimum 10 characters
+  - All dialogs follow Material Design 3 patterns with consistent styling
+
 ## [0.17.2] - 2025-11-24
 
 ### Added

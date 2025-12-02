@@ -406,11 +406,11 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           debugPrint('📋 [$timestamp] Document IDs in snapshot:');
-          snapshot.docs.forEach((doc) {
+          for (var doc in snapshot.docs) {
             final data = doc.data();
             debugPrint(
                 '   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
-          });
+          }
 
           final beforeCount = _tradeSignals.length;
           _updateTradeSignalsFromSnapshot(
@@ -418,7 +418,7 @@ class AgenticTradingProvider with ChangeNotifier {
           final afterCount = _tradeSignals.length;
 
           debugPrint(
-              '✅ [$timestamp] Processed ${afterCount} trade signals (was ${beforeCount})');
+              '✅ [$timestamp] Processed $afterCount trade signals (was $beforeCount)');
           if (_tradeSignals.isNotEmpty) {
             debugPrint(
                 '   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');

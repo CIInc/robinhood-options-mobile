@@ -182,8 +182,9 @@ Future<String?> showProfile(
       builder: (context) {
         return DraggableScrollableSheet(
           expand: false,
-          snap: true,
-          minChildSize: 0.5,
+          // snap: true,
+          initialChildSize: 1.0,
+          // minChildSize: 0.5,
           builder: (context, scrollController) {
             return auth.currentUser != null
                 ? UserWidget(

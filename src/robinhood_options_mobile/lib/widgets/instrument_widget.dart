@@ -4601,6 +4601,7 @@ class _RiskGuardButtonState extends State<_RiskGuardButton> {
           SnackBar(
             content: Text('Error running risk assessment: $e'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -4697,6 +4698,7 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Trade signal generated successfully!'),
+            behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 2),
           ),
         );
@@ -4706,6 +4708,7 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error generating signal: $e'),
+            behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
           ),
         );
