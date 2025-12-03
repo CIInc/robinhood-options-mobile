@@ -32,6 +32,75 @@ interface PerformanceData {
 }
 
 /**
+ * Perform the leaderboard calculation logic
+ * Shared between scheduled and manual calculation functions
+ * @return {Promise<number>} Number of portfolios processed
+ */
+async function performLeaderboardCalculation(): Promise<number> {
+  // Get all users with public portfolios
+  const usersSnapshot = await db
+    .collection("user")
+    .where("portfolioPublic", "==", true)
+    .get();
+
+  const performances: Array<{
+    userId: string;
+    data: PerformanceData;
+    returnPercentage: number;
+  }> = [];
+
+  // Calculate performance for each user
+  for (const userDoc of usersSnapshot.docs) {
+    const userId = userDoc.id;
+    const userData = userDoc.data();
+
+    try {
+      const performance = await calculateUserPerformance(
+        userId,
+        userData
+      );
+      if (performance) {
+        performances.push({
+          userId,
+          data: performance,
+          returnPercentage: performance.returnPercentage,
+        });
+      }
+    } catch (error) {
+      console.error(`Error calculating performance for ${userId}:`, error);
+    }
+  }
+
+  // Sort by return percentage descending
+  performances.sort((a, b) => b.returnPercentage - a.returnPercentage);
+
+  // Get previous rankings for rank change calculation
+  const previousRankings = await getPreviousRankings();
+
+  // Write to leaderboard collection with ranks
+  const batch = db.batch();
+  performances.forEach((perf, index) => {
+    const rank = index + 1;
+    const previousRank = previousRankings.get(perf.userId);
+
+    const docRef = db
+      .collection("portfolio_leaderboard")
+      .doc(perf.userId);
+    batch.set(docRef, {
+      ...perf.data,
+      rank,
+      // Firestore doesn't allow undefined; store null when absent
+      previousRank: previousRank ?? null,
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+
+  return performances.length;
+}
+
+/**
  * Calculate portfolio performance metrics and update leaderboard
  * Runs daily at 6 PM ET
  */
@@ -43,70 +112,8 @@ export const calculateLeaderboard = onSchedule(
   async () => {
     try {
       console.log("Starting leaderboard calculation...");
-
-      // Get all users with public portfolios
-      const usersSnapshot = await db
-        .collection("user")
-        .where("portfolioPublic", "==", true)
-        .get();
-
-      const performances: Array<{
-        userId: string;
-        data: PerformanceData;
-        returnPercentage: number;
-      }> = [];
-
-      // Calculate performance for each user
-      for (const userDoc of usersSnapshot.docs) {
-        const userId = userDoc.id;
-        const userData = userDoc.data();
-
-        try {
-          const performance = await calculateUserPerformance(
-            userId,
-            userData
-          );
-          if (performance) {
-            performances.push({
-              userId,
-              data: performance,
-              returnPercentage: performance.returnPercentage,
-            });
-          }
-        } catch (error) {
-          console.error(`Error calculating performance for ${userId}:`, error);
-        }
-      }
-
-      // Sort by return percentage descending
-      performances.sort((a, b) => b.returnPercentage - a.returnPercentage);
-
-      // Get previous rankings for rank change calculation
-      const previousRankings = await getPreviousRankings();
-
-      // Write to leaderboard collection with ranks
-      const batch = db.batch();
-      performances.forEach((perf, index) => {
-        const rank = index + 1;
-        const previousRank = previousRankings.get(perf.userId);
-
-        const docRef = db
-          .collection("portfolio_leaderboard")
-          .doc(perf.userId);
-        batch.set(docRef, {
-          ...perf.data,
-          rank,
-          // Firestore doesn't allow undefined; store null when absent
-          previousRank: previousRank ?? null,
-          lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      });
-
-      await batch.commit();
-
-      console.log(
-        `Leaderboard updated with ${performances.length} portfolios`
-      );
+      const count = await performLeaderboardCalculation();
+      console.log(`Leaderboard updated with ${count} portfolios`);
     } catch (error) {
       console.error("Error calculating leaderboard:", error);
       throw error;
@@ -413,69 +420,10 @@ export const calculateLeaderboardManual = onCall(async (request) => {
   }
 
   try {
-    // Call the scheduled function logic directly
     console.log("Starting manual leaderboard calculation...");
-
-    // Get all users with public portfolios
-    const usersSnapshot = await db
-      .collection("user")
-      .where("portfolioPublic", "==", true)
-      .get();
-
-    const performances: Array<{
-      userId: string;
-      data: PerformanceData;
-      returnPercentage: number;
-    }> = [];
-
-    // Calculate performance for each user
-    for (const userDoc of usersSnapshot.docs) {
-      const userId = userDoc.id;
-      const userData = userDoc.data();
-
-      try {
-        const performance = await calculateUserPerformance(userId, userData);
-        if (performance) {
-          performances.push({
-            userId,
-            data: performance,
-            returnPercentage: performance.returnPercentage,
-          });
-        }
-      } catch (error) {
-        console.error(`Error calculating performance for ${userId}:`, error);
-      }
-    }
-
-    // Sort by return percentage descending
-    performances.sort((a, b) => b.returnPercentage - a.returnPercentage);
-
-    // Get previous rankings for rank change calculation
-    const previousRankings = await getPreviousRankings();
-
-    // Write to leaderboard collection with ranks
-    const batch = db.batch();
-    performances.forEach((perf, index) => {
-      const rank = index + 1;
-      const previousRank = previousRankings.get(perf.userId);
-
-      const docRef = db.collection("portfolio_leaderboard").doc(perf.userId);
-      batch.set(docRef, {
-        ...perf.data,
-        rank,
-        // Firestore doesn't allow undefined; store null when absent
-        previousRank: previousRank ?? null,
-        lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    });
-
-    await batch.commit();
-
-    console.log(
-      `Leaderboard updated with ${performances.length} portfolios`
-    );
-
-    return { success: true, count: performances.length };
+    const count = await performLeaderboardCalculation();
+    console.log(`Leaderboard updated with ${count} portfolios`);
+    return { success: true, count };
   } catch (error) {
     console.error("Error in manual leaderboard calculation:", error);
     throw new HttpsError("internal", "Failed to calculate leaderboard");
