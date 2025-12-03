@@ -111,6 +111,49 @@ The Futures Positions feature enriches raw futures holdings with contract & prod
 
 See [Futures Positions](futures.md) for full details.
 
+## Cryptocurrency Trading Feature
+
+The Cryptocurrency Trading feature provides a dedicated service (`RobinhoodCryptoService`) for managing cryptocurrency portfolios, executing trades, and tracking transactions.
+
+### Key Components
+- **Separate Crypto Service:** Dedicated `RobinhoodCryptoService` class separate from main `RobinhoodService` for clear separation of concerns
+- **Portfolio Management:** Track all crypto holdings with real-time quotes and calculated returns
+- **Real-Time Quotes:** Live bid/ask prices, mark price, 24-hour high/low, and trading volume
+- **Order Execution:** Place market and limit orders with support for buy/sell operations
+- **Transaction History:** Complete history of orders, deposits, withdrawals, and transfers
+- **Wallet Integration:** Access wallet information and supported cryptocurrencies
+- **Firestore Persistence:** Automatic persistence of crypto positions and orders
+- **State Management:** Dedicated stores (`CryptoHoldingStore`, `CryptoOrderStore`) for reactive UI updates
+
+### Data Models
+- **CryptoHolding:** Portfolio positions with cost basis, quantity, and market value calculations
+- **CryptoQuote:** Real-time market data with bid/ask spread and price change calculations
+- **CryptoOrder:** Buy/sell orders with state tracking (filled, pending, cancelled)
+- **CryptoTransaction:** Historical transaction records with type classification
+- **CryptoHistoricals:** OHLCV data for charting with 24/7 market support
+
+### API Methods
+- `getCryptoHoldings()` - Fetch all crypto positions with automatic quote enrichment
+- `refreshCryptoHoldings()` - Update existing positions with latest quotes
+- `getCryptoQuote()` / `getCryptoQuoteByIds()` - Real-time market data
+- `getCryptoHistoricals()` - Historical price data for charting
+- `placeCryptoOrder()` - Execute market or limit orders
+- `getCryptoOrders()` / `streamCryptoOrders()` - Order management
+- `cancelCryptoOrder()` - Cancel pending orders
+- `getCryptoTransactions()` - Transaction history
+- `getCryptoWallet()` - Wallet information
+
+### Features
+- 24/7 crypto trading (unlike stocks with market hours)
+- Automatic batch processing to respect API rate limits
+- Real-time quote updates with batch optimization
+- Support for multiple cryptocurrencies (BTC, ETH, etc.)
+- Portfolio aggregations (total value, total return, return %)
+- Firestore persistence for offline capability
+- Unit tested models and calculations
+
+See [Cryptocurrency Trading](crypto-trading.md) for detailed documentation.
+
 ## Investor Groups Feature
 
 The Investor Groups feature enables collaborative portfolio sharing and community building among investors.
@@ -216,9 +259,17 @@ For implementation details, see:
       _Access fundamentals, news, analyst ratings, and earnings._
   - Crypto section
     - [x] Crypto holdings  
-      _Track balances and performance for supported cryptocurrencies._
+      _Track balances and performance for supported cryptocurrencies via dedicated RobinhoodCryptoService._
+    - [x] Crypto portfolio retrieval with real-time quotes  
+      _Get crypto positions with live market data and automatic quote enrichment._
     - [x] Crypto detail view with market data (see Crypto view)  
       _View price charts, news, and on-chain analytics._
+    - [x] Crypto buy/sell orders  
+      _Place market and limit orders for cryptocurrencies._
+    - [x] Crypto transaction history  
+      _View all crypto trades, deposits, withdrawals, and transfers._
+    - [x] Crypto wallet integration  
+      _Access wallet information and supported cryptocurrencies._
     - [ ] Crypto sentiment analysis  
       _Gauge market sentiment from social media and news sources._
 
@@ -328,11 +379,13 @@ For implementation details, see:
 
 - Crypto view
   - [x] Crypto historical chart with filters  
-    _Analyze price trends and volatility._
+    _Analyze price trends and volatility with 24/7 market data._
+  - [x] Crypto quotes with real-time pricing  
+    _View bid/ask spreads, mark price, high/low, and volume._
+  - [x] Crypto wallet integration  
+    _Access wallet information for supported cryptocurrencies._
   - [ ] Crypto staking rewards tracker  
     _Track earned rewards from staking._
-  - [ ] Crypto wallet integration  
-    _Connect external wallets for a unified view._
 
 - Trading view
   - [ ] Place stock order  
@@ -348,10 +401,13 @@ For implementation details, see:
       - [ ] Calendar/diagonal spreads
     - [ ] Price spread selector (bid/ask analysis for low-volume options)  
       _Find optimal entry/exit points._
-  - [ ] Place crypto order  
-    _Trade supported cryptocurrencies._
-  - [ ] Cancel pending order  
-    _Easily cancel open orders._
+  - [x] Place crypto order  
+    _Trade supported cryptocurrencies via RobinhoodCryptoService._
+    - [x] Market and limit orders
+    - [x] Buy and sell operations
+    - [x] Order state tracking (filled, pending, cancelled)
+  - [x] Cancel pending crypto order  
+    _Easily cancel open crypto orders._
   - [ ] Replace order  
     _Modify existing orders without canceling._
   - [ ] Trade simulator (practice trading with virtual money)  
@@ -422,8 +478,15 @@ flutter test test/user_model_test.dart
   - `lib/main.dart` - App entrypoint and provider wiring
   - `lib/model/user.dart` - User model and investment profile fields
   - `lib/services/generative_service.dart` - AI prompt generation and `portfolioPrompt()`
+  - `lib/services/robinhood_crypto_service.dart` - Dedicated crypto trading service
   - `lib/widgets/investment_profile_settings_widget.dart` - Investment profile UI
   - `functions/` - Server-side Firebase Functions and helpers
+
+- Documentation:
+  - [Cryptocurrency Trading](crypto-trading.md) - Crypto API integration guide
+  - [Copy Trading](copy-trading.md) - Copy trading system documentation
+  - [Futures Positions](futures.md) - Futures trading documentation
+  - [Multi-Indicator Trading](multi-indicator-trading.md) - AI trade signals system
 
 ## Future Enhancements
 
