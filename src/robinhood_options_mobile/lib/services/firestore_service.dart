@@ -95,6 +95,40 @@ class FirestoreService {
     await userDocumentReference.update(fields);
   }
 
+  /// Update portfolioValue in Firebase for leaderboard tracking
+  Future<void> updatePortfolioValue(String uid, double portfolioValue) async {
+    try {
+      if (portfolioValue > 0) {
+        var userDocumentReference = userCollection.doc(uid);
+        await userDocumentReference.update({
+          'portfolioValue': portfolioValue,
+          'portfolioValueUpdatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating portfolioValue: $e');
+    }
+  }
+
+  /// Save portfolio historical data point to Firestore
+  Future<void> savePortfolioHistorical(
+      String uid, DateTime date, double portfolioValue) async {
+    try {
+      // Create a document ID based on userId and date to ensure uniqueness
+      final dateStr = date.toIso8601String().split('T')[0];
+      final docId = '${uid}_$dateStr';
+
+      await _db.collection('portfolio_historicals').doc(docId).set({
+        'userId': uid,
+        'date': Timestamp.fromDate(date),
+        'portfolioValue': portfolioValue,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error saving portfolio historical: $e');
+    }
+  }
+
   Stream<DocumentSnapshot<User>> getUser(String uid) {
     final documentReference = userCollection.doc(uid);
     final documentSnapshot = documentReference.snapshots();

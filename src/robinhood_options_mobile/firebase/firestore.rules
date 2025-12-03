@@ -112,6 +112,40 @@ service cloud.firestore {
       allow delete: if request.auth.token.role == 'admin';
     }
 
+    match /portfolio_leaderboard/{userId} {
+      // Anyone can read public leaderboard entries
+      allow read: if resource.data.isPublic == true;
+      // Only the backend can write leaderboard data
+      allow create, update, delete: if false;
+    }
+
+    match /portfolio_follows/{followId} {
+      // Users can read their own follows (as follower)
+      allow read: if request.auth.uid != null && 
+        request.auth.uid == resource.data.followerId;
+      // Users can create follows for themselves
+      allow create: if request.auth.uid != null && 
+        request.auth.uid == request.resource.data.followerId;
+      // Users can delete their own follows
+      allow delete: if request.auth.uid != null && 
+        request.auth.uid == resource.data.followerId;
+      // No direct updates allowed
+      allow update: if false;
+    }
+
+    match /portfolio_historicals/{historicalId} {
+      // Users can read their own historical data
+      // Backend functions can read all for leaderboard calculations
+      allow read: if request.auth.uid != null && 
+        (request.auth.uid == resource.data.userId || 
+         request.auth.token.role == 'admin');
+      // Users can create/update their own historical data
+      allow create, update: if request.auth.uid != null && 
+        request.auth.uid == request.resource.data.userId;
+      // Only admins can delete
+      allow delete: if request.auth.token.role == 'admin';
+    }
+
     //match /{document=**} {
     //  allow read, write: if false;
     //  //allow read, write: if

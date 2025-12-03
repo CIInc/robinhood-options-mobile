@@ -39,6 +39,7 @@ import 'package:robinhood_options_mobile/widgets/search_widget.dart';
 import 'package:app_links/app_links.dart';
 import 'package:robinhood_options_mobile/widgets/users_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_groups_widget.dart';
+import 'package:robinhood_options_mobile/widgets/leaderboard_widget.dart';
 //import 'package:robinhood_options_mobile/widgets/login_widget.dart';
 
 //const routeHome = '/';
@@ -88,6 +89,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     2: GlobalKey<NavigatorState>(),
     3: GlobalKey<NavigatorState>(),
     4: GlobalKey<NavigatorState>(),
+    5: GlobalKey<NavigatorState>(),
   };
 
   int _pageIndex = 0;
@@ -473,7 +475,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         analytics: widget.analytics,
         observer: widget.observer,
       ),
-      // Shared Portfolios tab
+      // Leaderboard tab
+      if (auth.currentUser != null) ...[const LeaderboardWidget()],
+      // Admin tabs
       if (auth.currentUser != null) ...[
         if (userRole == UserRole.admin) ...[
           UsersWidget(auth,
@@ -823,6 +827,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                               onTap: () {
                                 Navigator.pop(context); // close the drawer
                                 _onPageChanged(4);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.leaderboard),
+                              title: const Text("Top Portfolios"),
+                              selected: _pageIndex == 5,
+                              onTap: () {
+                                Navigator.pop(context); // close the drawer
+                                _onPageChanged(5);
                               },
                               // onTap: () {
                               //   Navigator.pop(context); // close the drawer

@@ -55,6 +55,16 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - [x] Top 5 holdings display with percentage labels
 - [x] "Others" grouping for remaining positions
 
+### Top Portfolios Leaderboard
+- [x] Performance rankings with multiple time periods ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26))
+- [x] Public/private portfolio toggle
+- [x] Follow system for top performers
+- [x] Detailed performance metrics (returns, Sharpe ratio, max drawdown)
+- [x] Trading statistics (win rate, total trades)
+- [x] Real-time rank updates with change indicators
+- [x] Time period filters (1D, 1W, 1M, 3M, 1Y, All Time)
+- [x] Firebase Functions for daily leaderboard calculation
+
 ## Planned Enhancements 🚀
 
 ### Copy Trading ([Tracking: #110](https://github.com/CIInc/robinhood-options-mobile/issues/110))
@@ -98,6 +108,10 @@ This document outlines the planned features and enhancements for RealizeAlpha.
     - [ ] Implement risk management controls for automated trading
 
 ### Social & Community ([Tracking: #113](https://github.com/CIInc/robinhood-options-mobile/issues/113))
+- [x] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios
+- [ ] **Follow Portfolio** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios
+- [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Enhanced social features
+- [ ] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance with others
 - [ ] Follow other users and their portfolios
 - [ ] Comment system on shared portfolios
 - [ ] Reddit integration for trending tickers
@@ -107,10 +121,6 @@ This document outlines the planned features and enhancements for RealizeAlpha.
 - [ ] Social feed with trade notifications
 - [ ] User reputation system
 - [ ] Achievement badges
-- [ ] **Follow Portfolio** ([#27](https://github.com/CIInc/robinhood-options-mobile/issues/27)): Follow other users' portfolios
-- [ ] **Top Portfolios Leaderboard** ([#26](https://github.com/CIInc/robinhood-options-mobile/issues/26)): Showcase top-performing portfolios
-- [ ] **RealizeAlpha Social Platform** ([#24](https://github.com/CIInc/robinhood-options-mobile/issues/24)): Enhanced social features
-- [ ] **Share Portfolio** ([#25](https://github.com/CIInc/robinhood-options-mobile/issues/25)): Share portfolio performance with others
 
 ### Portfolio Management ([Tracking: #114](https://github.com/CIInc/robinhood-options-mobile/issues/114))
 - [ ] Advanced portfolio analytics (Sharpe ratio, alpha, beta)
