@@ -12,9 +12,10 @@ The crypto trading feature provides a separate, dedicated service (`RobinhoodCry
 
 **`RobinhoodCryptoService`** - Dedicated service for Robinhood Crypto API
 - Located: `lib/services/robinhood_crypto_service.dart`
-- Endpoints:
-  - Crypto API: `https://nummus.robinhood.com`
-  - Market Data: `https://api.robinhood.com/marketdata`
+- Implements: `IBrokerageService` interface
+- Primary Endpoint: `https://trading.robinhood.com` (as per official documentation)
+- Authentication: Uses same OAuth2 flow as `RobinhoodService`
+- Client ID: Shared with main Robinhood service for unified authentication
 
 ### Data Models
 
