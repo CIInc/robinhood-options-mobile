@@ -49,6 +49,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   var passCtl = TextEditingController();
   var smsCtl = TextEditingController();
   var mfaCtl = TextEditingController();
+  var apiKeyCtl = TextEditingController(); // For Robinhood Crypto API key
 
   final clipboardContentStream = StreamController<String>.broadcast();
   Timer? clipboardTriggerTime;
@@ -179,9 +180,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                       ? RobinhoodService()
                       : source == BrokerageSource.schwab
                           ? SchwabService()
-                          : source == BrokerageSource.robinhoodCrypto
-                              ? RobinhoodCryptoService()
-                              : DemoService();
+                          : DemoService();
                   client = generateClient(
                       authenticationSnapshot.data!,
                       source == BrokerageSource.robinhood
@@ -408,7 +407,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                 ),
               ],
             )),
-        if (source == BrokerageSource.robinhood || source == BrokerageSource.robinhoodCrypto) ...[
+        if (source == BrokerageSource.robinhood) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
@@ -460,6 +459,28 @@ class _LoginWidgetState extends State<LoginWidget> {
               ),
             ]
           ],
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
+        ] else if (source == BrokerageSource.robinhoodCrypto) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
+            child: TextField(
+                controller: apiKeyCtl,
+                decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.all(10),
+                    hintText: 'Robinhood Crypto API Key'),
+                obscureText: true,
+                style: const TextStyle(fontSize: 18.0)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 10, 30, 15),
+            child: Text(
+              'Get your API key from https://robinhood.com/us/en/support/articles/crypto-api/',
+              style: TextStyle(fontSize: 12.0, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ),
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
         ] else if (source == BrokerageSource.schwab) ...[
@@ -546,14 +567,42 @@ class _LoginWidgetState extends State<LoginWidget> {
           Navigator.pop(context, user);
         }
       }
-    } else if (source == BrokerageSource.robinhood || source == BrokerageSource.robinhoodCrypto) {
+    } else if (source == BrokerageSource.robinhoodCrypto) {
+      // Robinhood Crypto uses API key authentication
+      if (apiKeyCtl.text.isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text("Please enter your Robinhood Crypto API key"),
+            behavior: SnackBarBehavior.floating,
+          ));
+        return;
+      }
+      
+      var service = RobinhoodCryptoService();
+      var user = BrokerageUser(
+        source, 
+        'Crypto Account', 
+        null, 
+        null,
+        apiKey: apiKeyCtl.text,
+      );
+      
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+      
+      widget.analytics.logLogin(loginMethod: "Robinhood Crypto");
+      if (mounted) {
+        Navigator.pop(context, user);
+      }
+    } else if (source == BrokerageSource.robinhood) {
       setState(() {
         loading = true;
       });
-      var service = source == BrokerageSource.robinhood 
-          ? RobinhoodService() 
-          : RobinhoodCryptoService();
-      var response = await (service as dynamic).login(
+      var service = RobinhoodService();
+      var response = await service.login(
           service.authEndpoint, userCtl.text, passCtl.text,
           clientId: service.clientId,
           basicAuth: false,

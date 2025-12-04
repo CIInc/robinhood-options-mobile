@@ -69,84 +69,8 @@ class RobinhoodCryptoService implements IBrokerageService {
 
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Authentication method (shared with RobinhoodService)
-  Future<http.Response> login(
-      Uri authorizationEndpoint, String username, String password,
-      {String? clientId,
-      String? secret,
-      String? deviceToken,
-      String? requestId,
-      String? challengeType,
-      String? challengeId,
-      String? mfaCode,
-      String? expiresIn = '86400',
-      Iterable<String>? scopes = const ['internal'],
-      bool basicAuth = true,
-      http.Client? httpClient,
-      String? delimiter = ' '}) async {
-    var headers = <String, String>{};
-    var body = {
-      'grant_type': 'password',
-      'username': username,
-      'password': password,
-    };
-    if (clientId != null) {
-      if (basicAuth) {
-        var userPass = '${Uri.encodeFull(clientId)}:${Uri.encodeFull(secret!)}';
-        headers['Authorization'] =
-            'Basic ${base64Encode(ascii.encode(userPass))}';
-      } else {
-        body['client_id'] = clientId;
-        if (secret != null) body['client_secret'] = secret;
-      }
-    }
-
-    if (deviceToken != null) {
-      body['device_token'] = deviceToken;
-    }
-
-    if (scopes != null && scopes.isNotEmpty) {
-      body['scope'] = scopes.join(delimiter!);
-    }
-
-    if (expiresIn != null) {
-      body['expires_in'] = expiresIn;
-      body['long_session'] = 'true';
-    }
-    if (requestId != null) {
-      body['request_id'] = requestId;
-    }
-    if (challengeType != null) {
-      body['challenge_type'] = challengeType;
-    }
-    if (challengeId != null) {
-      headers['X-ROBINHOOD-CHALLENGE-RESPONSE-ID'] = challengeId;
-    }
-    if (mfaCode != null) {
-      body['mfa_code'] = mfaCode;
-    }
-
-    debugPrint('POST $authorizationEndpoint');
-    debugPrint(jsonEncode(body));
-    httpClient ??= http.Client();
-    var response = await httpClient.post(authorizationEndpoint,
-        headers: headers, body: body);
-    return response;
-  }
-
-  Future<http.Response> userMachine(String deviceId, String workflowId) {
-    var body = {
-      'user_id': deviceId,
-      'workflow_id': workflowId,
-    };
-    debugPrint(jsonEncode(body));
-    var httpClient = http.Client();
-    var response = httpClient.post(
-        Uri.parse('https://api.robinhood.com/user/machine/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body));
-    return response;
-  }
+  // Authentication using API key as per https://docs.robinhood.com/crypto/trading/#section/Authentication
+  // No login method needed - authentication is done via API key in request headers
 
   // Crypto-specific implementation using ForexHolding models
 
@@ -305,7 +229,17 @@ class RobinhoodCryptoService implements IBrokerageService {
   }
 
   Future<dynamic> _getJson(BrokerageUser user, String url) async {
-    var response = await user.oauth2Client!.get(Uri.parse(url));
+    // Use API key authentication as per https://docs.robinhood.com/crypto/trading/#section/Authentication
+    if (user.apiKey == null) {
+      throw Exception('API key is required for Robinhood Crypto authentication');
+    }
+    
+    var headers = {
+      'Authorization': 'Api-Key ${user.apiKey}',
+      'Content-Type': 'application/json',
+    };
+    
+    var response = await http.get(Uri.parse(url), headers: headers);
     
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);

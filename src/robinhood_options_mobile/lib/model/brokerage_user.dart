@@ -20,6 +20,7 @@ class BrokerageUser {
   late String? userName;
   String? credentials;
   oauth2.Client? oauth2Client;
+  String? apiKey; // For API key-based authentication (e.g., Robinhood Crypto)
   // bool defaultUser = true;
   bool refreshEnabled = false;
   OptionsView optionsView = OptionsView.grouped;
@@ -30,7 +31,8 @@ class BrokerageUser {
   UserInfo? userInfo;
 
   BrokerageUser(
-      this.source, this.userName, this.credentials, this.oauth2Client);
+      this.source, this.userName, this.credentials, this.oauth2Client,
+      {this.apiKey});
 
   BrokerageUser.fromJson(Map<String, dynamic> json)
       : source = json['source'] == BrokerageSource.robinhood.toString()
@@ -44,6 +46,7 @@ class BrokerageUser {
                         : BrokerageSource.demo,
         userName = json['userName'],
         credentials = json['credentials'],
+        apiKey = json['apiKey'],
         refreshEnabled = json['refreshEnabled'] ?? false,
         optionsView =
             json['optionsView'] == null || json['optionsView'] == 'View.list'
@@ -65,6 +68,7 @@ class BrokerageUser {
         'source': source.toString(),
         'userName': userName,
         'credentials': credentials,
+        'apiKey': apiKey,
         'refreshEnabled': refreshEnabled,
         'optionsView': optionsView.toString(),
         'sortOptions': sortOptions.toString(),
