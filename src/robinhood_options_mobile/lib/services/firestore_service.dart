@@ -14,8 +14,6 @@ import 'package:robinhood_options_mobile/model/option_order.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
 import 'package:robinhood_options_mobile/model/group_message.dart';
-import 'package:robinhood_options_mobile/model/crypto_holding.dart';
-import 'package:robinhood_options_mobile/model/crypto_order.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -25,10 +23,8 @@ class FirestoreService {
   final String instrumentPositionCollectionName = 'instrumentPosition';
   final String optionPositionCollectionName = 'optionPosition';
   final String forexPositionCollectionName = 'forexPosition';
-  final String cryptoPositionCollectionName = 'cryptoPosition';
   final String instrumentOrderCollectionName = 'instrumentOrder';
   final String optionOrderCollectionName = 'optionOrder';
-  final String cryptoOrderCollectionName = 'cryptoOrder';
   final String optionEventCollectionName = 'optionEvent';
   final String dividendCollectionName = 'dividend';
   final String interestCollectionName = 'interest';
@@ -403,54 +399,6 @@ class FirestoreService {
     } else {
       return addForexPosition(forexPosition, userDoc);
     }
-  }
-
-  /// CryptoPosition Methods
-
-  Future<DocumentReference<Map<String, dynamic>>> addCryptoPosition(
-      CryptoHolding crypto, DocumentReference userDoc) {
-    return userDoc.collection(cryptoPositionCollectionName).add(crypto.toJson());
-  }
-
-  Future<void> updateCryptoPosition(
-      CryptoHolding cryptoPosition, DocumentReference doc) async {
-    return doc.update(cryptoPosition.toJson());
-  }
-
-  Future<void> deleteCryptoPosition(String id, DocumentReference doc) {
-    return doc.collection(cryptoPositionCollectionName).doc(id).delete();
-  }
-
-  Future<DocumentReference> upsertCryptoPosition(
-    CryptoHolding cryptoPosition,
-    DocumentReference userDoc,
-  ) async {
-    var existingDocs = await userDoc
-        .collection(cryptoPositionCollectionName)
-        .where('id', isEqualTo: cryptoPosition.id)
-        .get();
-    if (existingDocs.docs.isNotEmpty) {
-      var doc = existingDocs.docs.first.reference;
-      await updateCryptoPosition(cryptoPosition, doc);
-      return doc;
-    } else {
-      return addCryptoPosition(cryptoPosition, userDoc);
-    }
-  }
-
-  /// CryptoOrder Methods
-
-  Future<void> upsertCryptoOrders(
-      List<CryptoOrder> cryptoOrders, DocumentReference userDoc,
-      {bool updateIfExists = true}) async {
-    var batch = _db.batch();
-    for (var cryptoOrder in cryptoOrders) {
-      var cryptoOrderDoc = userDoc
-          .collection(cryptoOrderCollectionName)
-          .doc(cryptoOrder.id);
-      batch.set(cryptoOrderDoc, cryptoOrder.toJson());
-    }
-    batch.commit();
   }
 
   /// InstrumentOrder Methods

@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_crypto_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -178,7 +179,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                       ? RobinhoodService()
                       : source == BrokerageSource.schwab
                           ? SchwabService()
-                          : DemoService();
+                          : source == BrokerageSource.robinhoodCrypto
+                              ? RobinhoodCryptoService()
+                              : DemoService();
                   client = generateClient(
                       authenticationSnapshot.data!,
                       source == BrokerageSource.robinhood
@@ -295,7 +298,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                           ? BrokerageSource.robinhood
                           : value == 2
                               ? BrokerageSource.schwab
-                              : BrokerageSource.plaid;
+                              : value == 3
+                                  ? BrokerageSource.plaid
+                                  : BrokerageSource.robinhoodCrypto;
                 });
               },
               // shrinkExtent: 200,
@@ -382,9 +387,28 @@ class _LoginWidgetState extends State<LoginWidget> {
                     },
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
+                    label: SizedBox(
+                        width: 125,
+                        child: const Text(
+                          'RH Crypto',
+                          textAlign: TextAlign.center,
+                        )),
+                    selected: source == BrokerageSource.robinhoodCrypto,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = BrokerageSource.robinhoodCrypto;
+                      });
+                    },
+                  ),
+                ),
               ],
             )),
-        if (source == BrokerageSource.robinhood) ...[
+        if (source == BrokerageSource.robinhood || source == BrokerageSource.robinhoodCrypto) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
             child: TextField(
@@ -522,12 +546,14 @@ class _LoginWidgetState extends State<LoginWidget> {
           Navigator.pop(context, user);
         }
       }
-    } else if (source == BrokerageSource.robinhood) {
+    } else if (source == BrokerageSource.robinhood || source == BrokerageSource.robinhoodCrypto) {
       setState(() {
         loading = true;
       });
-      var service = RobinhoodService();
-      var response = await service.login(
+      var service = source == BrokerageSource.robinhood 
+          ? RobinhoodService() 
+          : RobinhoodCryptoService();
+      var response = await (service as dynamic).login(
           service.authEndpoint, userCtl.text, passCtl.text,
           clientId: service.clientId,
           basicAuth: false,
