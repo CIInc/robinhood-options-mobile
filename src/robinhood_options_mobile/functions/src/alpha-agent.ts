@@ -11,10 +11,13 @@ const db = getFirestore();
  * Check if cached market data is stale
  * During market hours (9:30 AM - 4:00 PM EST), refresh every 15 minutes
  * After hours, cache is valid for the rest of the trading day
- * @param {any} chart The chart data object
+ * @param {any} cacheData The full cache document with chart and updated fields
  * @return {boolean} True if stale
  */
-function isMarketDataCacheStale(chart: any): boolean {
+function isMarketDataCacheStale(cacheData: any): boolean {
+  const chart = cacheData?.chart;
+  const updated = cacheData?.updated;
+
   if (!chart?.meta?.currentTradingPeriod?.regular?.end) {
     return true;
   }
@@ -63,18 +66,18 @@ function isMarketDataCacheStale(chart: any): boolean {
     estHour,
     estMinute,
     isMarketHours,
-    cacheUpdated: chart.updated,
-    cacheAge: chart.updated ? now.getTime() - chart.updated : null,
+    cacheUpdated: updated,
+    cacheAge: updated ? now.getTime() - updated : null,
   });
 
   // If no updated timestamp, treat as stale (legacy cache)
-  if (!chart.updated) {
+  if (!updated) {
     logger.info("⚠️ Cache missing 'updated' field - treating as stale");
     return true;
   }
 
   if (isMarketHours) {
-    const cacheAge = now.getTime() - chart.updated;
+    const cacheAge = now.getTime() - updated;
     const maxCacheAge = 15 * 60 * 1000; // 15 minutes
     const isStale = cacheAge > maxCacheAge;
     logger.info(`🕐 Cache age check: ${Math.round(cacheAge / 1000 / 60)} min ` +
@@ -105,13 +108,15 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
   try {
     const doc = await db.doc(cacheKey).get();
     if (doc.exists) {
-      const chart = doc.data()?.chart;
+      const cacheData = doc.data();
+      const chart = cacheData?.chart;
       logger.info(`📦 Cache document exists for ${symbol}`, {
         hasChart: !!chart,
-        hasUpdated: !!(chart?.updated),
-        updated: chart?.updated,
+        hasUpdated: !!(cacheData?.updated),
+        updated: cacheData?.updated,
+        chartClosesLength: chart?.indicators?.quote?.[0]?.close?.length,
       });
-      const isStale = isMarketDataCacheStale(chart);
+      const isStale = isMarketDataCacheStale(cacheData);
       const isCached = chart && !isStale;
 
       logger.info(`🎯 Cache decision for ${symbol}`, {
@@ -129,7 +134,8 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
         logger.info(`✅ CACHE HIT: Loaded cached market data for ${symbol}`, {
           count: closes.length,
           lastFivePrices: lastFew,
-          cacheAge: Date.now() - (chart.updated || 0),
+          cacheAge: Date.now() - (cacheData?.updated || 0),
+          source: "cache",
         });
         return { closes, volumes };
       } else {
@@ -165,6 +171,7 @@ async function fetchMarketData(symbol = "SPY"): Promise<{
       logger.info(`🌐 FRESH FETCH: Retrieved ${closes.length} prices ` +
         `for ${symbol} from Yahoo Finance`, {
         lastFivePrices: lastFew,
+        source: "yahoo-finance",
       });
 
       // Cache the data
@@ -234,6 +241,9 @@ export async function handleAlphaTask(marketData: any,
     marketSlowPeriod: indicatorConfig.marketSlowPeriod,
     configSmaPeriodFast: config?.smaPeriodFast,
     configSmaPeriodSlow: config?.smaPeriodSlow,
+    marketDataClosesLength: marketIndexData.closes.length,
+    symbolDataClosesLength: closes.length,
+    marketIndexDataLastFive: marketIndexData.closes.slice(-5),
   });
 
   const multiIndicatorResult = indicators.evaluateAllIndicators(
