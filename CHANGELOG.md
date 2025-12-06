@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.5] - 2025-12-05
+
+### Added
+- **User Document Reference Threading:** Enhanced widget parameter passing to include `DocumentReference<User>?` (Firestore user document reference) alongside authentication user context. Enables better integration with user-specific settings and features throughout the navigation hierarchy.
+- **Indicator Toggle Enhancements:** Improved indicator toggle functionality in agentic trading with dynamic settings display, providing more intuitive control over trade signal indicators.
+
+### Changed
+- **Widget User Parameter Refactoring:** Refactored user handling across 14+ navigation widgets to properly use `brokerageUser` for brokerage operations and `userDocRef` for Firestore user document references. Improves code clarity and type safety:
+  - `instrument_positions_widget.dart` and related position widgets
+  - `option_positions_widget.dart` and option chain widgets
+  - `option_order_widget.dart` and order tracking widgets
+  - `instrument_widget.dart` and navigation chain
+  - `history_widget.dart` and other entry points
+- **Code Readability:** Improved code readability in multiple widgets by replacing `forEach` loops with standard `for` loops, enhancing maintainability and consistency.
+- **Cache Handling:** Updated cache handling logic in market data functions for improved clarity and consistency.
+
+### Fixed
+- **Whitespace Cleanup:** Cleaned up unnecessary whitespace in `handleAlphaTask` function for improved code formatting.
+
+### Technical Details
+- **Files Changed:** 14+ widget files updated with improved user context parameter handling:
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+- **Navigation Integration:** User document references now properly threaded from `SearchWidget` and `NavigationStatefulWidget` entry points through all navigation chains.
+- **Type Safety Improvements:** Consistent use of `DocumentReference<User>?` across widgets for proper Firebase Firestore type handling.
+
 ## [0.17.4] - 2025-11-30
 
 ### Added

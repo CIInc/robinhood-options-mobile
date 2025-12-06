@@ -33,6 +33,7 @@ Patterns & conventions (concrete examples):
 - Firestore: the app sometimes uses the Firestore emulator flag `shouldUseFirestoreEmulator` (in `main.dart`) — if you add local-only rules or tests, toggle that flag or wire a configuration value.
 - Real-time subscriptions: Use `StreamSubscription` for Firestore snapshot listeners and always implement `dispose()` in providers to cancel subscriptions (see `AgenticTradingProvider` for reference pattern).
 - Ads & analytics: AdMob and FirebaseAnalytics are initialized in `main.dart` — changes to analytics events should reuse `FirebaseAnalytics.instance`.
+- **User Context Threading:** Navigation widgets use `brokerageUser` for brokerage operations and `userDocRef` (optional `DocumentReference<User>?`) for Firestore user document access. Pass both through navigation chains: `ChildWidget(brokerageUser, service, data, user: widget.user, userDocRef: widget.userDocRef)`. This enables user-specific settings, generative features, and investor group functionality throughout the app.
 
 Developer workflows (notes an agent should surface when changing code):
 - Pod / iOS problems: if `pod install` fails, the README instructs `rm -rf ./ios/Pods; rm ./ios/Podfile.lock; flutter clean; flutter pub get; flutter build ios` and/or `pod repo update`.
