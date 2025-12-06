@@ -85,16 +85,34 @@ class _AgenticTradingSettingsWidgetState
     super.dispose();
   }
 
-  Widget _buildIndicatorToggle(String key, String title, String description) {
-    return SwitchListTile(
-      title: Text(title),
-      subtitle: Text(description),
-      value: _enabledIndicators[key] ?? true,
-      onChanged: (bool value) {
-        setState(() {
-          _enabledIndicators[key] = value;
-        });
-      },
+  Widget _buildIndicatorToggle(
+    String key,
+    String title,
+    String description, {
+    List<Widget>? settings,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          title: Text(title),
+          subtitle: Text(description),
+          value: _enabledIndicators[key] ?? true,
+          onChanged: (bool value) {
+            setState(() {
+              _enabledIndicators[key] = value;
+            });
+          },
+        ),
+        if (settings != null && (_enabledIndicators[key] ?? true))
+          Padding(
+            padding:
+                const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 8.0),
+            child: Column(
+              children: settings,
+            ),
+          ),
+      ],
     );
   }
 
@@ -163,113 +181,85 @@ class _AgenticTradingSettingsWidgetState
             child: ListView(
               padding: const EdgeInsets.all(16.0),
               children: [
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    'Automated Trading',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
                 SwitchListTile(
                   title: const Text('Enable Agentic Trading'),
+                  subtitle: const Text('Placeholder, not implemented'),
                   value: agenticTradingProvider.isAgenticTradingEnabled,
                   onChanged: agenticTradingProvider.toggleAgenticTrading,
                 ),
-                TextFormField(
-                  controller: _smaPeriodFastController,
-                  decoration:
-                      const InputDecoration(labelText: 'SMA Period (Fast)'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _smaPeriodSlowController,
-                  decoration:
-                      const InputDecoration(labelText: 'SMA Period (Slow)'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _tradeQuantityController,
-                  decoration:
-                      const InputDecoration(labelText: 'Trade Quantity'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _maxPositionSizeController,
-                  decoration:
-                      const InputDecoration(labelText: 'Max Position Size'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _maxPortfolioConcentrationController,
-                  decoration: const InputDecoration(
-                      labelText: 'Max Portfolio Concentration'),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (double.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _rsiPeriodController,
-                  decoration: const InputDecoration(
-                      labelText: 'RSI Period (default: 14)'),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    if (int.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: _marketIndexSymbolController,
-                  decoration: const InputDecoration(
-                      labelText: 'Market Index Symbol (SPY or QQQ)'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a value';
-                    }
-                    return null;
-                  },
-                ),
+                if (agenticTradingProvider.isAgenticTradingEnabled) ...[
+                  const Padding(
+                    padding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
+                    child: Text(
+                      'Risk Management Rules',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextFormField(
+                      controller: _tradeQuantityController,
+                      decoration:
+                          const InputDecoration(labelText: 'Trade Quantity'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextFormField(
+                      controller: _maxPositionSizeController,
+                      decoration:
+                          const InputDecoration(labelText: 'Max Position Size'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextFormField(
+                      controller: _maxPortfolioConcentrationController,
+                      decoration: const InputDecoration(
+                          labelText: 'Max Portfolio Concentration'),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (double.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(vertical: 16.0, horizontal: 0),
@@ -337,11 +327,71 @@ class _AgenticTradingSettingsWidgetState
                   'momentum',
                   'Momentum (RSI)',
                   'Relative Strength Index - overbought/oversold conditions',
+                  settings: [
+                    TextFormField(
+                      controller: _rsiPeriodController,
+                      decoration: const InputDecoration(
+                          labelText: 'RSI Period (default: 14)'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                 ),
                 _buildIndicatorToggle(
                   'marketDirection',
                   'Market Direction',
                   'Moving averages on market index (SPY/QQQ)',
+                  settings: [
+                    TextFormField(
+                      controller: _smaPeriodFastController,
+                      decoration:
+                          const InputDecoration(labelText: 'SMA Period (Fast)'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _smaPeriodSlowController,
+                      decoration:
+                          const InputDecoration(labelText: 'SMA Period (Slow)'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        if (int.tryParse(value) == null) {
+                          return 'Please enter a valid number';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _marketIndexSymbolController,
+                      decoration: const InputDecoration(
+                          labelText: 'Market Index Symbol (SPY or QQQ)'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a value';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                 ),
                 _buildIndicatorToggle(
                   'volume',
