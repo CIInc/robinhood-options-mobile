@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -18,6 +19,7 @@ import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -32,6 +34,7 @@ class SearchWidget extends StatefulWidget {
   final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
+  final DocumentReference<User>? userDocRef;
 
   const SearchWidget(
     this.brokerageUser,
@@ -42,6 +45,7 @@ class SearchWidget extends StatefulWidget {
     required this.generativeService,
     this.navigatorKey,
     this.user,
+    this.userDocRef,
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -1160,44 +1164,95 @@ class _SearchWidgetState extends State<SearchWidget>
                                               "Trade Signals",
                                               style: TextStyle(fontSize: 19.0),
                                             ),
-                                            const SizedBox(width: 8),
-                                            Chip(
-                                              avatar: Icon(
-                                                isMarketOpen
-                                                    ? Icons.access_time
-                                                    : Icons.calendar_today,
-                                                size: 16,
-                                                color: isMarketOpen
-                                                    ? Colors.green.shade700
-                                                    : Colors.blue.shade700,
-                                              ),
-                                              label: Text(
-                                                '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                            const Spacer(),
+                                            IconButton(
+                                              icon: const Icon(Icons.settings,
+                                                  size: 20),
+                                              tooltip:
+                                                  'Agentic Trading Settings',
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(),
+                                              onPressed: () async {
+                                                // Navigate to agentic trading settings
+                                                if (!mounted ||
+                                                    widget.user == null ||
+                                                    widget.userDocRef ==
+                                                        null) {
+                                                  return;
+                                                }
+                                                final result =
+                                                    await Navigator.of(context)
+                                                        .push(
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        AgenticTradingSettingsWidget(
+                                                      user: widget.user!,
+                                                      userDocRef:
+                                                          widget.userDocRef!,
+                                                    ),
+                                                  ),
+                                                );
+                                                // Refresh signals when returning from settings
+                                                if (result == true && mounted) {
+                                                  _fetchTradeSignalsWithFilters();
+                                                }
+                                              },
+                                            ),
+                                            const SizedBox(width: 4),
+                                            GestureDetector(
+                                              onTap: () {
+                                                // Cycle through intervals: 15m -> 1h -> 1d -> 15m
+                                                final nextInterval =
+                                                    selectedInterval == '15m'
+                                                        ? '1h'
+                                                        : selectedInterval ==
+                                                                '1h'
+                                                            ? '1d'
+                                                            : '15m';
+                                                agenticTradingProvider
+                                                    .setSelectedInterval(
+                                                        nextInterval);
+                                                _fetchTradeSignalsWithFilters();
+                                              },
+                                              child: Chip(
+                                                avatar: Icon(
+                                                  isMarketOpen
+                                                      ? Icons.access_time
+                                                      : Icons.calendar_today,
+                                                  size: 16,
                                                   color: isMarketOpen
                                                       ? Colors.green.shade700
                                                       : Colors.blue.shade700,
                                                 ),
+                                                label: Text(
+                                                  '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: isMarketOpen
+                                                        ? Colors.green.shade700
+                                                        : Colors.blue.shade700,
+                                                  ),
+                                                ),
+                                                backgroundColor: isMarketOpen
+                                                    ? Colors.green
+                                                        .withOpacity(0.1)
+                                                    : Colors.blue
+                                                        .withOpacity(0.1),
+                                                side: BorderSide(
+                                                  color: isMarketOpen
+                                                      ? Colors.green.shade300
+                                                      : Colors.blue.shade300,
+                                                  width: 1,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 0),
                                               ),
-                                              backgroundColor: isMarketOpen
-                                                  ? Colors.green
-                                                      .withOpacity(0.1)
-                                                  : Colors.blue
-                                                      .withOpacity(0.1),
-                                              side: BorderSide(
-                                                color: isMarketOpen
-                                                    ? Colors.green.shade300
-                                                    : Colors.blue.shade300,
-                                                width: 1,
-                                              ),
-                                              visualDensity:
-                                                  VisualDensity.compact,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 0),
                                             ),
                                           ],
                                         ),
@@ -1610,10 +1665,7 @@ class _SearchWidgetState extends State<SearchWidget>
         ? DateTime.fromMillisecondsSinceEpoch(signal['timestamp'] as int)
         : DateTime.now();
     final symbol = signal['symbol'] ?? 'N/A';
-    final signalType = signal['signal'] ?? 'HOLD';
-    // final reason = signal['reason'] ?? 'No reason provided';
-    final isBuy = signalType == 'BUY';
-    final isSell = signalType == 'SELL';
+    final overallSignalType = signal['signal'] ?? 'HOLD';
 
     // Extract individual indicator signals from multiIndicatorResult
     final multiIndicatorResult =
@@ -1642,6 +1694,43 @@ class _SearchWidgetState extends State<SearchWidget>
         }
       }
     }
+
+    // Calculate composite signal based on enabled indicators
+    final agenticProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    final enabledIndicators =
+        agenticProvider.config['enabledIndicators'] != null
+            ? Map<String, bool>.from(
+                agenticProvider.config['enabledIndicators'] as Map)
+            : {};
+
+    // If there are enabled indicators, use them to calculate composite signal
+    String displaySignalType = overallSignalType;
+    if (enabledIndicators.isNotEmpty) {
+      final enabledIndicatorSignals = indicatorSignals.entries
+          .where((entry) => enabledIndicators[entry.key] == true)
+          .map((entry) => entry.value)
+          .toList();
+
+      if (enabledIndicatorSignals.isNotEmpty) {
+        // Require unanimous agreement for BUY or SELL, otherwise HOLD (mixed)
+        final allBuy = enabledIndicatorSignals.every((s) => s == 'BUY');
+        final allSell = enabledIndicatorSignals.every((s) => s == 'SELL');
+
+        if (allBuy) {
+          displaySignalType = 'BUY';
+        } else if (allSell) {
+          displaySignalType = 'SELL';
+        } else {
+          // Mixed signals: use HOLD
+          displaySignalType = 'HOLD';
+        }
+      }
+    }
+
+    final signalType = displaySignalType;
+    final isBuy = signalType == 'BUY';
+    final isSell = signalType == 'SELL';
 
     return Card(
         elevation: 2,
@@ -1714,7 +1803,7 @@ class _SearchWidgetState extends State<SearchWidget>
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text(formatDate.format(timestamp),
+                      Text(_formatSignalTimestamp(timestamp),
                           style: TextStyle(
                               fontSize: 12.0, color: Colors.grey.shade600),
                           overflow: TextOverflow.ellipsis),
@@ -1727,6 +1816,8 @@ class _SearchWidgetState extends State<SearchWidget>
                           children: indicatorSignals.entries.map((entry) {
                             final indicatorName = entry.key;
                             final indicatorSignal = entry.value;
+                            final isIndicatorEnabled =
+                                enabledIndicators[indicatorName] == true;
 
                             Color tagColor;
                             if (indicatorSignal == 'BUY') {
@@ -1749,23 +1840,34 @@ class _SearchWidgetState extends State<SearchWidget>
                                             : indicatorName[0].toUpperCase() +
                                                 indicatorName.substring(1);
 
+                            // Disable styling for indicators not in settings
+                            final opacity = isIndicatorEnabled ? 1.0 : 0.4;
+                            final disabledColor = Colors.grey;
+                            final finalTagColor =
+                                isIndicatorEnabled ? tagColor : disabledColor;
+
                             return Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: tagColor.withOpacity(0.15),
+                                color:
+                                    finalTagColor.withOpacity(0.15 * opacity),
                                 borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
-                                  color: tagColor.withOpacity(0.4),
+                                  color:
+                                      finalTagColor.withOpacity(0.4 * opacity),
                                   width: 0.5,
                                 ),
                               ),
-                              child: Text(
-                                displayName, //'$displayName: ${indicatorSignal[0]}',
-                                style: TextStyle(
-                                  fontSize: 9.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: tagColor,
+                              child: Opacity(
+                                opacity: opacity,
+                                child: Text(
+                                  displayName, //'$displayName: ${indicatorSignal[0]}',
+                                  style: TextStyle(
+                                    fontSize: 9.0,
+                                    fontWeight: FontWeight.w600,
+                                    color: finalTagColor,
+                                  ),
                                 ),
                               ),
                             );
@@ -2164,5 +2266,29 @@ class _SearchWidgetState extends State<SearchWidget>
         ],
       ),
     );
+  }
+
+  /// Formats signal timestamp as "x ago" for recent signals or date for older ones.
+  /// Recent signals (within 24 hours) show relative time (e.g., "5 mins ago").
+  /// Older signals show the formatted date (e.g., "Dec 5, 2024").
+  String _formatSignalTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+
+    // If signal is recent (within 24 hours), show "x ago" format
+    if (difference.inHours < 24) {
+      if (difference.inMinutes < 1) {
+        return 'just now';
+      } else if (difference.inMinutes < 60) {
+        final mins = difference.inMinutes;
+        return '$mins min${mins != 1 ? 's' : ''} ago';
+      } else {
+        final hours = difference.inHours;
+        return '$hours hour${hours != 1 ? 's' : ''} ago';
+      }
+    } else {
+      // For older signals, show the date
+      return formatDate.format(timestamp);
+    }
   }
 }
