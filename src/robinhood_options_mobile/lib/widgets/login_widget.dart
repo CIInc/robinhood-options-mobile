@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/services/demo_service.dart';
 import 'package:robinhood_options_mobile/services/resource_owner_password_grant.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
+import 'package:robinhood_options_mobile/services/robinhood_crypto_service.dart';
 import 'package:robinhood_options_mobile/services/schwab_service.dart';
 import 'package:uuid/uuid.dart';
 
@@ -48,6 +49,7 @@ class _LoginWidgetState extends State<LoginWidget> {
   var passCtl = TextEditingController();
   var smsCtl = TextEditingController();
   var mfaCtl = TextEditingController();
+  var apiKeyCtl = TextEditingController(); // For Robinhood Crypto API key
 
   final clipboardContentStream = StreamController<String>.broadcast();
   Timer? clipboardTriggerTime;
@@ -295,7 +297,9 @@ class _LoginWidgetState extends State<LoginWidget> {
                           ? BrokerageSource.robinhood
                           : value == 2
                               ? BrokerageSource.schwab
-                              : BrokerageSource.plaid;
+                              : value == 3
+                                  ? BrokerageSource.plaid
+                                  : BrokerageSource.robinhoodCrypto;
                 });
               },
               // shrinkExtent: 200,
@@ -382,6 +386,25 @@ class _LoginWidgetState extends State<LoginWidget> {
                     },
                   ),
                 ),
+                Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: ChoiceChip(
+                    labelStyle: TextStyle(fontSize: 20),
+                    label: SizedBox(
+                        width: 125,
+                        child: const Text(
+                          'RH Crypto',
+                          textAlign: TextAlign.center,
+                        )),
+                    selected: source == BrokerageSource.robinhoodCrypto,
+                    // labelPadding: const EdgeInsets.all(10.0),
+                    onSelected: (bool selected) {
+                      setState(() {
+                        source = BrokerageSource.robinhoodCrypto;
+                      });
+                    },
+                  ),
+                ),
               ],
             )),
         if (source == BrokerageSource.robinhood) ...[
@@ -436,6 +459,28 @@ class _LoginWidgetState extends State<LoginWidget> {
               ),
             ]
           ],
+          Padding(
+              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
+        ] else if (source == BrokerageSource.robinhoodCrypto) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
+            child: TextField(
+                controller: apiKeyCtl,
+                decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.all(10),
+                    hintText: 'Robinhood Crypto API Key'),
+                obscureText: true,
+                style: const TextStyle(fontSize: 18.0)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(30, 10, 30, 15),
+            child: Text(
+              'Get your API key from https://robinhood.com/us/en/support/articles/crypto-api/',
+              style: TextStyle(fontSize: 12.0, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ),
           Padding(
               padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
         ] else if (source == BrokerageSource.schwab) ...[
@@ -521,6 +566,36 @@ class _LoginWidgetState extends State<LoginWidget> {
         if (mounted) {
           Navigator.pop(context, user);
         }
+      }
+    } else if (source == BrokerageSource.robinhoodCrypto) {
+      // Robinhood Crypto uses API key authentication
+      if (apiKeyCtl.text.isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text("Please enter your Robinhood Crypto API key"),
+            behavior: SnackBarBehavior.floating,
+          ));
+        return;
+      }
+      
+      var service = RobinhoodCryptoService();
+      var user = BrokerageUser(
+        source, 
+        'Crypto Account', 
+        null, 
+        null,
+        apiKey: apiKeyCtl.text,
+      );
+      
+      var userStore = Provider.of<BrokerageUserStore>(context, listen: false);
+      userStore.addOrUpdate(user);
+      userStore.setCurrentUserIndex(userStore.items.indexOf(user));
+      await userStore.save();
+      
+      widget.analytics.logLogin(loginMethod: "Robinhood Crypto");
+      if (mounted) {
+        Navigator.pop(context, user);
       }
     } else if (source == BrokerageSource.robinhood) {
       setState(() {
