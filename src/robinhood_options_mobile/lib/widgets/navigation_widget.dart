@@ -455,6 +455,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             userDocRef: userDoc),
         ListsWidget(userStore.currentUser!, service,
             user: user,
+            userDocRef: userDoc,
             analytics: widget.analytics,
             observer: widget.observer,
             generativeService: _generativeService,

@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/instrument_position.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
@@ -13,7 +15,7 @@ import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 
 class InstrumentPositionsPageWidget extends StatefulWidget {
   const InstrumentPositionsPageWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredPositions, {
@@ -21,15 +23,19 @@ class InstrumentPositionsPageWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
+    this.user,
+    this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
   final List<InstrumentPosition> filteredPositions;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<InstrumentPositionsPageWidget> createState() =>
@@ -64,7 +70,7 @@ class _InstrumentPositionsPageWidgetState
                   : const Icon(Icons.login),
               onPressed: () {
                 showProfile(context, auth, _firestoreService, widget.analytics,
-                    widget.observer, widget.user);
+                    widget.observer, widget.brokerageUser);
               }),
           IconButton(
               icon: Icon(Icons.more_vert),
@@ -75,7 +81,7 @@ class _InstrumentPositionsPageWidgetState
                     //isScrollControlled: true,
                     //useRootNavigator: true,
                     //constraints: const BoxConstraints(maxHeight: 200),
-                    builder: (_) => MoreMenuBottomSheet(widget.user,
+                    builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
                             analytics: widget.analytics,
                             observer: widget.observer,
                             showStockSettings: true,
@@ -88,9 +94,9 @@ class _InstrumentPositionsPageWidgetState
                           // debugPrint(
                           //     "Settings changed ${jsonEncode(value)}");
                           debugPrint(
-                              "showPositionDetails: ${widget.user.showPositionDetails.toString()}");
+                              "showPositionDetails: ${widget.brokerageUser.showPositionDetails.toString()}");
                           debugPrint(
-                              "displayValue: ${widget.user.displayValue.toString()}");
+                              "displayValue: ${widget.brokerageUser.displayValue.toString()}");
                           setState(() {});
                         }));
                 // Navigator.pop(context);
@@ -98,12 +104,14 @@ class _InstrumentPositionsPageWidgetState
         ],
       ),
       InstrumentPositionsWidget(
-        widget.user,
+        widget.brokerageUser,
         widget.service,
         widget.filteredPositions,
         analytics: widget.analytics,
         observer: widget.observer,
         generativeService: widget.generativeService,
+        user: widget.user,
+        userDocRef: widget.userDocRef,
       )
     ]));
   }

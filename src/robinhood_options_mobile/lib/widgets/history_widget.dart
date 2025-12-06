@@ -60,7 +60,7 @@ class HistoryPage extends StatefulWidget {
   final IBrokerageService service;
   final GenerativeService generativeService;
   final User? user;
-  final DocumentReference? userDoc;
+  final DocumentReference<User>? userDoc;
 
   @override
   State<HistoryPage> createState() => _HistoryPageState();
@@ -895,6 +895,9 @@ class _HistoryPageState extends State<HistoryPage>
                                                               widget.observer,
                                                           generativeService: widget
                                                               .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
                                                         )));
                                           },
                                         ),
@@ -1132,6 +1135,9 @@ class _HistoryPageState extends State<HistoryPage>
                                                               widget.observer,
                                                           generativeService: widget
                                                               .generativeService,
+                                                          user: widget.user,
+                                                          userDocRef:
+                                                              widget.userDoc,
                                                         )));
                                           },
                                         ),

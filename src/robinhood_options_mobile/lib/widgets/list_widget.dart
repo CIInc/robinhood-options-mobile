@@ -9,6 +9,8 @@ import 'package:robinhood_options_mobile/model/instrument.dart';
 import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/quote_store.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/model/watchlist.dart';
 import 'package:robinhood_options_mobile/model/watchlist_item.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
@@ -24,7 +26,7 @@ enum SortDirection { asc, desc }
 
 class ListWidget extends StatefulWidget {
   const ListWidget(
-      this.user,
+      this.brokerageUser,
       this.service,
       //this.account,
       this.listKey,
@@ -32,14 +34,18 @@ class ListWidget extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
-      this.navigatorKey});
+      this.navigatorKey,
+      this.user,
+      this.userDocRef});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final GlobalKey<NavigatorState>? navigatorKey;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
   //final Account account;
   final String listKey;
 
@@ -73,12 +79,12 @@ class _ListWidgetState extends State<ListWidget>
   }
 
   Widget _buildPage() {
-    if (widget.user.userName == null) {
+    if (widget.brokerageUser.userName == null) {
       return Container();
     }
 
     watchlistStream ??= widget.service.streamList(
-        widget.user,
+        widget.brokerageUser,
         Provider.of<InstrumentStore>(context, listen: false),
         Provider.of<QuoteStore>(context, listen: false),
         widget.listKey,
@@ -158,7 +164,7 @@ class _ListWidgetState extends State<ListWidget>
                       _firestoreService,
                       widget.analytics,
                       widget.observer,
-                      widget.user);
+                      widget.brokerageUser);
                   if (response != null) {
                     setState(() {});
                   }
@@ -432,7 +438,8 @@ class _ListWidgetState extends State<ListWidget>
           ),
           delegate: SliverChildBuilderDelegate(
             (BuildContext context, int index) {
-              return _buildWatchlistGridItem(watchLists, index, widget.user);
+              return _buildWatchlistGridItem(
+                  watchLists, index, widget.brokerageUser);
               /*
           return Container(
             alignment: Alignment.center,
@@ -635,12 +642,14 @@ class _ListWidgetState extends State<ListWidget>
                 context,
                 MaterialPageRoute(
                     builder: (context) => InstrumentWidget(
-                          ru,
+                          widget.brokerageUser,
                           widget.service,
                           watchLists[index].instrumentObj as Instrument,
                           analytics: widget.analytics,
                           observer: widget.observer,
                           generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
                         )));
           },
         ));

@@ -822,6 +822,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   analytics: widget.analytics,
                                   observer: widget.observer,
                                   generativeService: widget.generativeService,
+                                  user: widget.user,
+                                  userDocRef: widget.userDocRef,
                                 );
                               }));
                             }
@@ -1177,8 +1179,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                                 // Navigate to agentic trading settings
                                                 if (!mounted ||
                                                     widget.user == null ||
-                                                    widget.userDocRef ==
-                                                        null) {
+                                                    widget.userDocRef == null) {
                                                   return;
                                                 }
                                                 final result =
@@ -1589,6 +1590,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
   }
@@ -1640,6 +1643,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
     /*
@@ -1902,6 +1907,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
   }
@@ -2010,6 +2017,8 @@ class _SearchWidgetState extends State<SearchWidget>
                             analytics: widget.analytics,
                             observer: widget.observer,
                             generativeService: widget.generativeService,
+                            user: widget.user,
+                            userDocRef: widget.userDocRef,
                           )));
             }));
   }

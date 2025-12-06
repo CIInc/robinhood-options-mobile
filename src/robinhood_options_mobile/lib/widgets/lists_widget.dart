@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
@@ -36,7 +37,8 @@ class ListsWidget extends StatefulWidget {
       required this.observer,
       required this.generativeService,
       this.navigatorKey,
-      this.user});
+      this.user,
+      this.userDocRef});
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final FirebaseAnalytics analytics;
@@ -45,6 +47,7 @@ class ListsWidget extends StatefulWidget {
   final IBrokerageService service;
   final GenerativeService generativeService;
   final User? user;
+  final DocumentReference<User>? userDocRef;
 
   @override
   State<ListsWidget> createState() => _ListsWidgetState();
@@ -860,6 +863,8 @@ class _ListsWidgetState extends State<ListsWidget>
                           analytics: widget.analytics,
                           observer: widget.observer,
                           generativeService: widget.generativeService,
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
                         )));
           },
         ));
