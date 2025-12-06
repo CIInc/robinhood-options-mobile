@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.17.6] - 2025-12-06
+
+### Changed
+- **UI Improvements and Fixes:** Enhanced visual consistency across the application by updating widget styles to use theme colors, improving button designs, dropdown borders, and layout structures for better user experience and accessibility.
+
+### Technical Details
+- **Files Changed:** 31 widget files updated with theme-consistent styling and UI improvements:
+  - `lib/enums.dart`
+  - `lib/widgets/agentic_trading_settings_widget.dart`
+  - `lib/widgets/chart_time_series_widget.dart`
+  - `lib/widgets/forex_instrument_widget.dart`
+  - `lib/widgets/forex_positions_page_widget.dart`
+  - `lib/widgets/forex_positions_widget.dart`
+  - `lib/widgets/history_widget.dart`
+  - `lib/widgets/home_widget.dart`
+  - `lib/widgets/income_transactions_widget.dart`
+  - `lib/widgets/instrument_option_chain_widget.dart`
+  - `lib/widgets/instrument_positions_page_widget.dart`
+  - `lib/widgets/instrument_positions_widget.dart`
+  - `lib/widgets/instrument_widget.dart`
+  - `lib/widgets/investor_group_create_widget.dart`
+  - `lib/widgets/investor_groups_widget.dart`
+  - `lib/widgets/list_widget.dart`
+  - `lib/widgets/lists_widget.dart`
+  - `lib/widgets/login_widget.dart`
+  - `lib/widgets/more_menu_widget.dart`
+  - `lib/widgets/navigation_widget.dart`
+  - `lib/widgets/option_instrument_widget.dart`
+  - `lib/widgets/option_order_widget.dart`
+  - `lib/widgets/option_orders_widget.dart`
+  - `lib/widgets/option_positions_page_widget.dart`
+  - `lib/widgets/option_positions_widget.dart`
+  - `lib/widgets/position_order_widget.dart`
+  - `lib/widgets/search_widget.dart`
+  - `lib/widgets/trade_instrument_widget.dart`
+  - `lib/widgets/user_info_widget.dart`
+  - `lib/widgets/user_widget.dart`
+  - `lib/widgets/users_widget.dart`
+
 ## [0.17.5] - 2025-12-05
 
 ### Added
