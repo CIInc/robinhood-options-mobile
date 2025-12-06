@@ -13,7 +13,7 @@ import 'package:robinhood_options_mobile/widgets/option_order_widget.dart';
 
 class OptionOrdersWidget extends StatefulWidget {
   const OptionOrdersWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.optionOrders,
@@ -22,13 +22,13 @@ class OptionOrdersWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
-    this.authUser,
-    this.userDocRef,
+    required this.authUser,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final GenerativeService generativeService;
   //final Account account;
@@ -204,7 +204,7 @@ class _OptionOrdersWidgetState extends State<OptionOrdersWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => OptionOrderWidget(
-                                widget.user,
+                                widget.brokerageUser,
                                 widget.service,
                                 optionOrders[index],
                                 analytics: widget.analytics,

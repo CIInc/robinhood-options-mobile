@@ -52,8 +52,8 @@ class OptionInstrumentWidget extends StatefulWidget {
       required this.generativeService,
       this.optionPosition,
       this.heroTag,
-      this.user,
-      this.userDocRef});
+      required this.user,
+      required this.userDocRef});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

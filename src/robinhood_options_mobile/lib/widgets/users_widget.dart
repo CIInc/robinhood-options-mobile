@@ -54,78 +54,74 @@ class _UsersWidgetState extends State<UsersWidget> {
     return StreamBuilder<firebase_auth.User?>(
         stream: widget.auth.authStateChanges(),
         builder: (context, snapshot) {
-          return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            body: CustomScrollView(slivers: [
-              SliverAppBar(
-                  floating: true,
-                  snap: true,
-                  pinned: false,
-                  centerTitle: false,
-                  title: const Text('Users'),
-                  actions: [
-                    IconButton(
-                        icon: auth.currentUser != null
-                            ? (auth.currentUser!.photoURL == null
-                                ? const Icon(Icons.account_circle)
-                                : CircleAvatar(
-                                    maxRadius: 12,
-                                    backgroundImage: CachedNetworkImageProvider(
-                                        auth.currentUser!.photoURL!
-                                        //  ?? Constants .placeholderImage, // No longer used
-                                        )))
-                            : const Icon(Icons.login),
-                        onPressed: () {
-                          showProfile(
-                              context,
-                              widget.auth,
-                              _firestoreService,
-                              widget.analytics,
-                              widget.observer,
-                              widget.brokerageUser);
-                        })
-                  ]),
-              SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
-                  sliver: SliverToBoxAdapter(
-                      child: Column(
-                    children: [
-                      CupertinoSearchTextField(
-                        style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyLarge!.color),
-                        controller: _searchTermController,
-                        placeholder: 'Search',
-                        onChanged: (value) {
-                          setState(() {
-                            _searchTerm = value;
-                            _stream = _firestoreService.searchUsers(
-                                searchTerm: _searchTerm);
-                          });
-                        },
-                      ),
-                    ],
-                  ))),
-              StreamBuilder(
-                  stream: _stream,
-                  builder:
-                      (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
-                    if (snapshot.hasError) {
-                      return SliverToBoxAdapter(
-                          child: Center(
-                              child: SelectableText(
-                                  'Something went wrong\n${snapshot.error}')));
-                    }
+          return CustomScrollView(slivers: [
+            SliverAppBar(
+                floating: true,
+                snap: true,
+                pinned: false,
+                centerTitle: false,
+                title: const Text('Users'),
+                actions: [
+                  IconButton(
+                      icon: auth.currentUser != null
+                          ? (auth.currentUser!.photoURL == null
+                              ? const Icon(Icons.account_circle)
+                              : CircleAvatar(
+                                  maxRadius: 12,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                      auth.currentUser!.photoURL!
+                                      //  ?? Constants .placeholderImage, // No longer used
+                                      )))
+                          : const Icon(Icons.login),
+                      onPressed: () {
+                        showProfile(
+                            context,
+                            widget.auth,
+                            _firestoreService,
+                            widget.analytics,
+                            widget.observer,
+                            widget.brokerageUser);
+                      })
+                ]),
+            SliverPadding(
+                padding: const EdgeInsets.all(16.0),
+                sliver: SliverToBoxAdapter(
+                    child: Column(
+                  children: [
+                    CupertinoSearchTextField(
+                      style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyLarge!.color),
+                      controller: _searchTermController,
+                      placeholder: 'Search',
+                      onChanged: (value) {
+                        setState(() {
+                          _searchTerm = value;
+                          _stream = _firestoreService.searchUsers(
+                              searchTerm: _searchTerm);
+                        });
+                      },
+                    ),
+                  ],
+                ))),
+            StreamBuilder(
+                stream: _stream,
+                builder:
+                    (context, AsyncSnapshot<QuerySnapshot<User>> snapshot) {
+                  if (snapshot.hasError) {
+                    return SliverToBoxAdapter(
+                        child: Center(
+                            child: SelectableText(
+                                'Something went wrong\n${snapshot.error}')));
+                  }
 
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SliverToBoxAdapter(
-                          child: Center(child: CircularProgressIndicator()));
-                    }
-                    return showSliverList(snapshot.data!);
-                  }),
-              const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
-            ]),
-          );
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SliverToBoxAdapter(
+                        child: Center(child: CircularProgressIndicator()));
+                  }
+                  return showSliverList(snapshot.data!);
+                }),
+            const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
+          ]);
         });
   }
 

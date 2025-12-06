@@ -35,8 +35,8 @@ class ListWidget extends StatefulWidget {
       required this.observer,
       required this.generativeService,
       this.navigatorKey,
-      this.user,
-      this.userDocRef});
+      required this.user,
+      required this.userDocRef});
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;

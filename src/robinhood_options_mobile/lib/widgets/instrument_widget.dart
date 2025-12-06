@@ -1263,16 +1263,15 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                         child: SizedBox(
                       height: 8.0,
                     )),
-                    OptionPositionsWidget(
-                      widget.brokerageUser,
-                      widget.service,
-                      filteredOptionPositions,
-                      showFooter: false,
-                      showGroupHeader: false,
-                      analytics: widget.analytics,
-                      observer: widget.observer,
-                      generativeService: widget.generativeService,
-                    )
+                    OptionPositionsWidget(widget.brokerageUser, widget.service,
+                        filteredOptionPositions,
+                        showFooter: false,
+                        showGroupHeader: false,
+                        analytics: widget.analytics,
+                        observer: widget.observer,
+                        generativeService: widget.generativeService,
+                        user: widget.user,
+                        userDocRef: widget.userDocRef)
                   ]
                 ]));
           }),
@@ -2789,13 +2788,14 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       context,
                       MaterialPageRoute(
                           builder: (context) => ListWidget(
-                                widget.brokerageUser,
-                                widget.service,
-                                instrument.listsObj![index]["id"].toString(),
-                                analytics: widget.analytics,
-                                observer: widget.observer,
-                                generativeService: widget.generativeService,
-                              )));
+                              widget.brokerageUser,
+                              widget.service,
+                              instrument.listsObj![index]["id"].toString(),
+                              analytics: widget.analytics,
+                              observer: widget.observer,
+                              generativeService: widget.generativeService,
+                              user: widget.user,
+                              userDocRef: widget.userDocRef)));
                 },
               ),
             ],

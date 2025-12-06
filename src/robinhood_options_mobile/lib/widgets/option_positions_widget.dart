@@ -47,7 +47,7 @@ class OptionPositionsWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
-    this.user,
+    required this.user,
     this.userDocRef,
   });
 

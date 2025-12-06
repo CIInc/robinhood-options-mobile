@@ -133,133 +133,176 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    //var userStore = Provider.of<UserStore>(context, listen: true);
     return Scaffold(
         appBar: AppBar(
           centerTitle: false,
           title: const Text("Link Brokerage Account"),
+          elevation: 0,
         ),
-        body: FutureBuilder(
-            future: authenticationResponse,
-            builder:
-                (context, AsyncSnapshot<http.Response> authenticationSnapshot) {
-              debugPrint(authenticationSnapshot.connectionState.toString());
-              if (authenticationSnapshot.data != null) {
-                var authenticationResponse =
-                    jsonDecode(authenticationSnapshot.data!.body);
-                debugPrint(jsonEncode(authenticationResponse));
-                if (authenticationResponse['challenge'] != null) {
-                  challengeRequestId =
-                      authenticationResponse['challenge']['id'];
-                  myFocusNode.requestFocus();
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.surface.withOpacity(0.8),
+              ],
+            ),
+          ),
+          child: FutureBuilder(
+              future: authenticationResponse,
+              builder: (context,
+                  AsyncSnapshot<http.Response> authenticationSnapshot) {
+                debugPrint(authenticationSnapshot.connectionState.toString());
+                if (authenticationSnapshot.data != null) {
+                  var authenticationResponse =
+                      jsonDecode(authenticationSnapshot.data!.body);
+                  debugPrint(jsonEncode(authenticationResponse));
+                  if (authenticationResponse['challenge'] != null) {
+                    challengeRequestId =
+                        authenticationResponse['challenge']['id'];
+                    myFocusNode.requestFocus();
 
-                  _startMonitoringClipboard();
+                    _startMonitoringClipboard();
 
-                  return FutureBuilder(
-                      future: challengeResponse,
-                      builder:
-                          (context, AsyncSnapshot<http.Response> snapshot1) {
-                        return _buildForm(snapshot1.connectionState ==
-                            ConnectionState.waiting);
-                      });
-                } else if (authenticationResponse['mfa_required'] != null &&
-                    authenticationResponse['mfa_required'] == true) {
-                  mfaRequired = true;
-                  challengeType = authenticationResponse['mfa_type'];
+                    return FutureBuilder(
+                        future: challengeResponse,
+                        builder:
+                            (context, AsyncSnapshot<http.Response> snapshot1) {
+                          return _buildForm(snapshot1.connectionState ==
+                              ConnectionState.waiting);
+                        });
+                  } else if (authenticationResponse['mfa_required'] != null &&
+                      authenticationResponse['mfa_required'] == true) {
+                    mfaRequired = true;
+                    challengeType = authenticationResponse['mfa_type'];
 
-                  /*
+                    /*
                   if (authenticationResponse['mfa_type'] != null &&
                       authenticationResponse['mfa_type'] == 'app') {
                   }
                   */
-                } else if (authenticationResponse['access_token'] != null) {
-                  _stopMonitoringClipboard();
-                  var service = source == BrokerageSource.robinhood
-                      ? RobinhoodService()
-                      : source == BrokerageSource.schwab
-                          ? SchwabService()
-                          : DemoService();
-                  client = generateClient(
-                      authenticationSnapshot.data!,
-                      source == BrokerageSource.robinhood
-                          ? service.authEndpoint
-                          : service.tokenEndpoint,
-                      ['internal'],
-                      ' ',
-                      service.clientId,
-                      null,
-                      null,
-                      null);
-                  // debugPrint(jsonEncode(client));
-                  var user = BrokerageUser(source, userCtl.text,
-                      client!.credentials.toJson(), client);
-                  WidgetsBinding.instance.addPostFrameCallback((_) async {
-                    var userStore =
-                        Provider.of<BrokerageUserStore>(context, listen: false);
-                    userStore.addOrUpdate(user);
-                    userStore
-                        .setCurrentUserIndex(userStore.items.indexOf(user));
-                    await userStore.save();
-                    //Navigator.popUntil(context, ModalRoute.withName('/'));
-                    // This is being called twice, figure out root cause and not this workaround.
-                    if (!popped) {
-                      widget.analytics
-                          .logLogin(loginMethod: "Robinhood $challengeType");
-                      if (context.mounted) {
-                        Navigator.pop(context, user);
-                      }
-                      /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
+                  } else if (authenticationResponse['access_token'] != null) {
+                    _stopMonitoringClipboard();
+                    var service = source == BrokerageSource.robinhood
+                        ? RobinhoodService()
+                        : source == BrokerageSource.schwab
+                            ? SchwabService()
+                            : DemoService();
+                    client = generateClient(
+                        authenticationSnapshot.data!,
+                        source == BrokerageSource.robinhood
+                            ? service.authEndpoint
+                            : service.tokenEndpoint,
+                        ['internal'],
+                        ' ',
+                        service.clientId,
+                        null,
+                        null,
+                        null);
+                    // debugPrint(jsonEncode(client));
+                    var user = BrokerageUser(source, userCtl.text,
+                        client!.credentials.toJson(), client);
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      var userStore = Provider.of<BrokerageUserStore>(context,
+                          listen: false);
+                      userStore.addOrUpdate(user);
+                      userStore
+                          .setCurrentUserIndex(userStore.items.indexOf(user));
+                      await userStore.save();
+                      //Navigator.popUntil(context, ModalRoute.withName('/'));
+                      // This is being called twice, figure out root cause and not this workaround.
+                      if (!popped) {
+                        widget.analytics
+                            .logLogin(loginMethod: "Robinhood $challengeType");
+                        if (context.mounted) {
+                          Navigator.pop(context, user);
+                        }
+                        /* Error: [ERROR:flutter/lib/ui/ui_dart_state.cc(209)] Unhandled Exception: 'package:flutter/src/widgets/navigator.dart': Failed assertion: line 4807 pos 12: '!_debugLocked': is not true.
                       Future.delayed(Duration.zero, () {
                         Navigator.pop(context, user);
                       });
                       */
-                      popped = true;
-                    }
-                  });
-                } else {
-                  if (authenticationSnapshot.connectionState ==
-                      ConnectionState.done) {
-                    var errorMessage = authenticationResponse;
-                    if (authenticationResponse['error_description'] != null) {
-                      errorMessage =
-                          authenticationResponse['error_description'];
-                    } else if (authenticationResponse['detail'] != null) {
-                      errorMessage = authenticationResponse['detail'];
-                    }
-                    Future.delayed(Duration.zero, () {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context)
-                          ..removeCurrentSnackBar()
-                          ..showSnackBar(SnackBar(
-                            content: Text("$errorMessage"),
-                            behavior: SnackBarBehavior.floating,
-                          )); // Login failed:
+                        popped = true;
                       }
                     });
+                  } else {
+                    if (authenticationSnapshot.connectionState ==
+                        ConnectionState.done) {
+                      var errorMessage = authenticationResponse;
+                      if (authenticationResponse['error_description'] != null) {
+                        errorMessage =
+                            authenticationResponse['error_description'];
+                      } else if (authenticationResponse['detail'] != null) {
+                        errorMessage = authenticationResponse['detail'];
+                      }
+                      Future.delayed(Duration.zero, () {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                            ..removeCurrentSnackBar()
+                            ..showSnackBar(SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error_outline,
+                                      color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                      child: Text("$errorMessage",
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w500))),
+                                ],
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                            ));
+                        }
+                      });
+                    }
                   }
                 }
-              }
 
-              return _buildForm(authenticationSnapshot.connectionState ==
-                  ConnectionState.waiting);
-            }));
+                return _buildForm(authenticationSnapshot.connectionState ==
+                    ConnectionState.waiting);
+              }),
+        ));
   }
 
   Widget _buildForm(bool waiting) {
     var floatBtn = SizedBox(
         width: 340.0,
-        height: 60,
+        height: 58,
         child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: source == BrokerageSource.robinhood
+                ? const Color(0xFF00C805)
+                : Theme.of(context).colorScheme.primary,
+            foregroundColor: Colors.white,
+            elevation: 3,
+            shadowColor: (source == BrokerageSource.robinhood
+                    ? const Color(0xFF00C805)
+                    : Theme.of(context).colorScheme.primary)
+                .withOpacity(0.3),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          ),
           label: Text(
             mfaRequired && challengeType == 'prompt'
                 ? 'Continue after prompt'
                 : 'Login',
-            style: TextStyle(fontSize: 20.0),
-            // style: TextStyle(fontSize: 22.0, height: 1.5),
+            style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.w600),
           ),
           icon: loading
-              ? const CircularProgressIndicator()
-              : const Icon(Icons.login_outlined),
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2.5, color: Colors.white),
+                )
+              : const Icon(Icons.login_outlined, size: 24),
           onPressed: loading
               ? null
               : (challengeRequestId == null ? _login : _handleChallenge),
@@ -269,225 +312,432 @@ class _LoginWidgetState extends State<LoginWidget> {
             alignment: FractionalOffset.center,
             children: <Widget>[
               floatBtn,
-              const CircularProgressIndicator(
-                backgroundColor: Colors.red,
+              const Positioned(
+                right: 20,
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
               )
             ],
           )
         : floatBtn;
     return SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Column(
-      children: [
-        const SizedBox(height: 10),
-        ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 80),
-            child: CarouselView(
-              scrollDirection: Axis.horizontal,
-              enableSplash: false,
-              itemSnapping: true,
-              itemExtent: 185, //155, // double.infinity, // 360, //
-              onTap: (value) {
-                debugPrint(value.toString());
-                setState(() {
-                  source = value == 0
-                      ? BrokerageSource.demo
-                      : value == 1
-                          ? BrokerageSource.robinhood
-                          : value == 2
-                              ? BrokerageSource.schwab
-                              : BrokerageSource.plaid;
-                });
-              },
-              // shrinkExtent: 200,
-              // controller: _carouselController,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(fontSize: 20),
-                    label: SizedBox(
-                        width: 125,
-                        child: const Text(
-                          'Demo',
-                          textAlign: TextAlign.center,
-                        )),
-                    selected: source == BrokerageSource.demo,
-                    // labelPadding: const EdgeInsets.all(10.0),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        source = BrokerageSource.demo;
-                      });
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(fontSize: 20),
-                    label: SizedBox(
-                      width: 125,
-                      child: const Text(
-                        'Robinhood',
-                        textAlign: TextAlign.center,
+          children: [
+            const SizedBox(height: 4),
+            Text(
+              'Select Brokerage',
+              style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                  color: Colors.grey.shade900),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Choose how you want to connect',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 20),
+            ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 80),
+                child: CarouselView(
+                  scrollDirection: Axis.horizontal,
+                  enableSplash: false,
+                  itemSnapping: true,
+                  itemExtent: 185,
+                  onTap: (value) {
+                    debugPrint(value.toString());
+                    setState(() {
+                      source = value == 0
+                          ? BrokerageSource.demo
+                          : value == 1
+                              ? BrokerageSource.robinhood
+                              : value == 2
+                                  ? BrokerageSource.schwab
+                                  : BrokerageSource.plaid;
+                    });
+                  },
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar: const Icon(Icons.computer, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                            width: 110,
+                            child: Text(
+                              'Demo',
+                              textAlign: TextAlign.center,
+                            )),
+                        selected: source == BrokerageSource.demo,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.demo;
+                          });
+                        },
                       ),
                     ),
-                    // label: const Text('Robinhood'),
-                    selected: source == BrokerageSource.robinhood,
-                    // labelPadding: const EdgeInsets.all(10.0),
-                    //labelStyle: const TextStyle(fontSize: 20.0, height: 1),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        source = BrokerageSource.robinhood;
-                        //instrumentPosition = null;
-                      });
-                    },
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar:
+                            const Icon(Icons.account_balance_wallet, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                          width: 110,
+                          child: Text(
+                            'Robinhood',
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        selected: source == BrokerageSource.robinhood,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.robinhood;
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar: const Icon(Icons.account_balance, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                            width: 110,
+                            child: Text(
+                              'Schwab',
+                              textAlign: TextAlign.center,
+                            )),
+                        selected: source == BrokerageSource.schwab,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.schwab;
+                          });
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: ChoiceChip(
+                        avatar: const Icon(Icons.link, size: 22),
+                        showCheckmark: false,
+                        labelStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        label: const SizedBox(
+                            width: 110,
+                            child: Text(
+                              'Plaid',
+                              textAlign: TextAlign.center,
+                            )),
+                        selected: source == BrokerageSource.plaid,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            source = BrokerageSource.plaid;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                )),
+            const SizedBox(height: 24),
+            Card(
+              elevation: 6,
+              shadowColor: Colors.black.withOpacity(0.15),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(28)),
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (source == BrokerageSource.robinhood) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00C805).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.account_balance_wallet,
+                                color: Color(0xFF00C805), size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Robinhood Login',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: userCtl,
+                        decoration: InputDecoration(
+                          labelText: 'Username or Email',
+                          hintText: 'Enter your Robinhood username or email',
+                          prefixIcon: const Icon(Icons.person_outline),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF00C805), width: 2.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                        style: const TextStyle(fontSize: 16.0),
+                      ),
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: passCtl,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          hintText: 'Enter your Robinhood password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade300)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF00C805), width: 2.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 16),
+                        ),
+                        obscureText: true,
+                        style: const TextStyle(fontSize: 16.0),
+                      ),
+                      if (mfaRequired) ...[
+                        const SizedBox(height: 16),
+                        if (challengeType == 'sms') ...[
+                          TextField(
+                            controller: smsCtl,
+                            focusNode: myFocusNode,
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              labelText: 'SMS Code',
+                              hintText: 'Enter the code received via SMS',
+                              prefixIcon: const Icon(Icons.sms_outlined),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                            ),
+                            style: const TextStyle(fontSize: 16.0),
+                          ),
+                        ] else if (challengeType == 'app') ...[
+                          TextField(
+                            controller: mfaCtl,
+                            focusNode: myFocusNode,
+                            autofocus: true,
+                            decoration: InputDecoration(
+                              labelText: 'MFA Code',
+                              hintText: 'Enter the MFA Authenticator code',
+                              prefixIcon:
+                                  const Icon(Icons.verified_user_outlined),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                            ),
+                            style: const TextStyle(fontSize: 16.0),
+                          ),
+                        ]
+                      ],
+                      const SizedBox(height: 24),
+                      action,
+                    ] else if (source == BrokerageSource.schwab) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00A3E0).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.account_balance,
+                                color: Color(0xFF00A3E0), size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Schwab Login',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 340.0,
+                        height: 58,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00A3E0),
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            shadowColor:
+                                const Color(0xFF00A3E0).withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                          ),
+                          label: const Text(
+                            "Link Schwab Account",
+                            style: TextStyle(
+                                fontSize: 18.0, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.login_outlined, size: 24),
+                          onPressed: challengeRequestId == null
+                              ? _login
+                              : _handleChallenge,
+                        ),
+                      ),
+                    ] else if (source == BrokerageSource.demo) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.computer,
+                                color: Colors.grey.shade700, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Demo Account',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Explore all features with sample data — no real account needed.',
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey.shade700,
+                            height: 1.4),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 340.0,
+                        height: 58,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade700,
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            shadowColor: Colors.grey.shade700.withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                          ),
+                          label: const Text(
+                            "Open Demo Account",
+                            style: TextStyle(
+                                fontSize: 18.0, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.computer, size: 24),
+                          onPressed: challengeRequestId == null
+                              ? _login
+                              : _handleChallenge,
+                        ),
+                      ),
+                    ] else if (source == BrokerageSource.plaid) ...[
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.link,
+                                color: Colors.deepPurple, size: 26),
+                          ),
+                          const SizedBox(width: 14),
+                          const Text('Plaid Link',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Securely connect any supported brokerage through Plaid.',
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey.shade700,
+                            height: 1.4),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: 340.0,
+                        height: 58,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
+                            elevation: 3,
+                            shadowColor: Colors.deepPurple.withOpacity(0.3),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                          ),
+                          label: const Text(
+                            "Link via Plaid",
+                            style: TextStyle(
+                                fontSize: 18.0, fontWeight: FontWeight.w600),
+                          ),
+                          icon: const Icon(Icons.link, size: 24),
+                          onPressed: _login,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(fontSize: 20),
-                    label: SizedBox(
-                        width: 125,
-                        child: const Text(
-                          'Schwab',
-                          textAlign: TextAlign.center,
-                        )),
-                    // label: const Text('Schwab'),
-                    selected: source == BrokerageSource.schwab,
-                    // labelPadding: const EdgeInsets.all(10.0),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        source = BrokerageSource.schwab;
-                      });
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(4.0),
-                  child: ChoiceChip(
-                    labelStyle: TextStyle(fontSize: 20),
-                    label: SizedBox(
-                        width: 125,
-                        child: const Text(
-                          'Plaid',
-                          textAlign: TextAlign.center,
-                        )),
-                    selected: source == BrokerageSource.plaid,
-                    // labelPadding: const EdgeInsets.all(10.0),
-                    onSelected: (bool selected) {
-                      setState(() {
-                        source = BrokerageSource.plaid;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            )),
-        if (source == BrokerageSource.robinhood) ...[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(30, 20, 30, 15),
-            child: TextField(
-                controller: userCtl,
-                decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.all(10),
-                    hintText: 'Robinhood username or email'),
-                style: const TextStyle(fontSize: 18.0)), //, height: 2.0
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(30, 15, 30, 15),
-            child: TextField(
-                controller: passCtl,
-                decoration: const InputDecoration(
-                    isDense: true,
-                    contentPadding: EdgeInsets.all(10),
-                    hintText: 'Robinhood password'),
-                obscureText: true,
-                style: const TextStyle(fontSize: 18.0)), //, height: 2.0
-          ),
-          // challengeRequestId != null
-          if (mfaRequired) ...[
-            if (challengeType == 'sms') ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
-                child: TextField(
-                    controller: smsCtl,
-                    focusNode: myFocusNode,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.all(10),
-                        hintText: 'SMS code received'),
-                    style: const TextStyle(fontSize: 18.0)), //, height: 2.0
               ),
-            ] else if (challengeType == 'app') ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(30, 15, 30, 20),
-                child: TextField(
-                    controller: mfaCtl,
-                    focusNode: myFocusNode,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                        isDense: true,
-                        contentPadding: EdgeInsets.all(10),
-                        hintText: 'MFA Authenticator App code'),
-                    style: const TextStyle(fontSize: 18.0)), //, height: 2.0
-              ),
-            ]
+            ),
           ],
-          Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30), child: action)
-        ] else if (source == BrokerageSource.schwab) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
-              child: SizedBox(
-                  width: 340.0,
-                  height: 60,
-                  child: ElevatedButton.icon(
-                    label: const Text(
-                      "Link Schwab",
-                      style: TextStyle(fontSize: 20.0),
-                      // style: TextStyle(fontSize: 22.0, height: 1.5),
-                    ),
-                    icon: const Icon(Icons.login_outlined),
-                    onPressed:
-                        challengeRequestId == null ? _login : _handleChallenge,
-                  )))
-        ] else if (source == BrokerageSource.demo) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
-              child: SizedBox(
-                  width: 340.0,
-                  height: 60,
-                  child: ElevatedButton.icon(
-                    label: const Text(
-                      "Open Demo",
-                      style: TextStyle(fontSize: 20.0),
-                      // style: TextStyle(fontSize: 22.0, height: 1.5),
-                    ),
-                    icon: const Icon(Icons.login_outlined),
-                    onPressed:
-                        challengeRequestId == null ? _login : _handleChallenge,
-                  )))
-        ] else if (source == BrokerageSource.plaid) ...[
-          Padding(
-              padding: const EdgeInsets.fromLTRB(30, 30, 30, 30),
-              child: SizedBox(
-                  width: 340.0,
-                  height: 60,
-                  child: ElevatedButton.icon(
-                    label: const Text(
-                      "Link Plaid",
-                      style: TextStyle(fontSize: 20.0),
-                      // style: TextStyle(fontSize: 22.0, height: 1.5),
-                    ),
-                    icon: const Icon(Icons.login_outlined),
-                    onPressed: _login, // () => PlaidLink.open(),
-                  )))
-        ],
-      ],
-    ));
+        ));
   }
 
   void _login() async {

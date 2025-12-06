@@ -7,7 +7,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 
 class MoreMenuBottomSheet extends StatefulWidget {
-  const MoreMenuBottomSheet(this.user,
+  const MoreMenuBottomSheet(this.brokerageUser,
       {super.key,
       required this.analytics,
       required this.observer,
@@ -29,7 +29,7 @@ class MoreMenuBottomSheet extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final ValueChanged<dynamic> onSettingsChanged;
   final ScrollPhysics? physics;
   final ScrollController? scrollController;
@@ -93,10 +93,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             //leading: Icon(Icons.functions),
             title: const Text("Refresh Market Data"),
             subtitle: const Text("Periodically update latest prices"),
-            value: widget.user.refreshEnabled,
+            value: widget.brokerageUser.refreshEnabled,
             onChanged: (bool value) {
               setState(() {
-                widget.user.refreshEnabled = value;
+                widget.brokerageUser.refreshEnabled = value;
               });
               _onSettingsChanged();
             },
@@ -118,10 +118,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
             //leading: Icon(Icons.functions),
             title: const Text("Position Details"),
             subtitle: const Text("Displays P/L and Greeks."),
-            value: widget.user.showPositionDetails,
+            value: widget.brokerageUser.showPositionDetails,
             onChanged: (bool value) {
               setState(() {
-                widget.user.showPositionDetails = value;
+                widget.brokerageUser.showPositionDetails = value;
               });
               _onSettingsChanged();
             },
@@ -142,68 +142,74 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
               title: const Text("Last Price"),
-              value: widget.user.displayValue == DisplayValue.lastPrice,
+              value:
+                  widget.brokerageUser.displayValue == DisplayValue.lastPrice,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.lastPrice;
+                  widget.brokerageUser.displayValue = DisplayValue.lastPrice;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("Market Value"),
-              value: widget.user.displayValue == DisplayValue.marketValue,
+              value:
+                  widget.brokerageUser.displayValue == DisplayValue.marketValue,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.marketValue;
+                  widget.brokerageUser.displayValue = DisplayValue.marketValue;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("\$ Today"),
-              value: widget.user.displayValue == DisplayValue.todayReturn,
+              value:
+                  widget.brokerageUser.displayValue == DisplayValue.todayReturn,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.todayReturn;
+                  widget.brokerageUser.displayValue = DisplayValue.todayReturn;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("% Today"),
-              value:
-                  widget.user.displayValue == DisplayValue.todayReturnPercent,
+              value: widget.brokerageUser.displayValue ==
+                  DisplayValue.todayReturnPercent,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.todayReturnPercent;
+                  widget.brokerageUser.displayValue =
+                      DisplayValue.todayReturnPercent;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("\$ Total"),
-              value: widget.user.displayValue == DisplayValue.totalReturn,
+              value:
+                  widget.brokerageUser.displayValue == DisplayValue.totalReturn,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.totalReturn;
+                  widget.brokerageUser.displayValue = DisplayValue.totalReturn;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
               }),
           RadioListTile<bool>(
               title: const Text("% Total"),
-              value:
-                  widget.user.displayValue == DisplayValue.totalReturnPercent,
+              value: widget.brokerageUser.displayValue ==
+                  DisplayValue.totalReturnPercent,
               groupValue: true, //"refresh-setting"
               onChanged: (val) {
                 setState(() {
-                  widget.user.displayValue = DisplayValue.totalReturnPercent;
+                  widget.brokerageUser.displayValue =
+                      DisplayValue.totalReturnPercent;
                 });
                 _onSettingsChanged();
                 Navigator.pop(context, 'dialog');
@@ -264,10 +270,10 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           SwitchListTile(
             //leading: Icon(Icons.functions),
             title: const Text("Group by Stock"),
-            value: widget.user.optionsView == OptionsView.grouped,
+            value: widget.brokerageUser.optionsView == OptionsView.grouped,
             onChanged: (bool value) {
               setState(() {
-                widget.user.optionsView =
+                widget.brokerageUser.optionsView =
                     value ? OptionsView.grouped : OptionsView.list;
                 //widget.user.showPositionDetails = value;
               });
@@ -285,25 +291,29 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("Expiration Date"),
-            value: widget.user.sortOptions == DisplayValue.expirationDate,
+            value:
+                widget.brokerageUser.sortOptions == DisplayValue.expirationDate,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.expirationDate;
-                widget.user.sortDirection = SortDirection.asc;
+                widget.brokerageUser.sortOptions = DisplayValue.expirationDate;
+                widget.brokerageUser.sortDirection = SortDirection.asc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions == DisplayValue.expirationDate
+            secondary: widget.brokerageUser.sortOptions ==
+                    DisplayValue.expirationDate
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -316,25 +326,28 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("Last Price"),
-            value: widget.user.sortOptions == DisplayValue.lastPrice,
+            value: widget.brokerageUser.sortOptions == DisplayValue.lastPrice,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.lastPrice;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions = DisplayValue.lastPrice;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions == DisplayValue.lastPrice
+            secondary: widget.brokerageUser.sortOptions ==
+                    DisplayValue.lastPrice
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -347,25 +360,28 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("Market Value"),
-            value: widget.user.sortOptions == DisplayValue.marketValue,
+            value: widget.brokerageUser.sortOptions == DisplayValue.marketValue,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.marketValue;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions = DisplayValue.marketValue;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions == DisplayValue.marketValue
+            secondary: widget.brokerageUser.sortOptions ==
+                    DisplayValue.marketValue
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -378,25 +394,28 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("\$ Today"),
-            value: widget.user.sortOptions == DisplayValue.todayReturn,
+            value: widget.brokerageUser.sortOptions == DisplayValue.todayReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.todayReturn;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions = DisplayValue.todayReturn;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions == DisplayValue.todayReturn
+            secondary: widget.brokerageUser.sortOptions ==
+                    DisplayValue.todayReturn
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -409,26 +428,30 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("% Today"),
-            value: widget.user.sortOptions == DisplayValue.todayReturnPercent,
+            value: widget.brokerageUser.sortOptions ==
+                DisplayValue.todayReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.todayReturnPercent;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions =
+                    DisplayValue.todayReturnPercent;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions ==
+            secondary: widget.brokerageUser.sortOptions ==
                     DisplayValue.todayReturnPercent
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -441,25 +464,28 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("\$ Total"),
-            value: widget.user.sortOptions == DisplayValue.totalReturn,
+            value: widget.brokerageUser.sortOptions == DisplayValue.totalReturn,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.totalReturn;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions = DisplayValue.totalReturn;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions == DisplayValue.totalReturn
+            secondary: widget.brokerageUser.sortOptions ==
+                    DisplayValue.totalReturn
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -472,26 +498,30 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
           ),
           RadioListTile<bool>(
             title: const Text("% Total"),
-            value: widget.user.sortOptions == DisplayValue.totalReturnPercent,
+            value: widget.brokerageUser.sortOptions ==
+                DisplayValue.totalReturnPercent,
             groupValue: true, //"refresh-setting"
             onChanged: (val) {
               setState(() {
-                widget.user.sortOptions = DisplayValue.totalReturnPercent;
-                widget.user.sortDirection = SortDirection.desc;
+                widget.brokerageUser.sortOptions =
+                    DisplayValue.totalReturnPercent;
+                widget.brokerageUser.sortDirection = SortDirection.desc;
               });
               _onSettingsChanged();
               Navigator.pop(context, 'dialog');
             },
-            secondary: widget.user.sortOptions ==
+            secondary: widget.brokerageUser.sortOptions ==
                     DisplayValue.totalReturnPercent
                 ? IconButton(
-                    icon: Icon(widget.user.sortDirection == SortDirection.desc
-                        ? Icons.south
-                        : Icons.north),
+                    icon: Icon(
+                        widget.brokerageUser.sortDirection == SortDirection.desc
+                            ? Icons.south
+                            : Icons.north),
                     onPressed: () {
                       setState(() {
-                        widget.user.sortDirection =
-                            widget.user.sortDirection == SortDirection.asc
+                        widget.brokerageUser.sortDirection =
+                            widget.brokerageUser.sortDirection ==
+                                    SortDirection.asc
                                 ? SortDirection.desc
                                 : SortDirection.asc;
                       });
@@ -585,7 +615,7 @@ class _MoreMenuBottomSheetState extends State<MoreMenuBottomSheet> {
 
   Future<void> _onSettingsChanged({bool persistUser = true}) async {
     if (persistUser) {
-      userStore!.addOrUpdate(widget.user);
+      userStore!.addOrUpdate(widget.brokerageUser);
       userStore!.save();
     }
     widget.onSettingsChanged({

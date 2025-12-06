@@ -29,8 +29,8 @@ class PositionOrderWidget extends StatefulWidget {
     required this.analytics,
     required this.observer,
     required this.generativeService,
-    this.user,
-    this.userDocRef,
+    required this.user,
+    required this.userDocRef,
   });
 
   final FirebaseAnalytics analytics;

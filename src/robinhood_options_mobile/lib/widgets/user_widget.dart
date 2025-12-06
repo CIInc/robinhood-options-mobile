@@ -170,270 +170,309 @@ class _UserWidgetState extends State<UserWidget> {
                           SliverToBoxAdapter(
                               child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 8.0),
+                                      horizontal: 12.0, vertical: 8.0),
                                   child: Card(
+                                      elevation: 2,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
                                       child: Column(
-                                    children: [
-                                      if (user?.photoUrl != null) ...[
-                                        Padding(
-                                            padding: const EdgeInsets.all(10),
-                                            child: Center(
-                                                child: Hero(
-                                                    tag: user != null &&
-                                                            userDocumentReference !=
-                                                                null
-                                                        ? 'user_${userDocumentReference!.id}'
-                                                        : 'new',
-                                                    child: Stack(
-                                                      children: [
-                                                        if (user != null &&
-                                                            userDocumentReference !=
-                                                                null &&
-                                                            user.photoUrl !=
-                                                                null) ...[
-                                                          CircleAvatar(
-                                                            maxRadius: 60,
-                                                            backgroundImage:
-                                                                CachedNetworkImageProvider(
-                                                              user.photoUrl ??
-                                                                  Constants
-                                                                      .placeholderImage,
-                                                            ),
-                                                          ),
+                                        children: [
+                                          if (user?.photoUrl != null) ...[
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.all(10),
+                                                child: Center(
+                                                    child: Hero(
+                                                        tag: user != null &&
+                                                                userDocumentReference !=
+                                                                    null
+                                                            ? 'user_${userDocumentReference!.id}'
+                                                            : 'new',
+                                                        child: Stack(
+                                                          children: [
+                                                            if (user != null &&
+                                                                userDocumentReference !=
+                                                                    null &&
+                                                                user.photoUrl !=
+                                                                    null) ...[
+                                                              CircleAvatar(
+                                                                maxRadius: 60,
+                                                                backgroundImage:
+                                                                    CachedNetworkImageProvider(
+                                                                  user.photoUrl ??
+                                                                      Constants
+                                                                          .placeholderImage,
+                                                                ),
+                                                              ),
 
-                                                          // CachedNetworkImage(imageUrl:
-                                                          //     user.photoUrl!,
-                                                          //     fit: BoxFit.fill),
-                                                        ] else ...[
-                                                          Container()
-                                                        ],
-                                                      ],
-                                                    )))),
-                                      ],
-                                      if (user != null) ...[
-                                        ListTile(
-                                          leading: user.providerId != null &&
-                                                  user.providerId == "google"
-                                              ? SizedBox(
-                                                  width: 24,
-                                                  child: CachedNetworkImage(
-                                                    imageUrl:
-                                                        'https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png',
-                                                  ),
-                                                )
-                                              : const Icon(
-                                                  Icons.account_circle),
-                                          title: Text(
-                                            user.name ??
-                                                // user.providerId?.capitalize() ??
-                                                'Account',
-                                            style:
-                                                const TextStyle(fontSize: 18),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          subtitle: user.email != null ||
-                                                  user.phoneNumber != null
-                                              ? Text(user.email ??
-                                                  user.phoneNumber ??
-                                                  '')
-                                              : null,
-                                          isThreeLine: false,
-                                        ),
-                                        if (userRole == UserRole.admin) ...[
-                                          ListTile(
-                                            leading: Icon(user.role ==
-                                                    UserRole.user
-                                                ? Icons.support_agent_outlined
-                                                : Icons.verified_user_outlined),
-                                            // .admin_panel_settings_outlined), // const SizedBox(width: 24),
-                                            title: const Text('Role'),
-                                            subtitle:
-                                                Text(user.role.enumValue()),
-                                            trailing: userRole ==
-                                                        UserRole.admin &&
-                                                    !widget.isProfileView
-                                                ? TextButton(
-                                                    onPressed: () async =>
-                                                        showRoleSelection(
-                                                            context, user!),
-                                                    child: const Text('Change'))
-                                                : null,
-                                            // trailing:
-                                            //     userRole == UserRole.admin &&
-                                            //             !widget.isProfileView
-                                            //         ? const Icon(
-                                            //             Icons.chevron_right)
-                                            //         : null,
-                                            // onTap:
-                                            //     userRole == UserRole.admin &&
-                                            //             !widget.isProfileView
-                                            //         ? () {
-                                            //             showRoleSelection(
-                                            //                 context, user!);
-                                            //           }
-                                            //         : null
-                                          ),
+                                                              // CachedNetworkImage(imageUrl:
+                                                              //     user.photoUrl!,
+                                                              //     fit: BoxFit.fill),
+                                                            ] else ...[
+                                                              Container()
+                                                            ],
+                                                          ],
+                                                        )))),
+                                          ],
+                                          if (user != null) ...[
+                                            ListTile(
+                                              leading: user.providerId !=
+                                                          null &&
+                                                      user.providerId ==
+                                                          "google"
+                                                  ? SizedBox(
+                                                      width: 24,
+                                                      child: CachedNetworkImage(
+                                                        imageUrl:
+                                                            'https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png',
+                                                      ),
+                                                    )
+                                                  : const Icon(
+                                                      Icons.account_circle),
+                                              title: Text(
+                                                user.name ??
+                                                    // user.providerId?.capitalize() ??
+                                                    'Account',
+                                                style: const TextStyle(
+                                                    fontSize: 18),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              subtitle: user.email != null ||
+                                                      user.phoneNumber != null
+                                                  ? Text(user.email ??
+                                                      user.phoneNumber ??
+                                                      '')
+                                                  : null,
+                                              isThreeLine: false,
+                                            ),
+                                            if (userRole == UserRole.admin) ...[
+                                              ListTile(
+                                                leading: Icon(user.role ==
+                                                        UserRole.user
+                                                    ? Icons
+                                                        .support_agent_outlined
+                                                    : Icons
+                                                        .verified_user_outlined),
+                                                // .admin_panel_settings_outlined), // const SizedBox(width: 24),
+                                                title: const Text('Role'),
+                                                subtitle:
+                                                    Text(user.role.enumValue()),
+                                                trailing: userRole ==
+                                                            UserRole.admin &&
+                                                        !widget.isProfileView
+                                                    ? TextButton(
+                                                        onPressed: () async =>
+                                                            showRoleSelection(
+                                                                context, user!),
+                                                        child: const Text(
+                                                            'Change'))
+                                                    : null,
+                                                // trailing:
+                                                //     userRole == UserRole.admin &&
+                                                //             !widget.isProfileView
+                                                //         ? const Icon(
+                                                //             Icons.chevron_right)
+                                                //         : null,
+                                                // onTap:
+                                                //     userRole == UserRole.admin &&
+                                                //             !widget.isProfileView
+                                                //         ? () {
+                                                //             showRoleSelection(
+                                                //                 context, user!);
+                                                //           }
+                                                //         : null
+                                              ),
+                                            ],
+                                            ListTile(
+                                              leading: const Icon(Icons.login),
+                                              title: const Text('Signed in'),
+                                              // subtitle: Text(user.role.getValue()),
+                                              subtitle: Text(
+                                                user.dateUpdated != null
+                                                    ? formatLongDateTime.format(
+                                                        user.dateUpdated!)
+                                                    : '',
+                                                style: const TextStyle(
+                                                    fontSize: 14),
+                                              ),
+                                            ),
+                                            ListTile(
+                                              leading: const Icon(
+                                                  Icons.person_outline),
+                                              title: const Text('Registered'),
+                                              // subtitle: Text(user.role.getValue()),
+                                              subtitle: Text(
+                                                formatLongDateTime
+                                                    .format(user.dateCreated),
+                                                style: const TextStyle(
+                                                    fontSize: 14),
+                                              ),
+                                            ),
+                                            ListTile(
+                                                leading: const Icon(Icons
+                                                    .devices_other_outlined),
+                                                title: const Text('Devices'),
+                                                subtitle: Text(user.devices
+                                                    .where((element) =>
+                                                        element.model != null)
+                                                    .map((e) => e.model)
+                                                    .toSet()
+                                                    .join(', ')),
+                                                trailing: userRole == UserRole.admin
+                                                    ? TextButton.icon(
+                                                        onPressed: () => showSmsConfirmationBeforeSend(
+                                                            context,
+                                                            user != null
+                                                                ? user.devices
+                                                                    .where((element) =>
+                                                                        element.fcmToken !=
+                                                                        null)
+                                                                    .map((e) => e.fcmToken)
+                                                                    .toList()
+                                                                : [''],
+                                                            'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
+                                                        icon: const Icon(Icons.sms_outlined),
+                                                        label: const Text('Compose'))
+                                                    : null),
+
+                                            // Text('role: ${user.role.getValue()}'),
+                                            // const SizedBox(height: 10),
+                                          ],
                                         ],
-                                        ListTile(
-                                          leading: const Icon(Icons.login),
-                                          title: const Text('Signed in'),
-                                          // subtitle: Text(user.role.getValue()),
-                                          subtitle: Text(
-                                            user.dateUpdated != null
-                                                ? formatLongDateTime
-                                                    .format(user.dateUpdated!)
-                                                : '',
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                          ),
-                                        ),
-                                        ListTile(
-                                          leading:
-                                              const Icon(Icons.person_outline),
-                                          title: const Text('Registered'),
-                                          // subtitle: Text(user.role.getValue()),
-                                          subtitle: Text(
-                                            formatLongDateTime
-                                                .format(user.dateCreated),
-                                            style:
-                                                const TextStyle(fontSize: 14),
-                                          ),
-                                        ),
-                                        ListTile(
-                                            leading: const Icon(
-                                                Icons.devices_other_outlined),
-                                            title: const Text('Devices'),
-                                            subtitle: Text(user.devices
-                                                .where((element) =>
-                                                    element.model != null)
-                                                .map((e) => e.model)
-                                                .toSet()
-                                                .join(', ')),
-                                            trailing: userRole == UserRole.admin
-                                                ? TextButton.icon(
-                                                    onPressed: () => showSmsConfirmationBeforeSend(
-                                                        context,
-                                                        user != null
-                                                            ? user.devices
-                                                                .where((element) =>
-                                                                    element
-                                                                        .fcmToken !=
-                                                                    null)
-                                                                .map((e) => e.fcmToken)
-                                                                .toList()
-                                                            : [''],
-                                                        'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
-                                                    icon: const Icon(Icons.sms_outlined),
-                                                    label: const Text('Compose'))
-                                                : null),
-
-                                        // Text('role: ${user.role.getValue()}'),
-                                        // const SizedBox(height: 10),
-                                      ],
-                                    ],
-                                  )))),
+                                      )))),
                           SliverToBoxAdapter(
                               child: Padding(
-                            padding: const EdgeInsets.all(8.0),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0, vertical: 8.0),
                             child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                                 child: Column(
-                              children: [
-                                ListTile(
-                                    leading: const Icon(Icons.account_balance),
-                                    title: Text('Brokerage Accounts'),
-                                    trailing: TextButton.icon(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                          final authUtil = AuthUtil(auth);
-                                          authUtil.openLogin(
-                                              context,
-                                              _firestoreService,
-                                              widget.analytics,
-                                              widget.observer);
-                                        },
-                                        icon: const Icon(
-                                            Icons.person_add_outlined),
-                                        // icon: const Icon(Icons.add),
-                                        label: const Text('Link'))),
-                                if (user != null) ...[
-                                  for (var brokerageUser
-                                      in user.brokerageUsers) ...[
-                                    ExpansionTile(
-                                      shape: const Border(),
-                                      leading: CircleAvatar(
-                                          //backgroundColor: Colors.amber,
-                                          child: Text(
-                                        brokerageUser.source
-                                            .enumValue()
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                      )),
-                                      title: Text(brokerageUser.userName!),
-                                      subtitle: Text(brokerageUser.source
-                                          .enumValue()
-                                          .capitalize()),
-                                      // trailing: const Icon(Icons.chevron_right),
-                                      // onTap: () {
-                                      //   Provider.of<AccountStore>(context, listen: false).removeAll();
-                                      //   Provider.of<PortfolioStore>(context, listen: false).removeAll();
-                                      //   Provider.of<PortfolioHistoricalsStore>(context, listen: false)
-                                      //       .removeAll();
-                                      //   Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
-                                      //   Provider.of<OptionPositionStore>(context, listen: false)
-                                      //       .removeAll();
-                                      //   Provider.of<InstrumentPositionStore>(context, listen: false)
-                                      //       .removeAll();
-
-                                      //   userStore.setCurrentUserIndex(userIndex);
-                                      //   await userStore.save();
-                                      //   if (context.mounted) {
-                                      //     Navigator.pop(context); // close the drawer
-                                      //   }
-                                      // },
-                                      children: [
-                                        if (brokerageUser.userInfo != null) ...[
-                                          Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: SizedBox(
-                                              height: 360,
-                                              child: UserInfoCardWidget(
-                                                user: brokerageUser.userInfo!,
-                                                brokerageUser: brokerageUser,
-                                                firestoreService:
-                                                    _firestoreService,
+                                  children: [
+                                    ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 8),
+                                        leading:
+                                            const Icon(Icons.account_balance),
+                                        title: const Text(
+                                          'Brokerage Accounts',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        trailing: TextButton.icon(
+                                            style: TextButton.styleFrom(
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
                                               ),
-                                              // userWidget(brokerageUser, widget.analytics, widget.observer),
-                                              // UserInfoWidget(
-                                              //     widget.brokerageUser,
-                                              //     widget.brokerageUser.userInfo!,
-                                              //     null,
-                                              //     analytics: widget.analytics,
-                                              //     observer: widget.observer),
                                             ),
-                                          )
-                                        ] else if (isCurrentUserProfileView &&
-                                            widget.userInfo != null) ...[
-                                          SizedBox(
-                                            height: 360,
-                                            child: UserInfoCardWidget(
-                                                user: widget.userInfo!,
-                                                brokerageUser: brokerageUser,
-                                                firestoreService:
-                                                    _firestoreService),
-                                          )
-                                        ] else ...[
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child:
-                                                Text('No user info available.'),
-                                          )
-                                        ]
-                                      ],
-                                    )
-                                  ]
-                                ]
-                              ],
-                            )),
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              final authUtil = AuthUtil(auth);
+                                              authUtil.openLogin(
+                                                  context,
+                                                  _firestoreService,
+                                                  widget.analytics,
+                                                  widget.observer);
+                                            },
+                                            icon: const Icon(
+                                                Icons.person_add_outlined),
+                                            label: const Text('Link'))),
+                                    if (user != null) ...[
+                                      for (var brokerageUser
+                                          in user.brokerageUsers) ...[
+                                        ExpansionTile(
+                                          shape: const Border(),
+                                          leading: CircleAvatar(
+                                              //backgroundColor: Colors.amber,
+                                              child: Text(
+                                            brokerageUser.source
+                                                .enumValue()
+                                                .substring(0, 1)
+                                                .toUpperCase(),
+                                          )),
+                                          title: Text(brokerageUser.userName!),
+                                          subtitle: Text(brokerageUser.source
+                                              .enumValue()
+                                              .capitalize()),
+                                          // trailing: const Icon(Icons.chevron_right),
+                                          // onTap: () {
+                                          //   Provider.of<AccountStore>(context, listen: false).removeAll();
+                                          //   Provider.of<PortfolioStore>(context, listen: false).removeAll();
+                                          //   Provider.of<PortfolioHistoricalsStore>(context, listen: false)
+                                          //       .removeAll();
+                                          //   Provider.of<ForexHoldingStore>(context, listen: false).removeAll();
+                                          //   Provider.of<OptionPositionStore>(context, listen: false)
+                                          //       .removeAll();
+                                          //   Provider.of<InstrumentPositionStore>(context, listen: false)
+                                          //       .removeAll();
+
+                                          //   userStore.setCurrentUserIndex(userIndex);
+                                          //   await userStore.save();
+                                          //   if (context.mounted) {
+                                          //     Navigator.pop(context); // close the drawer
+                                          //   }
+                                          // },
+                                          children: [
+                                            if (brokerageUser.userInfo !=
+                                                null) ...[
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: SizedBox(
+                                                  height: 360,
+                                                  child: UserInfoWidget(
+                                                    user:
+                                                        brokerageUser.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService,
+                                                  ),
+                                                  // userWidget(brokerageUser, widget.analytics, widget.observer),
+                                                  // UserInfoWidget(
+                                                  //     widget.brokerageUser,
+                                                  //     widget.brokerageUser.userInfo!,
+                                                  //     null,
+                                                  //     analytics: widget.analytics,
+                                                  //     observer: widget.observer),
+                                                ),
+                                              )
+                                            ] else if (isCurrentUserProfileView &&
+                                                widget.userInfo != null) ...[
+                                              SizedBox(
+                                                height: 360,
+                                                child: UserInfoWidget(
+                                                    user: widget.userInfo!,
+                                                    brokerageUser:
+                                                        brokerageUser,
+                                                    firestoreService:
+                                                        _firestoreService),
+                                              )
+                                            ] else ...[
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(16.0),
+                                                child: Text(
+                                                    'No user info available.'),
+                                              )
+                                            ]
+                                          ],
+                                        )
+                                      ]
+                                    ]
+                                  ],
+                                )),
                           )),
                           // const SliverToBoxAdapter(child: SizedBox(height: 20.0)),
 
@@ -468,24 +507,35 @@ class _UserWidgetState extends State<UserWidget> {
                           if (isCurrentUserProfileView) ...[
                             SliverToBoxAdapter(
                                 child: Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0, vertical: 8.0),
                               child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                                 child: Column(
                                   children: [
                                     if (user != null) ...[
                                       SwitchListTile(
-//leading: Icon(Icons.functions),
-                                        title:
-                                            const Text("Refresh Market Data"),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 8),
+                                        title: const Text(
+                                          "Refresh Market Data",
+                                          // style: TextStyle(
+                                          //   fontSize: 15,
+                                          //   fontWeight: FontWeight.w500,
+                                          // ),
+                                        ),
                                         subtitle: const Text(
                                             "Periodically update latest prices"),
-                                        value: widget.brokerageUser
-                                            .refreshEnabled, // user.refreshQuotes,
+                                        value:
+                                            widget.brokerageUser.refreshEnabled,
                                         onChanged: (bool value) async {
                                           setState(() {
                                             user!.refreshQuotes = value;
                                           });
-                                          // Also set the brokerageUser for unauthenticated users.
                                           widget.brokerageUser.refreshEnabled =
                                               value;
                                           saveBrokerageUser(context);

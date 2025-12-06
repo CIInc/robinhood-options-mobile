@@ -4,7 +4,19 @@ enum SortType { alphabetical, change }
 
 enum SortDirection { asc, desc }
 
-enum ChartDateSpan { hour, day, week, month, month_3, ytd, year, year_5, all }
+enum ChartDateSpan {
+  hour,
+  day,
+  week,
+  month,
+  month_3,
+  ytd,
+  year,
+  year_2,
+  year_3,
+  year_5,
+  all
+}
 
 enum Bounds { regular, t24_7, trading }
 

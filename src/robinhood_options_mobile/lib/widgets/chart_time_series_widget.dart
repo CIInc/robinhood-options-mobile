@@ -82,7 +82,8 @@ class _TimeSeriesChartState extends State<TimeSeriesChart> {
     return charts.TimeSeriesChart(
       widget.seriesList,
       defaultRenderer: widget.seriesRendererConfig ??
-          charts.LineRendererConfig(includeArea: true, stacked: false),
+          charts.LineRendererConfig(
+              includeArea: true, stacked: false, strokeWidthPx: 1.0),
       customSeriesRenderers: widget.customSeriesRenderers ?? [],
       // defaultInteractions:
       //     widget.seriesRendererConfig is charts.LineRendererConfig

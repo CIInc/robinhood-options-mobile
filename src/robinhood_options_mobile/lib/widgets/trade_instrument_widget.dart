@@ -11,7 +11,7 @@ import 'package:robinhood_options_mobile/model/instrument_position.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 
 class TradeInstrumentWidget extends StatefulWidget {
-  const TradeInstrumentWidget(this.user, this.service,
+  const TradeInstrumentWidget(this.brokerageUser, this.service,
       //this.account,
       {super.key,
       required this.analytics,
@@ -22,7 +22,7 @@ class TradeInstrumentWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   //final Account account;
   final InstrumentPosition? stockPosition;
@@ -195,7 +195,7 @@ class _TradeInstrumentWidgetState extends State<TradeInstrumentWidget> {
 
                                 var orderJson =
                                     await widget.service.placeInstrumentOrder(
-                                  widget.user,
+                                  widget.brokerageUser,
                                   accountStore.items[0],
                                   widget.instrument!,
                                   widget.instrument!.symbol,

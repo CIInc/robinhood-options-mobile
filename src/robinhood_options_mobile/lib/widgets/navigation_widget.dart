@@ -952,15 +952,17 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                                 // },
                                 onTap: () {
                                   Navigator.pop(context); // close the drawer
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (BuildContext context) =>
-                                              UsersWidget(auth,
-                                                  analytics: widget.analytics,
-                                                  observer: widget.observer,
-                                                  brokerageUser:
-                                                      userStore.currentUser!)));
+                                  _onPageChanged(5);
+                                  // Navigator.pop(context); // close the drawer
+                                  // Navigator.push(
+                                  //     context,
+                                  //     MaterialPageRoute(
+                                  //         builder: (BuildContext context) =>
+                                  //             UsersWidget(auth,
+                                  //                 analytics: widget.analytics,
+                                  //                 observer: widget.observer,
+                                  //                 brokerageUser:
+                                  //                     userStore.currentUser!)));
                                 }),
                             // const Divider(
                             //   height: 10,

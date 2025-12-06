@@ -44,8 +44,8 @@ class SearchWidget extends StatefulWidget {
     required this.observer,
     required this.generativeService,
     this.navigatorKey,
-    this.user,
-    this.userDocRef,
+    required this.user,
+    required this.userDocRef,
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
@@ -224,28 +224,41 @@ class _SearchWidgetState extends State<SearchWidget>
         children: [
           SizedBox(height: 8),
           Text('Quick Presets',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildPresetButton(
-                  'High Dividend', () => _applyPreset('dividend')),
-              _buildPresetButton('Growth Stocks', () => _applyPreset('growth')),
-              _buildPresetButton('Value Stocks', () => _applyPreset('value')),
-              _buildPresetButton('Large Cap', () => _applyPreset('largecap')),
-              OutlinedButton.icon(
-                onPressed: () => _applyPreset('clear'),
-                icon: Icon(Icons.clear_all, size: 16),
-                label: Text('Clear All', style: TextStyle(fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  side: BorderSide(color: Colors.grey),
-                  foregroundColor: Colors.grey,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildPresetButton(
+                    'High Dividend', () => _applyPreset('dividend')),
+                SizedBox(width: 8),
+                _buildPresetButton(
+                    'Growth Stocks', () => _applyPreset('growth')),
+                SizedBox(width: 8),
+                _buildPresetButton('Value Stocks', () => _applyPreset('value')),
+                SizedBox(width: 8),
+                _buildPresetButton('Large Cap', () => _applyPreset('largecap')),
+                SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _applyPreset('clear'),
+                  icon: Icon(Icons.clear_all, size: 16),
+                  label: Text('Clear All', style: TextStyle(fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.5,
+                    ),
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -256,50 +269,92 @@ class _SearchWidgetState extends State<SearchWidget>
                       child: Text(s),
                     ))
                 .toList(),
-            decoration: InputDecoration(labelText: 'Sector'),
+            decoration: InputDecoration(
+              labelText: 'Sector',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1.0,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 1.5,
+                ),
+              ),
+              filled: true,
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withOpacity(0.08),
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            ),
             onChanged: (v) => setState(() => screenerSector = v),
           ),
           SizedBox(height: 12),
           Text('Market Cap',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickFilterChip('Micro (<\$300M)', () {
-                setState(() {
-                  screenerMarketCapMin = null;
-                  screenerMarketCapMax = 300000000;
-                  marketCapMinCtl.clear();
-                  marketCapMaxCtl.text = '300000000';
-                });
-              }),
-              _buildQuickFilterChip('Small (\$300M-\$2B)', () {
-                setState(() {
-                  screenerMarketCapMin = 300000000;
-                  screenerMarketCapMax = 2000000000;
-                  marketCapMinCtl.text = '300000000';
-                  marketCapMaxCtl.text = '2000000000';
-                });
-              }),
-              _buildQuickFilterChip('Mid (\$2B-\$10B)', () {
-                setState(() {
-                  screenerMarketCapMin = 2000000000;
-                  screenerMarketCapMax = 10000000000;
-                  marketCapMinCtl.text = '2000000000';
-                  marketCapMaxCtl.text = '10000000000';
-                });
-              }),
-              _buildQuickFilterChip('Large (>\$10B)', () {
-                setState(() {
-                  screenerMarketCapMin = 10000000000;
-                  screenerMarketCapMax = null;
-                  marketCapMinCtl.text = '10000000000';
-                  marketCapMaxCtl.clear();
-                });
-              }),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickFilterChip('Micro (<\$300M)', () {
+                  setState(() {
+                    screenerMarketCapMin = null;
+                    screenerMarketCapMax = 300000000;
+                    marketCapMinCtl.clear();
+                    marketCapMaxCtl.text = '300000000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('Small (\$300M-\$2B)', () {
+                  setState(() {
+                    screenerMarketCapMin = 300000000;
+                    screenerMarketCapMax = 2000000000;
+                    marketCapMinCtl.text = '300000000';
+                    marketCapMaxCtl.text = '2000000000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('Mid (\$2B-\$10B)', () {
+                  setState(() {
+                    screenerMarketCapMin = 2000000000;
+                    screenerMarketCapMax = 10000000000;
+                    marketCapMinCtl.text = '2000000000';
+                    marketCapMaxCtl.text = '10000000000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('Large (>\$10B)', () {
+                  setState(() {
+                    screenerMarketCapMin = 10000000000;
+                    screenerMarketCapMax = null;
+                    marketCapMinCtl.text = '10000000000';
+                    marketCapMaxCtl.clear();
+                  });
+                }),
+              ],
+            ),
           ),
           SizedBox(height: 8),
           Row(children: [
@@ -312,6 +367,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   helperText: '\$1B = 1,000,000,000',
                   helperMaxLines: 1,
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
@@ -328,6 +411,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   helperText: '\$100B = 100,000,000,000',
                   helperMaxLines: 1,
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
@@ -337,9 +448,16 @@ class _SearchWidgetState extends State<SearchWidget>
           ]),
           SizedBox(height: 12),
           Text('P/E Ratio',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           Text('Value: <15, Growth: >20',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              )),
           SizedBox(height: 4),
           Row(children: [
             Flexible(
@@ -349,6 +467,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   labelText: 'Min',
                   hintText: '10',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -363,6 +509,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   labelText: 'Max',
                   hintText: '30',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -372,9 +546,16 @@ class _SearchWidgetState extends State<SearchWidget>
           ]),
           SizedBox(height: 12),
           Text('Dividend Yield (%)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           Text('High dividend: >3%',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              )),
           SizedBox(height: 4),
           Row(children: [
             Flexible(
@@ -385,6 +566,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   hintText: '2',
                   suffixText: '%',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -400,6 +609,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   hintText: '5',
                   suffixText: '%',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -409,7 +646,11 @@ class _SearchWidgetState extends State<SearchWidget>
           ]),
           SizedBox(height: 12),
           Text('Price Range (\$)',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           SizedBox(height: 4),
           Row(children: [
             Flexible(
@@ -420,6 +661,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   hintText: '10',
                   prefixText: '\$',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -435,6 +704,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   hintText: '500',
                   prefixText: '\$',
                   isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 1.5,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.05),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
                 onChanged: (v) =>
@@ -444,39 +741,50 @@ class _SearchWidgetState extends State<SearchWidget>
           ]),
           SizedBox(height: 12),
           Text('Volume',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              )),
           Text('Minimum average daily volume',
-              style: TextStyle(fontSize: 11, color: Colors.grey)),
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              )),
           SizedBox(height: 4),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildQuickFilterChip('Low (100K+)', () {
-                setState(() {
-                  screenerVolumeMin = 100000;
-                  volumeMinCtl.text = '100000';
-                });
-              }),
-              _buildQuickFilterChip('Med (500K+)', () {
-                setState(() {
-                  screenerVolumeMin = 500000;
-                  volumeMinCtl.text = '500000';
-                });
-              }),
-              _buildQuickFilterChip('High (1M+)', () {
-                setState(() {
-                  screenerVolumeMin = 1000000;
-                  volumeMinCtl.text = '1000000';
-                });
-              }),
-              _buildQuickFilterChip('Very High (5M+)', () {
-                setState(() {
-                  screenerVolumeMin = 5000000;
-                  volumeMinCtl.text = '5000000';
-                });
-              }),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildQuickFilterChip('Low (100K+)', () {
+                  setState(() {
+                    screenerVolumeMin = 100000;
+                    volumeMinCtl.text = '100000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('Med (500K+)', () {
+                  setState(() {
+                    screenerVolumeMin = 500000;
+                    volumeMinCtl.text = '500000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('High (1M+)', () {
+                  setState(() {
+                    screenerVolumeMin = 1000000;
+                    volumeMinCtl.text = '1000000';
+                  });
+                }),
+                SizedBox(width: 8),
+                _buildQuickFilterChip('Very High (5M+)', () {
+                  setState(() {
+                    screenerVolumeMin = 5000000;
+                    volumeMinCtl.text = '5000000';
+                  });
+                }),
+              ],
+            ),
           ),
           SizedBox(height: 8),
           TextField(
@@ -486,6 +794,34 @@ class _SearchWidgetState extends State<SearchWidget>
               hintText: '1000000',
               helperText: '1M = 1,000,000',
               isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1.0,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 1.5,
+                ),
+              ),
+              filled: true,
+              fillColor: Theme.of(context)
+                  .colorScheme
+                  .primaryContainer
+                  .withOpacity(0.05),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
             keyboardType: TextInputType.number,
             onChanged: (v) =>
@@ -498,129 +834,150 @@ class _SearchWidgetState extends State<SearchWidget>
           SizedBox(height: 16),
           Row(
             children: [
-              ElevatedButton.icon(
-                icon: Icon(Icons.search),
-                onPressed: screenerLoading
-                    ? null
-                    : () async {
-                        // Validate min/max fields
-                        if (screenerMarketCapMin != null &&
-                            screenerMarketCapMax != null &&
-                            screenerMarketCapMin! > screenerMarketCapMax!) {
-                          setState(() {
-                            errorText =
-                                'Market Cap Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerPeMin != null &&
-                            screenerPeMax != null &&
-                            screenerPeMin! > screenerPeMax!) {
-                          setState(() {
-                            errorText = 'P/E Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerDividendYieldMin != null &&
-                            screenerDividendYieldMax != null &&
-                            screenerDividendYieldMin! >
-                                screenerDividendYieldMax!) {
-                          setState(() {
-                            errorText =
-                                'Dividend Yield Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        if (screenerPriceMin != null &&
-                            screenerPriceMax != null &&
-                            screenerPriceMin! > screenerPriceMax!) {
-                          setState(() {
-                            errorText = 'Price Min cannot be greater than Max.';
-                          });
-                          return;
-                        }
-                        setState(() {
-                          screenerLoading = true;
-                          errorText = null;
-                        });
-                        try {
-                          var results = await _firestoreService.stockScreener(
-                            sector: screenerSector,
-                            marketCapMin: screenerMarketCapMin,
-                            marketCapMax: screenerMarketCapMax,
-                            peMin: screenerPeMin,
-                            peMax: screenerPeMax,
-                            dividendYieldMin: screenerDividendYieldMin,
-                            dividendYieldMax: screenerDividendYieldMax,
-                          );
-
-                          // Client-side filtering for price and volume
-                          if (screenerPriceMin != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.quoteObj?.lastTradePrice ?? 0) >=
-                                    screenerPriceMin!)
-                                .toList();
+              Expanded(
+                child: FilledButton.icon(
+                  icon: screenerLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                        )
+                      : Icon(Icons.filter_list_sharp),
+                  onPressed: screenerLoading
+                      ? null
+                      : () async {
+                          // Validate min/max fields
+                          if (screenerMarketCapMin != null &&
+                              screenerMarketCapMax != null &&
+                              screenerMarketCapMin! > screenerMarketCapMax!) {
+                            setState(() {
+                              errorText =
+                                  'Market Cap Min cannot be greater than Max.';
+                            });
+                            return;
                           }
-                          if (screenerPriceMax != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.quoteObj?.lastTradePrice ??
-                                        double.infinity) <=
-                                    screenerPriceMax!)
-                                .toList();
+                          if (screenerPeMin != null &&
+                              screenerPeMax != null &&
+                              screenerPeMin! > screenerPeMax!) {
+                            setState(() {
+                              errorText = 'P/E Min cannot be greater than Max.';
+                            });
+                            return;
                           }
-                          if (screenerVolumeMin != null) {
-                            results = results
-                                .where((i) =>
-                                    (i.fundamentalsObj?.averageVolume ?? 0) >=
-                                    screenerVolumeMin!)
-                                .toList();
+                          if (screenerDividendYieldMin != null &&
+                              screenerDividendYieldMax != null &&
+                              screenerDividendYieldMin! >
+                                  screenerDividendYieldMax!) {
+                            setState(() {
+                              errorText =
+                                  'Dividend Yield Min cannot be greater than Max.';
+                            });
+                            return;
                           }
-
+                          if (screenerPriceMin != null &&
+                              screenerPriceMax != null &&
+                              screenerPriceMin! > screenerPriceMax!) {
+                            setState(() {
+                              errorText =
+                                  'Price Min cannot be greater than Max.';
+                            });
+                            return;
+                          }
                           setState(() {
-                            screenerResults = results;
-                            screenerLoading = false;
-                            // Keep controllers in sync after results
-                            marketCapMinCtl.text =
-                                screenerMarketCapMin?.toString() ?? '';
-                            marketCapMaxCtl.text =
-                                screenerMarketCapMax?.toString() ?? '';
-                            peMinCtl.text = screenerPeMin?.toString() ?? '';
-                            peMaxCtl.text = screenerPeMax?.toString() ?? '';
-                            dividendYieldMinCtl.text =
-                                screenerDividendYieldMin?.toString() ?? '';
-                            dividendYieldMaxCtl.text =
-                                screenerDividendYieldMax?.toString() ?? '';
-                            priceMinCtl.text =
-                                screenerPriceMin?.toString() ?? '';
-                            priceMaxCtl.text =
-                                screenerPriceMax?.toString() ?? '';
-                            volumeMinCtl.text =
-                                screenerVolumeMin?.toString() ?? '';
+                            screenerLoading = true;
+                            errorText = null;
+                            screenerResults = null;
                           });
-                        } catch (e) {
-                          setState(() {
-                            screenerLoading = false;
-                          });
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: SelectableText(
-                                      'Error running screener: $e')),
+                          try {
+                            var results = await _firestoreService.stockScreener(
+                              sector: screenerSector,
+                              marketCapMin: screenerMarketCapMin,
+                              marketCapMax: screenerMarketCapMax,
+                              peMin: screenerPeMin,
+                              peMax: screenerPeMax,
+                              dividendYieldMin: screenerDividendYieldMin,
+                              dividendYieldMax: screenerDividendYieldMax,
                             );
+
+                            // Client-side filtering for price and volume
+                            if (screenerPriceMin != null) {
+                              results = results
+                                  .where((i) =>
+                                      (i.quoteObj?.lastTradePrice ?? 0) >=
+                                      screenerPriceMin!)
+                                  .toList();
+                            }
+                            if (screenerPriceMax != null) {
+                              results = results
+                                  .where((i) =>
+                                      (i.quoteObj?.lastTradePrice ??
+                                          double.infinity) <=
+                                      screenerPriceMax!)
+                                  .toList();
+                            }
+                            if (screenerVolumeMin != null) {
+                              results = results
+                                  .where((i) =>
+                                      (i.fundamentalsObj?.averageVolume ?? 0) >=
+                                      screenerVolumeMin!)
+                                  .toList();
+                            }
+
+                            setState(() {
+                              screenerResults = results;
+                              screenerLoading = false;
+                              // Keep controllers in sync after results
+                              marketCapMinCtl.text =
+                                  screenerMarketCapMin?.toString() ?? '';
+                              marketCapMaxCtl.text =
+                                  screenerMarketCapMax?.toString() ?? '';
+                              peMinCtl.text = screenerPeMin?.toString() ?? '';
+                              peMaxCtl.text = screenerPeMax?.toString() ?? '';
+                              dividendYieldMinCtl.text =
+                                  screenerDividendYieldMin?.toString() ?? '';
+                              dividendYieldMaxCtl.text =
+                                  screenerDividendYieldMax?.toString() ?? '';
+                              priceMinCtl.text =
+                                  screenerPriceMin?.toString() ?? '';
+                              priceMaxCtl.text =
+                                  screenerPriceMax?.toString() ?? '';
+                              volumeMinCtl.text =
+                                  screenerVolumeMin?.toString() ?? '';
+                            });
+                          } catch (e) {
+                            setState(() {
+                              screenerLoading = false;
+                            });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: SelectableText(
+                                        'Error running screener: $e')),
+                              );
+                            }
                           }
-                        }
-                      },
-                label: Text('Run Screener'),
+                        },
+                  label: Text(
+                    screenerLoading ? 'Screening...' : 'Run Screener',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    disabledBackgroundColor:
+                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                  ),
+                ),
               ),
-              if (screenerLoading) ...[
-                SizedBox(width: 16),
-                SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2)),
-              ]
             ],
           ),
         ],
@@ -629,55 +986,38 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   Widget _buildScreenerSliver() {
-    if (screenerLoading) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
     return SliverStickyHeader(
       header: Material(
+        elevation: 2,
         child: Container(
+          color: Theme.of(context).colorScheme.surface,
           alignment: Alignment.centerLeft,
           child: Column(
             children: [
               ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.filter_alt,
+                      color: Theme.of(context).colorScheme.primary, size: 22),
+                ),
                 title: Text(
                   screenerResults != null && screenerResults!.isNotEmpty
                       ? 'Screener (${screenerResults!.length})'
                       : 'Screener',
-                  style: TextStyle(fontSize: 19.0),
+                  style: TextStyle(
+                    fontSize: 19.0,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
-                trailing: screenerResults != null && screenerResults!.isNotEmpty
-                    ? SizedBox(
-                        width: 140,
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: screenerSortBy,
-                          items: [
-                            DropdownMenuItem(
-                                value: 'symbol', child: Text('Symbol')),
-                            DropdownMenuItem(
-                                value: 'marketCap', child: Text('Market Cap')),
-                            DropdownMenuItem(
-                                value: 'pe', child: Text('P/E Ratio')),
-                            DropdownMenuItem(
-                                value: 'dividend', child: Text('Dividend')),
-                            DropdownMenuItem(
-                                value: 'price', child: Text('Price')),
-                            DropdownMenuItem(
-                                value: 'volume', child: Text('Volume')),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => screenerSortBy = value);
-                            }
-                          },
-                        ),
-                      )
-                    : null,
+                trailing: null,
               ),
             ],
           ),
@@ -686,16 +1026,100 @@ class _SearchWidgetState extends State<SearchWidget>
       sliver: SliverList(
         delegate: SliverChildListDelegate([
           _buildScreenerPanel(),
-          if (screenerResults != null && screenerResults!.isNotEmpty)
+          if (screenerResults != null && screenerResults!.isNotEmpty) ...[
+            Container(
+              padding: EdgeInsets.fromLTRB(12, 12, 12, 4),
+              color: Theme.of(context).colorScheme.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Sort Results',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.5,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 140,
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: screenerSortBy,
+                          underline: Container(
+                            height: 1,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withOpacity(0.3),
+                          ),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                                value: 'symbol',
+                                child: Text('Symbol',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'marketCap',
+                                child: Text('Market Cap',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'pe',
+                                child: Text('P/E Ratio',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'dividend',
+                                child: Text('Dividend',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'price',
+                                child: Text('Price',
+                                    style: TextStyle(fontSize: 13))),
+                            DropdownMenuItem(
+                                value: 'volume',
+                                child: Text('Volume',
+                                    style: TextStyle(fontSize: 13))),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => screenerSortBy = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Divider(
+                    height: 1,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ),
             GridView.builder(
               shrinkWrap: true,
-              padding: EdgeInsets.all(8),
+              padding: EdgeInsets.fromLTRB(8, 4, 8, 12),
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 150.0,
                 mainAxisSpacing: 6.0,
                 crossAxisSpacing: 2.0,
-                childAspectRatio: 1.3,
+                childAspectRatio: 1.2,
               ),
               itemCount: screenerResults!.length,
               itemBuilder: (BuildContext context, int gridIndex) {
@@ -703,13 +1127,41 @@ class _SearchWidgetState extends State<SearchWidget>
                 return _buildListGridItem(
                     sortedResults, gridIndex, widget.brokerageUser);
               },
-            )
-          else if (screenerResults != null && screenerResults!.isEmpty)
+            ),
+          ] else if (screenerResults != null && screenerResults!.isEmpty)
             Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+              padding: EdgeInsets.symmetric(vertical: 32),
               child: Center(
-                child: Text('No results found.',
-                    style: TextStyle(color: Colors.grey)),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.search_off,
+                        size: 48,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.3)),
+                    SizedBox(height: 16),
+                    Text('No results found.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
+                        )),
+                    SizedBox(height: 8),
+                    Text('Try adjusting your filter criteria',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.4),
+                        )),
+                  ],
+                ),
               ),
             ),
         ]),
@@ -720,12 +1172,30 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildYahooScreenerSliver() {
     return SliverStickyHeader(
       header: Material(
+        elevation: 2,
         child: Container(
+          color: Theme.of(context).colorScheme.surface,
           alignment: Alignment.centerLeft,
-          child: const ListTile(
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.dashboard_customize,
+                  color: Theme.of(context).colorScheme.primary, size: 22),
+            ),
             title: Text(
               "Presets",
-              style: TextStyle(fontSize: 19.0),
+              style: TextStyle(
+                fontSize: 19.0,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
         ),
@@ -1066,7 +1536,8 @@ class _SearchWidgetState extends State<SearchWidget>
                       ),
                     ),
                     sliver: SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.all(
+                            2), // .symmetric(horizontal: 2),
                         sliver: SliverGrid(
                           gridDelegate:
                               const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1152,19 +1623,42 @@ class _SearchWidgetState extends State<SearchWidget>
 
                       return SliverStickyHeader(
                           header: Material(
-                              //elevation: 2,
+                              elevation: 2,
                               child: Container(
+                                  color: Theme.of(context).colorScheme.surface,
                                   alignment: Alignment.centerLeft,
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       ListTile(
+                                        leading: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primaryContainer
+                                                .withOpacity(0.15),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: Icon(Icons.insights,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                              size: 22),
+                                        ),
                                         title: Row(
                                           children: [
-                                            const Text(
+                                            Text(
                                               "Trade Signals",
-                                              style: TextStyle(fontSize: 19.0),
+                                              style: TextStyle(
+                                                fontSize: 19.0,
+                                                fontWeight: FontWeight.w600,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface,
+                                              ),
                                             ),
                                             const Spacer(),
                                             IconButton(
@@ -1201,59 +1695,118 @@ class _SearchWidgetState extends State<SearchWidget>
                                               },
                                             ),
                                             const SizedBox(width: 4),
-                                            GestureDetector(
-                                              onTap: () {
-                                                // Cycle through intervals: 15m -> 1h -> 1d -> 15m
-                                                final nextInterval =
-                                                    selectedInterval == '15m'
-                                                        ? '1h'
-                                                        : selectedInterval ==
-                                                                '1h'
-                                                            ? '1d'
-                                                            : '15m';
+                                            PopupMenuButton<String>(
+                                              icon: Icon(
+                                                isMarketOpen
+                                                    ? Icons.access_time
+                                                    : Icons.calendar_today,
+                                                color: isMarketOpen
+                                                    ? Colors.green.shade700
+                                                    : Colors.blue.shade700,
+                                              ),
+                                              tooltip:
+                                                  '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
+                                              itemBuilder:
+                                                  (BuildContext context) {
+                                                return [
+                                                  PopupMenuItem<String>(
+                                                    enabled: false,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              bottom: 8.0),
+                                                      child: Text(
+                                                        isMarketOpen
+                                                            ? 'Market Open'
+                                                            : 'After Hours',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: isMarketOpen
+                                                              ? Colors.green
+                                                                  .shade700
+                                                              : Colors.blue
+                                                                  .shade700,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  PopupMenuDivider(),
+                                                  PopupMenuItem<String>(
+                                                    value: '15m',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Text('15-min'),
+                                                        if (selectedInterval ==
+                                                            '15m')
+                                                          const SizedBox(
+                                                              width: 8),
+                                                        if (selectedInterval ==
+                                                            '15m')
+                                                          Icon(Icons.check,
+                                                              size: 18,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem<String>(
+                                                    value: '1h',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Text('Hourly'),
+                                                        if (selectedInterval ==
+                                                            '1h')
+                                                          const SizedBox(
+                                                              width: 8),
+                                                        if (selectedInterval ==
+                                                            '1h')
+                                                          Icon(Icons.check,
+                                                              size: 18,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem<String>(
+                                                    value: '1d',
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Text('Daily'),
+                                                        if (selectedInterval ==
+                                                            '1d')
+                                                          const SizedBox(
+                                                              width: 8),
+                                                        if (selectedInterval ==
+                                                            '1d')
+                                                          Icon(Icons.check,
+                                                              size: 18,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ];
+                                              },
+                                              onSelected: (String interval) {
                                                 agenticTradingProvider
                                                     .setSelectedInterval(
-                                                        nextInterval);
+                                                        interval);
                                                 _fetchTradeSignalsWithFilters();
                                               },
-                                              child: Chip(
-                                                avatar: Icon(
-                                                  isMarketOpen
-                                                      ? Icons.access_time
-                                                      : Icons.calendar_today,
-                                                  size: 16,
-                                                  color: isMarketOpen
-                                                      ? Colors.green.shade700
-                                                      : Colors.blue.shade700,
-                                                ),
-                                                label: Text(
-                                                  '${isMarketOpen ? 'Market Open' : 'After Hours'} • $intervalLabel',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: isMarketOpen
-                                                        ? Colors.green.shade700
-                                                        : Colors.blue.shade700,
-                                                  ),
-                                                ),
-                                                backgroundColor: isMarketOpen
-                                                    ? Colors.green
-                                                        .withOpacity(0.1)
-                                                    : Colors.blue
-                                                        .withOpacity(0.1),
-                                                side: BorderSide(
-                                                  color: isMarketOpen
-                                                      ? Colors.green.shade300
-                                                      : Colors.blue.shade300,
-                                                  width: 1,
-                                                ),
-                                                visualDensity:
-                                                    VisualDensity.compact,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 0),
-                                              ),
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(),
                                             ),
                                           ],
                                         ),
@@ -1290,8 +1843,8 @@ class _SearchWidgetState extends State<SearchWidget>
                                   ),
                                 )
                               : SliverPadding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  padding: const EdgeInsets.all(
+                                      2), // .symmetric(horizontal: 2),
                                   sliver: SliverGrid(
                                     gridDelegate:
                                         const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1316,21 +1869,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (movers != null && movers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            //elevation: 2,
+                            elevation: 2,
                             child: Container(
+                                color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "S&P Movers",
-                                      style: TextStyle(fontSize: 19.0),
+                                child: ListTile(
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    Icon(Icons.trending_up,
-                                        color: Colors.green, size: 28)
-                                  ]),
+                                    child: const Icon(Icons.trending_up,
+                                        color: Colors.green, size: 22),
+                                  ),
+                                  title: Text(
+                                    "S&P Gainers",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
                                 ))),
                         sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.all(
+                                2), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1354,21 +1920,34 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (losers != null && losers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            //elevation: 2,
+                            elevation: 2,
                             child: Container(
+                                color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "S&P Movers",
-                                      style: TextStyle(fontSize: 19.0),
+                                child: ListTile(
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    Icon(Icons.trending_down,
-                                        color: Colors.red, size: 28)
-                                  ]),
+                                    child: const Icon(Icons.trending_down,
+                                        color: Colors.red, size: 22),
+                                  ),
+                                  title: Text(
+                                    "S&P Decliners",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
                                 ))),
                         sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.all(
+                                2), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -1392,26 +1971,47 @@ class _SearchWidgetState extends State<SearchWidget>
                   if (listMovers != null && listMovers.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            //elevation: 2,
+                            elevation: 2,
                             child: Container(
+                                color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "Top Movers",
-                                      style: TextStyle(fontSize: 19.0),
+                                child: ListTile(
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                          .withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                  ]),
+                                    child: Icon(Icons.show_chart,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        size: 22),
+                                  ),
+                                  title: Text(
+                                    "Top Movers",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
                                 ))),
                         sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.all(
+                                2), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 150.0,
                                 mainAxisSpacing: 6.0,
                                 crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.35,
+                                childAspectRatio: 1.25,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -1430,26 +2030,47 @@ class _SearchWidgetState extends State<SearchWidget>
                       listMostPopular.isNotEmpty) ...[
                     SliverStickyHeader(
                         header: Material(
-                            //elevation: 2,
+                            elevation: 2,
                             child: Container(
+                                color: Theme.of(context).colorScheme.surface,
                                 alignment: Alignment.centerLeft,
-                                child: const ListTile(
-                                  title: Wrap(children: [
-                                    Text(
-                                      "100 Most Popular",
-                                      style: TextStyle(fontSize: 19.0),
+                                child: ListTile(
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                          .withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                  ]),
+                                    child: Icon(Icons.star,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        size: 22),
+                                  ),
+                                  title: Text(
+                                    "100 Most Popular",
+                                    style: TextStyle(
+                                      fontSize: 19.0,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface,
+                                    ),
+                                  ),
                                 ))),
                         sliver: SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.all(
+                                2), // .symmetric(horizontal: 2),
                             sliver: SliverGrid(
                               gridDelegate:
                                   const SliverGridDelegateWithMaxCrossAxisExtent(
                                 maxCrossAxisExtent: 150.0,
                                 mainAxisSpacing: 6.0,
                                 crossAxisSpacing: 2.0,
-                                childAspectRatio: 1.22,
+                                childAspectRatio: 1.25,
                               ),
                               delegate: SliverChildBuilderDelegate(
                                 (BuildContext context, int index) {
@@ -1506,22 +2127,32 @@ class _SearchWidgetState extends State<SearchWidget>
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: isPositive
+                ? Colors.green.withOpacity(0.3)
+                : (isNegative
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.grey.withOpacity(
+                        0.2)), // Theme.of(context).colorScheme.outlineVariant)
+            width: 1.5,
+          ),
         ),
         child: InkWell(
             borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(movers[index].symbol,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18.0,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                           overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Icon(
@@ -1549,20 +2180,24 @@ class _SearchWidgetState extends State<SearchWidget>
                               )),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                           formatCurrency
                               .format(movers[index].marketHoursLastPrice),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16.0,
                             fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
                           )),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Expanded(
                         child: Text(movers[index].description,
                             style: TextStyle(
                               fontSize: 12.0,
-                              color: Colors.grey.shade600,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis),
@@ -1599,32 +2234,41 @@ class _SearchWidgetState extends State<SearchWidget>
   Widget _buildSearchGridItem(dynamic search, int index) {
     var data = search["results"][0]["content"]["data"][index];
     return Card(
-        elevation: 1,
+        elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: Colors.grey.withOpacity(
+                0.2), // Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
         ),
         child: InkWell(
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
                         data["item"]["symbol"],
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17.0,
                           fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Expanded(
                         child: Text(
                           data["item"]["simple_name"] ?? data["item"]["name"],
                           style: TextStyle(
                             fontSize: 12.0,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -1924,14 +2568,23 @@ class _SearchWidgetState extends State<SearchWidget>
         hasQuote ? instrumentObj.quoteObj!.changePercentToday : 0.0;
 
     return Card(
-        elevation: 1,
+        elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.circular(12.0),
+          side: BorderSide(
+            color: changeToday > 0
+                ? Colors.green.withOpacity(0.3)
+                : (changeToday < 0
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.grey.withOpacity(
+                        0.2)), // Theme.of(context).colorScheme.outlineVariant)
+            width: 1.5,
+          ),
         ),
         child: InkWell(
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.circular(12.0),
             child: Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1939,25 +2592,27 @@ class _SearchWidgetState extends State<SearchWidget>
                     // Symbol - always shown
                     Text(
                       instrumentObj.symbol,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16.0,
                         fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
 
                     // Current Price
                     if (lastTradePrice != null) ...[
                       Text(
                         formatCurrency.format(lastTradePrice),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15.0,
                           fontWeight: FontWeight.w500,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                     ],
 
                     // Change indicator with percentage
@@ -1974,14 +2629,15 @@ class _SearchWidgetState extends State<SearchWidget>
                             color: changeToday > 0
                                 ? Colors.green
                                 : (changeToday < 0 ? Colors.red : Colors.grey),
-                            size: 16,
+                            size: 15,
                           ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               formatPercentage.format(changePercentToday.abs()),
                               style: TextStyle(
-                                fontSize: 14.0,
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w600,
                                 color: changeToday > 0
                                     ? Colors.green
                                     : (changeToday < 0
@@ -2025,10 +2681,19 @@ class _SearchWidgetState extends State<SearchWidget>
 
   Widget _buildQuickFilterChip(String label, VoidCallback onTap) {
     return ActionChip(
-      label: Text(label, style: TextStyle(fontSize: 12)),
+      label: Text(label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.primary,
+          )),
       onPressed: onTap,
-      backgroundColor: Colors.blue.withOpacity(0.1),
-      labelStyle: TextStyle(color: Colors.blue),
+      backgroundColor:
+          Theme.of(context).colorScheme.primaryContainer.withOpacity(0.2),
+      side: BorderSide(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+        width: 1,
+      ),
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
     );
   }
@@ -2038,9 +2703,17 @@ class _SearchWidgetState extends State<SearchWidget>
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        side: BorderSide(color: Colors.blue),
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.primary,
+          width: 1.5,
+        ),
+        foregroundColor: Theme.of(context).colorScheme.primary,
       ),
-      child: Text(label, style: TextStyle(fontSize: 13)),
+      child: Text(label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          )),
     );
   }
 
@@ -2203,8 +2876,23 @@ class _SearchWidgetState extends State<SearchWidget>
               });
               _fetchTradeSignalsWithFilters();
             },
-            selectedColor: Colors.green.withOpacity(0.3),
-            checkmarkColor: Colors.green,
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.green.withOpacity(0.2),
+            side: BorderSide(
+              color: tradeSignalFilter == 'BUY'
+                  ? Colors.green.shade400
+                  : Colors.grey.shade300,
+              width: tradeSignalFilter == 'BUY' ? 1.5 : 1,
+            ),
+            checkmarkColor: Colors.green.shade700,
+            labelStyle: TextStyle(
+              color: tradeSignalFilter == 'BUY'
+                  ? Colors.green.shade700
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: tradeSignalFilter == 'BUY'
+                  ? FontWeight.w600
+                  : FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           FilterChip(
@@ -2216,8 +2904,23 @@ class _SearchWidgetState extends State<SearchWidget>
               });
               _fetchTradeSignalsWithFilters();
             },
-            selectedColor: Colors.red.withOpacity(0.3),
-            checkmarkColor: Colors.red,
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.red.withOpacity(0.2),
+            side: BorderSide(
+              color: tradeSignalFilter == 'SELL'
+                  ? Colors.red.shade400
+                  : Colors.grey.shade300,
+              width: tradeSignalFilter == 'SELL' ? 1.5 : 1,
+            ),
+            checkmarkColor: Colors.red.shade700,
+            labelStyle: TextStyle(
+              color: tradeSignalFilter == 'SELL'
+                  ? Colors.red.shade700
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: tradeSignalFilter == 'SELL'
+                  ? FontWeight.w600
+                  : FontWeight.w500,
+            ),
           ),
           const SizedBox(width: 8),
           FilterChip(
@@ -2229,8 +2932,23 @@ class _SearchWidgetState extends State<SearchWidget>
               });
               _fetchTradeSignalsWithFilters();
             },
-            selectedColor: Colors.grey.withOpacity(0.3),
-            checkmarkColor: Colors.grey,
+            backgroundColor: Colors.transparent,
+            selectedColor: Colors.grey.withOpacity(0.2),
+            side: BorderSide(
+              color: tradeSignalFilter == 'HOLD'
+                  ? Colors.grey.shade500
+                  : Colors.grey.shade300,
+              width: tradeSignalFilter == 'HOLD' ? 1.5 : 1,
+            ),
+            checkmarkColor: Colors.grey.shade700,
+            labelStyle: TextStyle(
+              color: tradeSignalFilter == 'HOLD'
+                  ? Colors.grey.shade700
+                  : Theme.of(context).colorScheme.onSurface,
+              fontWeight: tradeSignalFilter == 'HOLD'
+                  ? FontWeight.w600
+                  : FontWeight.w500,
+            ),
           ),
           // const SizedBox(width: 8),
           // IconButton(
@@ -2268,7 +2986,22 @@ class _SearchWidgetState extends State<SearchWidget>
                   _fetchTradeSignalsWithFilters();
                 },
                 backgroundColor: Colors.transparent,
-                selectedColor: Colors.blue.withOpacity(0.2),
+                selectedColor: Colors.blue.withOpacity(0.15),
+                side: BorderSide(
+                  color: selectedIndicators.contains(indicator)
+                      ? Colors.blue.shade400
+                      : Colors.grey.shade300,
+                  width: selectedIndicators.contains(indicator) ? 1.5 : 1,
+                ),
+                labelStyle: TextStyle(
+                  color: selectedIndicators.contains(indicator)
+                      ? Colors.blue.shade700
+                      : Theme.of(context).colorScheme.onSurface,
+                  fontWeight: selectedIndicators.contains(indicator)
+                      ? FontWeight.w600
+                      : FontWeight.w500,
+                  fontSize: 12,
+                ),
               ),
             );
           }),

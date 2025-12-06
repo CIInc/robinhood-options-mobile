@@ -31,7 +31,7 @@ final ItemPositionsListener itemPositionListener =
 
 class ForexPositionsWidget extends StatefulWidget {
   const ForexPositionsWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.filteredHoldings, {
@@ -43,7 +43,7 @@ class ForexPositionsWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final bool showList;
   //final Account account;
@@ -84,9 +84,9 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
   @override
   Widget build(BuildContext context) {
     var sortedFilteredHoldings = widget.filteredHoldings.sortedBy<num>((i) =>
-        widget.user.getDisplayValueForexHolding(i,
-            displayValue: widget.user.sortOptions));
-    if (widget.user.sortDirection == SortDirection.desc) {
+        widget.brokerageUser.getDisplayValueForexHolding(i,
+            displayValue: widget.brokerageUser.sortOptions));
+    if (widget.brokerageUser.sortDirection == SortDirection.desc) {
       sortedFilteredHoldings = sortedFilteredHoldings.reversed.toList();
     }
 
@@ -94,14 +94,16 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
     var data = [];
     for (var position in sortedFilteredHoldings) {
       if (position.quoteObj != null) {
-        double? value = widget.user.getDisplayValueForexHolding(position);
-        String? trailingText = widget.user.getDisplayText(value);
+        double? value =
+            widget.brokerageUser.getDisplayValueForexHolding(position);
+        String? trailingText = widget.brokerageUser.getDisplayText(value);
         double? secondaryValue;
         String? secondaryLabel;
-        if (widget.user.displayValue == DisplayValue.marketValue) {
-          secondaryValue = widget.user.getDisplayValueForexHolding(position,
+        if (widget.brokerageUser.displayValue == DisplayValue.marketValue) {
+          secondaryValue = widget.brokerageUser.getDisplayValueForexHolding(
+              position,
               displayValue: DisplayValue.totalCost);
-          secondaryLabel = widget.user.getDisplayText(secondaryValue,
+          secondaryLabel = widget.brokerageUser.getDisplayText(secondaryValue,
               displayValue: DisplayValue.totalCost);
           // } else if (widget.user.displayValue == DisplayValue.totalReturn) {
           //   secondaryValue = widget.user.getCryptoDisplayValue(position,
@@ -128,7 +130,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             Theme.of(context).colorScheme.primary), // .withOpacity(0.75)
         2);
     barChartSeriesList.add(charts.Series<dynamic, String>(
-        id: BrokerageUser.displayValueText(widget.user.displayValue!),
+        id: BrokerageUser.displayValueText(widget.brokerageUser.displayValue!),
         data: data,
         colorFn: (_, __) => shades[
             0], // charts.ColorUtil.fromDartColor(Theme.of(context).colorScheme.primary),
@@ -147,7 +149,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
             color: charts.ColorUtil.fromDartColor(
                 Theme.of(context).textTheme.labelSmall!.color!))));
     var seriesData = charts.Series<dynamic, String>(
-      id: (widget.user.displayValue == DisplayValue.marketValue)
+      id: (widget.brokerageUser.displayValue == DisplayValue.marketValue)
           ? BrokerageUser.displayValueText(DisplayValue.totalCost)
           : '',
       //charts.MaterialPalette.blue.shadeDefault,
@@ -186,10 +188,10 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
       //    charts.StaticNumericTickProviderSpec(staticNumericTicks!),
       //viewport: charts.NumericExtents(0, staticNumericTicks![staticNumericTicks!.length - 1].value + 1)
     );
-    if (widget.user.displayValue == DisplayValue.todayReturnPercent ||
-        widget.user.displayValue == DisplayValue.totalReturnPercent) {
+    if (widget.brokerageUser.displayValue == DisplayValue.todayReturnPercent ||
+        widget.brokerageUser.displayValue == DisplayValue.totalReturnPercent) {
       var positionDisplayValues = sortedFilteredHoldings
-          .map((e) => widget.user.getDisplayValueForexHolding(e));
+          .map((e) => widget.brokerageUser.getDisplayValueForexHolding(e));
       var minimum = 0.0;
       var maximum = 0.0;
       if (positionDisplayValues.isNotEmpty) {
@@ -246,7 +248,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
           context,
           MaterialPageRoute(
               builder: (context) => ForexInstrumentWidget(
-                    widget.user,
+                    widget.brokerageUser,
                     widget.service,
                     //account!,
                     holding,
@@ -255,40 +257,40 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   )));
     });
 
-    double? marketValue = widget.user.getDisplayValueForexHoldings(
+    double? marketValue = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.marketValue);
-    String? marketValueText = widget.user
+    String? marketValueText = widget.brokerageUser
         .getDisplayText(marketValue!, displayValue: DisplayValue.marketValue);
 
-    double? totalReturn = widget.user.getDisplayValueForexHoldings(
+    double? totalReturn = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn!, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getDisplayValueForexHoldings(
-        sortedFilteredHoldings,
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHoldings(sortedFilteredHoldings,
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent!,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueForexHoldings(
+    double? todayReturn = widget.brokerageUser.getDisplayValueForexHoldings(
         sortedFilteredHoldings,
         displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn!, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getDisplayValueForexHoldings(
-        sortedFilteredHoldings,
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHoldings(sortedFilteredHoldings,
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent!,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn);
+    Icon todayIcon = widget.brokerageUser.getDisplayIcon(todayReturn);
+    Icon totalIcon = widget.brokerageUser.getDisplayIcon(totalReturn);
 
     return SliverToBoxAdapter(
         child: ShrinkWrappingViewport(offset: ViewportOffset.zero(), slivers: [
@@ -322,7 +324,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                 // widget.user.displayValue == DisplayValue.marketValue ? null :
                 () {
               setState(() {
-                widget.user.displayValue = DisplayValue.marketValue;
+                widget.brokerageUser.displayValue = DisplayValue.marketValue;
               });
               // var userStore =
               //     Provider.of<BrokerageUserStore>(context, listen: false);
@@ -406,7 +408,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                       // isScrollControlled: true,
                       //useRootNavigator: true,
                       //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
                               analytics: widget.analytics,
                               observer: widget.observer,
                               showOnlyPrimaryMeasure: true,
@@ -414,8 +416,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                             setState(() {});
                           }));
                 },
-                label: Text(
-                    BrokerageUser.displayValueText(widget.user.displayValue!)),
+                label: Text(BrokerageUser.displayValueText(
+                    widget.brokerageUser.displayValue!)),
                 icon: Icon(Icons.line_axis)),
             TextButton.icon(
                 // FilledButton.tonalIcon(
@@ -427,18 +429,19 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                       // isScrollControlled: true,
                       //useRootNavigator: true,
                       //constraints: const BoxConstraints(maxHeight: 200),
-                      builder: (_) => MoreMenuBottomSheet(widget.user,
+                      builder: (_) => MoreMenuBottomSheet(widget.brokerageUser,
                               analytics: widget.analytics,
                               observer: widget.observer,
                               showOnlySort: true, onSettingsChanged: (value) {
                             setState(() {});
                           }));
                 },
-                label: Text(
-                    BrokerageUser.displayValueText(widget.user.sortOptions!)),
-                icon: Icon(widget.user.sortDirection == SortDirection.desc
-                    ? Icons.south
-                    : Icons.north)
+                label: Text(BrokerageUser.displayValueText(
+                    widget.brokerageUser.sortOptions!)),
+                icon: Icon(
+                    widget.brokerageUser.sortDirection == SortDirection.desc
+                        ? Icons.south
+                        : Icons.north)
                 // Icon(Icons.sort)
                 ),
             // ListTile(
@@ -496,7 +499,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
         context,
         MaterialPageRoute(
             builder: (context) => ForexPositionsPageWidget(
-                  widget.user,
+                  widget.brokerageUser,
                   widget.service,
                   //account!,
                   widget.filteredHoldings,
@@ -507,41 +510,44 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
 
   Widget _buildCryptoRow(
       BuildContext context, List<ForexHolding> holdings, int index) {
-    double value = widget.user.getDisplayValueForexHolding(holdings[index]);
-    String trailingText = widget.user.getDisplayText(value);
-    Icon? icon = (widget.user.displayValue == DisplayValue.lastPrice ||
-            widget.user.displayValue == DisplayValue.marketValue)
+    double value =
+        widget.brokerageUser.getDisplayValueForexHolding(holdings[index]);
+    String trailingText = widget.brokerageUser.getDisplayText(value);
+    Icon? icon = (widget.brokerageUser.displayValue == DisplayValue.lastPrice ||
+            widget.brokerageUser.displayValue == DisplayValue.marketValue)
         ? null
-        : widget.user.getDisplayIcon(value, size: 31);
+        : widget.brokerageUser.getDisplayIcon(value, size: 31);
 
-    double? totalReturn = widget.user.getDisplayValueForexHolding(
+    double? totalReturn = widget.brokerageUser.getDisplayValueForexHolding(
         holdings[index],
         displayValue: DisplayValue.totalReturn);
-    String? totalReturnText = widget.user
+    String? totalReturnText = widget.brokerageUser
         .getDisplayText(totalReturn, displayValue: DisplayValue.totalReturn);
 
-    double? totalReturnPercent = widget.user.getDisplayValueForexHolding(
-        holdings[index],
-        displayValue: DisplayValue.totalReturnPercent);
-    String? totalReturnPercentText = widget.user.getDisplayText(
+    double? totalReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHolding(holdings[index],
+            displayValue: DisplayValue.totalReturnPercent);
+    String? totalReturnPercentText = widget.brokerageUser.getDisplayText(
         totalReturnPercent,
         displayValue: DisplayValue.totalReturnPercent);
 
-    double? todayReturn = widget.user.getDisplayValueForexHolding(
+    double? todayReturn = widget.brokerageUser.getDisplayValueForexHolding(
         holdings[index],
         displayValue: DisplayValue.todayReturn);
-    String? todayReturnText = widget.user
+    String? todayReturnText = widget.brokerageUser
         .getDisplayText(todayReturn, displayValue: DisplayValue.todayReturn);
 
-    double? todayReturnPercent = widget.user.getDisplayValueForexHolding(
-        holdings[index],
-        displayValue: DisplayValue.todayReturnPercent);
-    String? todayReturnPercentText = widget.user.getDisplayText(
+    double? todayReturnPercent = widget.brokerageUser
+        .getDisplayValueForexHolding(holdings[index],
+            displayValue: DisplayValue.todayReturnPercent);
+    String? todayReturnPercentText = widget.brokerageUser.getDisplayText(
         todayReturnPercent,
         displayValue: DisplayValue.todayReturnPercent);
 
-    Icon todayIcon = widget.user.getDisplayIcon(todayReturn, size: 26.0);
-    Icon totalIcon = widget.user.getDisplayIcon(totalReturn, size: 26.0);
+    Icon todayIcon =
+        widget.brokerageUser.getDisplayIcon(todayReturn, size: 26.0);
+    Icon totalIcon =
+        widget.brokerageUser.getDisplayIcon(totalReturn, size: 26.0);
 
     return Card(
         child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
@@ -594,7 +600,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               context,
               MaterialPageRoute(
                   builder: (context) => ForexInstrumentWidget(
-                        widget.user,
+                        widget.brokerageUser,
                         widget.service,
                         //account!,
                         holdings[index],
@@ -623,7 +629,7 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
                   */
         },
       ),
-      if (widget.user.showPositionDetails) ...[
+      if (widget.brokerageUser.showPositionDetails) ...[
         buildDetailScrollView(
             todayIcon,
             todayReturnText,
@@ -678,7 +684,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturn;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturn;
                   });
                 },
                 child: Padding(
@@ -695,7 +702,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.todayReturnPercent;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.todayReturnPercent;
                   });
                 },
                 child: Padding(
@@ -713,7 +721,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturn;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturn;
                   });
                 },
                 child: Padding(
@@ -730,7 +739,8 @@ class _ForexPositionsWidgetState extends State<ForexPositionsWidget> {
               InkWell(
                 onTap: () {
                   setState(() {
-                    widget.user.displayValue = DisplayValue.totalReturnPercent;
+                    widget.brokerageUser.displayValue =
+                        DisplayValue.totalReturnPercent;
                   });
                 },
                 child: Padding(

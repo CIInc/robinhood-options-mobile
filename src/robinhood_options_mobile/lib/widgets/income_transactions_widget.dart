@@ -49,7 +49,7 @@ final ItemPositionsListener itemPositionListener =
 
 class IncomeTransactionsWidget extends StatefulWidget {
   const IncomeTransactionsWidget(
-    this.user,
+    this.brokerageUser,
     this.service,
     //this.account,
     this.dividendStore,
@@ -69,7 +69,7 @@ class IncomeTransactionsWidget extends StatefulWidget {
 
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
-  final BrokerageUser user;
+  final BrokerageUser brokerageUser;
   final IBrokerageService service;
   final DividendStore dividendStore;
   final InterestStore? interestStore;
@@ -732,7 +732,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                 o.instrument ==
                                                 dividend['instrument'])) {
                                       await widget.service.getInstrumentOrders(
-                                          widget.user,
+                                          widget.brokerageUser,
                                           widget.instrumentOrderStore,
                                           [dividend['instrument']]);
                                     }
@@ -951,7 +951,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                                             content: Text(
                                                                 """Yield is calculated from the last distribution rate ${double.parse(incomeTransactions[0]["rate"]) < 0.005 ? formatPreciseCurrency.format(double.parse(incomeTransactions[0]["rate"])) : formatCurrency.format(double.parse(incomeTransactions[0]["rate"]))} divided by the current price ${formatCurrency.format(incomeTransactions[0]["instrumentObj"].quoteObj.lastExtendedHoursTradePrice ?? incomeTransactions[0]["instrumentObj"].quoteObj.lastTradePrice)} and multiplied by the distributions per year $multiplier.
                                                                 Yield on cost uses the same calculation with the average cost ${formatCurrency.format(position!.averageBuyPrice)} rather than current price.
-                                                                Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.user.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
+                                                                Adjusted return is calculated by adding the dividend income ${formatCurrency.format(totalIncome)} to the total profit or loss ${widget.brokerageUser.getDisplayText(gainLoss!, displayValue: DisplayValue.totalReturn)}.
                                                                 Adjusted cost basis is calculated by subtracting the dividend income of the position ${formatCurrency.format(positionIncome)} from its cost ${formatCurrency.format(positionCost)} and dividing by the number of shares ${formatCompactNumber.format(position.quantity)}."""),
                                                             // Yields are annualized from the $dividendInterval distribution period.
                                                             actions: [
@@ -1277,7 +1277,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
                                       Text(
-                                          widget.user.getDisplayText(
+                                          widget.brokerageUser.getDisplayText(
                                               position!.instrumentObj!.quoteObj!
                                                       .lastExtendedHoursTradePrice ??
                                                   position
@@ -1301,7 +1301,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
                                       Text(
-                                          widget.user.getDisplayText(
+                                          widget.brokerageUser.getDisplayText(
                                               position!.averageBuyPrice!,
                                               displayValue:
                                                   DisplayValue.lastPrice),
@@ -1332,7 +1332,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               size: 27),
                                         ],
                                         Text(
-                                            widget.user.getDisplayText(
+                                            widget.brokerageUser.getDisplayText(
                                                 gainLossPercent,
                                                 displayValue: DisplayValue
                                                     .totalReturnPercent),
@@ -1355,7 +1355,8 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     children: <Widget>[
                                       Row(children: [
                                         Text(
-                                            widget.user.getDisplayText(gainLoss,
+                                            widget.brokerageUser.getDisplayText(
+                                                gainLoss,
                                                 displayValue:
                                                     DisplayValue.totalReturn),
                                             // "${gainLossPercent > 0 ? '+' : ''}${widget.user.getDisplayText(gainLossPercent, displayValue: DisplayValue.totalReturnPercent)}",
@@ -1487,7 +1488,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                               size: 27),
                                         ],
                                         Text(
-                                            widget.user.getDisplayText(
+                                            widget.brokerageUser.getDisplayText(
                                                 positionGainLossPercent,
                                                 displayValue: DisplayValue
                                                     .totalReturnPercent),
@@ -1511,7 +1512,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                     children: <Widget>[
                                       Row(children: [
                                         Text(
-                                            widget.user.getDisplayText(
+                                            widget.brokerageUser.getDisplayText(
                                                 positionGainLoss,
                                                 displayValue:
                                                     DisplayValue.totalReturn),
@@ -2026,8 +2027,13 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                                           )))
                               : const Icon(Icons.login),
                           onPressed: () {
-                            showProfile(context, auth, _firestoreService,
-                                widget.analytics, widget.observer, widget.user);
+                            showProfile(
+                                context,
+                                auth,
+                                _firestoreService,
+                                widget.analytics,
+                                widget.observer,
+                                widget.brokerageUser);
                           })
                     ]),
                 // SliverPersistentHeader(
@@ -2036,7 +2042,7 @@ class _IncomeTransactionsWidgetState extends State<IncomeTransactionsWidget> {
                 //   delegate: PersistentHeader('test'),
                 // ),
                 IncomeTransactionsWidget(
-                  widget.user,
+                  widget.brokerageUser,
                   widget.service,
                   widget.dividendStore,
                   widget.instrumentPositionStore,

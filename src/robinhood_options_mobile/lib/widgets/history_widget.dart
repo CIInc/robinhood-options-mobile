@@ -49,8 +49,8 @@ class HistoryPage extends StatefulWidget {
       required this.analytics,
       required this.observer,
       required this.generativeService,
-      this.user,
-      this.userDoc,
+      required this.user,
+      required this.userDoc,
       this.navigatorKey});
 
   final GlobalKey<NavigatorState>? navigatorKey;
