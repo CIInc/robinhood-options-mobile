@@ -62,10 +62,14 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.chat_bubble_outline,
-                          size: 64, color: Theme.of(context).colorScheme.outline),
+                          size: 64,
+                          color: Theme.of(context).colorScheme.outline),
                       const SizedBox(height: 16),
                       Text('No messages yet. Start the conversation!',
-                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -137,7 +141,9 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                 const SizedBox(width: 8),
                 Text(
                   DateFormat.jm().format(message.timestamp),
-                  style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

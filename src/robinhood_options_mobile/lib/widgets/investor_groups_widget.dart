@@ -162,8 +162,11 @@ class InvestorGroupsWidget extends StatelessWidget {
                               fontSize: 18, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       Text('Create a group or discover public groups',
-                          style:
-                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -328,8 +331,11 @@ class InvestorGroupsWidget extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                           'You\'ll see invitations here when group admins invite you',
-                          style:
-                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),
@@ -514,8 +520,11 @@ class InvestorGroupsWidget extends StatelessWidget {
                               fontSize: 18, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       Text('Create the first public group!',
-                          style:
-                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
+                          style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14)),
                     ],
                   ),
                 ),

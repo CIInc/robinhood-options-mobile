@@ -1511,8 +1511,10 @@ class _SearchWidgetState extends State<SearchWidget>
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
-                              borderSide:
-                                  BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+                              borderSide: BorderSide(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12.0),
@@ -1836,7 +1838,9 @@ class _SearchWidgetState extends State<SearchWidget>
                                             : 'No $tradeSignalFilter signals found',
                                         style: TextStyle(
                                           fontSize: 16.0,
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
                                         ),
                                       ),
                                     ),
@@ -2454,7 +2458,10 @@ class _SearchWidgetState extends State<SearchWidget>
                       const SizedBox(height: 6),
                       Text(_formatSignalTimestamp(timestamp),
                           style: TextStyle(
-                              fontSize: 12.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              fontSize: 12.0,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
                           overflow: TextOverflow.ellipsis),
                       // Individual indicator signal tags
                       if (indicatorSignals.isNotEmpty) ...[
@@ -2652,7 +2659,10 @@ class _SearchWidgetState extends State<SearchWidget>
                     ] else ...[
                       Text(
                         'No quote data',
-                        style: TextStyle(fontSize: 12.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                            fontSize: 12.0,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ],
@@ -2958,7 +2968,9 @@ class _SearchWidgetState extends State<SearchWidget>
           //   iconSize: 20,
           // ),
           const SizedBox(width: 8),
-          Text('•', style: TextStyle(color: Theme.of(context).colorScheme.outlineVariant)),
+          Text('•',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.outlineVariant)),
           const SizedBox(width: 8),
           // Indicator chips
           ...indicatorOptions.map((indicator) {
