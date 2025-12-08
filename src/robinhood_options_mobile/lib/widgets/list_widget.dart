@@ -142,7 +142,7 @@ class _ListWidgetState extends State<ListWidget>
                 const Text('Lists', style: TextStyle(fontSize: 20.0)),
                 Text(
                   "${formatCompactNumber.format(totalItems)} items",
-                  style: const TextStyle(fontSize: 16.0, color: Colors.white70),
+                  style: TextStyle(fontSize: 16.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 )
               ]),
           actions: [
@@ -626,7 +626,7 @@ class _ListWidgetState extends State<ListWidget>
                             watchLists[index].instrumentObj!.simpleName ??
                                 watchLists[index].instrumentObj!.name,
                             style: TextStyle(
-                                fontSize: 12.0, color: Colors.grey.shade600),
+                                fontSize: 12.0, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis)
                       ],

@@ -334,7 +334,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.3,
-                  color: Colors.grey.shade900),
+                  color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 6),
             Text(
@@ -342,7 +342,7 @@ class _LoginWidgetState extends State<LoginWidget> {
               style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: Colors.grey.shade600),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
             ConstrainedBox(
@@ -498,14 +498,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                           hintText: 'Enter your Robinhood username or email',
                           prefixIcon: const Icon(Icons.person_outline),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide:
-                                  BorderSide(color: Colors.grey.shade300)),
+                                  BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -525,14 +525,14 @@ class _LoginWidgetState extends State<LoginWidget> {
                           hintText: 'Enter your Robinhood password',
                           prefixIcon: const Icon(Icons.lock_outline),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide:
-                                  BorderSide(color: Colors.grey.shade300)),
+                                  BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -635,11 +635,11 @@ class _LoginWidgetState extends State<LoginWidget> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              color: Theme.of(context).colorScheme.surfaceContainerHigh,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(Icons.computer,
-                                color: Colors.grey.shade700, size: 26),
+                                color: Theme.of(context).colorScheme.onSurface, size: 26),
                           ),
                           const SizedBox(width: 14),
                           const Text('Demo Account',
@@ -652,7 +652,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         'Explore all features with sample data — no real account needed.',
                         style: TextStyle(
                             fontSize: 15,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             height: 1.4),
                       ),
                       const SizedBox(height: 24),
@@ -661,10 +661,10 @@ class _LoginWidgetState extends State<LoginWidget> {
                         height: 58,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade700,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Theme.of(context).colorScheme.secondary,
+                            foregroundColor: Theme.of(context).colorScheme.onSecondary,
                             elevation: 3,
-                            shadowColor: Colors.grey.shade700.withOpacity(0.3),
+                            shadowColor: Theme.of(context).colorScheme.secondary.withOpacity(0.3),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
                             padding: const EdgeInsets.symmetric(
@@ -704,7 +704,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                         'Securely connect any supported brokerage through Plaid.',
                         style: TextStyle(
                             fontSize: 15,
-                            color: Colors.grey.shade700,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             height: 1.4),
                       ),
                       const SizedBox(height: 24),

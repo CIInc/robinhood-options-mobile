@@ -57,15 +57,15 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
               final messages = snapshot.data?.docs ?? [];
 
               if (messages.isEmpty) {
-                return const Center(
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.chat_bubble_outline,
-                          size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
+                          size: 64, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 16),
                       Text('No messages yet. Start the conversation!',
-                          style: TextStyle(color: Colors.grey)),
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ),
                 );
@@ -137,7 +137,7 @@ class _InvestorGroupChatWidgetState extends State<InvestorGroupChatWidget> {
                 const SizedBox(width: 8),
                 Text(
                   DateFormat.jm().format(message.timestamp),
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
