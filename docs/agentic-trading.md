@@ -80,7 +80,7 @@ Future<Map<String, dynamic>> autoTrade({
 #### Maximum Daily Loss
 - **Config Field**: `maxDailyLossPercent` (default: 2.0%)
 - **Purpose**: Stops trading if losses exceed threshold
-- **Implementation**: Tracks cumulative daily losses
+- **Status**: Configuration field available; enforcement requires portfolio P&L tracking integration (planned enhancement)
 
 #### Emergency Stop
 - **Activation**: Via UI button or API call

@@ -93,6 +93,9 @@ class AgenticTradingProvider with ChangeNotifier {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
+  // Constants
+  static const int _tradeDelaySeconds = 2; // Delay between auto-trades to avoid rate limiting
+
   bool _isAgenticTradingEnabled = false;
   Map<String, dynamic> _config = {};
   String _tradeProposalMessage = '';
@@ -107,7 +110,6 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? _lastAutoTradeTime;
   int _dailyTradeCount = 0;
   DateTime? _dailyTradeCountResetDate;
-  double _dailyLossAmount = 0.0;
   bool _emergencyStopActivated = false;
   List<Map<String, dynamic>> _autoTradeHistory = [];
 
@@ -738,7 +740,6 @@ class AgenticTradingProvider with ChangeNotifier {
     if (_dailyTradeCountResetDate == null ||
         _dailyTradeCountResetDate!.isBefore(today)) {
       _dailyTradeCount = 0;
-      _dailyLossAmount = 0.0;
       _dailyTradeCountResetDate = today;
       debugPrint('🔄 Reset daily trade counters for $today');
     }
@@ -788,15 +789,6 @@ class AgenticTradingProvider with ChangeNotifier {
             '⏰ Cooldown active: $remainingMinutes minutes remaining');
         return false;
       }
-    }
-
-    // Check daily loss limit
-    final maxDailyLossPercent = _config['maxDailyLossPercent'] as double? ?? 2.0;
-    // Note: This requires portfolio value tracking, which should be passed as parameter
-    // For now, we'll just check if loss amount is tracked
-    if (_dailyLossAmount > 0) {
-      debugPrint('💸 Daily loss tracked: \$$_dailyLossAmount');
-      // Additional logic would compare this to portfolio percentage
     }
 
     return true;
@@ -925,8 +917,8 @@ class AgenticTradingProvider with ChangeNotifier {
             debugPrint('❌ Trade proposal rejected for $symbol');
           }
 
-          // Small delay between trades to avoid rate limiting
-          await Future.delayed(const Duration(seconds: 2));
+          // Delay between trades to avoid rate limiting
+          await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
           
         } catch (e) {
           debugPrint('❌ Error auto-trading $symbol: $e');
