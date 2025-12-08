@@ -152,6 +152,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   /// Starts the auto-trade timer that periodically checks for and executes auto-trades
   void _startAutoTradeTimer() {
     // Cancel any existing timer
+    if (autoTradeTimer != null && autoTradeTimer!.isActive) {
+      debugPrint('🤖 Auto-trade timer already running, skipping start');
+      return;
+    }
+    
     if (autoTradeTimer != null) {
       autoTradeTimer!.cancel();
     }
@@ -181,17 +186,26 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         }
 
         // Check if we have necessary data
-        if (userStore.items.isEmpty || accountStore.items.isEmpty) {
+        if (userStore.items.isEmpty || 
+            userStore.currentUser == null ||
+            accountStore.items.isEmpty) {
           debugPrint('🤖 Auto-trade check: missing user or account data');
+          return;
+        }
+
+        // Safe access to current user and account
+        final currentUser = userStore.currentUser;
+        final firstAccount = accountStore.items.first;
+        
+        if (currentUser == null) {
+          debugPrint('🤖 Auto-trade check: currentUser is null');
           return;
         }
 
         // Build portfolio state for risk assessment
         final portfolioState = {
           'portfolioValue': portfolioStore.equity,
-          'cashAvailable': accountStore.items.isNotEmpty
-              ? accountStore.items[0].portfolioCash
-              : 0.0,
+          'cashAvailable': firstAccount.portfolioCash,
           'positions': portfolioStore.items.length,
         };
 
@@ -200,8 +214,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         // Execute auto-trade
         final result = await agenticTradingProvider.autoTrade(
           portfolioState: portfolioState,
-          brokerageUser: userStore.currentUser!,
-          account: accountStore.items[0],
+          brokerageUser: currentUser,
+          account: firstAccount,
           brokerageService: service,
           instrumentStore: instrumentStore,
         );
@@ -290,10 +304,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 Provider.of<AgenticTradingProvider>(context, listen: false)
                     .loadConfigFromUser(user?.agenticTradingConfig);
                 
-                // Start auto-trade timer if not already running
-                if (autoTradeTimer == null || !autoTradeTimer!.isActive) {
-                  _startAutoTradeTimer();
-                }
+                // Start auto-trade timer (method handles duplicate start prevention)
+                _startAutoTradeTimer();
               });
 
               widget.analytics.setUserId(id: userInfo!.username);
