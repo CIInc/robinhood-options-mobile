@@ -16,6 +16,7 @@ import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
@@ -96,6 +97,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   StreamSubscription<Uri>? linkStreamSubscription;
   Timer? refreshCredentialsTimer;
+  Timer? autoTradeTimer;
 
   @override
   void initState() {
@@ -136,6 +138,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (refreshCredentialsTimer != null) {
       refreshCredentialsTimer!.cancel();
     }
+    if (autoTradeTimer != null) {
+      autoTradeTimer!.cancel();
+    }
     super.dispose();
   }
 
@@ -143,6 +148,73 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //     currentUserIndex >= 0 && currentUserIndex < brokerageUsers.length
   //         ? brokerageUsers[currentUserIndex]
   //         : brokerageUsers[0];
+
+  /// Starts the auto-trade timer that periodically checks for and executes auto-trades
+  void _startAutoTradeTimer() {
+    // Cancel any existing timer
+    if (autoTradeTimer != null) {
+      autoTradeTimer!.cancel();
+    }
+
+    // Check every 5 minutes if auto-trading should be executed
+    autoTradeTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
+      try {
+        // Get required providers and services
+        final agenticTradingProvider =
+            Provider.of<AgenticTradingProvider>(context, listen: false);
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final accountStore =
+            Provider.of<AccountStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
+        final portfolioStore =
+            Provider.of<PortfolioStore>(context, listen: false);
+
+        // Check if auto-trade is enabled
+        final config = agenticTradingProvider.config;
+        final autoTradeEnabled = config['autoTradeEnabled'] as bool? ?? false;
+        
+        if (!autoTradeEnabled) {
+          debugPrint('🤖 Auto-trade check: disabled in config');
+          return;
+        }
+
+        // Check if we have necessary data
+        if (userStore.items.isEmpty || accountStore.items.isEmpty) {
+          debugPrint('🤖 Auto-trade check: missing user or account data');
+          return;
+        }
+
+        // Build portfolio state for risk assessment
+        final portfolioState = {
+          'portfolioValue': portfolioStore.equity,
+          'cashAvailable': accountStore.items.isNotEmpty
+              ? accountStore.items[0].portfolioCash
+              : 0.0,
+          'positions': portfolioStore.items.length,
+        };
+
+        debugPrint('🤖 Auto-trade check: executing auto-trade...');
+
+        // Execute auto-trade
+        final result = await agenticTradingProvider.autoTrade(
+          portfolioState: portfolioState,
+          brokerageUser: userStore.currentUser!,
+          account: accountStore.items[0],
+          brokerageService: service,
+          instrumentStore: instrumentStore,
+        );
+
+        debugPrint(
+            '🤖 Auto-trade result: ${result['success']}, trades: ${result['tradesExecuted']}, message: ${result['message']}');
+      } catch (e) {
+        debugPrint('❌ Auto-trade timer error: $e');
+      }
+    });
+
+    debugPrint('🤖 Auto-trade timer started (checking every 5 minutes)');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +289,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 Provider.of<AgenticTradingProvider>(context, listen: false)
                     .loadConfigFromUser(user?.agenticTradingConfig);
+                
+                // Start auto-trade timer if not already running
+                if (autoTradeTimer == null || !autoTradeTimer!.isActive) {
+                  _startAutoTradeTimer();
+                }
               });
 
               widget.analytics.setUserId(id: userInfo!.username);
