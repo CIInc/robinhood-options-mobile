@@ -29,6 +29,9 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _maxPortfolioConcentrationController;
   late TextEditingController _rsiPeriodController;
   late TextEditingController _marketIndexSymbolController;
+  late TextEditingController _dailyTradeLimitController;
+  late TextEditingController _autoTradeCooldownController;
+  late TextEditingController _maxDailyLossPercentController;
   late Map<String, bool> _enabledIndicators;
 
   @override
@@ -71,6 +74,12 @@ class _AgenticTradingSettingsWidgetState
         TextEditingController(text: config['rsiPeriod']?.toString() ?? '14');
     _marketIndexSymbolController = TextEditingController(
         text: config['marketIndexSymbol']?.toString() ?? 'SPY');
+    _dailyTradeLimitController = TextEditingController(
+        text: config['dailyTradeLimit']?.toString() ?? '5');
+    _autoTradeCooldownController = TextEditingController(
+        text: config['autoTradeCooldownMinutes']?.toString() ?? '60');
+    _maxDailyLossPercentController = TextEditingController(
+        text: config['maxDailyLossPercent']?.toString() ?? '2.0');
   }
 
   @override
@@ -82,6 +91,9 @@ class _AgenticTradingSettingsWidgetState
     _maxPortfolioConcentrationController.dispose();
     _rsiPeriodController.dispose();
     _marketIndexSymbolController.dispose();
+    _dailyTradeLimitController.dispose();
+    _autoTradeCooldownController.dispose();
+    _maxDailyLossPercentController.dispose();
     super.dispose();
   }
 
@@ -201,6 +213,21 @@ class _AgenticTradingSettingsWidgetState
     );
   }
 
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
+  }
+
   void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
       final agenticTradingProvider =
@@ -216,6 +243,10 @@ class _AgenticTradingSettingsWidgetState
         'rsiPeriod': int.parse(_rsiPeriodController.text),
         'marketIndexSymbol': _marketIndexSymbolController.text,
         'enabledIndicators': _enabledIndicators,
+        'autoTradeEnabled': agenticTradingProvider.config['autoTradeEnabled'] ?? false,
+        'dailyTradeLimit': int.parse(_dailyTradeLimitController.text),
+        'autoTradeCooldownMinutes': int.parse(_autoTradeCooldownController.text),
+        'maxDailyLossPercent': double.parse(_maxDailyLossPercentController.text),
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
       if (mounted) {
@@ -276,6 +307,315 @@ class _AgenticTradingSettingsWidgetState
                 ),
                 const SizedBox(height: 16),
                 if (agenticTradingProvider.isAgenticTradingEnabled) ...[
+                  // Auto-Trade Section
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.smart_toy,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Automated Trading',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SwitchListTile(
+                            title: Text(
+                              'Enable Auto-Trade',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            subtitle: const Text(
+                              'Automatically execute approved trades',
+                              style: TextStyle(fontSize: 13),
+                            ),
+                            value: agenticTradingProvider.config['autoTradeEnabled'] as bool? ?? false,
+                            onChanged: (bool value) {
+                              setState(() {
+                                agenticTradingProvider.config['autoTradeEnabled'] = value;
+                              });
+                            },
+                            activeColor: colorScheme.primary,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          const SizedBox(height: 16),
+                          // Status indicators
+                          if (agenticTradingProvider.emergencyStopActivated)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colorScheme.errorContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: colorScheme.error,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Emergency Stop Activated',
+                                      style: TextStyle(
+                                        color: colorScheme.onErrorContainer,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      agenticTradingProvider.deactivateEmergencyStop();
+                                    },
+                                    child: const Text('Resume'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else if (agenticTradingProvider.isAutoTrading)
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Auto-trading in progress...',
+                                    style: TextStyle(
+                                      color: colorScheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Daily Trades:',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: colorScheme.onSurface.withOpacity(0.7),
+                                        ),
+                                      ),
+                                      Text(
+                                        '${agenticTradingProvider.dailyTradeCount}/${int.tryParse(_dailyTradeLimitController.text) ?? 5}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (agenticTradingProvider.lastAutoTradeTime != null) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Last Trade:',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: colorScheme.onSurface.withOpacity(0.7),
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatTime(agenticTradingProvider.lastAutoTradeTime!),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: agenticTradingProvider.emergencyStopActivated
+                                      ? null
+                                      : () {
+                                          agenticTradingProvider.activateEmergencyStop();
+                                        },
+                                  icon: const Icon(Icons.stop, size: 18),
+                                  label: const Text('Emergency Stop'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: colorScheme.error,
+                                    side: BorderSide(color: colorScheme.error),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Auto-Trade Configuration
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.tune,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Auto-Trade Configuration',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _dailyTradeLimitController,
+                            decoration: InputDecoration(
+                              labelText: 'Daily Trade Limit',
+                              helperText: 'Maximum trades per day',
+                              prefixIcon: const Icon(Icons.calendar_today),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = int.tryParse(value);
+                              if (parsed == null || parsed < 1) {
+                                return 'Must be at least 1';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _autoTradeCooldownController,
+                            decoration: InputDecoration(
+                              labelText: 'Cooldown Period (minutes)',
+                              helperText: 'Minimum time between trades',
+                              prefixIcon: const Icon(Icons.timer),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = int.tryParse(value);
+                              if (parsed == null || parsed < 1) {
+                                return 'Must be at least 1';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _maxDailyLossPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Max Daily Loss %',
+                              helperText: 'Stop trading if loss exceeds this %',
+                              prefixIcon: const Icon(Icons.trending_down),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   // Risk Management Section
                   Row(
                     children: [

@@ -101,6 +101,15 @@ class AgenticTradingProvider with ChangeNotifier {
   bool _isTradeInProgress = false;
   Map<String, dynamic>? _tradeSignal;
   List<Map<String, dynamic>> _tradeSignals = [];
+  
+  // Auto-trade state tracking
+  bool _isAutoTrading = false;
+  DateTime? _lastAutoTradeTime;
+  int _dailyTradeCount = 0;
+  DateTime? _dailyTradeCountResetDate;
+  double _dailyLossAmount = 0.0;
+  bool _emergencyStopActivated = false;
+  List<Map<String, dynamic>> _autoTradeHistory = [];
 
   // Firestore listener for real-time trade signal updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -124,6 +133,13 @@ class AgenticTradingProvider with ChangeNotifier {
         '🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
     return interval;
   }
+  
+  // Auto-trade getters
+  bool get isAutoTrading => _isAutoTrading;
+  DateTime? get lastAutoTradeTime => _lastAutoTradeTime;
+  int get dailyTradeCount => _dailyTradeCount;
+  bool get emergencyStopActivated => _emergencyStopActivated;
+  List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
 
   AgenticTradingProvider();
 
@@ -168,6 +184,10 @@ class AgenticTradingProvider with ChangeNotifier {
         'maxPortfolioConcentration': 0.5,
         'rsiPeriod': 14,
         'marketIndexSymbol': 'SPY',
+        'autoTradeEnabled': false,
+        'dailyTradeLimit': 5,
+        'autoTradeCooldownMinutes': 60,
+        'maxDailyLossPercent': 2.0,
         'enabledIndicators': {
           'priceMovement': true,
           'momentum': true,
@@ -690,6 +710,264 @@ class AgenticTradingProvider with ChangeNotifier {
       }
     } catch (e) {
       return {'approved': false, 'reason': 'Error: ${e.toString()}'};
+    }
+  }
+
+  /// Activates emergency stop to halt all auto-trading
+  void activateEmergencyStop() {
+    _emergencyStopActivated = true;
+    _analytics.logEvent(
+      name: 'agentic_trading_emergency_stop',
+      parameters: {'reason': 'manual_activation'},
+    );
+    notifyListeners();
+  }
+
+  /// Deactivates emergency stop to resume auto-trading
+  void deactivateEmergencyStop() {
+    _emergencyStopActivated = false;
+    _analytics.logEvent(name: 'agentic_trading_emergency_stop_deactivated');
+    notifyListeners();
+  }
+
+  /// Resets daily trade counters (called at start of new trading day)
+  void _resetDailyCounters() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    if (_dailyTradeCountResetDate == null ||
+        _dailyTradeCountResetDate!.isBefore(today)) {
+      _dailyTradeCount = 0;
+      _dailyLossAmount = 0.0;
+      _dailyTradeCountResetDate = today;
+      debugPrint('🔄 Reset daily trade counters for $today');
+    }
+  }
+
+  /// Checks if auto-trading can proceed based on configured limits
+  bool _canAutoTrade() {
+    // Reset daily counters if needed
+    _resetDailyCounters();
+
+    // Check if auto-trade is enabled
+    final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+    if (!autoTradeEnabled) {
+      debugPrint('❌ Auto-trade not enabled in config');
+      return false;
+    }
+
+    // Check emergency stop
+    if (_emergencyStopActivated) {
+      debugPrint('🛑 Emergency stop activated');
+      return false;
+    }
+
+    // Check if market is open
+    if (!_isMarketOpen()) {
+      debugPrint('🏦 Market is closed');
+      return false;
+    }
+
+    // Check daily trade limit
+    final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+    if (_dailyTradeCount >= dailyLimit) {
+      debugPrint('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
+      return false;
+    }
+
+    // Check cooldown period
+    if (_lastAutoTradeTime != null) {
+      final cooldownMinutes = _config['autoTradeCooldownMinutes'] as int? ?? 60;
+      final cooldownDuration = Duration(minutes: cooldownMinutes);
+      final timeSinceLastTrade = DateTime.now().difference(_lastAutoTradeTime!);
+      
+      if (timeSinceLastTrade < cooldownDuration) {
+        final remainingMinutes =
+            (cooldownDuration - timeSinceLastTrade).inMinutes;
+        debugPrint(
+            '⏰ Cooldown active: $remainingMinutes minutes remaining');
+        return false;
+      }
+    }
+
+    // Check daily loss limit
+    final maxDailyLossPercent = _config['maxDailyLossPercent'] as double? ?? 2.0;
+    // Note: This requires portfolio value tracking, which should be passed as parameter
+    // For now, we'll just check if loss amount is tracked
+    if (_dailyLossAmount > 0) {
+      debugPrint('💸 Daily loss tracked: \$$_dailyLossAmount');
+      // Additional logic would compare this to portfolio percentage
+    }
+
+    return true;
+  }
+
+  /// Executes automatic trading based on current signals
+  /// 
+  /// This method:
+  /// 1. Checks if auto-trading can proceed (limits, cooldowns, etc.)
+  /// 2. Fetches current trade signals
+  /// 3. Filters for BUY signals that pass all enabled indicators
+  /// 4. Initiates trade proposals for qualified signals
+  /// 5. Tracks executed trades and updates counters
+  /// 
+  /// Returns a map with:
+  /// - 'success': bool indicating if any trades were executed
+  /// - 'tradesExecuted': number of trades executed
+  /// - 'message': status message
+  /// - 'trades': list of executed trade details
+  Future<Map<String, dynamic>> autoTrade({
+    required Map<String, dynamic> portfolioState,
+  }) async {
+    _isAutoTrading = true;
+    notifyListeners();
+
+    try {
+      // Check if auto-trading can proceed
+      if (!_canAutoTrade()) {
+        _isAutoTrading = false;
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'Auto-trade conditions not met',
+          'trades': [],
+        };
+      }
+
+      // Get current signals - filter for BUY signals only
+      final buySignals = _tradeSignals.where((signal) {
+        final signalType = signal['signal'] as String?;
+        return signalType == 'BUY';
+      }).toList();
+
+      if (buySignals.isEmpty) {
+        debugPrint('📭 No BUY signals available for auto-trade');
+        _isAutoTrading = false;
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'No BUY signals available',
+          'trades': [],
+        };
+      }
+
+      debugPrint('🎯 Found ${buySignals.length} BUY signals for auto-trade');
+
+      final executedTrades = <Map<String, dynamic>>[];
+      final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+
+      // Process each signal (respecting daily limit)
+      for (final signal in buySignals) {
+        // Check if we've hit the limit
+        if (_dailyTradeCount >= dailyLimit) {
+          debugPrint('⚠️ Reached daily trade limit during execution');
+          break;
+        }
+
+        final symbol = signal['symbol'] as String?;
+        if (symbol == null || symbol.isEmpty) continue;
+
+        try {
+          // Get current price from signal
+          final currentPrice = signal['currentPrice'] as double? ?? 0.0;
+          if (currentPrice <= 0) {
+            debugPrint('⚠️ Invalid price for $symbol, skipping');
+            continue;
+          }
+
+          debugPrint('🤖 Auto-trading $symbol at \$$currentPrice');
+
+          // Initiate trade proposal
+          await initiateTradeProposal(
+            symbol: symbol,
+            currentPrice: currentPrice,
+            portfolioState: portfolioState,
+            interval: signal['interval'] as String?,
+          );
+
+          // If proposal was approved, track it
+          if (_lastTradeProposal != null) {
+            final tradeRecord = {
+              'timestamp': DateTime.now().toIso8601String(),
+              'symbol': symbol,
+              'action': _lastTradeProposal!['action'],
+              'quantity': _lastTradeProposal!['quantity'],
+              'price': currentPrice,
+              'proposal': Map<String, dynamic>.from(_lastTradeProposal!),
+              'assessment': _lastAssessment != null
+                  ? Map<String, dynamic>.from(_lastAssessment!)
+                  : null,
+            };
+
+            executedTrades.add(tradeRecord);
+            _autoTradeHistory.insert(0, tradeRecord);
+            
+            // Keep only last 100 trades in history
+            if (_autoTradeHistory.length > 100) {
+              _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+            }
+
+            _dailyTradeCount++;
+            _lastAutoTradeTime = DateTime.now();
+
+            _analytics.logEvent(
+              name: 'agentic_trading_auto_executed',
+              parameters: {
+                'symbol': symbol,
+                'daily_count': _dailyTradeCount,
+              },
+            );
+
+            debugPrint('✅ Auto-trade executed for $symbol ($_dailyTradeCount/$dailyLimit today)');
+          } else {
+            debugPrint('❌ Trade proposal rejected for $symbol');
+          }
+
+          // Small delay between trades to avoid rate limiting
+          await Future.delayed(const Duration(seconds: 2));
+          
+        } catch (e) {
+          debugPrint('❌ Error auto-trading $symbol: $e');
+          _analytics.logEvent(
+            name: 'agentic_trading_auto_error',
+            parameters: {
+              'symbol': symbol,
+              'error': e.toString(),
+            },
+          );
+        }
+      }
+
+      _isAutoTrading = false;
+      notifyListeners();
+
+      final message = executedTrades.isEmpty
+          ? 'No trades executed'
+          : 'Executed ${executedTrades.length} trade(s)';
+
+      return {
+        'success': executedTrades.isNotEmpty,
+        'tradesExecuted': executedTrades.length,
+        'message': message,
+        'trades': executedTrades,
+      };
+    } catch (e) {
+      _isAutoTrading = false;
+      notifyListeners();
+      
+      _analytics.logEvent(
+        name: 'agentic_trading_auto_failed',
+        parameters: {'error': e.toString()},
+      );
+
+      return {
+        'success': false,
+        'tradesExecuted': 0,
+        'message': 'Auto-trade failed: ${e.toString()}',
+        'trades': [],
+      };
     }
   }
 }

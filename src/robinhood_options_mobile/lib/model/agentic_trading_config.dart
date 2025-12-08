@@ -11,6 +11,10 @@ class AgenticTradingConfig {
   int rsiPeriod;
   String marketIndexSymbol;
   Map<String, bool> enabledIndicators;
+  bool autoTradeEnabled;
+  int dailyTradeLimit;
+  int autoTradeCooldownMinutes;
+  double maxDailyLossPercent;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -22,6 +26,10 @@ class AgenticTradingConfig {
     this.rsiPeriod = 14,
     this.marketIndexSymbol = 'SPY',
     Map<String, bool>? enabledIndicators,
+    this.autoTradeEnabled = false,
+    this.dailyTradeLimit = 5,
+    this.autoTradeCooldownMinutes = 60,
+    this.maxDailyLossPercent = 2.0,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -45,6 +53,11 @@ class AgenticTradingConfig {
             (json['maxPortfolioConcentration'] as num?)?.toDouble() ?? 0.5,
         rsiPeriod = json['rsiPeriod'] as int? ?? 14,
         marketIndexSymbol = json['marketIndexSymbol'] as String? ?? 'SPY',
+        autoTradeEnabled = json['autoTradeEnabled'] as bool? ?? false,
+        dailyTradeLimit = json['dailyTradeLimit'] as int? ?? 5,
+        autoTradeCooldownMinutes = json['autoTradeCooldownMinutes'] as int? ?? 60,
+        maxDailyLossPercent =
+            (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 2.0,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -70,6 +83,10 @@ class AgenticTradingConfig {
       'rsiPeriod': rsiPeriod,
       'marketIndexSymbol': marketIndexSymbol,
       'enabledIndicators': enabledIndicators,
+      'autoTradeEnabled': autoTradeEnabled,
+      'dailyTradeLimit': dailyTradeLimit,
+      'autoTradeCooldownMinutes': autoTradeCooldownMinutes,
+      'maxDailyLossPercent': maxDailyLossPercent,
     };
   }
 
@@ -83,6 +100,10 @@ class AgenticTradingConfig {
     int? rsiPeriod,
     String? marketIndexSymbol,
     Map<String, bool>? enabledIndicators,
+    bool? autoTradeEnabled,
+    int? dailyTradeLimit,
+    int? autoTradeCooldownMinutes,
+    double? maxDailyLossPercent,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -96,6 +117,11 @@ class AgenticTradingConfig {
       marketIndexSymbol: marketIndexSymbol ?? this.marketIndexSymbol,
       enabledIndicators:
           enabledIndicators ?? Map<String, bool>.from(this.enabledIndicators),
+      autoTradeEnabled: autoTradeEnabled ?? this.autoTradeEnabled,
+      dailyTradeLimit: dailyTradeLimit ?? this.dailyTradeLimit,
+      autoTradeCooldownMinutes:
+          autoTradeCooldownMinutes ?? this.autoTradeCooldownMinutes,
+      maxDailyLossPercent: maxDailyLossPercent ?? this.maxDailyLossPercent,
     );
   }
 }
