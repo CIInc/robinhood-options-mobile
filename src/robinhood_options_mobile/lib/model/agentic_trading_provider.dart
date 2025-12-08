@@ -820,6 +820,20 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Validate required parameters
+      if (brokerageUser == null || account == null || 
+          brokerageService == null || instrumentStore == null) {
+        debugPrint('❌ Missing required parameters for auto-trade');
+        _isAutoTrading = false;
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'Missing required parameters (brokerageUser, account, service, or store)',
+          'trades': [],
+        };
+      }
+
       // Check if auto-trading can proceed
       if (!_canAutoTrade()) {
         _isAutoTrading = false;
@@ -914,6 +928,15 @@ class AgenticTradingProvider with ChangeNotifier {
 
             // Execute the order through brokerage service
             try {
+              // Validate action is BUY or SELL
+              final normalizedAction = action.toUpperCase();
+              if (normalizedAction != 'BUY' && normalizedAction != 'SELL') {
+                debugPrint('⚠️ Invalid action "$action" for $symbol, skipping');
+                continue;
+              }
+              
+              final side = normalizedAction == 'BUY' ? 'buy' : 'sell';
+              
               debugPrint('📤 Placing order: $action $quantity shares of $symbol at \$$currentPrice');
               
               final orderResponse = await brokerageService.placeInstrumentOrder(
@@ -921,13 +944,15 @@ class AgenticTradingProvider with ChangeNotifier {
                 account,
                 instrument,
                 symbol,
-                action.toLowerCase(), // 'buy' or 'sell'
+                side,
                 currentPrice,
                 quantity,
               );
 
-              // Check if order was successful
-              if (orderResponse.statusCode == 200 || orderResponse.statusCode == 201) {
+              // Check if order was successful (HTTP 200 OK or 201 Created)
+              const httpOk = 200;
+              const httpCreated = 201;
+              if (orderResponse.statusCode == httpOk || orderResponse.statusCode == httpCreated) {
                 final tradeRecord = {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
