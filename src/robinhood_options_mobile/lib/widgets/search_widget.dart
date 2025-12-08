@@ -2947,7 +2947,7 @@ class _SearchWidgetState extends State<SearchWidget>
             side: BorderSide(
               color: tradeSignalFilter == 'HOLD'
                   ? Theme.of(context).colorScheme.outlineVariant
-                  : Theme.of(context).colorScheme.outlineVariant,
+                  : Colors.grey.shade300,
               width: tradeSignalFilter == 'HOLD' ? 1.5 : 1,
             ),
             checkmarkColor: Theme.of(context).colorScheme.onSurface,
