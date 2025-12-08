@@ -163,7 +163,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text('Create a group or discover public groups',
                           style:
-                              TextStyle(color: Colors.grey[600], fontSize: 14)),
+                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
                     ],
                   ),
                 ),
@@ -329,7 +329,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                       Text(
                           'You\'ll see invitations here when group admins invite you',
                           style:
-                              TextStyle(color: Colors.grey[600], fontSize: 14)),
+                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
                     ],
                   ),
                 ),
@@ -515,7 +515,7 @@ class InvestorGroupsWidget extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text('Create the first public group!',
                           style:
-                              TextStyle(color: Colors.grey[600], fontSize: 14)),
+                              TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
                     ],
                   ),
                 ),
