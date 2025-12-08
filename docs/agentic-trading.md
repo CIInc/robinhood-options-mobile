@@ -4,6 +4,8 @@
 
 The Agentic Trading system provides autonomous, AI-powered trading capabilities for RealizeAlpha. It combines multi-indicator technical analysis with risk management controls to execute trades automatically based on qualified trading signals.
 
+**Auto-Execution:** The system includes a built-in timer that automatically checks for trading opportunities every 5 minutes when auto-trading is enabled. No manual intervention is required - simply enable auto-trading in settings and the system will monitor and execute trades autonomously.
+
 ## Architecture
 
 ### Components
@@ -29,6 +31,27 @@ The Agentic Trading system provides autonomous, AI-powered trading capabilities 
    - Trade signal generation cron jobs
 
 ## Features
+
+### Automatic Execution
+
+The system automatically executes trades when auto-trading is enabled:
+
+**Timer-Based Execution:**
+- Periodic checks every 5 minutes
+- Automatically starts when app loads with user data
+- Runs continuously while app is active
+- Checks `autoTradeEnabled` configuration flag
+- Only executes during market hours with valid signals
+
+**Execution Cycle:**
+1. Timer triggers every 5 minutes
+2. Checks if auto-trading is enabled in config
+3. Validates required data (user, account, portfolio)
+4. Builds current portfolio state
+5. Calls `autoTrade()` with all parameters
+6. Logs execution results
+
+**Location:** `navigation_widget.dart` - Main navigation widget with access to all services
 
 ### Auto-Trade Logic
 
