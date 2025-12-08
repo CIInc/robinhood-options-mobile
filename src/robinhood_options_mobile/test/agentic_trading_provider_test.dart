@@ -154,8 +154,15 @@ void main() {
       // Ensure auto-trade is not enabled
       provider.loadConfigFromUser(null);
       
+      // Note: Full autoTrade method requires brokerageUser, account, 
+      // brokerageService, and instrumentStore which are difficult to mock
+      // This test verifies the basic pre-flight check logic
       final result = await provider.autoTrade(
         portfolioState: {},
+        brokerageUser: null, // Will fail pre-flight checks anyway
+        account: null,
+        brokerageService: null,
+        instrumentStore: null,
       );
 
       expect(result['success'], equals(false));
@@ -173,6 +180,10 @@ void main() {
       
       final result = await provider.autoTrade(
         portfolioState: {},
+        brokerageUser: null,
+        account: null,
+        brokerageService: null,
+        instrumentStore: null,
       );
 
       expect(result['success'], equals(false));
@@ -188,6 +199,10 @@ void main() {
       // No signals in the list (empty by default)
       final result = await provider.autoTrade(
         portfolioState: {},
+        brokerageUser: null,
+        account: null,
+        brokerageService: null,
+        instrumentStore: null,
       );
 
       expect(result['success'], equals(false));
@@ -204,7 +219,13 @@ void main() {
       provider.activateEmergencyStop();
 
       // Attempt to auto-trade
-      final result = await provider.autoTrade(portfolioState: {});
+      final result = await provider.autoTrade(
+        portfolioState: {},
+        brokerageUser: null,
+        account: null,
+        brokerageService: null,
+        instrumentStore: null,
+      );
 
       // Verify trade was blocked
       expect(result['success'], equals(false));

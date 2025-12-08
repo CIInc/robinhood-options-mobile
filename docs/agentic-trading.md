@@ -374,14 +374,21 @@ The system logs the following events:
 
 ### AgenticTradingProvider Methods
 
-#### `autoTrade({required Map<String, dynamic> portfolioState})`
-Executes automatic trading based on current signals.
+#### `autoTrade({required Map<String, dynamic> portfolioState, required brokerageUser, required account, required brokerageService, required instrumentStore})`
+Executes automatic trading based on current signals and places orders through the brokerage.
+
+**Parameters:**
+- `portfolioState`: Current portfolio state for risk assessment
+- `brokerageUser`: BrokerageUser instance for authentication
+- `account`: Account to trade in
+- `brokerageService`: IBrokerageService instance for order execution
+- `instrumentStore`: InstrumentStore for fetching instrument data
 
 **Returns:** `Map<String, dynamic>`
 - `success`: bool - Whether any trades were executed
 - `tradesExecuted`: int - Number of trades completed
 - `message`: String - Status message
-- `trades`: List - Details of executed trades
+- `trades`: List - Details of executed trades including order responses
 
 #### `activateEmergencyStop()`
 Immediately halts all auto-trading.

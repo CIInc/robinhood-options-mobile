@@ -801,7 +801,8 @@ class AgenticTradingProvider with ChangeNotifier {
   /// 2. Fetches current trade signals
   /// 3. Filters for BUY signals that pass all enabled indicators
   /// 4. Initiates trade proposals for qualified signals
-  /// 5. Tracks executed trades and updates counters
+  /// 5. Executes approved orders through brokerage service
+  /// 6. Tracks executed trades and updates counters
   /// 
   /// Returns a map with:
   /// - 'success': bool indicating if any trades were executed
@@ -810,6 +811,10 @@ class AgenticTradingProvider with ChangeNotifier {
   /// - 'trades': list of executed trade details
   Future<Map<String, dynamic>> autoTrade({
     required Map<String, dynamic> portfolioState,
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    required dynamic instrumentStore,
   }) async {
     _isAutoTrading = true;
     notifyListeners();
@@ -879,40 +884,106 @@ class AgenticTradingProvider with ChangeNotifier {
             interval: signal['interval'] as String?,
           );
 
-          // If proposal was approved, track it
+          // If proposal was approved, execute the order
           if (_lastTradeProposal != null) {
-            final tradeRecord = {
-              'timestamp': DateTime.now().toIso8601String(),
-              'symbol': symbol,
-              'action': _lastTradeProposal!['action'],
-              'quantity': _lastTradeProposal!['quantity'],
-              'price': currentPrice,
-              'proposal': Map<String, dynamic>.from(_lastTradeProposal!),
-              'assessment': _lastAssessment != null
-                  ? Map<String, dynamic>.from(_lastAssessment!)
-                  : null,
-            };
-
-            executedTrades.add(tradeRecord);
-            _autoTradeHistory.insert(0, tradeRecord);
+            final action = _lastTradeProposal!['action'] as String?;
+            final quantity = _lastTradeProposal!['quantity'] as int?;
             
-            // Keep only last 100 trades in history
-            if (_autoTradeHistory.length > 100) {
-              _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+            if (action == null || quantity == null || quantity <= 0) {
+              debugPrint('⚠️ Invalid proposal for $symbol, skipping execution');
+              continue;
             }
 
-            _dailyTradeCount++;
-            _lastAutoTradeTime = DateTime.now();
+            // Get instrument from store
+            dynamic instrument;
+            try {
+              // Get instrument by symbol
+              instrument = await brokerageService.getInstrumentBySymbol(
+                brokerageUser,
+                instrumentStore,
+                symbol,
+              );
+              if (instrument == null) {
+                debugPrint('⚠️ Could not find instrument for $symbol, skipping');
+                continue;
+              }
+            } catch (e) {
+              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+              continue;
+            }
 
-            _analytics.logEvent(
-              name: 'agentic_trading_auto_executed',
-              parameters: {
-                'symbol': symbol,
-                'daily_count': _dailyTradeCount,
-              },
-            );
+            // Execute the order through brokerage service
+            try {
+              debugPrint('📤 Placing order: $action $quantity shares of $symbol at \$$currentPrice');
+              
+              final orderResponse = await brokerageService.placeInstrumentOrder(
+                brokerageUser,
+                account,
+                instrument,
+                symbol,
+                action.toLowerCase(), // 'buy' or 'sell'
+                currentPrice,
+                quantity,
+              );
 
-            debugPrint('✅ Auto-trade executed for $symbol ($_dailyTradeCount/$dailyLimit today)');
+              // Check if order was successful
+              if (orderResponse.statusCode == 200 || orderResponse.statusCode == 201) {
+                final tradeRecord = {
+                  'timestamp': DateTime.now().toIso8601String(),
+                  'symbol': symbol,
+                  'action': action,
+                  'quantity': quantity,
+                  'price': currentPrice,
+                  'proposal': Map<String, dynamic>.from(_lastTradeProposal!),
+                  'assessment': _lastAssessment != null
+                      ? Map<String, dynamic>.from(_lastAssessment!)
+                      : null,
+                  'orderResponse': orderResponse.body,
+                };
+
+                executedTrades.add(tradeRecord);
+                _autoTradeHistory.insert(0, tradeRecord);
+                
+                // Keep only last 100 trades in history
+                if (_autoTradeHistory.length > 100) {
+                  _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+                }
+
+                _dailyTradeCount++;
+                _lastAutoTradeTime = DateTime.now();
+
+                _analytics.logEvent(
+                  name: 'agentic_trading_auto_executed',
+                  parameters: {
+                    'symbol': symbol,
+                    'daily_count': _dailyTradeCount,
+                    'action': action,
+                    'quantity': quantity,
+                  },
+                );
+
+                debugPrint('✅ Order executed for $symbol: $action $quantity shares at \$$currentPrice ($_dailyTradeCount/$dailyLimit today)');
+              } else {
+                debugPrint('❌ Order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
+                _analytics.logEvent(
+                  name: 'agentic_trading_order_failed',
+                  parameters: {
+                    'symbol': symbol,
+                    'status_code': orderResponse.statusCode,
+                    'error': orderResponse.body,
+                  },
+                );
+              }
+            } catch (e) {
+              debugPrint('❌ Error placing order for $symbol: $e');
+              _analytics.logEvent(
+                name: 'agentic_trading_order_error',
+                parameters: {
+                  'symbol': symbol,
+                  'error': e.toString(),
+                },
+              );
+            }
           } else {
             debugPrint('❌ Trade proposal rejected for $symbol');
           }
