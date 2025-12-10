@@ -18,6 +18,8 @@ void main() {
         dailyTradeLimit: 10,
         autoTradeCooldownMinutes: 30,
         maxDailyLossPercent: 1.5,
+        takeProfitPercent: 15.0,
+        stopLossPercent: 7.5,
         enabledIndicators: {
           'priceMovement': true,
           'momentum': false,
@@ -47,6 +49,8 @@ void main() {
       expect(json['dailyTradeLimit'], equals(10));
       expect(json['autoTradeCooldownMinutes'], equals(30));
       expect(json['maxDailyLossPercent'], equals(1.5));
+      expect(json['takeProfitPercent'], equals(15.0));
+      expect(json['stopLossPercent'], equals(7.5));
       expect(json['enabledIndicators']['priceMovement'], equals(true));
       expect(json['enabledIndicators']['momentum'], equals(false));
 
@@ -66,6 +70,8 @@ void main() {
       expect(deserializedConfig.dailyTradeLimit, equals(10));
       expect(deserializedConfig.autoTradeCooldownMinutes, equals(30));
       expect(deserializedConfig.maxDailyLossPercent, equals(1.5));
+      expect(deserializedConfig.takeProfitPercent, equals(15.0));
+      expect(deserializedConfig.stopLossPercent, equals(7.5));
       expect(deserializedConfig.enabledIndicators['priceMovement'], equals(true));
       expect(deserializedConfig.enabledIndicators['momentum'], equals(false));
     });
@@ -86,6 +92,8 @@ void main() {
       expect(config.dailyTradeLimit, equals(5));
       expect(config.autoTradeCooldownMinutes, equals(60));
       expect(config.maxDailyLossPercent, equals(2.0));
+      expect(config.takeProfitPercent, equals(10.0));
+      expect(config.stopLossPercent, equals(5.0));
       
       // Verify all indicators are enabled by default
       expect(config.enabledIndicators['priceMovement'], equals(true));
