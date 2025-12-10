@@ -156,7 +156,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       debugPrint('🤖 Auto-trade timer already running, skipping start');
       return;
     }
-    
+
     if (autoTradeTimer != null) {
       autoTradeTimer!.cancel();
     }
@@ -169,8 +169,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             Provider.of<AgenticTradingProvider>(context, listen: false);
         final userStore =
             Provider.of<BrokerageUserStore>(context, listen: false);
-        final accountStore =
-            Provider.of<AccountStore>(context, listen: false);
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
         final instrumentStore =
             Provider.of<InstrumentStore>(context, listen: false);
         final portfolioStore =
@@ -179,14 +178,14 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         // Check if auto-trade is enabled
         final config = agenticTradingProvider.config;
         final autoTradeEnabled = config['autoTradeEnabled'] as bool? ?? false;
-        
+
         if (!autoTradeEnabled) {
           debugPrint('🤖 Auto-trade check: disabled in config');
           return;
         }
 
         // Check if we have necessary data
-        if (userStore.items.isEmpty || 
+        if (userStore.items.isEmpty ||
             userStore.currentUser == null ||
             accountStore.items.isEmpty) {
           debugPrint('🤖 Auto-trade check: missing user or account data');
@@ -196,7 +195,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         // Safe access to current user and account
         final currentUser = userStore.currentUser;
         final firstAccount = accountStore.items.first;
-        
+
         if (currentUser == null) {
           debugPrint('🤖 Auto-trade check: currentUser is null');
           return;
@@ -204,7 +203,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
         // Build portfolio state for risk assessment
         final portfolioState = {
-          'portfolioValue': portfolioStore.equity,
+          'portfolioValue': portfolioStore.items.first.equity,
           'cashAvailable': firstAccount.portfolioCash,
           'positions': portfolioStore.items.length,
         };
@@ -227,11 +226,13 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         // This ensures TP/SL monitoring only runs when the system is actively managing trades
         final instrumentPositionStore =
             Provider.of<InstrumentPositionStore>(context, listen: false);
-        
+
         if (instrumentPositionStore.items.isNotEmpty) {
-          debugPrint('📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
-          
-          final tpSlResult = await agenticTradingProvider.monitorTakeProfitStopLoss(
+          debugPrint(
+              '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+
+          final tpSlResult =
+              await agenticTradingProvider.monitorTakeProfitStopLoss(
             positions: instrumentPositionStore.items,
             brokerageUser: currentUser,
             account: firstAccount,
@@ -325,7 +326,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 Provider.of<AgenticTradingProvider>(context, listen: false)
                     .loadConfigFromUser(user?.agenticTradingConfig);
-                
+
                 // Start auto-trade timer (method handles duplicate start prevention)
                 _startAutoTradeTimer();
               });
