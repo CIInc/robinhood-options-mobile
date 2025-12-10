@@ -112,6 +112,8 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? _dailyTradeCountResetDate;
   bool _emergencyStopActivated = false;
   List<Map<String, dynamic>> _autoTradeHistory = [];
+  // Track symbols that were bought by automated trading for TP/SL monitoring
+  Set<String> _automatedPositions = {};
 
   // Firestore listener for real-time trade signal updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -977,6 +979,12 @@ class AgenticTradingProvider with ChangeNotifier {
                 _dailyTradeCount++;
                 _lastAutoTradeTime = DateTime.now();
 
+                // Track this position for TP/SL monitoring (only if it's a BUY)
+                if (normalizedAction == 'BUY') {
+                  _automatedPositions.add(symbol);
+                  debugPrint('📝 Added $symbol to automated positions tracking for TP/SL');
+                }
+
                 _analytics.logEvent(
                   name: 'agentic_trading_auto_executed',
                   parameters: {
@@ -1096,7 +1104,10 @@ class AgenticTradingProvider with ChangeNotifier {
       final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
       final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
 
-      debugPrint('📊 Monitoring ${positions.length} positions for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      debugPrint('📊 Monitoring ${positions.length} total positions, ${_automatedPositions.length} automated positions for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      if (_automatedPositions.isNotEmpty) {
+        debugPrint('📝 Automated positions: ${_automatedPositions.join(", ")}');
+      }
 
       final executedExits = <Map<String, dynamic>>[];
 
@@ -1105,12 +1116,18 @@ class AgenticTradingProvider with ChangeNotifier {
         try {
           // Extract position data
           final symbol = position.symbol as String?;
+          
+          // Only monitor positions that were created by automated trading
+          if (symbol == null || !_automatedPositions.contains(symbol)) {
+            continue;
+          }
+          
           final quantity = position.quantity as double?;
           final averagePrice = position.averageBuyPrice as double?;
           final currentPrice = position.quote?.lastTradePrice as double? ??
               position.quote?.lastExtendedHoursTradePrice as double?;
 
-          if (symbol == null || quantity == null || averagePrice == null || 
+          if (quantity == null || averagePrice == null || 
               currentPrice == null || quantity <= 0 || averagePrice <= 0) {
             if (currentPrice == null) {
               debugPrint('⚠️ No current price available for $symbol, skipping TP/SL check');
@@ -1194,6 +1211,10 @@ class AgenticTradingProvider with ChangeNotifier {
                 if (_autoTradeHistory.length > 100) {
                   _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
                 }
+
+                // Remove from automated positions tracking since we've exited
+                _automatedPositions.remove(symbol);
+                debugPrint('📝 Removed $symbol from automated positions tracking after TP/SL exit');
 
                 _analytics.logEvent(
                   name: 'agentic_trading_exit_executed',
