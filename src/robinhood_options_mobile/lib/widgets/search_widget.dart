@@ -24,6 +24,8 @@ import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
 
 final formatDate = DateFormat("yMMMd");
 final formatCurrency = NumberFormat.simpleCurrency();
@@ -137,9 +139,9 @@ class _SearchWidgetState extends State<SearchWidget>
 
     // Fetch trade signals on initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final agenticTradingProvider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-      agenticTradingProvider.fetchAllTradeSignals();
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      tradeSignalsProvider.fetchAllTradeSignals();
     });
   }
 
@@ -1607,12 +1609,12 @@ class _SearchWidgetState extends State<SearchWidget>
                   //     height: 25.0,
                   //   )),
                   // ],
-                  Consumer<AgenticTradingProvider>(
-                    builder: (context, agenticTradingProvider, child) {
-                      final tradeSignals = agenticTradingProvider.tradeSignals;
-                      final isMarketOpen = agenticTradingProvider.isMarketOpen;
+                  Consumer<TradeSignalsProvider>(
+                    builder: (context, tradeSignalsProvider, child) {
+                      final tradeSignals = tradeSignalsProvider.tradeSignals;
+                      final isMarketOpen = MarketHours.isMarketOpen();
                       final selectedInterval =
-                          agenticTradingProvider.selectedInterval;
+                          tradeSignalsProvider.selectedInterval;
                       final intervalLabel = selectedInterval == '1d'
                           ? 'Daily'
                           : selectedInterval == '1h'
@@ -1801,7 +1803,7 @@ class _SearchWidgetState extends State<SearchWidget>
                                                 ];
                                               },
                                               onSelected: (String interval) {
-                                                agenticTradingProvider
+                                                tradeSignalsProvider
                                                     .setSelectedInterval(
                                                         interval);
                                                 _fetchTradeSignalsWithFilters();
@@ -2119,9 +2121,9 @@ class _SearchWidgetState extends State<SearchWidget>
       futureTradeSignals = null;
     });
     // Refresh trade signals on pull-to-refresh
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    await agenticTradingProvider.fetchAllTradeSignals();
+    final tradeSignalsProvider =
+        Provider.of<TradeSignalsProvider>(context, listen: false);
+    await tradeSignalsProvider.fetchAllTradeSignals();
   }
 
   Widget _buildMoversGridItem(List<MidlandMoversItem> movers, int index) {
@@ -2836,9 +2838,9 @@ class _SearchWidgetState extends State<SearchWidget>
   }
 
   void _fetchTradeSignalsWithFilters() {
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    agenticTradingProvider.fetchAllTradeSignals(
+    final tradeSignalsProvider =
+        Provider.of<TradeSignalsProvider>(context, listen: false);
+    tradeSignalsProvider.fetchAllTradeSignals(
       signalType: tradeSignalFilter,
       indicators: selectedIndicators.isEmpty ? null : selectedIndicators,
       startDate: tradeSignalStartDate,

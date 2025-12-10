@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 
 void main() {
   group('AgenticTradingProvider Tests', () {
@@ -21,7 +21,6 @@ void main() {
       expect(provider.lastAutoTradeTime, isNull);
       expect(provider.emergencyStopActivated, equals(false));
       expect(provider.autoTradeHistory, isEmpty);
-      expect(provider.tradeSignals, isEmpty);
     });
 
     test('toggleAgenticTrading should update enabled state', () {
@@ -92,7 +91,8 @@ void main() {
       expect(notified, equals(true));
     });
 
-    test('indicatorDocumentation should return correct info for all indicators', () {
+    test('indicatorDocumentation should return correct info for all indicators',
+        () {
       final indicators = [
         'priceMovement',
         'momentum',
@@ -106,8 +106,8 @@ void main() {
       ];
 
       for (final indicator in indicators) {
-        final doc = AgenticTradingProvider.indicatorDocumentation(indicator);
-        
+        final doc = TradeSignalsProvider.indicatorDocumentation(indicator);
+
         expect(doc, isNotNull);
         expect(doc['title'], isNotNull);
         expect(doc['title'], isNotEmpty);
@@ -116,48 +116,32 @@ void main() {
       }
     });
 
-    test('indicatorDocumentation should return default for unknown indicator', () {
-      final doc = AgenticTradingProvider.indicatorDocumentation('unknown');
-      
+    test('indicatorDocumentation should return default for unknown indicator',
+        () {
+      final doc = TradeSignalsProvider.indicatorDocumentation('unknown');
+
       expect(doc['title'], equals('Technical Indicator'));
-      expect(doc['documentation'], contains('Technical indicator used to analyze'));
-    });
-
-    test('selectedInterval should default to 1h when market is open', () {
-      // Note: This test depends on actual market hours
-      // We're just testing that it returns a valid interval
-      final interval = provider.selectedInterval;
-      
-      expect(interval, isIn(['15m', '30m', '1h', '1d']));
-    });
-
-    test('setSelectedInterval should update selected interval', () {
-      var notified = false;
-      provider.addListener(() {
-        notified = true;
-      });
-
-      provider.setSelectedInterval('15m');
-      
-      expect(provider.selectedInterval, equals('15m'));
-      expect(notified, equals(true));
+      expect(doc['documentation'],
+          contains('Technical indicator used to analyze'));
     });
 
     test('isMarketOpen should return boolean value', () {
       // Just verify it doesn't throw and returns a boolean
       final isOpen = provider.isMarketOpen;
-      
+
       expect(isOpen, isA<bool>());
     });
 
     test('autoTrade should fail when auto-trade is not enabled', () async {
       // Ensure auto-trade is not enabled
       provider.loadConfigFromUser(null);
-      
-      // Note: Full autoTrade method requires brokerageUser, account, 
+
+      // Note: Full autoTrade method requires brokerageUser, account,
       // brokerageService, and instrumentStore which are difficult to mock
       // This test verifies the basic pre-flight check logic
       final result = await provider.autoTrade(
+        tradeSignals: [],
+        tradeSignalsProvider: null,
         portfolioState: {},
         brokerageUser: null, // Will fail pre-flight checks anyway
         account: null,
@@ -174,11 +158,13 @@ void main() {
       // Enable auto-trade in config
       provider.loadConfigFromUser(null);
       provider.config['autoTradeEnabled'] = true;
-      
+
       // Activate emergency stop
       provider.activateEmergencyStop();
-      
+
       final result = await provider.autoTrade(
+        tradeSignals: [],
+        tradeSignalsProvider: null,
         portfolioState: {},
         brokerageUser: null,
         account: null,
@@ -195,9 +181,11 @@ void main() {
       // Enable auto-trade
       provider.loadConfigFromUser(null);
       provider.config['autoTradeEnabled'] = true;
-      
+
       // No signals in the list (empty by default)
       final result = await provider.autoTrade(
+        tradeSignals: [],
+        tradeSignalsProvider: null,
         portfolioState: {},
         brokerageUser: null,
         account: null,
@@ -220,6 +208,8 @@ void main() {
 
       // Attempt to auto-trade
       final result = await provider.autoTrade(
+        tradeSignals: [],
+        tradeSignalsProvider: null,
         portfolioState: {},
         brokerageUser: null,
         account: null,
@@ -235,7 +225,7 @@ void main() {
     test('Daily trade limit should prevent excessive trading', () async {
       // This test verifies the concept; actual implementation requires
       // mocking time and adding signals
-      
+
       // Setup: Enable auto-trade with limit of 1
       provider.loadConfigFromUser(null);
       provider.config['autoTradeEnabled'] = true;
@@ -272,10 +262,10 @@ void main() {
     test('Daily counters should reset on new day', () {
       // This tests the concept; actual implementation would require
       // mocking DateTime to simulate day changes
-      
+
       // Initial state
       expect(provider.dailyTradeCount, equals(0));
-      
+
       // After reset (would be called internally)
       // dailyTradeCount should be 0
       // dailyLossAmount should be 0

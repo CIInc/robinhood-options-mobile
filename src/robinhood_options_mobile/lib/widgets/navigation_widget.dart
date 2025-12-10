@@ -12,6 +12,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
@@ -161,12 +162,24 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
       autoTradeTimer!.cancel();
     }
 
-    // Check every 5 minutes if auto-trading should be executed
-    autoTradeTimer = Timer.periodic(const Duration(minutes: 5), (timer) async {
+    // Initialize timer's countdown in provider
+    final agenticTradingProvider =
+        Provider.of<AgenticTradingProvider>(context, listen: false);
+    agenticTradingProvider.initializeAutoTradeTimer();
+
+    // Check every second for countdown and every 5 minutes for auto-trading
+    autoTradeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      // Tick the countdown - returns true if it reached 0
+      final countdownReachedZero =
+          agenticTradingProvider.tickAutoTradeCountdown();
+
+      // Only execute auto-trade when countdown reaches 0
+      if (!countdownReachedZero) {
+        return;
+      }
+
       try {
         // Get required providers and services
-        final agenticTradingProvider =
-            Provider.of<AgenticTradingProvider>(context, listen: false);
         final userStore =
             Provider.of<BrokerageUserStore>(context, listen: false);
         final accountStore = Provider.of<AccountStore>(context, listen: false);
@@ -210,8 +223,15 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
         debugPrint('🤖 Auto-trade check: executing auto-trade...');
 
+        // Get trade signals from provider
+        final tradeSignalsProvider =
+            Provider.of<TradeSignalsProvider>(context, listen: false);
+        final tradeSignals = tradeSignalsProvider.tradeSignals;
+
         // Execute auto-trade
         final result = await agenticTradingProvider.autoTrade(
+          tradeSignals: tradeSignals,
+          tradeSignalsProvider: tradeSignalsProvider,
           portfolioState: portfolioState,
           brokerageUser: currentUser,
           account: firstAccount,
@@ -222,6 +242,9 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
         debugPrint(
             '🤖 Auto-trade result: ${result['success']}, trades: ${result['tradesExecuted']}, message: ${result['message']}');
+
+        // Store the result in the provider for display
+        agenticTradingProvider.updateLastAutoTradeResult(result);
 
         // Monitor positions for take profit and stop loss (only when auto-trade is enabled)
         // This ensures TP/SL monitoring only runs when the system is actively managing trades
@@ -326,9 +349,10 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               }
               // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                final agenticProvider = Provider.of<AgenticTradingProvider>(context, listen: false);
+                final agenticProvider =
+                    Provider.of<AgenticTradingProvider>(context, listen: false);
                 agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
-                
+
                 // Load automated buy trades from Firestore
                 agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
 

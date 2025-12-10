@@ -268,8 +268,9 @@ class _ListsWidgetState extends State<ListsWidget>
               Text(
                 "${formatCompactNumber.format(totalItems)} items in ${formatCompactNumber.format(totalLists)} lists",
                 style: TextStyle(
-                    fontSize: 16.0,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  fontSize: 16.0,
+                  // color: Theme.of(context).colorScheme.onSurfaceVariant
+                ),
               )
             ]),
         actions: [

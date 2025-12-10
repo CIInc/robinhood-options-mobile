@@ -216,24 +216,12 @@ class _UserWidgetState extends State<UserWidget> {
                                                         )))),
                                           ],
                                           if (user != null) ...[
-                                            ListTile(
-                                              leading: user.providerId !=
-                                                          null &&
-                                                      user.providerId ==
-                                                          "google"
-                                                  ? SizedBox(
-                                                      width: 24,
-                                                      child: CachedNetworkImage(
-                                                        imageUrl:
-                                                            'https://upload.wikimedia.org/wikipedia/commons/0/09/IOS_Google_icon.png',
-                                                      ),
-                                                    )
-                                                  : const Icon(
-                                                      Icons.account_circle),
+                                            ExpansionTile(
+                                              shape: const Border(),
+                                              leading: const Icon(
+                                                  Icons.account_circle),
                                               title: Text(
-                                                user.name ??
-                                                    // user.providerId?.capitalize() ??
-                                                    'Account',
+                                                user.name ?? 'Account',
                                                 style: const TextStyle(
                                                     fontSize: 18),
                                                 overflow: TextOverflow.ellipsis,
@@ -244,100 +232,147 @@ class _UserWidgetState extends State<UserWidget> {
                                                       user.phoneNumber ??
                                                       '')
                                                   : null,
-                                              isThreeLine: false,
+                                              children: [
+                                                if (userRole ==
+                                                    UserRole.admin) ...[
+                                                  ListTile(
+                                                    leading: Icon(user.role ==
+                                                            UserRole.user
+                                                        ? Icons
+                                                            .support_agent_outlined
+                                                        : Icons
+                                                            .verified_user_outlined),
+                                                    title: const Text('Role'),
+                                                    subtitle: Text(
+                                                        user.role.enumValue()),
+                                                    trailing: userRole == UserRole.admin &&
+                                                            !widget
+                                                                .isProfileView
+                                                        ? TextButton(
+                                                            onPressed: () async =>
+                                                                showRoleSelection(
+                                                                    context,
+                                                                    user!),
+                                                            child: const Text(
+                                                                'Change'))
+                                                        : null,
+                                                  ),
+                                                ],
+                                                ListTile(
+                                                  leading:
+                                                      const Icon(Icons.login),
+                                                  title:
+                                                      const Text('Signed in'),
+                                                  subtitle: Text(
+                                                    user.dateUpdated != null
+                                                        ? formatLongDateTime
+                                                            .format(user
+                                                                .dateUpdated!)
+                                                        : '',
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ),
+                                                ListTile(
+                                                  leading: const Icon(
+                                                      Icons.person_outline),
+                                                  title:
+                                                      const Text('Registered'),
+                                                  subtitle: Text(
+                                                    formatLongDateTime.format(
+                                                        user.dateCreated),
+                                                    style: const TextStyle(
+                                                        fontSize: 14),
+                                                  ),
+                                                ),
+                                                ListTile(
+                                                    leading: const Icon(Icons
+                                                        .devices_other_outlined),
+                                                    title:
+                                                        const Text('Devices'),
+                                                    subtitle: Text(user.devices
+                                                        .where((element) =>
+                                                            element.model !=
+                                                            null)
+                                                        .map((e) => e.model)
+                                                        .toSet()
+                                                        .join(', ')),
+                                                    trailing: userRole ==
+                                                            UserRole.admin
+                                                        ? TextButton.icon(
+                                                            onPressed: () => showSmsConfirmationBeforeSend(
+                                                                context,
+                                                                user != null
+                                                                    ? user
+                                                                        .devices
+                                                                        .where((element) => element.fcmToken != null)
+                                                                        .map((e) => e.fcmToken)
+                                                                        .toList()
+                                                                    : [''],
+                                                                'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
+                                                            icon: const Icon(Icons.sms_outlined),
+                                                            label: const Text('Compose'))
+                                                        : null),
+                                                ListTile(
+                                                  leading: const Icon(
+                                                      Icons.logout_outlined),
+                                                  title: const Text('Sign out'),
+                                                  trailing: _isLoading
+                                                      ? Container(
+                                                          width: 24,
+                                                          height: 24,
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(2.0),
+                                                          child:
+                                                              const CircularProgressIndicator(),
+                                                        )
+                                                      : null,
+                                                  onTap: _isLoading
+                                                      ? null
+                                                      : () {
+                                                          showDialog(
+                                                            context: context,
+                                                            builder:
+                                                                (BuildContext
+                                                                    context) {
+                                                              return AlertDialog(
+                                                                title: const Text(
+                                                                    'Sign out?'),
+                                                                content: const Text(
+                                                                    'Are you sure you want to sign out?'),
+                                                                actions: [
+                                                                  TextButton(
+                                                                    onPressed: () =>
+                                                                        Navigator.pop(
+                                                                            context),
+                                                                    child: const Text(
+                                                                        'Cancel'),
+                                                                  ),
+                                                                  TextButton(
+                                                                    onPressed:
+                                                                        () {
+                                                                      Navigator.pop(
+                                                                          context);
+                                                                      _signOut();
+                                                                    },
+                                                                    style: TextButton
+                                                                        .styleFrom(
+                                                                      foregroundColor:
+                                                                          Colors
+                                                                              .red,
+                                                                    ),
+                                                                    child: const Text(
+                                                                        'Sign out'),
+                                                                  ),
+                                                                ],
+                                                              );
+                                                            },
+                                                          );
+                                                        },
+                                                ),
+                                              ],
                                             ),
-                                            if (userRole == UserRole.admin) ...[
-                                              ListTile(
-                                                leading: Icon(user.role ==
-                                                        UserRole.user
-                                                    ? Icons
-                                                        .support_agent_outlined
-                                                    : Icons
-                                                        .verified_user_outlined),
-                                                // .admin_panel_settings_outlined), // const SizedBox(width: 24),
-                                                title: const Text('Role'),
-                                                subtitle:
-                                                    Text(user.role.enumValue()),
-                                                trailing: userRole ==
-                                                            UserRole.admin &&
-                                                        !widget.isProfileView
-                                                    ? TextButton(
-                                                        onPressed: () async =>
-                                                            showRoleSelection(
-                                                                context, user!),
-                                                        child: const Text(
-                                                            'Change'))
-                                                    : null,
-                                                // trailing:
-                                                //     userRole == UserRole.admin &&
-                                                //             !widget.isProfileView
-                                                //         ? const Icon(
-                                                //             Icons.chevron_right)
-                                                //         : null,
-                                                // onTap:
-                                                //     userRole == UserRole.admin &&
-                                                //             !widget.isProfileView
-                                                //         ? () {
-                                                //             showRoleSelection(
-                                                //                 context, user!);
-                                                //           }
-                                                //         : null
-                                              ),
-                                            ],
-                                            ListTile(
-                                              leading: const Icon(Icons.login),
-                                              title: const Text('Signed in'),
-                                              // subtitle: Text(user.role.getValue()),
-                                              subtitle: Text(
-                                                user.dateUpdated != null
-                                                    ? formatLongDateTime.format(
-                                                        user.dateUpdated!)
-                                                    : '',
-                                                style: const TextStyle(
-                                                    fontSize: 14),
-                                              ),
-                                            ),
-                                            ListTile(
-                                              leading: const Icon(
-                                                  Icons.person_outline),
-                                              title: const Text('Registered'),
-                                              // subtitle: Text(user.role.getValue()),
-                                              subtitle: Text(
-                                                formatLongDateTime
-                                                    .format(user.dateCreated),
-                                                style: const TextStyle(
-                                                    fontSize: 14),
-                                              ),
-                                            ),
-                                            ListTile(
-                                                leading: const Icon(Icons
-                                                    .devices_other_outlined),
-                                                title: const Text('Devices'),
-                                                subtitle: Text(user.devices
-                                                    .where((element) =>
-                                                        element.model != null)
-                                                    .map((e) => e.model)
-                                                    .toSet()
-                                                    .join(', ')),
-                                                trailing: userRole == UserRole.admin
-                                                    ? TextButton.icon(
-                                                        onPressed: () => showSmsConfirmationBeforeSend(
-                                                            context,
-                                                            user != null
-                                                                ? user.devices
-                                                                    .where((element) =>
-                                                                        element.fcmToken !=
-                                                                        null)
-                                                                    .map((e) => e.fcmToken)
-                                                                    .toList()
-                                                                : [''],
-                                                            'Welcome to RealizeAlpha! Next up, link your brokerage account.'),
-                                                        icon: const Icon(Icons.sms_outlined),
-                                                        label: const Text('Compose'))
-                                                    : null),
-
-                                            // Text('role: ${user.role.getValue()}'),
-                                            // const SizedBox(height: 10),
                                           ],
                                         ],
                                       )))),
@@ -516,71 +551,37 @@ class _UserWidgetState extends State<UserWidget> {
                                 ),
                                 child: Column(
                                   children: [
-                                    if (user != null) ...[
-                                      SwitchListTile(
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 20, vertical: 8),
-                                        title: const Text(
-                                          "Refresh Market Data",
-                                          // style: TextStyle(
-                                          //   fontSize: 15,
-                                          //   fontWeight: FontWeight.w500,
-                                          // ),
-                                        ),
-                                        subtitle: const Text(
-                                            "Periodically update latest prices"),
-                                        value:
-                                            widget.brokerageUser.refreshEnabled,
-                                        onChanged: (bool value) async {
-                                          setState(() {
-                                            user!.refreshQuotes = value;
-                                          });
-                                          widget.brokerageUser.refreshEnabled =
-                                              value;
-                                          saveBrokerageUser(context);
-                                          _onSettingsChanged(user: user);
-                                        },
-                                        secondary: const Icon(Icons.refresh),
-                                      ),
-                                    ],
-// ListTile(
-                                    //     leading: const Icon(Icons.tune),
-                                    //     title: Text('Display Settings'),
-                                    //     trailing: const Icon(Icons.chevron_right),
-                                    //     onTap: () {
-                                    //       // Navigator.pop(context);
-                                    //       showModalBottomSheet<String>(
-                                    //           context: context,
-                                    //           // isScrollControlled: true,
-                                    //           useSafeArea: true,
-                                    //           showDragHandle: true,
-                                    //           builder: (context) {
-                                    //             return MoreMenuBottomSheet(
-                                    //                 widget.brokerageUser,
-                                    //                 analytics: widget.analytics,
-                                    //                 observer: widget.observer,
-                                    //                 onSettingsChanged: (settings) =>
-                                    //                     debugPrint(
-                                    //                         jsonEncode(settings)));
-                                    //           });
-                                    //       // Navigator.push(
-                                    //       //     context,
-                                    //       //     MaterialPageRoute(
-                                    //       //         builder: (BuildContext context) =>
-                                    //       //             MoreMenuBottomSheet(
-                                    //       //                 widget.brokerageUser,
-                                    //       //                 analytics: widget.analytics,
-                                    //       //                 observer: widget.observer,
-                                    //       //                 onSettingsChanged: (settings) =>
-                                    //       //                     debugPrint(jsonEncode(
-                                    //       //                         settings)))));
-                                    //     }),
                                     ExpansionTile(
                                       shape: const Border(),
                                       leading: Icon(Icons.tune),
                                       title: Text('Display Settings'),
                                       children: [
+                                        if (user != null) ...[
+                                          SwitchListTile(
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 20,
+                                                    vertical: 8),
+                                            title: const Text(
+                                              "Refresh Market Data",
+                                            ),
+                                            subtitle: const Text(
+                                                "Periodically update latest prices"),
+                                            value: widget
+                                                .brokerageUser.refreshEnabled,
+                                            onChanged: (bool value) async {
+                                              setState(() {
+                                                user!.refreshQuotes = value;
+                                              });
+                                              widget.brokerageUser
+                                                  .refreshEnabled = value;
+                                              saveBrokerageUser(context);
+                                              _onSettingsChanged(user: user);
+                                            },
+                                            secondary:
+                                                const Icon(Icons.refresh),
+                                          ),
+                                        ],
                                         SizedBox(
                                           height: 250,
                                           child: MoreMenuBottomSheet(
@@ -599,13 +600,27 @@ class _UserWidgetState extends State<UserWidget> {
                                         )
                                       ],
                                     ),
+                                  ],
+                                ),
+                              ),
+                            )),
+                            SliverToBoxAdapter(
+                                child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0, vertical: 8.0),
+                              child: Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  children: [
                                     ListTile(
                                       leading:
                                           const Icon(Icons.assessment_outlined),
-                                      title: const Text(
-                                          'Investment Profile Settings'),
+                                      title: const Text('Investment Profile'),
                                       subtitle: const Text(
-                                          'Configure goals and risk tolerance for AI'),
+                                          'Configure goals and risk tolerance for personalized recommendations'),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (user != null) {
@@ -626,10 +641,9 @@ class _UserWidgetState extends State<UserWidget> {
                                     // Agentic Trading Settings entry moved here from the app Drawer
                                     ListTile(
                                       leading: const Icon(Icons.auto_graph),
-                                      title:
-                                          const Text('Trade Signal Settings'),
+                                      title: const Text('Automated Trading'),
                                       subtitle: const Text(
-                                          'Configure multi-indicator trading parameters'),
+                                          'Configure automated trading settings'),
                                       trailing: const Icon(Icons.chevron_right),
                                       onTap: () async {
                                         if (user != null) {
@@ -672,67 +686,15 @@ class _UserWidgetState extends State<UserWidget> {
                                         }
                                       },
                                     ),
-// ExpansionPanelList(
-                                    //   expansionCallback:
-                                    //       (int index, bool isExpanded1) {
-                                    //     setState(() {
-                                    //       isExpanded = isExpanded1;
-                                    //       // _data[index].isExpanded = !isExpanded;
-                                    //     });
-                                    //   },
-                                    //   children: [
-                                    //     ExpansionPanel(
-                                    //         headerBuilder: (context, isExpanded) {
-                                    //           return ListTile(
-                                    //             leading: Icon(Icons.tune),
-                                    //             title: Text('Display Settings'),
-                                    //           );
-                                    //         },
-                                    //         body: SizedBox(
-                                    //           height: 1000,
-                                    //           child: MoreMenuBottomSheet(
-                                    //               widget.brokerageUser,
-                                    //               analytics: widget.analytics,
-                                    //               observer: widget.observer,
-                                    //               onSettingsChanged: (settings) =>
-                                    //                   debugPrint(
-                                    //                       jsonEncode(settings))),
-                                    //         ),
-                                    //         isExpanded: isExpanded)
-                                    //   ],
-                                    // )
                                   ],
                                 ),
                               ),
                             )),
                             const SliverToBoxAdapter(
                                 child: SizedBox(height: 20.0)),
-                            SliverToBoxAdapter(
-                                child: Column(
-                              children: [
-                                // const Divider(),
-                                TextButton.icon(
-                                  onPressed: _signOut,
-                                  icon: _isLoading
-                                      ? Container(
-                                          width: 24,
-                                          height: 24,
-                                          padding: const EdgeInsets.all(2.0),
-                                          child:
-                                              const CircularProgressIndicator(
-                                                  // color: Colors.white,
-                                                  // strokeWidth: 3,
-                                                  ),
-                                        )
-                                      : const Icon(Icons.logout_outlined),
-                                  label: const Text('Sign out'),
-                                ),
-                              ],
-                            )),
                           ],
                           const SliverToBoxAdapter(
                               child: SizedBox(height: 40.0)),
-                          // SliverToBoxAdapter(child: MoreMenuBottomSheet(widget.user, analytics: analytics, observer: observer, onSettingsChanged: onSettingsChanged))
                         ]));
               });
         });

@@ -554,6 +554,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               analytics: widget.analytics,
               observer: widget.observer,
               user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
             ),
 
             if (welcomeWidget != null) ...[

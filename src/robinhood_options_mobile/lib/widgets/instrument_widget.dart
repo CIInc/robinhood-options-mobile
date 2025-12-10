@@ -29,6 +29,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/utils/ai.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
@@ -56,6 +57,7 @@ import 'package:robinhood_options_mobile/model/quote.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/services/robinhood_service.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 
@@ -142,7 +144,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
     widget.analytics.logScreenView(
       screenName: 'Instrument/${widget.instrument.symbol}',
     );
-    Provider.of<AgenticTradingProvider>(context, listen: false)
+    Provider.of<TradeSignalsProvider>(context, listen: false)
         .fetchTradeSignal(widget.instrument.symbol);
   }
 
@@ -3574,7 +3576,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       );
                       // Refresh signal when returning from settings
                       if (result == true && mounted) {
-                        final provider = Provider.of<AgenticTradingProvider>(
+                        final provider = Provider.of<TradeSignalsProvider>(
                             context,
                             listen: false);
                         provider.fetchTradeSignal(widget.instrument.symbol,
@@ -3777,7 +3779,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
   }
 
   Widget _buildDocSection(String key) {
-    final docInfo = AgenticTradingProvider.indicatorDocumentation(key);
+    final docInfo = TradeSignalsProvider.indicatorDocumentation(key);
     final title = docInfo['title'] ?? '';
     final documentation = docInfo['documentation'] ?? '';
 
@@ -3815,9 +3817,9 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             ),
           ),
           // Market status indicator
-          Consumer<AgenticTradingProvider>(
+          Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
-              final isMarketOpen = provider.isMarketOpen;
+              final isMarketOpen = MarketHours.isMarketOpen();
               final selectedInterval = provider.selectedInterval;
               final intervalLabel = selectedInterval == '1d'
                   ? 'Daily'
@@ -3874,7 +3876,7 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           // Interval selector
-          Consumer<AgenticTradingProvider>(
+          Consumer<TradeSignalsProvider>(
             builder: (context, provider, child) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -3907,9 +3909,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
             },
           ),
           const SizedBox(height: 8),
-          Consumer2<AgenticTradingProvider, AccountStore>(
-            builder: (context, agenticTradingProvider, accountStore, child) {
-              final signal = agenticTradingProvider.tradeSignal;
+          Consumer3<TradeSignalsProvider, AccountStore, AgenticTradingProvider>(
+            builder: (context, tradeSignalsProvider, accountStore,
+                agenticTradingProvider, child) {
+              final signal = tradeSignalsProvider.tradeSignal;
               if (signal == null || signal.isEmpty) {
                 return Card(
                   child: Padding(
@@ -4623,11 +4626,14 @@ class _RiskGuardButtonState extends State<_RiskGuardButton> {
 
       final portfolioState = widget.buildPortfolioState();
 
-      final provider =
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
           Provider.of<AgenticTradingProvider>(context, listen: false);
-      final result = await provider.assessTradeRisk(
+      final result = await tradeSignalsProvider.assessTradeRisk(
         proposal: proposal,
         portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
       );
 
       // Update assessment in the signal and refresh UI
@@ -4795,9 +4801,6 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
     });
 
     try {
-      final provider =
-          Provider.of<AgenticTradingProvider>(context, listen: false);
-
       final portfolioState = widget.buildPortfolioState();
       final price = widget.instrument.quoteObj?.lastExtendedHoursTradePrice ??
           widget.instrument.quoteObj?.lastTradePrice;
@@ -4807,17 +4810,23 @@ class _AgenticTradeButtonState extends State<_AgenticTradeButton> {
       }
 
       // Generate new signal via initiateTradeProposal
-      await provider.initiateTradeProposal(
+      final tradeSignalsProvider =
+          Provider.of<TradeSignalsProvider>(context, listen: false);
+      final agenticTradingProvider =
+          Provider.of<AgenticTradingProvider>(context, listen: false);
+      await tradeSignalsProvider.initiateTradeProposal(
         symbol: widget.instrument.symbol,
         currentPrice: price,
         portfolioState: portfolioState,
+        config: agenticTradingProvider.config,
       );
 
       // Wait briefly to ensure Firestore write has completed
       await Future.delayed(const Duration(milliseconds: 500));
 
       // Refresh the signal from Firestore
-      await provider.fetchTradeSignal(widget.instrument.symbol);
+      await Provider.of<TradeSignalsProvider>(context, listen: false)
+          .fetchTradeSignal(widget.instrument.symbol);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
