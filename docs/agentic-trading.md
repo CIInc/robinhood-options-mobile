@@ -103,22 +103,28 @@ Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
 ```
 
 **Monitoring Flow:**
-1. **Position Analysis**
-   - Iterate through all open positions
+1. **Position Filtering**
+   - Check only positions created by automated trading
+   - Positions tracked in `_automatedPositions` set
+   - Manual trades and pre-existing positions are NOT monitored
+
+2. **Position Analysis**
+   - Iterate through automated positions
    - Extract entry price (averageBuyPrice) and current price
    - Calculate profit/loss percentage
 
-2. **Threshold Checks**
+3. **Threshold Checks**
    - If P/L >= `takeProfitPercent`: Trigger Take Profit exit
    - If P/L <= -`stopLossPercent`: Trigger Stop Loss exit
 
-3. **Order Execution**
+4. **Order Execution**
    - Fetch instrument data for the symbol
    - Place SELL order through brokerage service
    - Validate order response (200/201 status)
+   - Remove symbol from automated positions tracking
    - Track exit in history with reason and P/L%
 
-4. **Analytics & Logging**
+5. **Analytics & Logging**
    - Log exit execution events
    - Track failures separately
    - Update trade history
@@ -126,14 +132,39 @@ Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
 **Integration:**
 - Runs every 5 minutes as part of auto-trade timer
 - Executes after checking for new trade entry signals
-- Works independently - monitors even if auto-trade disabled
-- Applies to all positions regardless of entry method
+- Only monitors positions opened by automated trading
+- Manual trades remain under user control
+- Positions opened before auto-trading was enabled are not affected
 
-**Example:**
+**Position Tracking:**
+- When automated BUY order executes: Symbol added to `_automatedPositions`
+- When TP/SL exit executes: Symbol removed from `_automatedPositions`
+- Manual trades: Never added to tracking, never monitored for TP/SL
+
+**Example - Automated Position:**
 ```
-Position: AAPL, Entry: $150, Current: $165
+Auto-trade buys: AAPL at $150 → Added to _automatedPositions
+Current price: $165
 P/L = ((165 - 150) / 150) * 100 = 10%
 If takeProfitPercent = 10%: Trigger SELL → Lock in 10% profit
+After exit: AAPL removed from _automatedPositions
+```
+
+**Example - Manual Position (NOT monitored):**
+```
+User manually buys: MSFT at $300
+Current price: $330 (+10%)
+TP/SL check: MSFT not in _automatedPositions → Skip monitoring
+Result: No automatic exit, user maintains full control
+```
+
+**Example - Mixed Portfolio:**
+```
+Existing positions: AAPL (manual), MSFT (manual)
+Auto-trade enabled
+Auto-trade buys: TSLA, NVDA
+TP/SL monitors: TSLA, NVDA only
+TP/SL ignores: AAPL, MSFT
 ```
 
 ### Risk Management Controls
@@ -174,6 +205,7 @@ If takeProfitPercent = 10%: Trigger SELL → Lock in 10% profit
 - **Purpose**: Automatically exits positions when profit target is reached
 - **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
 - **Behavior**: When position P/L >= takeProfitPercent, system executes SELL order
+- **Scope**: Only applies to positions opened by automated trading
 - **Use Case**: Lock in profits automatically without manual monitoring
 
 #### Stop Loss
@@ -181,6 +213,7 @@ If takeProfitPercent = 10%: Trigger SELL → Lock in 10% profit
 - **Purpose**: Automatically exits positions to limit losses
 - **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
 - **Behavior**: When position P/L <= -stopLossPercent, system executes SELL order
+- **Scope**: Only applies to positions opened by automated trading
 - **Use Case**: Protect capital by automatically cutting losing positions
 
 ### Configuration Parameters
