@@ -88,6 +88,54 @@ Future<Map<String, dynamic>> autoTrade({
    - Update UI state
    - Enforce rate limiting between trades
 
+### Take Profit / Stop Loss Monitoring
+
+The `monitorTakeProfitStopLoss()` method automatically exits positions when targets are met:
+
+```dart
+Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
+  required List<dynamic> positions,
+  required brokerageUser,
+  required account,
+  required brokerageService,
+  required instrumentStore,
+}) async
+```
+
+**Monitoring Flow:**
+1. **Position Analysis**
+   - Iterate through all open positions
+   - Extract entry price (averageBuyPrice) and current price
+   - Calculate profit/loss percentage
+
+2. **Threshold Checks**
+   - If P/L >= `takeProfitPercent`: Trigger Take Profit exit
+   - If P/L <= -`stopLossPercent`: Trigger Stop Loss exit
+
+3. **Order Execution**
+   - Fetch instrument data for the symbol
+   - Place SELL order through brokerage service
+   - Validate order response (200/201 status)
+   - Track exit in history with reason and P/L%
+
+4. **Analytics & Logging**
+   - Log exit execution events
+   - Track failures separately
+   - Update trade history
+
+**Integration:**
+- Runs every 5 minutes as part of auto-trade timer
+- Executes after checking for new trade entry signals
+- Works independently - monitors even if auto-trade disabled
+- Applies to all positions regardless of entry method
+
+**Example:**
+```
+Position: AAPL, Entry: $150, Current: $165
+P/L = ((165 - 150) / 150) * 100 = 10%
+If takeProfitPercent = 10%: Trigger SELL → Lock in 10% profit
+```
+
 ### Risk Management Controls
 
 #### Daily Trade Limit
@@ -121,6 +169,20 @@ Future<Map<String, dynamic>> autoTrade({
 - **Purpose**: Prevents over-concentration in single positions
 - **Calculation**: Position value / total portfolio value
 
+#### Take Profit
+- **Config Field**: `takeProfitPercent` (default: 10.0%)
+- **Purpose**: Automatically exits positions when profit target is reached
+- **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
+- **Behavior**: When position P/L >= takeProfitPercent, system executes SELL order
+- **Use Case**: Lock in profits automatically without manual monitoring
+
+#### Stop Loss
+- **Config Field**: `stopLossPercent` (default: 5.0%)
+- **Purpose**: Automatically exits positions to limit losses
+- **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
+- **Behavior**: When position P/L <= -stopLossPercent, system executes SELL order
+- **Use Case**: Protect capital by automatically cutting losing positions
+
 ### Configuration Parameters
 
 #### Technical Analysis
@@ -144,6 +206,8 @@ autoTradeCooldownMinutes: 60 // Minutes between trades
 maxPositionSize: 100                // Max shares per position
 maxPortfolioConcentration: 0.5      // Max 50% in single position
 maxDailyLossPercent: 2.0            // Stop at 2% daily loss
+takeProfitPercent: 10.0             // Auto-exit at 10% profit
+stopLossPercent: 5.0                // Auto-exit at 5% loss
 ```
 
 #### Indicators
@@ -427,6 +491,28 @@ Loads configuration from User model.
 
 #### `updateConfig(Map<String, dynamic> newConfig, DocumentReference userDocRef)`
 Updates configuration and saves to Firestore.
+
+#### `monitorTakeProfitStopLoss({required List positions, required brokerageUser, required account, required brokerageService, required instrumentStore})`
+Monitors positions and executes take profit or stop loss orders.
+
+**Parameters:**
+- `positions`: List of current InstrumentPosition objects
+- `brokerageUser`: BrokerageUser instance for authentication
+- `account`: Account to trade in
+- `brokerageService`: IBrokerageService instance for order execution
+- `instrumentStore`: InstrumentStore for fetching instrument data
+
+**Returns:** `Map<String, dynamic>`
+- `success`: bool - Whether any exits were executed
+- `exitsExecuted`: int - Number of exit orders placed
+- `message`: String - Status message
+- `exits`: List - Details of executed exits with P/L% and reason
+
+**Process:**
+1. Calculates P/L percentage for each position
+2. Triggers SELL when P/L >= takeProfitPercent
+3. Triggers SELL when P/L <= -stopLossPercent
+4. Places orders and tracks exits
 
 ### Static Methods
 
