@@ -1112,10 +1112,13 @@ class AgenticTradingProvider with ChangeNotifier {
 
           if (symbol == null || quantity == null || averagePrice == null || 
               currentPrice == null || quantity <= 0 || averagePrice <= 0) {
+            if (currentPrice == null) {
+              debugPrint('⚠️ No current price available for $symbol, skipping TP/SL check');
+            }
             continue;
           }
 
-          // Calculate profit/loss percentage
+          // Calculate profit/loss percentage (averagePrice is guaranteed > 0 here)
           final profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
 
           debugPrint('📈 $symbol: Entry=\$$averagePrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');

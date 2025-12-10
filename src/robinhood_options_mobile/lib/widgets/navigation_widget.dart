@@ -223,7 +223,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         debugPrint(
             '🤖 Auto-trade result: ${result['success']}, trades: ${result['tradesExecuted']}, message: ${result['message']}');
 
-        // Monitor positions for take profit and stop loss
+        // Monitor positions for take profit and stop loss (only when auto-trade is enabled)
+        // This ensures TP/SL monitoring only runs when the system is actively managing trades
         final instrumentPositionStore =
             Provider.of<InstrumentPositionStore>(context, listen: false);
         
@@ -240,6 +241,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
           debugPrint(
               '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        } else {
+          debugPrint('📊 No positions to monitor for TP/SL');
         }
       } catch (e) {
         debugPrint('❌ Auto-trade timer error: $e');
