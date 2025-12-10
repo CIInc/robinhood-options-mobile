@@ -112,8 +112,9 @@ class AgenticTradingProvider with ChangeNotifier {
   DateTime? _dailyTradeCountResetDate;
   bool _emergencyStopActivated = false;
   List<Map<String, dynamic>> _autoTradeHistory = [];
-  // Track symbols that were bought by automated trading for TP/SL monitoring
-  Set<String> _automatedPositions = {};
+  // Track automated BUY trades for TP/SL monitoring (with quantity and entry price)
+  // Each entry: {symbol, quantity, entryPrice, timestamp}
+  List<Map<String, dynamic>> _automatedBuyTrades = [];
 
   // Firestore listener for real-time trade signal updates
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -226,6 +227,78 @@ class AgenticTradingProvider with ChangeNotifier {
       );
     }
     notifyListeners();
+  }
+
+  /// Save automated buy trades to Firestore
+  Future<void> _saveAutomatedBuyTradesToFirestore(DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      debugPrint('⚠️ Cannot save automated buy trades: userDocRef is null');
+      return;
+    }
+
+    try {
+      // Store in a subcollection under the user document
+      final tradesCollection = userDocRef.collection('automated_buy_trades');
+      
+      // Clear existing trades first (we'll replace with current state)
+      final existingDocs = await tradesCollection.get();
+      for (final doc in existingDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      // Save current automated buy trades
+      for (final trade in _automatedBuyTrades) {
+        await tradesCollection.add(trade);
+      }
+
+      debugPrint('💾 Saved ${_automatedBuyTrades.length} automated buy trades to Firestore');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_saved',
+        parameters: {'count': _automatedBuyTrades.length},
+      );
+    } catch (e) {
+      debugPrint('❌ Failed to save automated buy trades to Firestore: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_save_failed',
+        parameters: {'error': e.toString()},
+      );
+    }
+  }
+
+  /// Load automated buy trades from Firestore
+  Future<void> loadAutomatedBuyTradesFromFirestore(DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      debugPrint('⚠️ Cannot load automated buy trades: userDocRef is null');
+      return;
+    }
+
+    try {
+      final tradesCollection = userDocRef.collection('automated_buy_trades');
+      final snapshot = await tradesCollection.get();
+
+      _automatedBuyTrades = snapshot.docs
+          .map((doc) => doc.data() as Map<String, dynamic>)
+          .toList();
+
+      debugPrint('📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
+      if (_automatedBuyTrades.isNotEmpty) {
+        final symbols = _automatedBuyTrades.map((t) => '${t['symbol']} x${t['quantity']}').join(', ');
+        debugPrint('📝 Automated buy trades: $symbols');
+      }
+
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_loaded',
+        parameters: {'count': _automatedBuyTrades.length},
+      );
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Failed to load automated buy trades from Firestore: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_load_failed',
+        parameters: {'error': e.toString()},
+      );
+    }
   }
 
   Future<void> fetchTradeSignal(String symbol, {String? interval}) async {
@@ -817,6 +890,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic account,
     required dynamic brokerageService,
     required dynamic instrumentStore,
+    DocumentReference? userDocRef,
   }) async {
     _isAutoTrading = true;
     notifyListeners();
@@ -979,10 +1053,18 @@ class AgenticTradingProvider with ChangeNotifier {
                 _dailyTradeCount++;
                 _lastAutoTradeTime = DateTime.now();
 
-                // Track this position for TP/SL monitoring (only if it's a BUY)
+                // Track this trade for TP/SL monitoring (only if it's a BUY)
                 if (normalizedAction == 'BUY') {
-                  _automatedPositions.add(symbol);
-                  debugPrint('📝 Added $symbol to automated positions tracking for TP/SL');
+                  _automatedBuyTrades.add({
+                    'symbol': symbol,
+                    'quantity': quantity,
+                    'entryPrice': currentPrice,
+                    'timestamp': DateTime.now().toIso8601String(),
+                  });
+                  debugPrint('📝 Added automated BUY trade: $symbol x$quantity @ \$$currentPrice for TP/SL tracking');
+                  
+                  // Save to Firestore
+                  await _saveAutomatedBuyTradesToFirestore(userDocRef);
                 }
 
                 _analytics.logEvent(
@@ -1086,6 +1168,7 @@ class AgenticTradingProvider with ChangeNotifier {
     required dynamic account,
     required dynamic brokerageService,
     required dynamic instrumentStore,
+    DocumentReference? userDocRef,
   }) async {
     try {
       // Validate required parameters
@@ -1104,41 +1187,51 @@ class AgenticTradingProvider with ChangeNotifier {
       final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
       final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
 
-      debugPrint('📊 Monitoring ${positions.length} total positions, ${_automatedPositions.length} automated positions for TP: $takeProfitPercent%, SL: $stopLossPercent%');
-      if (_automatedPositions.isNotEmpty) {
-        debugPrint('📝 Automated positions: ${_automatedPositions.join(", ")}');
+      debugPrint('📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      if (_automatedBuyTrades.isNotEmpty) {
+        final symbols = _automatedBuyTrades.map((t) => '${t['symbol']} x${t['quantity']}').join(', ');
+        debugPrint('📝 Automated buy trades: $symbols');
       }
 
       final executedExits = <Map<String, dynamic>>[];
+      final tradesToRemove = <Map<String, dynamic>>[];
 
-      // Check each position
-      for (final position in positions) {
+      // Check each automated buy trade
+      for (final buyTrade in _automatedBuyTrades) {
         try {
-          // Extract position data
-          final symbol = position.symbol as String?;
+          final symbol = buyTrade['symbol'] as String?;
+          final buyQuantity = buyTrade['quantity'] as int?;
+          final entryPrice = buyTrade['entryPrice'] as double?;
           
-          // Only monitor positions that were created by automated trading
-          if (symbol == null || !_automatedPositions.contains(symbol)) {
+          if (symbol == null || buyQuantity == null || entryPrice == null || entryPrice <= 0) {
+            continue;
+          }
+
+          // Find the corresponding position in the portfolio
+          final position = positions.firstWhere(
+            (p) => p.symbol == symbol,
+            orElse: () => null,
+          );
+          
+          if (position == null) {
+            // Position no longer exists (might have been manually closed)
+            debugPrint('⚠️ Automated buy trade for $symbol not found in positions, removing from tracking');
+            tradesToRemove.add(buyTrade);
             continue;
           }
           
-          final quantity = position.quantity as double?;
-          final averagePrice = position.averageBuyPrice as double?;
           final currentPrice = position.quote?.lastTradePrice as double? ??
               position.quote?.lastExtendedHoursTradePrice as double?;
 
-          if (quantity == null || averagePrice == null || 
-              currentPrice == null || quantity <= 0 || averagePrice <= 0) {
-            if (currentPrice == null) {
-              debugPrint('⚠️ No current price available for $symbol, skipping TP/SL check');
-            }
+          if (currentPrice == null) {
+            debugPrint('⚠️ No current price available for $symbol, skipping TP/SL check');
             continue;
           }
 
-          // Calculate profit/loss percentage (averagePrice is guaranteed > 0 here)
-          final profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
+          // Calculate profit/loss percentage based on automated trade entry price
+          final profitLossPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
 
-          debugPrint('📈 $symbol: Entry=\$$averagePrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
+          debugPrint('📈 $symbol (automated): Entry=\$$entryPrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
 
           bool shouldExit = false;
           String exitReason = '';
@@ -1174,9 +1267,9 @@ class AgenticTradingProvider with ChangeNotifier {
               continue;
             }
 
-            // Execute sell order
+            // Execute sell order for the automated buy quantity
             try {
-              debugPrint('📤 Placing exit order: SELL ${quantity.toInt()} shares of $symbol at \$$currentPrice ($exitReason)');
+              debugPrint('📤 Placing exit order: SELL $buyQuantity shares of $symbol at \$$currentPrice ($exitReason)');
 
               final orderResponse = await brokerageService.placeInstrumentOrder(
                 brokerageUser,
@@ -1185,7 +1278,7 @@ class AgenticTradingProvider with ChangeNotifier {
                 symbol,
                 'sell',
                 currentPrice,
-                quantity.toInt(),
+                buyQuantity,
               );
 
               // Check if order was successful
@@ -1196,8 +1289,8 @@ class AgenticTradingProvider with ChangeNotifier {
                   'timestamp': DateTime.now().toIso8601String(),
                   'symbol': symbol,
                   'action': 'SELL',
-                  'quantity': quantity.toInt(),
-                  'entryPrice': averagePrice,
+                  'quantity': buyQuantity,
+                  'entryPrice': entryPrice,
                   'exitPrice': currentPrice,
                   'profitLossPercent': profitLossPercent,
                   'reason': exitReason,
@@ -1212,9 +1305,9 @@ class AgenticTradingProvider with ChangeNotifier {
                   _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
                 }
 
-                // Remove from automated positions tracking since we've exited
-                _automatedPositions.remove(symbol);
-                debugPrint('📝 Removed $symbol from automated positions tracking after TP/SL exit');
+                // Mark this automated buy trade for removal
+                tradesToRemove.add(buyTrade);
+                debugPrint('📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
 
                 _analytics.logEvent(
                   name: 'agentic_trading_exit_executed',
@@ -1254,6 +1347,17 @@ class AgenticTradingProvider with ChangeNotifier {
         } catch (e) {
           debugPrint('❌ Error processing position: $e');
         }
+      }
+
+      // Remove completed/closed trades from tracking
+      for (final trade in tradesToRemove) {
+        _automatedBuyTrades.remove(trade);
+      }
+      if (tradesToRemove.isNotEmpty) {
+        debugPrint('📝 Removed ${tradesToRemove.length} automated buy trade(s) from tracking');
+        
+        // Save updated list to Firestore
+        await _saveAutomatedBuyTradesToFirestore(userDocRef);
       }
 
       final message = executedExits.isEmpty

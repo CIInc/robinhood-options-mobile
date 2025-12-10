@@ -217,6 +217,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
           account: firstAccount,
           brokerageService: service,
           instrumentStore: instrumentStore,
+          userDocRef: userDoc,
         );
 
         debugPrint(
@@ -238,6 +239,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
             account: firstAccount,
             brokerageService: service,
             instrumentStore: instrumentStore,
+            userDocRef: userDoc,
           );
 
           debugPrint(
@@ -324,8 +326,11 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
               }
               // Pre-load AgenticTradingProvider config with User (if logged in) after build completes
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                Provider.of<AgenticTradingProvider>(context, listen: false)
-                    .loadConfigFromUser(user?.agenticTradingConfig);
+                final agenticProvider = Provider.of<AgenticTradingProvider>(context, listen: false);
+                agenticProvider.loadConfigFromUser(user?.agenticTradingConfig);
+                
+                // Load automated buy trades from Firestore
+                agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
 
                 // Start auto-trade timer (method handles duplicate start prevention)
                 _startAutoTradeTimer();
