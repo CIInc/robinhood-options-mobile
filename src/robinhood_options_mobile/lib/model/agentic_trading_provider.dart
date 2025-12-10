@@ -278,6 +278,13 @@ class AgenticTradingProvider with ChangeNotifier {
 
       _automatedBuyTrades = snapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
+          .where((trade) {
+            // Validate required fields exist and have correct types
+            return trade.containsKey('symbol') && trade['symbol'] is String &&
+                   trade.containsKey('quantity') && trade['quantity'] is int &&
+                   trade.containsKey('entryPrice') && trade['entryPrice'] is double &&
+                   trade.containsKey('timestamp') && trade['timestamp'] is String;
+          })
           .toList();
 
       debugPrint('📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
@@ -1208,10 +1215,12 @@ class AgenticTradingProvider with ChangeNotifier {
           }
 
           // Find the corresponding position in the portfolio
-          final position = positions.firstWhere(
-            (p) => p.symbol == symbol,
-            orElse: () => null,
-          );
+          dynamic position;
+          try {
+            position = positions.firstWhere((p) => p.symbol == symbol);
+          } catch (e) {
+            position = null;
+          }
           
           if (position == null) {
             // Position no longer exists (might have been manually closed)
@@ -1349,11 +1358,9 @@ class AgenticTradingProvider with ChangeNotifier {
         }
       }
 
-      // Remove completed/closed trades from tracking
-      for (final trade in tradesToRemove) {
-        _automatedBuyTrades.remove(trade);
-      }
+      // Remove completed/closed trades from tracking (use removeWhere for efficiency)
       if (tradesToRemove.isNotEmpty) {
+        _automatedBuyTrades.removeWhere((trade) => tradesToRemove.contains(trade));
         debugPrint('📝 Removed ${tradesToRemove.length} automated buy trade(s) from tracking');
         
         // Save updated list to Firestore
