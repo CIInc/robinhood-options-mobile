@@ -136,35 +136,86 @@ Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
 - Manual trades remain under user control
 - Positions opened before auto-trading was enabled are not affected
 
-**Position Tracking:**
-- When automated BUY order executes: Symbol added to `_automatedPositions`
-- When TP/SL exit executes: Symbol removed from `_automatedPositions`
+**Trade-Level Tracking:**
+- When automated BUY order executes: Trade record added to `_automatedBuyTrades`
+- Record contains: `{symbol, quantity, entryPrice, timestamp}`
+- When TP/SL exit executes: Specific trade record removed
 - Manual trades: Never added to tracking, never monitored for TP/SL
+- **Stored in Firebase**: `users/{userId}/automated_buy_trades` subcollection
+- **Persists across**: App restarts and device changes
 
 **Example - Automated Position:**
 ```
-Auto-trade buys: AAPL at $150 → Added to _automatedPositions
+Auto-trade buys: 10 AAPL at $150 → Trade record created
+Record: {symbol: 'AAPL', quantity: 10, entryPrice: 150.00, timestamp: '...'}
 Current price: $165
 P/L = ((165 - 150) / 150) * 100 = 10%
-If takeProfitPercent = 10%: Trigger SELL → Lock in 10% profit
-After exit: AAPL removed from _automatedPositions
+If takeProfitPercent = 10%: Trigger SELL 10 shares
+After exit: Trade record removed from _automatedBuyTrades
 ```
 
-**Example - Manual Position (NOT monitored):**
+**Example - Manual + Automated Same Symbol:**
 ```
-User manually buys: MSFT at $300
-Current price: $330 (+10%)
-TP/SL check: MSFT not in _automatedPositions → Skip monitoring
-Result: No automatic exit, user maintains full control
+User owns: 100 AAPL at $140 (manual, not tracked)
+Auto-trade buys: 10 AAPL at $150 (tracked separately)
+Current price: $165
+
+For automated trade:
+P/L = ((165 - 150) / 150) * 100 = 10%
+Action: SELL 10 shares (from automated trade)
+Result: Manual 100 shares @ $140 remain untouched
 ```
 
-**Example - Mixed Portfolio:**
+**Example - Multiple Automated Trades:**
 ```
-Existing positions: AAPL (manual), MSFT (manual)
-Auto-trade enabled
-Auto-trade buys: TSLA, NVDA
-TP/SL monitors: TSLA, NVDA only
-TP/SL ignores: AAPL, MSFT
+Auto-trade 1: Buy 10 AAPL @ $150 (tracked)
+Auto-trade 2: Buy 5 AAPL @ $160 (tracked separately)
+Current price: $165
+
+Trade 1 P/L: ((165-150)/150)*100 = 10% → Triggers TP, SELL 10 shares
+Trade 2 P/L: ((165-160)/160)*100 = 3.1% → No trigger
+Result: Two separate entries, tracked and managed independently
+```
+
+### Firebase Persistence
+
+**Automated Buy Trades Storage:**
+- **Collection Path**: `users/{userId}/automated_buy_trades`
+- **Document Structure**: Each trade as a separate document
+- **Fields**: `symbol`, `quantity`, `entryPrice`, `timestamp`
+
+**Automatic Saving:**
+- Trades saved immediately after BUY order execution
+- Trades removed immediately after TP/SL exit
+- Ensures data integrity across app restarts
+
+**Loading:**
+- Trades loaded on user login
+- Automatic sync across devices
+- Enables continuous TP/SL monitoring across sessions
+
+**Benefits:**
+- **Persistence**: Survives app crashes and restarts
+- **Cross-Device**: User logs in on different device, trades sync
+- **Reliability**: Firebase ensures data availability
+- **History**: Complete audit trail of automated trades
+
+**Example Workflow:**
+```
+Session 1:
+- User enables auto-trading
+- Auto-trade buys 3 positions
+- Trades saved to Firebase
+
+App restart:
+- User logs in
+- Trades loaded from Firebase
+- TP/SL monitoring resumes automatically
+
+Device switch:
+- User logs in on new device
+- Trades sync from Firebase
+- Full functionality restored
 ```
 
 ### Risk Management Controls
