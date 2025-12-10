@@ -222,6 +222,25 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
         debugPrint(
             '🤖 Auto-trade result: ${result['success']}, trades: ${result['tradesExecuted']}, message: ${result['message']}');
+
+        // Monitor positions for take profit and stop loss
+        final instrumentPositionStore =
+            Provider.of<InstrumentPositionStore>(context, listen: false);
+        
+        if (instrumentPositionStore.items.isNotEmpty) {
+          debugPrint('📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+          
+          final tpSlResult = await agenticTradingProvider.monitorTakeProfitStopLoss(
+            positions: instrumentPositionStore.items,
+            brokerageUser: currentUser,
+            account: firstAccount,
+            brokerageService: service,
+            instrumentStore: instrumentStore,
+          );
+
+          debugPrint(
+              '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        }
       } catch (e) {
         debugPrint('❌ Auto-trade timer error: $e');
       }

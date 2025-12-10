@@ -1058,4 +1058,203 @@ class AgenticTradingProvider with ChangeNotifier {
       };
     }
   }
+
+  /// Monitors positions and executes take profit or stop loss orders
+  ///
+  /// This method:
+  /// 1. Checks current positions against entry prices
+  /// 2. Calculates profit/loss percentage for each position
+  /// 3. Executes sell orders for positions that hit take profit or stop loss thresholds
+  /// 4. Tracks executed exit orders
+  ///
+  /// Returns a map with:
+  /// - 'success': bool indicating if any exits were executed
+  /// - 'exitsExecuted': number of exit orders placed
+  /// - 'message': status message
+  /// - 'exits': list of executed exit details
+  Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
+    required List<dynamic> positions,
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    required dynamic instrumentStore,
+  }) async {
+    try {
+      // Validate required parameters
+      if (brokerageUser == null || account == null || 
+          brokerageService == null || instrumentStore == null) {
+        debugPrint('❌ Missing required parameters for take profit/stop loss monitoring');
+        return {
+          'success': false,
+          'exitsExecuted': 0,
+          'message': 'Missing required parameters',
+          'exits': [],
+        };
+      }
+
+      // Get take profit and stop loss percentages from config
+      final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
+      final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
+
+      debugPrint('📊 Monitoring ${positions.length} positions for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+
+      final executedExits = <Map<String, dynamic>>[];
+
+      // Check each position
+      for (final position in positions) {
+        try {
+          // Extract position data
+          final symbol = position.symbol as String?;
+          final quantity = position.quantity as double?;
+          final averagePrice = position.averageBuyPrice as double?;
+          final currentPrice = position.quote?.lastTradePrice as double? ??
+              position.quote?.lastExtendedHoursTradePrice as double?;
+
+          if (symbol == null || quantity == null || averagePrice == null || 
+              currentPrice == null || quantity <= 0 || averagePrice <= 0) {
+            continue;
+          }
+
+          // Calculate profit/loss percentage
+          final profitLossPercent = ((currentPrice - averagePrice) / averagePrice) * 100;
+
+          debugPrint('📈 $symbol: Entry=\$$averagePrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
+
+          bool shouldExit = false;
+          String exitReason = '';
+
+          // Check take profit
+          if (profitLossPercent >= takeProfitPercent) {
+            shouldExit = true;
+            exitReason = 'Take Profit ($takeProfitPercent%)';
+            debugPrint('💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
+          }
+          // Check stop loss
+          else if (profitLossPercent <= -stopLossPercent) {
+            shouldExit = true;
+            exitReason = 'Stop Loss ($stopLossPercent%)';
+            debugPrint('🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          }
+
+          if (shouldExit) {
+            // Get instrument data
+            dynamic instrument;
+            try {
+              instrument = await brokerageService.getInstrumentBySymbol(
+                brokerageUser,
+                instrumentStore,
+                symbol,
+              );
+              if (instrument == null) {
+                debugPrint('⚠️ Could not find instrument for $symbol');
+                continue;
+              }
+            } catch (e) {
+              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+              continue;
+            }
+
+            // Execute sell order
+            try {
+              debugPrint('📤 Placing exit order: SELL ${quantity.toInt()} shares of $symbol at \$$currentPrice ($exitReason)');
+
+              final orderResponse = await brokerageService.placeInstrumentOrder(
+                brokerageUser,
+                account,
+                instrument,
+                symbol,
+                'sell',
+                currentPrice,
+                quantity.toInt(),
+              );
+
+              // Check if order was successful
+              const httpOk = 200;
+              const httpCreated = 201;
+              if (orderResponse.statusCode == httpOk || orderResponse.statusCode == httpCreated) {
+                final exitRecord = {
+                  'timestamp': DateTime.now().toIso8601String(),
+                  'symbol': symbol,
+                  'action': 'SELL',
+                  'quantity': quantity.toInt(),
+                  'entryPrice': averagePrice,
+                  'exitPrice': currentPrice,
+                  'profitLossPercent': profitLossPercent,
+                  'reason': exitReason,
+                  'orderResponse': orderResponse.body,
+                };
+
+                executedExits.add(exitRecord);
+                _autoTradeHistory.insert(0, exitRecord);
+
+                // Keep only last 100 trades in history
+                if (_autoTradeHistory.length > 100) {
+                  _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+                }
+
+                _analytics.logEvent(
+                  name: 'agentic_trading_exit_executed',
+                  parameters: {
+                    'symbol': symbol,
+                    'reason': exitReason,
+                    'profit_loss_percent': profitLossPercent,
+                  },
+                );
+
+                debugPrint('✅ Exit order executed for $symbol: $exitReason, P/L: ${profitLossPercent.toStringAsFixed(2)}%');
+              } else {
+                debugPrint('❌ Exit order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
+                _analytics.logEvent(
+                  name: 'agentic_trading_exit_failed',
+                  parameters: {
+                    'symbol': symbol,
+                    'status_code': orderResponse.statusCode,
+                    'error': orderResponse.body,
+                  },
+                );
+              }
+            } catch (e) {
+              debugPrint('❌ Error placing exit order for $symbol: $e');
+              _analytics.logEvent(
+                name: 'agentic_trading_exit_error',
+                parameters: {
+                  'symbol': symbol,
+                  'error': e.toString(),
+                },
+              );
+            }
+
+            // Small delay between orders to avoid rate limiting
+            await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
+          }
+        } catch (e) {
+          debugPrint('❌ Error processing position: $e');
+        }
+      }
+
+      final message = executedExits.isEmpty
+          ? 'No exits triggered'
+          : 'Executed ${executedExits.length} exit(s)';
+
+      return {
+        'success': executedExits.isNotEmpty,
+        'exitsExecuted': executedExits.length,
+        'message': message,
+        'exits': executedExits,
+      };
+    } catch (e) {
+      debugPrint('❌ Take profit/stop loss monitoring failed: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_tp_sl_failed',
+        parameters: {'error': e.toString()},
+      );
+
+      return {
+        'success': false,
+        'exitsExecuted': 0,
+        'message': 'Monitoring failed: ${e.toString()}',
+        'exits': [],
+      };
+    }
+  }
 }

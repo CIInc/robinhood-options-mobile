@@ -15,6 +15,8 @@ class AgenticTradingConfig {
   int dailyTradeLimit;
   int autoTradeCooldownMinutes;
   double maxDailyLossPercent;
+  double takeProfitPercent;
+  double stopLossPercent;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -30,6 +32,8 @@ class AgenticTradingConfig {
     this.dailyTradeLimit = 5,
     this.autoTradeCooldownMinutes = 60,
     this.maxDailyLossPercent = 2.0,
+    this.takeProfitPercent = 10.0,
+    this.stopLossPercent = 5.0,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -58,6 +62,10 @@ class AgenticTradingConfig {
         autoTradeCooldownMinutes = json['autoTradeCooldownMinutes'] as int? ?? 60,
         maxDailyLossPercent =
             (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 2.0,
+        takeProfitPercent =
+            (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
+        stopLossPercent =
+            (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -87,6 +95,8 @@ class AgenticTradingConfig {
       'dailyTradeLimit': dailyTradeLimit,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,
       'maxDailyLossPercent': maxDailyLossPercent,
+      'takeProfitPercent': takeProfitPercent,
+      'stopLossPercent': stopLossPercent,
     };
   }
 
@@ -104,6 +114,8 @@ class AgenticTradingConfig {
     int? dailyTradeLimit,
     int? autoTradeCooldownMinutes,
     double? maxDailyLossPercent,
+    double? takeProfitPercent,
+    double? stopLossPercent,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -122,6 +134,8 @@ class AgenticTradingConfig {
       autoTradeCooldownMinutes:
           autoTradeCooldownMinutes ?? this.autoTradeCooldownMinutes,
       maxDailyLossPercent: maxDailyLossPercent ?? this.maxDailyLossPercent,
+      takeProfitPercent: takeProfitPercent ?? this.takeProfitPercent,
+      stopLossPercent: stopLossPercent ?? this.stopLossPercent,
     );
   }
 }

@@ -32,6 +32,8 @@ class _AgenticTradingSettingsWidgetState
   late TextEditingController _dailyTradeLimitController;
   late TextEditingController _autoTradeCooldownController;
   late TextEditingController _maxDailyLossPercentController;
+  late TextEditingController _takeProfitPercentController;
+  late TextEditingController _stopLossPercentController;
   late Map<String, bool> _enabledIndicators;
 
   @override
@@ -80,6 +82,10 @@ class _AgenticTradingSettingsWidgetState
         text: config['autoTradeCooldownMinutes']?.toString() ?? '60');
     _maxDailyLossPercentController = TextEditingController(
         text: config['maxDailyLossPercent']?.toString() ?? '2.0');
+    _takeProfitPercentController = TextEditingController(
+        text: config['takeProfitPercent']?.toString() ?? '10.0');
+    _stopLossPercentController = TextEditingController(
+        text: config['stopLossPercent']?.toString() ?? '5.0');
   }
 
   @override
@@ -94,6 +100,8 @@ class _AgenticTradingSettingsWidgetState
     _dailyTradeLimitController.dispose();
     _autoTradeCooldownController.dispose();
     _maxDailyLossPercentController.dispose();
+    _takeProfitPercentController.dispose();
+    _stopLossPercentController.dispose();
     super.dispose();
   }
 
@@ -247,6 +255,8 @@ class _AgenticTradingSettingsWidgetState
         'dailyTradeLimit': int.parse(_dailyTradeLimitController.text),
         'autoTradeCooldownMinutes': int.parse(_autoTradeCooldownController.text),
         'maxDailyLossPercent': double.parse(_maxDailyLossPercentController.text),
+        'takeProfitPercent': double.parse(_takeProfitPercentController.text),
+        'stopLossPercent': double.parse(_stopLossPercentController.text),
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
       if (mounted) {
@@ -593,6 +603,56 @@ class _AgenticTradingSettingsWidgetState
                               labelText: 'Max Daily Loss %',
                               helperText: 'Stop trading if loss exceeds this %',
                               prefixIcon: const Icon(Icons.trending_down),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _takeProfitPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Take Profit %',
+                              helperText: 'Sell when position gains exceed this %',
+                              prefixIcon: const Icon(Icons.trending_up),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _stopLossPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Stop Loss %',
+                              helperText: 'Sell when position losses exceed this %',
+                              prefixIcon: const Icon(Icons.warning),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
