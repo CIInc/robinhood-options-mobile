@@ -267,6 +267,10 @@ class _AgenticTradingSettingsWidgetState
             double.parse(_maxDailyLossPercentController.text),
         'takeProfitPercent': double.parse(_takeProfitPercentController.text),
         'stopLossPercent': double.parse(_stopLossPercentController.text),
+        'allowPreMarketTrading':
+            agenticTradingProvider.config['allowPreMarketTrading'] ?? false,
+        'allowAfterHoursTrading':
+            agenticTradingProvider.config['allowAfterHoursTrading'] ?? false,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -822,6 +826,128 @@ class _AgenticTradingSettingsWidgetState
                               }
                               return null;
                             },
+                          ),
+                          const SizedBox(height: 24),
+                          // Extended Trading Hours Section
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                size: 16,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Extended Trading Hours',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest
+                                  .withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                SwitchListTile(
+                                  title: const Text(
+                                    'Pre-Market Trading',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: const Text(
+                                    '4:00 AM - 9:30 AM ET',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  value: agenticTradingProvider
+                                              .config['allowPreMarketTrading']
+                                          as bool? ??
+                                      false,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      agenticTradingProvider
+                                              .config['allowPreMarketTrading'] =
+                                          value;
+                                    });
+                                    _saveSettings();
+                                  },
+                                  activeColor: colorScheme.primary,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                    vertical: 4.0,
+                                  ),
+                                ),
+                                SwitchListTile(
+                                  title: const Text(
+                                    'After-Hours Trading',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: const Text(
+                                    '4:00 PM - 8:00 PM ET',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                  value: agenticTradingProvider
+                                              .config['allowAfterHoursTrading']
+                                          as bool? ??
+                                      false,
+                                  onChanged: (bool value) {
+                                    setState(() {
+                                      agenticTradingProvider.config[
+                                          'allowAfterHoursTrading'] = value;
+                                    });
+                                    _saveSettings();
+                                  },
+                                  activeColor: colorScheme.primary,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                    vertical: 4.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  colorScheme.surfaceVariant.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: colorScheme.outline.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Regular market hours: 9:30 AM - 4:00 PM ET (Mon-Fri)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

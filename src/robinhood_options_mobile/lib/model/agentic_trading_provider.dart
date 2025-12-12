@@ -254,7 +254,12 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   // Public getter for market status (delegates to utility)
-  bool get isMarketOpen => MarketHours.isMarketOpen();
+  bool get isMarketOpen {
+    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
+    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final includeExtended = allowPreMarket || allowAfterHours;
+    return MarketHours.isMarketOpen(includeExtendedHours: includeExtended);
+  }
 
   /// Activates emergency stop to halt all auto-trading
   void activateEmergencyStop() {
@@ -304,9 +309,14 @@ class AgenticTradingProvider with ChangeNotifier {
       return false;
     }
 
-    // Check if market is open
-    if (!MarketHours.isMarketOpen()) {
-      debugPrint('🏦 Market is closed');
+    // Check if market is open (including extended hours if enabled)
+    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
+    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final includeExtended = allowPreMarket || allowAfterHours;
+
+    if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
+      debugPrint(
+          '🏦 Market is closed (Extended hours enabled: $includeExtended)');
       return false;
     }
 

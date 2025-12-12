@@ -17,6 +17,8 @@ class AgenticTradingConfig {
   double maxDailyLossPercent;
   double takeProfitPercent;
   double stopLossPercent;
+  bool allowPreMarketTrading;
+  bool allowAfterHoursTrading;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -34,6 +36,8 @@ class AgenticTradingConfig {
     this.maxDailyLossPercent = 2.0,
     this.takeProfitPercent = 10.0,
     this.stopLossPercent = 5.0,
+    this.allowPreMarketTrading = false,
+    this.allowAfterHoursTrading = false,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -59,13 +63,16 @@ class AgenticTradingConfig {
         marketIndexSymbol = json['marketIndexSymbol'] as String? ?? 'SPY',
         autoTradeEnabled = json['autoTradeEnabled'] as bool? ?? false,
         dailyTradeLimit = json['dailyTradeLimit'] as int? ?? 5,
-        autoTradeCooldownMinutes = json['autoTradeCooldownMinutes'] as int? ?? 60,
+        autoTradeCooldownMinutes =
+            json['autoTradeCooldownMinutes'] as int? ?? 60,
         maxDailyLossPercent =
             (json['maxDailyLossPercent'] as num?)?.toDouble() ?? 2.0,
         takeProfitPercent =
             (json['takeProfitPercent'] as num?)?.toDouble() ?? 10.0,
-        stopLossPercent =
-            (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
+        stopLossPercent = (json['stopLossPercent'] as num?)?.toDouble() ?? 5.0,
+        allowPreMarketTrading = json['allowPreMarketTrading'] as bool? ?? false,
+        allowAfterHoursTrading =
+            json['allowAfterHoursTrading'] as bool? ?? false,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -97,6 +104,8 @@ class AgenticTradingConfig {
       'maxDailyLossPercent': maxDailyLossPercent,
       'takeProfitPercent': takeProfitPercent,
       'stopLossPercent': stopLossPercent,
+      'allowPreMarketTrading': allowPreMarketTrading,
+      'allowAfterHoursTrading': allowAfterHoursTrading,
     };
   }
 
@@ -116,6 +125,8 @@ class AgenticTradingConfig {
     double? maxDailyLossPercent,
     double? takeProfitPercent,
     double? stopLossPercent,
+    bool? allowPreMarketTrading,
+    bool? allowAfterHoursTrading,
   }) {
     return AgenticTradingConfig(
       enabled: enabled ?? this.enabled,
@@ -136,6 +147,10 @@ class AgenticTradingConfig {
       maxDailyLossPercent: maxDailyLossPercent ?? this.maxDailyLossPercent,
       takeProfitPercent: takeProfitPercent ?? this.takeProfitPercent,
       stopLossPercent: stopLossPercent ?? this.stopLossPercent,
+      allowPreMarketTrading:
+          allowPreMarketTrading ?? this.allowPreMarketTrading,
+      allowAfterHoursTrading:
+          allowAfterHoursTrading ?? this.allowAfterHoursTrading,
     );
   }
 }
