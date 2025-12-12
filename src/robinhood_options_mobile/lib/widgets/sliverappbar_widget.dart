@@ -5,14 +5,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/main.dart';
-import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart' as app_user;
-import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auth_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
@@ -109,136 +108,9 @@ class ExpandedSliverAppBar extends StatelessWidget {
               //   );
               // }),
               actions: [
-                Consumer<AgenticTradingProvider>(
-                  builder: (context, agenticTradingProvider, child) {
-                    if (agenticTradingProvider.config['autoTradeEnabled']
-                            as bool? ??
-                        false) {
-                      final isActive = agenticTradingProvider.isAutoTrading;
-                      final dailyCount = agenticTradingProvider.dailyTradeCount;
-                      final dailyLimit = agenticTradingProvider
-                              .config['dailyTradeLimit'] as int? ??
-                          5;
-                      final emergencyStop =
-                          agenticTradingProvider.emergencyStopActivated;
-                      final countdownSeconds =
-                          agenticTradingProvider.autoTradeCountdownSeconds;
-
-                      String statusText = '';
-                      Color statusColor = Colors.amber;
-                      IconData statusIcon = Icons.schedule;
-                      String displayText = 'Auto'; // First line text
-                      String secondLine =
-                          ''; // Second line text (trade count or countdown)
-
-                      if (emergencyStop) {
-                        statusText = 'Emergency Stop';
-                        statusColor = Colors.red;
-                        statusIcon = Icons.stop_circle;
-                        secondLine = 'STOP';
-                      } else if (isActive) {
-                        statusText = 'Trading...';
-                        statusColor = Colors.green;
-                        statusIcon = Icons.play_circle;
-                        secondLine = '$dailyCount/$dailyLimit';
-                      } else {
-                        statusText = 'Auto Enabled';
-                        statusColor = Colors.amber;
-                        statusIcon = Icons.schedule;
-                        // Show countdown when waiting
-                        final minutes = countdownSeconds ~/ 60;
-                        final seconds = countdownSeconds % 60;
-                        secondLine =
-                            '$minutes:${seconds.toString().padLeft(2, '0')}';
-                      }
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Tooltip(
-                          message:
-                              '$statusText\nTrades Today: $dailyCount/$dailyLimit\nNext Trade: $secondLine\nClick to open settings',
-                          child: GestureDetector(
-                            onTap: () {
-                              if (firestoreUser != null && userDocRef != null) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        AgenticTradingSettingsWidget(
-                                      user: firestoreUser!,
-                                      userDocRef: userDocRef!,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            child: Center(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: statusColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                      color: statusColor, width: 1.5),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (isActive)
-                                      SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                  statusColor),
-                                        ),
-                                      )
-                                    else
-                                      Icon(
-                                        statusIcon,
-                                        size: 14,
-                                        color: statusColor,
-                                      ),
-                                    const SizedBox(width: 6),
-                                    Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          displayText,
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: statusColor,
-                                            height: 1.0,
-                                          ),
-                                        ),
-                                        Text(
-                                          secondLine,
-                                          style: TextStyle(
-                                            fontSize: 8,
-                                            color: statusColor,
-                                            height: 1.0,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
+                AutoTradeStatusBadgeWidget(
+                  user: firestoreUser,
+                  userDocRef: userDocRef,
                 ),
                 IconButton(
                     icon: auth.currentUser != null

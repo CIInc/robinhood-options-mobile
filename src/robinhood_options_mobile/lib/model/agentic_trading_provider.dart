@@ -3,6 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
@@ -16,6 +23,10 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Auto-trade state tracking
   bool _isAutoTrading = false;
+  bool _showAutoTradingVisual =
+      false; // Extended visual state (persists for 3s)
+  Timer? _autoTradingVisualTimer;
+  Timer? _autoTradeTimer;
   DateTime? _lastAutoTradeTime;
   int _dailyTradeCount = 0;
   DateTime? _dailyTradeCountResetDate;
@@ -37,6 +48,8 @@ class AgenticTradingProvider with ChangeNotifier {
 
   // Auto-trade getters
   bool get isAutoTrading => _isAutoTrading;
+  bool get showAutoTradingVisual =>
+      _showAutoTradingVisual; // Visual persists 3s after trade
   DateTime? get lastAutoTradeTime => _lastAutoTradeTime;
   int get dailyTradeCount => _dailyTradeCount;
   bool get emergencyStopActivated => _emergencyStopActivated;
@@ -97,7 +110,127 @@ class AgenticTradingProvider with ChangeNotifier {
   @override
   void dispose() {
     debugPrint('🧹 Disposing AgenticTradingProvider');
+    _autoTradingVisualTimer?.cancel();
+    _autoTradeTimer?.cancel();
     super.dispose();
+  }
+
+  /// Schedules the visual state to reset after 3 seconds
+  void _scheduleVisualStateReset() {
+    _autoTradingVisualTimer?.cancel();
+    _autoTradingVisualTimer = Timer(const Duration(seconds: 3), () {
+      _showAutoTradingVisual = false;
+      notifyListeners();
+    });
+  }
+
+  /// Starts the auto-trade timer that periodically checks for and executes auto-trades
+  void startAutoTradeTimer({
+    required BuildContext context,
+    required dynamic brokerageService,
+    DocumentReference? userDocRef,
+  }) {
+    // Prevent duplicate timers
+    if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
+      debugPrint('🤖 Auto-trade timer already running, skipping start');
+      return;
+    }
+
+    _autoTradeTimer?.cancel();
+
+    // Initialize countdown
+    initializeAutoTradeTimer();
+
+    _autoTradeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final countdownReachedZero = tickAutoTradeCountdown();
+      if (!countdownReachedZero) return;
+
+      try {
+        // Gather required providers from context lazily
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
+        final portfolioStore =
+            Provider.of<PortfolioStore>(context, listen: false);
+        final tradeSignalsProvider =
+            Provider.of<TradeSignalsProvider>(context, listen: false);
+
+        // Check auto-trade enabled
+        final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+        if (!autoTradeEnabled) {
+          debugPrint('🤖 Auto-trade check: disabled in config');
+          return;
+        }
+
+        // Validate user/account
+        if (userStore.items.isEmpty ||
+            userStore.currentUser == null ||
+            accountStore.items.isEmpty) {
+          debugPrint('🤖 Auto-trade check: missing user or account data');
+          return;
+        }
+
+        final currentUser = userStore.currentUser;
+        final firstAccount = accountStore.items.first;
+        if (currentUser == null) {
+          debugPrint('🤖 Auto-trade check: currentUser is null');
+          return;
+        }
+
+        // Build portfolio state
+        final portfolioState = {
+          'portfolioValue': portfolioStore.items.isNotEmpty
+              ? portfolioStore.items.first.equity
+              : 0.0,
+          'cashAvailable': firstAccount.portfolioCash,
+          'positions': portfolioStore.items.length,
+        };
+
+        debugPrint('🤖 Auto-trade check: executing auto-trade...');
+
+        final tradeSignals = tradeSignalsProvider.tradeSignals;
+
+        final result = await autoTrade(
+          tradeSignals: tradeSignals,
+          tradeSignalsProvider: tradeSignalsProvider,
+          portfolioState: portfolioState,
+          brokerageUser: currentUser,
+          account: firstAccount,
+          brokerageService: brokerageService,
+          instrumentStore: instrumentStore,
+          userDocRef: userDocRef,
+        );
+
+        updateLastAutoTradeResult(result);
+
+        // Monitor TP/SL when positions exist
+        final instrumentPositionStore =
+            Provider.of<InstrumentPositionStore>(context, listen: false);
+        if (instrumentPositionStore.items.isNotEmpty) {
+          debugPrint(
+              '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+          final tpSlResult = await monitorTakeProfitStopLoss(
+            positions: instrumentPositionStore.items,
+            brokerageUser: currentUser,
+            account: firstAccount,
+            brokerageService: brokerageService,
+            instrumentStore: instrumentStore,
+            userDocRef: userDocRef,
+          );
+          debugPrint(
+              '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        } else {
+          debugPrint('📊 No positions to monitor for TP/SL');
+        }
+      } catch (e) {
+        debugPrint('❌ Auto-trade timer error: $e');
+      }
+    });
+
+    debugPrint(
+        '🤖 Auto-trade timer started (provider-owned, 5-minute cadence)');
   }
 
   void toggleAgenticTrading(bool? value) {
@@ -370,6 +503,8 @@ class AgenticTradingProvider with ChangeNotifier {
     DocumentReference? userDocRef,
   }) async {
     _isAutoTrading = true;
+    _showAutoTradingVisual = true;
+    _autoTradingVisualTimer?.cancel(); // Cancel any existing timer
     notifyListeners();
 
     try {
@@ -380,6 +515,7 @@ class AgenticTradingProvider with ChangeNotifier {
           instrumentStore == null) {
         debugPrint('❌ Missing required parameters for auto-trade');
         _isAutoTrading = false;
+        _scheduleVisualStateReset();
         notifyListeners();
         return {
           'success': false,
@@ -393,6 +529,7 @@ class AgenticTradingProvider with ChangeNotifier {
       // Check if auto-trading can proceed
       if (!_canAutoTrade()) {
         _isAutoTrading = false;
+        _scheduleVisualStateReset();
         notifyListeners();
         return {
           'success': false,
@@ -455,6 +592,7 @@ class AgenticTradingProvider with ChangeNotifier {
       if (buySignals.isEmpty) {
         debugPrint('📭 No BUY signals available matching enabled indicators');
         _isAutoTrading = false;
+        _scheduleVisualStateReset();
         notifyListeners();
         return {
           'success': false,
@@ -654,6 +792,7 @@ class AgenticTradingProvider with ChangeNotifier {
       }
 
       _isAutoTrading = false;
+      _scheduleVisualStateReset();
       notifyListeners();
 
       final message = executedTrades.isEmpty
@@ -668,6 +807,7 @@ class AgenticTradingProvider with ChangeNotifier {
       };
     } catch (e) {
       _isAutoTrading = false;
+      _scheduleVisualStateReset();
       notifyListeners();
 
       _analytics.logEvent(

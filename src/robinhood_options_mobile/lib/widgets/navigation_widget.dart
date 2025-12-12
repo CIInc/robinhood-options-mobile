@@ -12,12 +12,10 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
-import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/drawer_provider.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
-import 'package:robinhood_options_mobile/model/instrument_store.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_historicals_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
@@ -98,7 +96,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
 
   StreamSubscription<Uri>? linkStreamSubscription;
   Timer? refreshCredentialsTimer;
-  Timer? autoTradeTimer;
+  // Moved to AgenticTradingProvider: autoTradeTimer
 
   @override
   void initState() {
@@ -139,9 +137,6 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
     if (refreshCredentialsTimer != null) {
       refreshCredentialsTimer!.cancel();
     }
-    if (autoTradeTimer != null) {
-      autoTradeTimer!.cancel();
-    }
     super.dispose();
   }
 
@@ -150,133 +145,7 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
   //         ? brokerageUsers[currentUserIndex]
   //         : brokerageUsers[0];
 
-  /// Starts the auto-trade timer that periodically checks for and executes auto-trades
-  void _startAutoTradeTimer() {
-    // Cancel any existing timer
-    if (autoTradeTimer != null && autoTradeTimer!.isActive) {
-      debugPrint('🤖 Auto-trade timer already running, skipping start');
-      return;
-    }
-
-    if (autoTradeTimer != null) {
-      autoTradeTimer!.cancel();
-    }
-
-    // Initialize timer's countdown in provider
-    final agenticTradingProvider =
-        Provider.of<AgenticTradingProvider>(context, listen: false);
-    agenticTradingProvider.initializeAutoTradeTimer();
-
-    // Check every second for countdown and every 5 minutes for auto-trading
-    autoTradeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      // Tick the countdown - returns true if it reached 0
-      final countdownReachedZero =
-          agenticTradingProvider.tickAutoTradeCountdown();
-
-      // Only execute auto-trade when countdown reaches 0
-      if (!countdownReachedZero) {
-        return;
-      }
-
-      try {
-        // Get required providers and services
-        final userStore =
-            Provider.of<BrokerageUserStore>(context, listen: false);
-        final accountStore = Provider.of<AccountStore>(context, listen: false);
-        final instrumentStore =
-            Provider.of<InstrumentStore>(context, listen: false);
-        final portfolioStore =
-            Provider.of<PortfolioStore>(context, listen: false);
-
-        // Check if auto-trade is enabled
-        final config = agenticTradingProvider.config;
-        final autoTradeEnabled = config['autoTradeEnabled'] as bool? ?? false;
-
-        if (!autoTradeEnabled) {
-          debugPrint('🤖 Auto-trade check: disabled in config');
-          return;
-        }
-
-        // Check if we have necessary data
-        if (userStore.items.isEmpty ||
-            userStore.currentUser == null ||
-            accountStore.items.isEmpty) {
-          debugPrint('🤖 Auto-trade check: missing user or account data');
-          return;
-        }
-
-        // Safe access to current user and account
-        final currentUser = userStore.currentUser;
-        final firstAccount = accountStore.items.first;
-
-        if (currentUser == null) {
-          debugPrint('🤖 Auto-trade check: currentUser is null');
-          return;
-        }
-
-        // Build portfolio state for risk assessment
-        final portfolioState = {
-          'portfolioValue': portfolioStore.items.first.equity,
-          'cashAvailable': firstAccount.portfolioCash,
-          'positions': portfolioStore.items.length,
-        };
-
-        debugPrint('🤖 Auto-trade check: executing auto-trade...');
-
-        // Get trade signals from provider
-        final tradeSignalsProvider =
-            Provider.of<TradeSignalsProvider>(context, listen: false);
-        final tradeSignals = tradeSignalsProvider.tradeSignals;
-
-        // Execute auto-trade
-        final result = await agenticTradingProvider.autoTrade(
-          tradeSignals: tradeSignals,
-          tradeSignalsProvider: tradeSignalsProvider,
-          portfolioState: portfolioState,
-          brokerageUser: currentUser,
-          account: firstAccount,
-          brokerageService: service,
-          instrumentStore: instrumentStore,
-          userDocRef: userDoc,
-        );
-
-        debugPrint(
-            '🤖 Auto-trade result: ${result['success']}, trades: ${result['tradesExecuted']}, message: ${result['message']}');
-
-        // Store the result in the provider for display
-        agenticTradingProvider.updateLastAutoTradeResult(result);
-
-        // Monitor positions for take profit and stop loss (only when auto-trade is enabled)
-        // This ensures TP/SL monitoring only runs when the system is actively managing trades
-        final instrumentPositionStore =
-            Provider.of<InstrumentPositionStore>(context, listen: false);
-
-        if (instrumentPositionStore.items.isNotEmpty) {
-          debugPrint(
-              '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
-
-          final tpSlResult =
-              await agenticTradingProvider.monitorTakeProfitStopLoss(
-            positions: instrumentPositionStore.items,
-            brokerageUser: currentUser,
-            account: firstAccount,
-            brokerageService: service,
-            instrumentStore: instrumentStore,
-            userDocRef: userDoc,
-          );
-
-          debugPrint(
-              '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
-        } else {
-          debugPrint('📊 No positions to monitor for TP/SL');
-        }
-      } catch (e) {
-        debugPrint('❌ Auto-trade timer error: $e');
-      }
-    });
-
-    debugPrint('🤖 Auto-trade timer started (checking every 5 minutes)');
-  }
+  // Moved: _startAutoTradeTimer is now in AgenticTradingProvider
 
   @override
   Widget build(BuildContext context) {
@@ -356,8 +225,12 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
                 // Load automated buy trades from Firestore
                 agenticProvider.loadAutomatedBuyTradesFromFirestore(userDoc);
 
-                // Start auto-trade timer (method handles duplicate start prevention)
-                _startAutoTradeTimer();
+                // Start auto-trade timer via provider (prevents duplicate starts)
+                agenticProvider.startAutoTradeTimer(
+                  context: context,
+                  brokerageService: service,
+                  userDocRef: userDoc,
+                );
               });
 
               widget.analytics.setUserId(id: userInfo!.username);
