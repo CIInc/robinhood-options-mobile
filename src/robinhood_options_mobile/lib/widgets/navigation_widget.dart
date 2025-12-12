@@ -615,6 +615,8 @@ class _NavigationStatefulWidgetState extends State<NavigationStatefulWidget> {
         brokerageUser: userStore.currentUser!,
         analytics: widget.analytics,
         observer: widget.observer,
+        user: user,
+        userDocRef: userDoc,
       ),
       // Shared Portfolios tab
       if (auth.currentUser != null) ...[

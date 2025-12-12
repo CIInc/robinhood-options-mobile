@@ -60,6 +60,7 @@ import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 
 import 'package:robinhood_options_mobile/model/account_store.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -543,6 +544,10 @@ class _InstrumentWidgetState extends State<InstrumentWidget> {
                       ));
                 }),
                 actions: [
+                  AutoTradeStatusBadgeWidget(
+                    user: widget.user,
+                    userDocRef: widget.userDocRef,
+                  ),
                   IconButton(
                       icon: auth.currentUser != null
                           ? (auth.currentUser!.photoURL == null

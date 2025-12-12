@@ -20,6 +20,7 @@ import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/services/yahoo_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
 import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -1449,6 +1450,10 @@ class _SearchWidgetState extends State<SearchWidget>
                       centerTitle: false,
                       title: const Text('Search'),
                       actions: [
+                        AutoTradeStatusBadgeWidget(
+                          user: widget.user,
+                          userDocRef: widget.userDocRef,
+                        ),
                         IconButton(
                             icon: auth.currentUser != null
                                 ? (auth.currentUser!.photoURL == null

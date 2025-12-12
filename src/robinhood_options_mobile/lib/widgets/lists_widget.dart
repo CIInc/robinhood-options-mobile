@@ -19,6 +19,7 @@ import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/services/generative_service.dart';
 import 'package:robinhood_options_mobile/services/ibrokerage_service.dart';
 import 'package:robinhood_options_mobile/widgets/ad_banner_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/disclaimer_widget.dart';
 import 'package:robinhood_options_mobile/widgets/instrument_widget.dart';
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
@@ -274,6 +275,10 @@ class _ListsWidgetState extends State<ListsWidget>
               )
             ]),
         actions: [
+          AutoTradeStatusBadgeWidget(
+            user: widget.user,
+            userDocRef: widget.userDocRef,
+          ),
           IconButton(
               icon: auth.currentUser != null
                   ? (auth.currentUser!.photoURL == null
