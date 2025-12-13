@@ -19,6 +19,11 @@ class AgenticTradingConfig {
   double stopLossPercent;
   bool allowPreMarketTrading;
   bool allowAfterHoursTrading;
+  bool notifyOnBuy;
+  bool notifyOnTakeProfit;
+  bool notifyOnStopLoss;
+  bool notifyOnEmergencyStop;
+  bool notifyDailySummary;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -38,6 +43,11 @@ class AgenticTradingConfig {
     this.stopLossPercent = 5.0,
     this.allowPreMarketTrading = false,
     this.allowAfterHoursTrading = false,
+    this.notifyOnBuy = true,
+    this.notifyOnTakeProfit = true,
+    this.notifyOnStopLoss = true,
+    this.notifyOnEmergencyStop = true,
+    this.notifyDailySummary = false,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -73,6 +83,11 @@ class AgenticTradingConfig {
         allowPreMarketTrading = json['allowPreMarketTrading'] as bool? ?? false,
         allowAfterHoursTrading =
             json['allowAfterHoursTrading'] as bool? ?? false,
+        notifyOnBuy = json['notifyOnBuy'] as bool? ?? true,
+        notifyOnTakeProfit = json['notifyOnTakeProfit'] as bool? ?? true,
+        notifyOnStopLoss = json['notifyOnStopLoss'] as bool? ?? true,
+        notifyOnEmergencyStop = json['notifyOnEmergencyStop'] as bool? ?? true,
+        notifyDailySummary = json['notifyDailySummary'] as bool? ?? false,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -98,6 +113,11 @@ class AgenticTradingConfig {
       'rsiPeriod': rsiPeriod,
       'marketIndexSymbol': marketIndexSymbol,
       'enabledIndicators': enabledIndicators,
+      'notifyOnBuy': notifyOnBuy,
+      'notifyOnTakeProfit': notifyOnTakeProfit,
+      'notifyOnStopLoss': notifyOnStopLoss,
+      'notifyOnEmergencyStop': notifyOnEmergencyStop,
+      'notifyDailySummary': notifyDailySummary,
       'autoTradeEnabled': autoTradeEnabled,
       'dailyTradeLimit': dailyTradeLimit,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,

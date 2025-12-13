@@ -272,6 +272,16 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider.config['allowPreMarketTrading'] ?? false,
         'allowAfterHoursTrading':
             agenticTradingProvider.config['allowAfterHoursTrading'] ?? false,
+        // Push Notification Preferences
+        'notifyOnBuy': agenticTradingProvider.config['notifyOnBuy'] ?? true,
+        'notifyOnTakeProfit':
+          agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
+        'notifyOnStopLoss':
+          agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
+        'notifyOnEmergencyStop':
+          agenticTradingProvider.config['notifyOnEmergencyStop'] ?? true,
+        'notifyDailySummary':
+          agenticTradingProvider.config['notifyDailySummary'] ?? false,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -644,8 +654,9 @@ class _AgenticTradingSettingsWidgetState
                                         .emergencyStopActivated
                                     ? null
                                     : () {
-                                        agenticTradingProvider
-                                            .activateEmergencyStop();
+                                        agenticTradingProvider.activateEmergencyStop(
+                                          userDocRef: widget.userDocRef,
+                                        );
                                       },
                                 icon: const Icon(Icons.stop, size: 18),
                                 label: const Text('Emergency Stop'),
@@ -1090,6 +1101,105 @@ class _AgenticTradingSettingsWidgetState
                               }
                               return null;
                             },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Notification Settings Section
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.notifications_active,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Push Notifications',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: colorScheme.outline.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            title: const Text('Notify on Buy Orders'),
+                            subtitle: const Text('Get notified when auto-trade executes a buy'),
+                            value: agenticTradingProvider.config['notifyOnBuy'] as bool? ?? true,
+                            onChanged: (value) {
+                              agenticTradingProvider.config['notifyOnBuy'] = value;
+                              _saveSettings();
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Notify on Take Profit'),
+                            subtitle: const Text('Get notified when take profit target is hit'),
+                            value: agenticTradingProvider.config['notifyOnTakeProfit'] as bool? ?? true,
+                            onChanged: (value) {
+                              agenticTradingProvider.config['notifyOnTakeProfit'] = value;
+                              _saveSettings();
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Notify on Stop Loss'),
+                            subtitle: const Text('Get notified when stop loss is triggered'),
+                            value: agenticTradingProvider.config['notifyOnStopLoss'] as bool? ?? true,
+                            onChanged: (value) {
+                              agenticTradingProvider.config['notifyOnStopLoss'] = value;
+                              _saveSettings();
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Notify on Emergency Stop'),
+                            subtitle: const Text('Get notified when emergency stop is activated'),
+                            value: agenticTradingProvider.config['notifyOnEmergencyStop'] as bool? ?? true,
+                            onChanged: (value) {
+                              agenticTradingProvider.config['notifyOnEmergencyStop'] = value;
+                              _saveSettings();
+                            },
+                          ),
+                          SwitchListTile(
+                            title: const Text('Daily Summary'),
+                            subtitle: const Text('Receive end-of-day trading summary'),
+                            value: agenticTradingProvider.config['notifyDailySummary'] as bool? ?? false,
+                            onChanged: (value) {
+                              agenticTradingProvider.config['notifyDailySummary'] = value;
+                              _saveSettings();
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ElevatedButton.icon(
+                              onPressed: (agenticTradingProvider.config['notifyDailySummary'] as bool? ?? false)
+                                  ? () {
+                                      agenticTradingProvider.sendDailySummary(widget.userDocRef);
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.summarize, size: 18),
+                              label: const Text('Send Daily Summary Now'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: colorScheme.primaryContainer,
+                                foregroundColor: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
                           ),
                         ],
                       ),

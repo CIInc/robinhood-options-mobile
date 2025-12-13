@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:robinhood_options_mobile/utils/market_hours.dart';
 import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
@@ -395,12 +396,16 @@ class AgenticTradingProvider with ChangeNotifier {
   }
 
   /// Activates emergency stop to halt all auto-trading
-  void activateEmergencyStop() {
+  void activateEmergencyStop({DocumentReference? userDocRef}) {
     _emergencyStopActivated = true;
     _analytics.logEvent(
       name: 'agentic_trading_emergency_stop',
       parameters: {'reason': 'manual_activation'},
     );
+    // Send push notification if enabled
+    if (_config['notifyOnEmergencyStop'] as bool? ?? true) {
+      _sendTradeNotification(userDocRef, 'emergency_stop');
+    }
     notifyListeners();
   }
 
@@ -409,6 +414,56 @@ class AgenticTradingProvider with ChangeNotifier {
     _emergencyStopActivated = false;
     _analytics.logEvent(name: 'agentic_trading_emergency_stop_deactivated');
     notifyListeners();
+  }
+
+  /// Sends a daily summary notification using current trade history
+  Future<void> sendDailySummary(DocumentReference? userDocRef) async {
+    if (!(_config['notifyDailySummary'] as bool? ?? false)) {
+      return;
+    }
+
+    // Aggregate simple stats from today's trades
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int totalTrades = 0;
+    int wins = 0;
+    int losses = 0;
+    double totalPnL = 0.0;
+
+    for (final trade in _autoTradeHistory) {
+      final ts = trade['timestamp'];
+      DateTime? dt;
+      if (ts is String) {
+        dt = DateTime.tryParse(ts);
+      } else if (ts is int) {
+        dt = DateTime.fromMillisecondsSinceEpoch(ts);
+      }
+      if (dt == null) continue;
+      final dkey = DateTime(dt.year, dt.month, dt.day);
+      if (dkey != today) continue;
+
+      totalTrades += 1;
+      final profitLoss = trade['profitLoss'] as double?; // may be null
+      if (profitLoss != null) {
+        totalPnL += profitLoss;
+        if (profitLoss > 0) {
+          wins += 1;
+        } else if (profitLoss < 0) {
+          losses += 1;
+        }
+      }
+    }
+
+    await _sendTradeNotification(
+      userDocRef,
+      'daily_summary',
+      dailyStats: {
+        'totalTrades': totalTrades,
+        'wins': wins,
+        'losses': losses,
+        'totalPnL': totalPnL,
+      },
+    );
   }
 
   /// Resets daily trade counters (called at start of new trading day)
@@ -737,6 +792,17 @@ class AgenticTradingProvider with ChangeNotifier {
 
                   // Save to Firestore
                   await _saveAutomatedBuyTradesToFirestore(userDocRef);
+
+                  // Send notification if enabled
+                  if (_config['notifyOnBuy'] as bool? ?? true) {
+                    _sendTradeNotification(
+                      userDocRef,
+                      'buy',
+                      symbol: symbol,
+                      quantity: quantity,
+                      price: currentPrice,
+                    );
+                  }
                 }
 
                 _analytics.logEvent(
@@ -1004,6 +1070,30 @@ class AgenticTradingProvider with ChangeNotifier {
                 debugPrint(
                     '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
 
+                // Send notification based on exit type
+                final isTakeProfit = exitReason.contains('Take Profit');
+                if (isTakeProfit &&
+                    (_config['notifyOnTakeProfit'] as bool? ?? true)) {
+                  _sendTradeNotification(
+                    userDocRef,
+                    'take_profit',
+                    symbol: symbol,
+                    quantity: buyQuantity,
+                    price: currentPrice,
+                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                  );
+                } else if (!isTakeProfit &&
+                    (_config['notifyOnStopLoss'] as bool? ?? true)) {
+                  _sendTradeNotification(
+                    userDocRef,
+                    'stop_loss',
+                    symbol: symbol,
+                    quantity: buyQuantity,
+                    price: currentPrice,
+                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                  );
+                }
+
                 _analytics.logEvent(
                   name: 'agentic_trading_exit_executed',
                   parameters: {
@@ -1080,6 +1170,43 @@ class AgenticTradingProvider with ChangeNotifier {
         'message': 'Monitoring failed: ${e.toString()}',
         'exits': [],
       };
+    }
+  }
+
+  /// Send trade notification via Cloud Function
+  ///
+  /// Calls the sendAgenticTradeNotification Cloud Function to send
+  /// push notifications to the user's devices.
+  Future<void> _sendTradeNotification(
+    DocumentReference? userDocRef,
+    String type, {
+    String? symbol,
+    int? quantity,
+    double? price,
+    double? profitLoss,
+    Map<String, dynamic>? dailyStats,
+  }) async {
+    if (userDocRef == null) return;
+
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('sendAgenticTradeNotification');
+
+      final data = {
+        'userId': userDocRef.id,
+        'type': type,
+        if (symbol != null) 'symbol': symbol,
+        if (quantity != null) 'quantity': quantity,
+        if (price != null) 'price': price,
+        if (profitLoss != null) 'profitLoss': profitLoss,
+        if (dailyStats != null) 'dailyStats': dailyStats,
+      };
+
+      await callable.call(data);
+      debugPrint('📲 Notification sent: $type for $symbol');
+    } catch (e) {
+      debugPrint('❌ Failed to send notification: $e');
+      // Don't throw - notifications are non-critical
     }
   }
 }
