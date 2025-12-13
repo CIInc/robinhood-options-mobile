@@ -275,13 +275,18 @@ class _AgenticTradingSettingsWidgetState
         // Push Notification Preferences
         'notifyOnBuy': agenticTradingProvider.config['notifyOnBuy'] ?? true,
         'notifyOnTakeProfit':
-          agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
+            agenticTradingProvider.config['notifyOnTakeProfit'] ?? true,
         'notifyOnStopLoss':
-          agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
+            agenticTradingProvider.config['notifyOnStopLoss'] ?? true,
         'notifyOnEmergencyStop':
-          agenticTradingProvider.config['notifyOnEmergencyStop'] ?? true,
+            agenticTradingProvider.config['notifyOnEmergencyStop'] ?? true,
         'notifyDailySummary':
-          agenticTradingProvider.config['notifyDailySummary'] ?? false,
+            agenticTradingProvider.config['notifyDailySummary'] ?? false,
+        // Trailing Stop Settings
+        'trailingStopEnabled':
+            agenticTradingProvider.config['trailingStopEnabled'] ?? false,
+        'trailingStopPercent':
+            agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -654,7 +659,8 @@ class _AgenticTradingSettingsWidgetState
                                         .emergencyStopActivated
                                     ? null
                                     : () {
-                                        agenticTradingProvider.activateEmergencyStop(
+                                        agenticTradingProvider
+                                            .activateEmergencyStop(
                                           userDocRef: widget.userDocRef,
                                         );
                                       },
@@ -684,7 +690,8 @@ class _AgenticTradingSettingsWidgetState
                                 label: const Text('View Performance'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: colorScheme.primaryContainer,
-                                  foregroundColor: colorScheme.onPrimaryContainer,
+                                  foregroundColor:
+                                      colorScheme.onPrimaryContainer,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 12,
                                     horizontal: 16,
@@ -777,89 +784,6 @@ class _AgenticTradingSettingsWidgetState
                               final parsed = int.tryParse(value);
                               if (parsed == null || parsed < 1) {
                                 return 'Must be at least 1';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _maxDailyLossPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Max Daily Loss %',
-                              helperText: 'Stop trading if loss exceeds this %',
-                              prefixIcon: const Icon(Icons.trending_down),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _takeProfitPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Take Profit %',
-                              helperText:
-                                  'Sell when position gains exceed this %',
-                              prefixIcon: const Icon(Icons.trending_up),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _stopLossPercentController,
-                            decoration: InputDecoration(
-                              labelText: 'Stop Loss %',
-                              helperText:
-                                  'Sell when position losses exceed this %',
-                              prefixIcon: const Icon(Icons.warning),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: colorScheme.surface,
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
-                            onChanged: (_) => _saveSettings(),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter a value';
-                              }
-                              final parsed = double.tryParse(value);
-                              if (parsed == null || parsed <= 0) {
-                                return 'Must be greater than 0';
                               }
                               return null;
                             },
@@ -959,8 +883,8 @@ class _AgenticTradingSettingsWidgetState
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color:
-                                  colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                              color: colorScheme.surfaceContainerHighest
+                                  .withOpacity(0.5),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: colorScheme.outline.withOpacity(0.3),
@@ -1102,6 +1026,205 @@ class _AgenticTradingSettingsWidgetState
                               return null;
                             },
                           ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _maxDailyLossPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Max Daily Loss %',
+                              helperText: 'Stop trading if loss exceeds this %',
+                              prefixIcon: const Icon(Icons.trending_down),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            onChanged: (_) => _saveSettings(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _takeProfitPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Take Profit %',
+                              helperText:
+                                  'Sell when position gains exceed this %',
+                              prefixIcon: const Icon(Icons.trending_up),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            onChanged: (_) => _saveSettings(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _stopLossPercentController,
+                            decoration: InputDecoration(
+                              labelText: 'Stop Loss %',
+                              helperText:
+                                  'Sell when position losses exceed this %',
+                              prefixIcon: const Icon(Icons.warning),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              filled: true,
+                              fillColor: colorScheme.surface,
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            onChanged: (_) => _saveSettings(),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a value';
+                              }
+                              final parsed = double.tryParse(value);
+                              if (parsed == null || parsed <= 0) {
+                                return 'Must be greater than 0';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          // Trailing Stop sub-card for consistent styling
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.flag,
+                                size: 16,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Trailing Stop Loss',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest
+                                  .withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // Row(
+                                  //   children: [
+                                  //     Icon(
+                                  //       Icons.flag,
+                                  //       size: 16,
+                                  //       color: colorScheme.primary,
+                                  //     ),
+                                  //     const SizedBox(width: 8),
+                                  //     Text(
+                                  //       'Trailing Stop Loss',
+                                  //       style: TextStyle(
+                                  //         fontWeight: FontWeight.bold,
+                                  //         color: colorScheme.onSurface,
+                                  //         fontSize: 14,
+                                  //       ),
+                                  //     ),
+                                  //   ],
+                                  // ),
+                                  // const SizedBox(height: 8),
+                                  SwitchListTile(
+                                    contentPadding: EdgeInsets.zero,
+                                    title: const Text('Enable Trailing Stop'),
+                                    subtitle: const Text(
+                                      'Trail a stop below the highest price since entry',
+                                    ),
+                                    value: agenticTradingProvider
+                                                .config['trailingStopEnabled']
+                                            as bool? ??
+                                        false,
+                                    onChanged: (value) {
+                                      agenticTradingProvider
+                                              .config['trailingStopEnabled'] =
+                                          value;
+                                      _saveSettings();
+                                    },
+                                  ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          initialValue: (agenticTradingProvider
+                                                              .config[
+                                                          'trailingStopPercent']
+                                                      as double? ??
+                                                  3.0)
+                                              .toStringAsFixed(1),
+                                          decoration: InputDecoration(
+                                            labelText: 'Trailing Stop %',
+                                            helperText:
+                                                'Sell if price falls by this % from the peak',
+                                            prefixIcon:
+                                                const Icon(Icons.percent),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            filled: true,
+                                            fillColor: colorScheme.surface,
+                                          ),
+                                          keyboardType: const TextInputType
+                                              .numberWithOptions(decimal: true),
+                                          validator: (value) {
+                                            final v =
+                                                double.tryParse(value ?? '');
+                                            if (v == null || v <= 0 || v > 50) {
+                                              return 'Enter a percent between 0 and 50';
+                                            }
+                                            return null;
+                                          },
+                                          onChanged: (value) {
+                                            final v = double.tryParse(value);
+                                            if (v != null) {
+                                              agenticTradingProvider.config[
+                                                  'trailingStopPercent'] = v;
+                                              _saveSettings();
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1141,46 +1264,66 @@ class _AgenticTradingSettingsWidgetState
                         children: [
                           SwitchListTile(
                             title: const Text('Notify on Buy Orders'),
-                            subtitle: const Text('Get notified when auto-trade executes a buy'),
-                            value: agenticTradingProvider.config['notifyOnBuy'] as bool? ?? true,
+                            subtitle: const Text(
+                                'Get notified when auto-trade executes a buy'),
+                            value: agenticTradingProvider.config['notifyOnBuy']
+                                    as bool? ??
+                                true,
                             onChanged: (value) {
-                              agenticTradingProvider.config['notifyOnBuy'] = value;
+                              agenticTradingProvider.config['notifyOnBuy'] =
+                                  value;
                               _saveSettings();
                             },
                           ),
                           SwitchListTile(
                             title: const Text('Notify on Take Profit'),
-                            subtitle: const Text('Get notified when take profit target is hit'),
-                            value: agenticTradingProvider.config['notifyOnTakeProfit'] as bool? ?? true,
+                            subtitle: const Text(
+                                'Get notified when take profit target is hit'),
+                            value: agenticTradingProvider
+                                    .config['notifyOnTakeProfit'] as bool? ??
+                                true,
                             onChanged: (value) {
-                              agenticTradingProvider.config['notifyOnTakeProfit'] = value;
+                              agenticTradingProvider
+                                  .config['notifyOnTakeProfit'] = value;
                               _saveSettings();
                             },
                           ),
                           SwitchListTile(
                             title: const Text('Notify on Stop Loss'),
-                            subtitle: const Text('Get notified when stop loss is triggered'),
-                            value: agenticTradingProvider.config['notifyOnStopLoss'] as bool? ?? true,
+                            subtitle: const Text(
+                                'Get notified when stop loss is triggered'),
+                            value: agenticTradingProvider
+                                    .config['notifyOnStopLoss'] as bool? ??
+                                true,
                             onChanged: (value) {
-                              agenticTradingProvider.config['notifyOnStopLoss'] = value;
+                              agenticTradingProvider
+                                  .config['notifyOnStopLoss'] = value;
                               _saveSettings();
                             },
                           ),
                           SwitchListTile(
                             title: const Text('Notify on Emergency Stop'),
-                            subtitle: const Text('Get notified when emergency stop is activated'),
-                            value: agenticTradingProvider.config['notifyOnEmergencyStop'] as bool? ?? true,
+                            subtitle: const Text(
+                                'Get notified when emergency stop is activated'),
+                            value: agenticTradingProvider
+                                    .config['notifyOnEmergencyStop'] as bool? ??
+                                true,
                             onChanged: (value) {
-                              agenticTradingProvider.config['notifyOnEmergencyStop'] = value;
+                              agenticTradingProvider
+                                  .config['notifyOnEmergencyStop'] = value;
                               _saveSettings();
                             },
                           ),
                           SwitchListTile(
                             title: const Text('Daily Summary'),
-                            subtitle: const Text('Receive end-of-day trading summary'),
-                            value: agenticTradingProvider.config['notifyDailySummary'] as bool? ?? false,
+                            subtitle: const Text(
+                                'Receive end-of-day trading summary'),
+                            value: agenticTradingProvider
+                                    .config['notifyDailySummary'] as bool? ??
+                                false,
                             onChanged: (value) {
-                              agenticTradingProvider.config['notifyDailySummary'] = value;
+                              agenticTradingProvider
+                                  .config['notifyDailySummary'] = value;
                               _saveSettings();
                             },
                           ),
@@ -1188,9 +1331,13 @@ class _AgenticTradingSettingsWidgetState
                           Align(
                             alignment: Alignment.centerLeft,
                             child: ElevatedButton.icon(
-                              onPressed: (agenticTradingProvider.config['notifyDailySummary'] as bool? ?? false)
+                              onPressed: (agenticTradingProvider
+                                              .config['notifyDailySummary']
+                                          as bool? ??
+                                      false)
                                   ? () {
-                                      agenticTradingProvider.sendDailySummary(widget.userDocRef);
+                                      agenticTradingProvider
+                                          .sendDailySummary(widget.userDocRef);
                                     }
                                   : null,
                               icon: const Icon(Icons.summarize, size: 18),
@@ -1206,261 +1353,262 @@ class _AgenticTradingSettingsWidgetState
                     ),
                   ),
                   const SizedBox(height: 24),
-                ],
-                // Technical Indicators Section
-                Row(
-                  children: [
-                    Icon(
-                      Icons.show_chart,
-                      size: 20,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Technical Indicators',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.info_outline,
-                        size: 22,
-                        color: colorScheme.primary,
-                      ),
-                      tooltip: 'Indicator Documentation',
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Row(
-                              children: [
-                                Icon(
-                                  Icons.analytics,
-                                  color: colorScheme.primary,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text('Technical Indicators'),
-                              ],
-                            ),
-                            content: SizedBox(
-                              width: double.maxFinite,
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildDocSection('priceMovement'),
-                                    _buildDocSection('momentum'),
-                                    _buildDocSection('marketDirection'),
-                                    _buildDocSection('volume'),
-                                    _buildDocSection('macd'),
-                                    _buildDocSection('bollingerBands'),
-                                    _buildDocSection('stochastic'),
-                                    _buildDocSection('atr'),
-                                    _buildDocSection('obv'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Close'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: colorScheme.secondary.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
+                  // Technical Indicators Section
+                  Row(
                     children: [
                       Icon(
-                        Icons.check_circle_outline,
-                        size: 18,
-                        color: colorScheme.secondary,
+                        Icons.show_chart,
+                        size: 20,
+                        color: colorScheme.primary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'All enabled indicators must be GREEN for a trade signal',
+                          'Technical Indicators',
                           style: TextStyle(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                            color: colorScheme.onSecondaryContainer,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.info_outline,
+                          size: 22,
+                          color: colorScheme.primary,
+                        ),
+                        tooltip: 'Indicator Documentation',
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Row(
+                                children: [
+                                  Icon(
+                                    Icons.analytics,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text('Technical Indicators'),
+                                ],
+                              ),
+                              content: SizedBox(
+                                width: double.maxFinite,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildDocSection('priceMovement'),
+                                      _buildDocSection('momentum'),
+                                      _buildDocSection('marketDirection'),
+                                      _buildDocSection('volume'),
+                                      _buildDocSection('macd'),
+                                      _buildDocSection('bollingerBands'),
+                                      _buildDocSection('stochastic'),
+                                      _buildDocSection('atr'),
+                                      _buildDocSection('obv'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildIndicatorToggle(
-                  'priceMovement',
-                  'Price Movement',
-                  'Chart patterns and trend analysis',
-                ),
-                _buildIndicatorToggle(
-                  'momentum',
-                  'Momentum (RSI)',
-                  'Relative Strength Index - overbought/oversold conditions',
-                  settings: [
-                    TextFormField(
-                      controller: _rsiPeriodController,
-                      decoration: InputDecoration(
-                        labelText: 'RSI Period',
-                        helperText: 'Default: 14',
-                        prefixIcon: const Icon(Icons.speed),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondaryContainer.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: colorScheme.secondary.withOpacity(0.3),
                       ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _saveSettings(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
                     ),
-                  ],
-                ),
-                _buildIndicatorToggle(
-                  'marketDirection',
-                  'Market Direction',
-                  'Moving averages on market index (SPY/QQQ)',
-                  settings: [
-                    TextFormField(
-                      controller: _smaPeriodFastController,
-                      decoration: InputDecoration(
-                        labelText: 'SMA Period (Fast)',
-                        helperText: 'Short-term moving average',
-                        prefixIcon: const Icon(Icons.trending_up),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 18,
+                          color: colorScheme.secondary,
                         ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _saveSettings(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _smaPeriodSlowController,
-                      decoration: InputDecoration(
-                        labelText: 'SMA Period (Slow)',
-                        helperText: 'Long-term moving average',
-                        prefixIcon: const Icon(Icons.trending_flat),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'All enabled indicators must be GREEN for a trade signal',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              color: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
                         ),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _saveSettings(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _marketIndexSymbolController,
-                      decoration: InputDecoration(
-                        labelText: 'Market Index Symbol',
-                        helperText: 'SPY or QQQ',
-                        prefixIcon: const Icon(Icons.business),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildIndicatorToggle(
+                    'priceMovement',
+                    'Price Movement',
+                    'Chart patterns and trend analysis',
+                  ),
+                  _buildIndicatorToggle(
+                    'momentum',
+                    'Momentum (RSI)',
+                    'Relative Strength Index - overbought/oversold conditions',
+                    settings: [
+                      TextFormField(
+                        controller: _rsiPeriodController,
+                        decoration: InputDecoration(
+                          labelText: 'RSI Period',
+                          helperText: 'Default: 14',
+                          prefixIcon: const Icon(Icons.speed),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _saveSettings(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a value';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
                       ),
-                      onChanged: (_) => _saveSettings(),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a value';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                _buildIndicatorToggle(
-                  'volume',
-                  'Volume',
-                  'Volume confirmation with price movement',
-                ),
-                _buildIndicatorToggle(
-                  'macd',
-                  'MACD',
-                  'Moving Average Convergence Divergence',
-                ),
-                _buildIndicatorToggle(
-                  'bollingerBands',
-                  'Bollinger Bands',
-                  'Volatility and price level analysis',
-                ),
-                _buildIndicatorToggle(
-                  'stochastic',
-                  'Stochastic Oscillator',
-                  'Momentum indicator comparing closing price to price range',
-                ),
-                _buildIndicatorToggle(
-                  'atr',
-                  'ATR',
-                  'Average True Range - volatility measurement',
-                ),
-                _buildIndicatorToggle(
-                  'obv',
-                  'OBV',
-                  'On-Balance Volume - volume flow indicator',
-                ),
-                // const SizedBox(height: 8),
-                // SizedBox(
-                //   width: double.infinity,
-                //   child: FilledButton.icon(
-                //     onPressed: _saveSettings,
-                //     icon: const Icon(Icons.save),
-                //     label: const Text('Save Settings'),
-                //     style: FilledButton.styleFrom(
-                //       padding: const EdgeInsets.symmetric(vertical: 16),
-                //       shape: RoundedRectangleBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //       ),
-                //     ),
-                //   ),
-                // ),
-                const SizedBox(height: 16),
+                    ],
+                  ),
+                  _buildIndicatorToggle(
+                    'marketDirection',
+                    'Market Direction',
+                    'Moving averages on market index (SPY/QQQ)',
+                    settings: [
+                      TextFormField(
+                        controller: _smaPeriodFastController,
+                        decoration: InputDecoration(
+                          labelText: 'SMA Period (Fast)',
+                          helperText: 'Short-term moving average',
+                          prefixIcon: const Icon(Icons.trending_up),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _saveSettings(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a value';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _smaPeriodSlowController,
+                        decoration: InputDecoration(
+                          labelText: 'SMA Period (Slow)',
+                          helperText: 'Long-term moving average',
+                          prefixIcon: const Icon(Icons.trending_flat),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _saveSettings(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a value';
+                          }
+                          if (int.tryParse(value) == null) {
+                            return 'Please enter a valid number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _marketIndexSymbolController,
+                        decoration: InputDecoration(
+                          labelText: 'Market Index Symbol',
+                          helperText: 'SPY or QQQ',
+                          prefixIcon: const Icon(Icons.business),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onChanged: (_) => _saveSettings(),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a value';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                  _buildIndicatorToggle(
+                    'volume',
+                    'Volume',
+                    'Volume confirmation with price movement',
+                  ),
+                  _buildIndicatorToggle(
+                    'macd',
+                    'MACD',
+                    'Moving Average Convergence Divergence',
+                  ),
+                  _buildIndicatorToggle(
+                    'bollingerBands',
+                    'Bollinger Bands',
+                    'Volatility and price level analysis',
+                  ),
+                  _buildIndicatorToggle(
+                    'stochastic',
+                    'Stochastic Oscillator',
+                    'Momentum indicator comparing closing price to price range',
+                  ),
+                  _buildIndicatorToggle(
+                    'atr',
+                    'ATR',
+                    'Average True Range - volatility measurement',
+                  ),
+                  _buildIndicatorToggle(
+                    'obv',
+                    'OBV',
+                    'On-Balance Volume - volume flow indicator',
+                  ),
+                  // const SizedBox(height: 8),
+                  // SizedBox(
+                  //   width: double.infinity,
+                  //   child: FilledButton.icon(
+                  //     onPressed: _saveSettings,
+                  //     icon: const Icon(Icons.save),
+                  //     label: const Text('Save Settings'),
+                  //     style: FilledButton.styleFrom(
+                  //       padding: const EdgeInsets.symmetric(vertical: 16),
+                  //       shape: RoundedRectangleBorder(
+                  //         borderRadius: BorderRadius.circular(12),
+                  //       ),
+                  //     ),
+                  //   ),
+                  // ),
+                  const SizedBox(height: 16),
+                ],
               ],
             ),
           );

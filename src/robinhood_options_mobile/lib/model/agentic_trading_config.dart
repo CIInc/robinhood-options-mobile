@@ -24,6 +24,8 @@ class AgenticTradingConfig {
   bool notifyOnStopLoss;
   bool notifyOnEmergencyStop;
   bool notifyDailySummary;
+  bool trailingStopEnabled;
+  double trailingStopPercent;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -48,6 +50,8 @@ class AgenticTradingConfig {
     this.notifyOnStopLoss = true,
     this.notifyOnEmergencyStop = true,
     this.notifyDailySummary = false,
+    this.trailingStopEnabled = false,
+    this.trailingStopPercent = 3.0,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -88,6 +92,9 @@ class AgenticTradingConfig {
         notifyOnStopLoss = json['notifyOnStopLoss'] as bool? ?? true,
         notifyOnEmergencyStop = json['notifyOnEmergencyStop'] as bool? ?? true,
         notifyDailySummary = json['notifyDailySummary'] as bool? ?? false,
+        trailingStopEnabled = json['trailingStopEnabled'] as bool? ?? false,
+        trailingStopPercent =
+            (json['trailingStopPercent'] as num?)?.toDouble() ?? 3.0,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -118,6 +125,8 @@ class AgenticTradingConfig {
       'notifyOnStopLoss': notifyOnStopLoss,
       'notifyOnEmergencyStop': notifyOnEmergencyStop,
       'notifyDailySummary': notifyDailySummary,
+      'trailingStopEnabled': trailingStopEnabled,
+      'trailingStopPercent': trailingStopPercent,
       'autoTradeEnabled': autoTradeEnabled,
       'dailyTradeLimit': dailyTradeLimit,
       'autoTradeCooldownMinutes': autoTradeCooldownMinutes,

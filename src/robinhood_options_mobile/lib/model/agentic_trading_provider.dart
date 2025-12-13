@@ -785,6 +785,7 @@ class AgenticTradingProvider with ChangeNotifier {
                     'symbol': symbol,
                     'quantity': quantity,
                     'entryPrice': currentPrice,
+                    'highestPrice': currentPrice,
                     'timestamp': DateTime.now().toIso8601String(),
                   });
                   debugPrint(
@@ -1005,6 +1006,29 @@ class AgenticTradingProvider with ChangeNotifier {
             exitReason = 'Stop Loss ($stopLossPercent%)';
             debugPrint(
                 '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          }
+
+          // Trailing Stop Loss: exit if price drops by trailingStopPercent
+          if (!shouldExit &&
+              (_config['trailingStopEnabled'] as bool? ?? false)) {
+            final trailPercent =
+                _config['trailingStopPercent'] as double? ?? 3.0;
+            final prevHighest =
+                (buyTrade['highestPrice'] as double?) ?? entryPrice;
+            final newHighest =
+                currentPrice > prevHighest ? currentPrice : prevHighest;
+            if (newHighest != prevHighest) {
+              buyTrade['highestPrice'] = newHighest;
+              debugPrint(
+                  '🔼 $symbol new highest price since entry: $newHighest');
+            }
+            final trailStopPrice = newHighest * (1 - trailPercent / 100.0);
+            if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
+              shouldExit = true;
+              exitReason = 'Trailing Stop ($trailPercent%)';
+              debugPrint(
+                  '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
+            }
           }
 
           if (shouldExit) {
