@@ -287,6 +287,9 @@ class _AgenticTradingSettingsWidgetState
             agenticTradingProvider.config['trailingStopEnabled'] ?? false,
         'trailingStopPercent':
             agenticTradingProvider.config['trailingStopPercent'] ?? 3.0,
+        // Paper Trading Mode
+        'paperTradingMode':
+            agenticTradingProvider.config['paperTradingMode'] ?? false,
       };
       await agenticTradingProvider.updateConfig(newConfig, widget.userDocRef);
     } catch (e) {
@@ -737,6 +740,85 @@ class _AgenticTradingSettingsWidgetState
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         children: [
+                          // Paper Trading Mode
+                          Container(
+                            decoration: BoxDecoration(
+                              color: (agenticTradingProvider
+                                              .config['paperTradingMode']
+                                          as bool? ??
+                                      false)
+                                  ? Colors.blue.withOpacity(0.1)
+                                  : colorScheme.surfaceContainerHighest
+                                      .withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: (agenticTradingProvider
+                                                .config['paperTradingMode']
+                                            as bool? ??
+                                        false)
+                                    ? Colors.blue.withOpacity(0.5)
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: SwitchListTile(
+                              title: Row(
+                                children: [
+                                  const Text(
+                                    'Paper Trading Mode',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (agenticTradingProvider
+                                              .config['paperTradingMode']
+                                          as bool? ??
+                                      false)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'PAPER',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              subtitle: const Text(
+                                'Simulate trades without real money - Test strategies risk-free',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              value: agenticTradingProvider
+                                      .config['paperTradingMode'] as bool? ??
+                                  false,
+                              onChanged: (value) {
+                                setState(() {
+                                  agenticTradingProvider
+                                      .config['paperTradingMode'] = value;
+                                });
+                                _saveSettings();
+                              },
+                              activeColor: Colors.blue,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 4.0,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
                           TextFormField(
                             controller: _dailyTradeLimitController,
                             decoration: InputDecoration(

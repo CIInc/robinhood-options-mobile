@@ -31,6 +31,8 @@ class _AgenticTradingPerformanceWidgetState
   final NumberFormat _currencyFormat = NumberFormat.currency(symbol: '\$');
   final NumberFormat _percentFormat =
       NumberFormat.decimalPercentPattern(decimalDigits: 2);
+  bool _showPaperOnly =
+      false; // Toggle between all trades / paper only / real only
 
   @override
   void initState() {
@@ -86,9 +88,10 @@ class _AgenticTradingPerformanceWidgetState
     AgenticTradingProvider provider,
     ColorScheme colorScheme,
   ) {
-    final history = provider.autoTradeHistory;
+    final allHistory = provider.autoTradeHistory;
+    final history = _filterHistory(allHistory);
 
-    if (history.isEmpty) {
+    if (allHistory.isEmpty) {
       return _buildEmptyState(
         'No trade history yet',
         'Auto-trades will appear here once executed',
@@ -106,6 +109,8 @@ class _AgenticTradingPerformanceWidgetState
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildFilterChips(history, colorScheme),
+          const SizedBox(height: 16),
           _buildOverviewCard(stats, colorScheme),
           const SizedBox(height: 16),
           _buildPerformanceCard(stats, colorScheme),
@@ -180,6 +185,72 @@ class _AgenticTradingPerformanceWidgetState
         _buildWinLossPieChart(stats, colorScheme),
         const SizedBox(height: 24),
         _buildDailyVolumeChart(history, colorScheme),
+      ],
+    );
+  }
+
+  List<Map<String, dynamic>> _filterHistory(
+      List<Map<String, dynamic>> history) {
+    if (_showPaperOnly) {
+      return history.where((t) => t['paperMode'] == true).toList();
+    }
+    return history;
+  }
+
+  Widget _buildFilterChips(
+    List<Map<String, dynamic>> history,
+    ColorScheme colorScheme,
+  ) {
+    final paperCount = history.where((t) => t['paperMode'] == true).length;
+    final realCount = history.where((t) => t['paperMode'] != true).length;
+
+    return Row(
+      children: [
+        FilterChip(
+          label: Text('All Trades (${history.length})'),
+          selected: !_showPaperOnly,
+          onSelected: (selected) {
+            if (selected) {
+              setState(() => _showPaperOnly = false);
+            }
+          },
+        ),
+        const SizedBox(width: 8),
+        FilterChip(
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.description, size: 16, color: Colors.blue),
+              const SizedBox(width: 4),
+              Text('Paper ($paperCount)'),
+            ],
+          ),
+          selected: _showPaperOnly,
+          onSelected: (selected) {
+            setState(() => _showPaperOnly = selected);
+          },
+          selectedColor: Colors.blue.withOpacity(0.2),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.green.withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.attach_money, size: 16, color: Colors.green),
+              const SizedBox(width: 4),
+              Text(
+                'Real ($realCount)',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -619,6 +690,7 @@ class _AgenticTradingPerformanceWidgetState
     final success = trade['success'] as bool? ?? false;
     final reason = trade['reason'] as String?;
     final profitLoss = trade['profitLoss'] as double?;
+    final isPaper = trade['paperMode'] as bool? ?? false;
 
     final isExit = action == 'SELL' &&
         reason != null &&
@@ -687,6 +759,27 @@ class _AgenticTradingPerformanceWidgetState
                                 ),
                               ),
                             ),
+                            if (isPaper) ...[
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'PAPER',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 4),

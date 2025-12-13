@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -18,6 +20,39 @@ class AgenticTradingProvider with ChangeNotifier {
   // Constants
   static const int _tradeDelaySeconds =
       2; // Delay between auto-trades to avoid rate limiting
+
+  /// Simulate paper order without calling broker API
+  http.Response _simulatePaperOrder(
+    String action,
+    String symbol,
+    int quantity,
+    double price,
+  ) {
+    // Simulate successful order response
+    final simulatedResponse = {
+      'id': 'paper_${DateTime.now().millisecondsSinceEpoch}',
+      'symbol': symbol,
+      'side': action.toLowerCase(),
+      'quantity': quantity,
+      'price': price,
+      'state': 'filled',
+      'type': 'market',
+      'time_in_force': 'gtc',
+      'executions': [
+        {
+          'price': price.toString(),
+          'quantity': quantity.toString(),
+          'timestamp': DateTime.now().toIso8601String(),
+        }
+      ],
+    };
+
+    return http.Response(
+      jsonEncode(simulatedResponse),
+      200,
+      headers: {'content-type': 'application/json'},
+    );
+  }
 
   bool _isAgenticTradingEnabled = false;
   Map<String, dynamic> _config = {};
@@ -275,6 +310,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'atr': true,
           'obv': true,
         },
+        'paperTradingMode': false,
       };
       _isAgenticTradingEnabled = false;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
@@ -735,18 +771,24 @@ class AgenticTradingProvider with ChangeNotifier {
 
               final side = normalizedAction == 'BUY' ? 'buy' : 'sell';
 
-              debugPrint(
-                  '📤 Placing order: $action $quantity shares of $symbol at \$$currentPrice');
+              final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
 
-              final orderResponse = await brokerageService.placeInstrumentOrder(
-                brokerageUser,
-                account,
-                instrument,
-                symbol,
-                side,
-                currentPrice,
-                quantity,
-              );
+              debugPrint(
+                  '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
+
+              // In paper trading mode, simulate order without calling broker API
+              final orderResponse = isPaperMode
+                  ? _simulatePaperOrder(
+                      normalizedAction, symbol, quantity, currentPrice)
+                  : await brokerageService.placeInstrumentOrder(
+                      brokerageUser,
+                      account,
+                      instrument,
+                      symbol,
+                      side,
+                      currentPrice,
+                      quantity,
+                    );
 
               // Check if order was successful (HTTP 200 OK or 201 Created)
               const httpOk = 200;
@@ -759,6 +801,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   'action': action,
                   'quantity': quantity,
                   'price': currentPrice,
+                  'paperMode': isPaperMode,
                   'proposal': Map<String, dynamic>.from(
                       tradeSignalsProvider.lastTradeProposal!),
                   'assessment': tradeSignalsProvider.lastAssessment != null

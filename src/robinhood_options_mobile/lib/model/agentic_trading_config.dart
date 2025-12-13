@@ -26,6 +26,7 @@ class AgenticTradingConfig {
   bool notifyDailySummary;
   bool trailingStopEnabled;
   double trailingStopPercent;
+  bool paperTradingMode;
 
   AgenticTradingConfig({
     this.enabled = false,
@@ -52,6 +53,7 @@ class AgenticTradingConfig {
     this.notifyDailySummary = false,
     this.trailingStopEnabled = false,
     this.trailingStopPercent = 3.0,
+    this.paperTradingMode = false,
   }) : enabledIndicators = enabledIndicators ??
             {
               'priceMovement': true,
@@ -95,6 +97,7 @@ class AgenticTradingConfig {
         trailingStopEnabled = json['trailingStopEnabled'] as bool? ?? false,
         trailingStopPercent =
             (json['trailingStopPercent'] as num?)?.toDouble() ?? 3.0,
+        paperTradingMode = json['paperTradingMode'] as bool? ?? false,
         enabledIndicators = json['enabledIndicators'] != null
             ? Map<String, bool>.from(json['enabledIndicators'] as Map)
             : {
@@ -135,6 +138,7 @@ class AgenticTradingConfig {
       'stopLossPercent': stopLossPercent,
       'allowPreMarketTrading': allowPreMarketTrading,
       'allowAfterHoursTrading': allowAfterHoursTrading,
+      'paperTradingMode': paperTradingMode,
     };
   }
 
