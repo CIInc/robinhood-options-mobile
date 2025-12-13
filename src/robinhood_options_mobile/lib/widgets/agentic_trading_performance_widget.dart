@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'dart:math' as math;
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:community_charts_flutter/community_charts_flutter.dart'
     as charts;
@@ -112,6 +113,12 @@ class _AgenticTradingPerformanceWidgetState
           _buildTradeBreakdownCard(stats, colorScheme),
           const SizedBox(height: 16),
           _buildBestWorstCard(stats, colorScheme),
+          const SizedBox(height: 16),
+          _buildAdvancedAnalyticsCard(stats, colorScheme),
+          const SizedBox(height: 16),
+          _buildTimeOfDayCard(stats, colorScheme),
+          const SizedBox(height: 16),
+          _buildSymbolPerformanceCard(stats, colorScheme),
         ],
       ),
     );
@@ -1120,6 +1127,95 @@ class _AgenticTradingPerformanceWidgetState
     final successRate = totalTrades > 0 ? wins / totalTrades : 0.0;
     final avgPnL = totalTrades > 0 ? totalPnL / totalTrades : 0.0;
 
+    // Calculate Sharpe Ratio (risk-adjusted returns)
+    double sharpeRatio = 0.0;
+    if (totalTrades > 1) {
+      final pnLs = history
+          .where((t) => t['profitLoss'] != null)
+          .map((t) => t['profitLoss'] as double)
+          .toList();
+      if (pnLs.length > 1) {
+        final mean = pnLs.reduce((a, b) => a + b) / pnLs.length;
+        final variance =
+            pnLs.map((x) => (x - mean) * (x - mean)).reduce((a, b) => a + b) /
+                (pnLs.length - 1);
+        final stdDev = variance > 0 ? math.sqrt(variance) : 0.0;
+        // Sharpe = mean return / standard deviation (annualized by sqrt(252))
+        sharpeRatio = stdDev > 0 ? (mean / stdDev) * 15.87 : 0.0;
+      }
+    }
+
+    // Calculate win rate by symbol
+    final Map<String, Map<String, int>> symbolStats = {};
+    final Map<String, DateTime> buyTimes = {};
+    final List<int> holdTimes = [];
+    final Map<String, Map<String, int>> timeOfDayStats = {
+      'Morning (9-12)': {'wins': 0, 'losses': 0},
+      'Afternoon (12-3)': {'wins': 0, 'losses': 0},
+      'Late Day (3-4)': {'wins': 0, 'losses': 0},
+    };
+
+    for (final trade in history) {
+      final symbol = trade['symbol'] as String?;
+      final action = trade['action'] as String?;
+      final profitLoss = trade['profitLoss'] as double?;
+      final timestampStr = trade['timestamp'] as String?;
+
+      if (symbol != null && profitLoss != null) {
+        symbolStats[symbol] ??= {'wins': 0, 'losses': 0, 'total': 0};
+        symbolStats[symbol]!['total'] = symbolStats[symbol]!['total']! + 1;
+        if (profitLoss > 0) {
+          symbolStats[symbol]!['wins'] = symbolStats[symbol]!['wins']! + 1;
+        } else if (profitLoss < 0) {
+          symbolStats[symbol]!['losses'] = symbolStats[symbol]!['losses']! + 1;
+        }
+      }
+
+      // Track buy/sell times for hold duration
+      if (symbol != null && timestampStr != null) {
+        final timestamp = DateTime.tryParse(timestampStr);
+        if (timestamp != null) {
+          if (action == 'BUY') {
+            buyTimes[symbol] = timestamp;
+          } else if (action == 'SELL' && buyTimes.containsKey(symbol)) {
+            final buyTime = buyTimes[symbol]!;
+            final holdDuration = timestamp.difference(buyTime).inMinutes;
+            if (holdDuration > 0) {
+              holdTimes.add(holdDuration);
+            }
+            buyTimes.remove(symbol);
+          }
+
+          // Time of day win rate (for SELL orders only)
+          if (action == 'SELL' && profitLoss != null) {
+            final hour = timestamp.hour;
+            String timeSlot;
+            if (hour >= 9 && hour < 12) {
+              timeSlot = 'Morning (9-12)';
+            } else if (hour >= 12 && hour < 15) {
+              timeSlot = 'Afternoon (12-3)';
+            } else if (hour >= 15 && hour < 16) {
+              timeSlot = 'Late Day (3-4)';
+            } else {
+              continue; // Skip extended hours for this analysis
+            }
+
+            if (profitLoss > 0) {
+              timeOfDayStats[timeSlot]!['wins'] =
+                  timeOfDayStats[timeSlot]!['wins']! + 1;
+            } else if (profitLoss < 0) {
+              timeOfDayStats[timeSlot]!['losses'] =
+                  timeOfDayStats[timeSlot]!['losses']! + 1;
+            }
+          }
+        }
+      }
+    }
+
+    final avgHoldTimeMinutes = holdTimes.isNotEmpty
+        ? holdTimes.reduce((a, b) => a + b) / holdTimes.length
+        : 0.0;
+
     return {
       'totalTrades': totalTrades,
       'wins': wins,
@@ -1132,7 +1228,373 @@ class _AgenticTradingPerformanceWidgetState
       'stopLossExits': stopLossExits,
       'bestTrade': bestTrade,
       'worstTrade': worstTrade,
+      'sharpeRatio': sharpeRatio,
+      'symbolStats': symbolStats,
+      'avgHoldTimeMinutes': avgHoldTimeMinutes,
+      'timeOfDayStats': timeOfDayStats,
     };
+  }
+
+  Widget _buildAdvancedAnalyticsCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final sharpeRatio = stats['sharpeRatio'] as double? ?? 0.0;
+    final avgHoldTimeMinutes = stats['avgHoldTimeMinutes'] as double? ?? 0.0;
+    final hours = (avgHoldTimeMinutes / 60).floor();
+    final minutes = (avgHoldTimeMinutes % 60).round();
+    final holdTimeDisplay = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.insights, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Advanced Analytics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.speed,
+                          size: 32,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sharpe Ratio',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        Text(
+                          sharpeRatio.toStringAsFixed(2),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: sharpeRatio > 1
+                                ? Colors.green
+                                : sharpeRatio > 0
+                                    ? Colors.orange
+                                    : Colors.red,
+                          ),
+                        ),
+                        Text(
+                          sharpeRatio > 1
+                              ? 'Good'
+                              : sharpeRatio > 0
+                                  ? 'Fair'
+                                  : 'Poor',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color:
+                          colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 32,
+                          color: colorScheme.secondary,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Avg Hold Time',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                        Text(
+                          holdTimeDisplay,
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.secondary,
+                          ),
+                        ),
+                        Text(
+                          avgHoldTimeMinutes > 0 ? 'Per trade' : 'N/A',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeOfDayCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final timeOfDayStats =
+        stats['timeOfDayStats'] as Map<String, Map<String, int>>? ?? {};
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.schedule, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Performance by Time of Day',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...timeOfDayStats.entries.map((entry) {
+              final timeSlot = entry.key;
+              final wins = entry.value['wins'] ?? 0;
+              final losses = entry.value['losses'] ?? 0;
+              final total = wins + losses;
+              final winRate = total > 0 ? wins / total : 0.0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          timeSlot,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          total > 0 ? '${wins}W / ${losses}L' : 'No trades',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: total > 0 ? winRate : 0.0,
+                              minHeight: 8,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                winRate >= 0.6
+                                    ? Colors.green
+                                    : winRate >= 0.4
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 50,
+                          child: Text(
+                            total > 0 ? _percentFormat.format(winRate) : '-',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: total > 0
+                                  ? (winRate >= 0.6
+                                      ? Colors.green
+                                      : winRate >= 0.4
+                                          ? Colors.orange
+                                          : Colors.red)
+                                  : colorScheme.onSurface
+                                      .withValues(alpha: 0.5),
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSymbolPerformanceCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final symbolStats =
+        stats['symbolStats'] as Map<String, Map<String, int>>? ?? {};
+
+    if (symbolStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Sort symbols by total trades
+    final sortedSymbols = symbolStats.entries.toList()
+      ..sort((a, b) => b.value['total']!.compareTo(a.value['total']!));
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.bar_chart, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Performance by Symbol',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...sortedSymbols.take(10).map((entry) {
+              final symbol = entry.key;
+              final wins = entry.value['wins']!;
+              final losses = entry.value['losses']!;
+              final total = entry.value['total']!;
+              final winRate = total > 0 ? wins / total : 0.0;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          symbol,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${wins}W / ${losses}L',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: winRate,
+                              minHeight: 8,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                winRate >= 0.6
+                                    ? Colors.green
+                                    : winRate >= 0.4
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _percentFormat.format(winRate),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: winRate >= 0.6
+                                ? Colors.green
+                                : winRate >= 0.4
+                                    ? Colors.orange
+                                    : Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatKey(String key) {
