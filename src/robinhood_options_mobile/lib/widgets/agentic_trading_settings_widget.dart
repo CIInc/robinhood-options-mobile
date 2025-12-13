@@ -157,7 +157,7 @@ class _AgenticTradingSettingsWidgetState
               });
               _saveSettings();
             },
-            activeColor: colorScheme.primary,
+            activeThumbColor: colorScheme.primary,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -332,7 +332,7 @@ class _AgenticTradingSettingsWidgetState
                         }
                         _saveSettings();
                       },
-                      activeColor: colorScheme.primary,
+                      activeThumbColor: colorScheme.primary,
                     ),
                   ),
                 ),
@@ -401,7 +401,7 @@ class _AgenticTradingSettingsWidgetState
                               });
                               _saveSettings();
                             },
-                            activeColor: colorScheme.primary,
+                            activeThumbColor: colorScheme.primary,
                             contentPadding: EdgeInsets.zero,
                           ),
                           const SizedBox(height: 16),
@@ -880,7 +880,7 @@ class _AgenticTradingSettingsWidgetState
                                     });
                                     _saveSettings();
                                   },
-                                  activeColor: colorScheme.primary,
+                                  activeThumbColor: colorScheme.primary,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
                                     vertical: 4.0,
@@ -909,7 +909,7 @@ class _AgenticTradingSettingsWidgetState
                                     });
                                     _saveSettings();
                                   },
-                                  activeColor: colorScheme.primary,
+                                  activeThumbColor: colorScheme.primary,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16.0,
                                     vertical: 4.0,
@@ -923,7 +923,7 @@ class _AgenticTradingSettingsWidgetState
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color:
-                                  colorScheme.surfaceVariant.withOpacity(0.5),
+                                  colorScheme.surfaceContainerHighest.withOpacity(0.5),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: colorScheme.outline.withOpacity(0.3),

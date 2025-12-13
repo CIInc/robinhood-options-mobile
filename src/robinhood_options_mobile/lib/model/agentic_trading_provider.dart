@@ -31,7 +31,7 @@ class AgenticTradingProvider with ChangeNotifier {
   int _dailyTradeCount = 0;
   DateTime? _dailyTradeCountResetDate;
   bool _emergencyStopActivated = false;
-  List<Map<String, dynamic>> _autoTradeHistory = [];
+  final List<Map<String, dynamic>> _autoTradeHistory = [];
   // Track automated BUY trades for TP/SL monitoring (with quantity and entry price)
   // Each entry: {symbol, quantity, entryPrice, timestamp}
   List<Map<String, dynamic>> _automatedBuyTrades = [];
