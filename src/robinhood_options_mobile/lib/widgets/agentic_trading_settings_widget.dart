@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_provider.dart';
 import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/widgets/agentic_trading_performance_widget.dart';
 
 class AgenticTradingSettingsWidget extends StatefulWidget {
   final User user;
@@ -635,22 +636,47 @@ class _AgenticTradingSettingsWidgetState
                               ),
                             ),
                           const SizedBox(height: 16),
-                          Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: agenticTradingProvider
-                                          .emergencyStopActivated
-                                      ? null
-                                      : () {
-                                          agenticTradingProvider
-                                              .activateEmergencyStop();
-                                        },
-                                  icon: const Icon(Icons.stop, size: 18),
-                                  label: const Text('Emergency Stop'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: colorScheme.error,
-                                    side: BorderSide(color: colorScheme.error),
+                              OutlinedButton.icon(
+                                onPressed: agenticTradingProvider
+                                        .emergencyStopActivated
+                                    ? null
+                                    : () {
+                                        agenticTradingProvider
+                                            .activateEmergencyStop();
+                                      },
+                                icon: const Icon(Icons.stop, size: 18),
+                                label: const Text('Emergency Stop'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: colorScheme.error,
+                                  side: BorderSide(color: colorScheme.error),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                    horizontal: 16,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const AgenticTradingPerformanceWidget(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.analytics, size: 18),
+                                label: const Text('View Performance'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.primaryContainer,
+                                  foregroundColor: colorScheme.onPrimaryContainer,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                    horizontal: 16,
                                   ),
                                 ),
                               ),
