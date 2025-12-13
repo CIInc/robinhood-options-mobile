@@ -116,7 +116,11 @@ class _AgenticTradingPerformanceWidgetState
           const SizedBox(height: 16),
           _buildAdvancedAnalyticsCard(stats, colorScheme),
           const SizedBox(height: 16),
+          _buildRiskMetricsCard(stats, colorScheme),
+          const SizedBox(height: 16),
           _buildTimeOfDayCard(stats, colorScheme),
+          const SizedBox(height: 16),
+          _buildIndicatorComboCard(stats, colorScheme),
           const SizedBox(height: 16),
           _buildSymbolPerformanceCard(stats, colorScheme),
         ],
@@ -1083,10 +1087,19 @@ class _AgenticTradingPerformanceWidgetState
     int takeProfitExits = 0;
     int stopLossExits = 0;
     double totalPnL = 0.0;
+    double totalWinAmount = 0.0;
+    double totalLossAmount = 0.0;
     Map<String, dynamic>? bestTrade;
     Map<String, dynamic>? worstTrade;
     double bestPnL = double.negativeInfinity;
     double worstPnL = double.infinity;
+    int currentStreak = 0;
+    int longestWinStreak = 0;
+    int longestLossStreak = 0;
+    bool lastWasWin = false;
+    double runningPnL = 0.0;
+    double maxPnL = 0.0;
+    double maxDrawdown = 0.0;
 
     for (final trade in history) {
       final action = trade['action'] as String? ?? '';
@@ -1099,11 +1112,45 @@ class _AgenticTradingPerformanceWidgetState
 
       if (profitLoss != null) {
         totalPnL += profitLoss;
+        runningPnL += profitLoss;
+
+        // Track max P&L and drawdown
+        if (runningPnL > maxPnL) {
+          maxPnL = runningPnL;
+        }
+        final drawdown = maxPnL - runningPnL;
+        if (drawdown > maxDrawdown) {
+          maxDrawdown = drawdown;
+        }
 
         if (profitLoss > 0) {
           wins++;
+          totalWinAmount += profitLoss;
+
+          // Track win streaks
+          if (lastWasWin) {
+            currentStreak++;
+          } else {
+            currentStreak = 1;
+            lastWasWin = true;
+          }
+          if (currentStreak > longestWinStreak) {
+            longestWinStreak = currentStreak;
+          }
         } else if (profitLoss < 0) {
           losses++;
+          totalLossAmount += profitLoss.abs();
+
+          // Track loss streaks
+          if (!lastWasWin) {
+            currentStreak++;
+          } else {
+            currentStreak = 1;
+            lastWasWin = false;
+          }
+          if (currentStreak > longestLossStreak) {
+            longestLossStreak = currentStreak;
+          }
         }
 
         if (profitLoss > bestPnL) {
@@ -1126,6 +1173,15 @@ class _AgenticTradingPerformanceWidgetState
 
     final successRate = totalTrades > 0 ? wins / totalTrades : 0.0;
     final avgPnL = totalTrades > 0 ? totalPnL / totalTrades : 0.0;
+
+    // Profit Factor = Gross Profit / Gross Loss
+    final profitFactor =
+        totalLossAmount > 0 ? totalWinAmount / totalLossAmount : 0.0;
+
+    // Expectancy = (Avg Win * Win Rate) - (Avg Loss * Loss Rate)
+    final avgWin = wins > 0 ? totalWinAmount / wins : 0.0;
+    final avgLoss = losses > 0 ? totalLossAmount / losses : 0.0;
+    final expectancy = (avgWin * successRate) - (avgLoss * (1 - successRate));
 
     // Calculate Sharpe Ratio (risk-adjusted returns)
     double sharpeRatio = 0.0;
@@ -1216,6 +1272,31 @@ class _AgenticTradingPerformanceWidgetState
         ? holdTimes.reduce((a, b) => a + b) / holdTimes.length
         : 0.0;
 
+    // Calculate win rate by indicator combination
+    final Map<String, Map<String, int>> indicatorComboStats = {};
+    for (final trade in history) {
+      final profitLoss = trade['profitLoss'] as double?;
+      final indicators = trade['enabledIndicators'];
+      if (profitLoss != null && indicators is List && indicators.isNotEmpty) {
+        final comboKey = indicators.cast<String>().toList()..sort();
+        final comboString = comboKey.join('+');
+        indicatorComboStats[comboString] ??= {
+          'wins': 0,
+          'losses': 0,
+          'total': 0
+        };
+        indicatorComboStats[comboString]!['total'] =
+            indicatorComboStats[comboString]!['total']! + 1;
+        if (profitLoss > 0) {
+          indicatorComboStats[comboString]!['wins'] =
+              indicatorComboStats[comboString]!['wins']! + 1;
+        } else if (profitLoss < 0) {
+          indicatorComboStats[comboString]!['losses'] =
+              indicatorComboStats[comboString]!['losses']! + 1;
+        }
+      }
+    }
+
     return {
       'totalTrades': totalTrades,
       'wins': wins,
@@ -1232,6 +1313,12 @@ class _AgenticTradingPerformanceWidgetState
       'symbolStats': symbolStats,
       'avgHoldTimeMinutes': avgHoldTimeMinutes,
       'timeOfDayStats': timeOfDayStats,
+      'indicatorComboStats': indicatorComboStats,
+      'profitFactor': profitFactor,
+      'expectancy': expectancy,
+      'longestWinStreak': longestWinStreak,
+      'longestLossStreak': longestLossStreak,
+      'maxDrawdown': maxDrawdown,
     };
   }
 
@@ -1241,6 +1328,9 @@ class _AgenticTradingPerformanceWidgetState
   ) {
     final sharpeRatio = stats['sharpeRatio'] as double? ?? 0.0;
     final avgHoldTimeMinutes = stats['avgHoldTimeMinutes'] as double? ?? 0.0;
+    final profitFactor = stats['profitFactor'] as double? ?? 0.0;
+    final expectancy = stats['expectancy'] as double? ?? 0.0;
+
     final hours = (avgHoldTimeMinutes / 60).floor();
     final minutes = (avgHoldTimeMinutes % 60).round();
     final holdTimeDisplay = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
@@ -1364,6 +1454,299 @@ class _AgenticTradingPerformanceWidgetState
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (profitFactor > 2
+                              ? Colors.green
+                              : profitFactor > 1
+                                  ? Colors.orange
+                                  : Colors.red)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (profitFactor > 2
+                                ? Colors.green
+                                : profitFactor > 1
+                                    ? Colors.orange
+                                    : Colors.red)
+                            .withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.trending_up,
+                          size: 24,
+                          color: profitFactor > 2
+                              ? Colors.green
+                              : profitFactor > 1
+                                  ? Colors.orange
+                                  : Colors.red,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Profit Factor',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          profitFactor.toStringAsFixed(2),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: profitFactor > 2
+                                ? Colors.green
+                                : profitFactor > 1
+                                    ? Colors.orange
+                                    : Colors.red,
+                          ),
+                        ),
+                        Text(
+                          profitFactor > 1 ? 'Profitable' : 'Losing',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (expectancy > 0 ? Colors.green : Colors.red)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: (expectancy > 0 ? Colors.green : Colors.red)
+                            .withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.calculate,
+                          size: 24,
+                          color: expectancy > 0 ? Colors.green : Colors.red,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Expectancy',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _currencyFormat.format(expectancy),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: expectancy > 0 ? Colors.green : Colors.red,
+                          ),
+                        ),
+                        Text(
+                          'Per trade',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRiskMetricsCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final longestWinStreak = stats['longestWinStreak'] as int? ?? 0;
+    final longestLossStreak = stats['longestLossStreak'] as int? ?? 0;
+    final maxDrawdown = stats['maxDrawdown'] as double? ?? 0.0;
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.shield, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Risk Metrics',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: Colors.green.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.local_fire_department,
+                            size: 24, color: Colors.green),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Win Streak',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          longestWinStreak.toString(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                        Text(
+                          'Best run',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.trending_down,
+                            size: 24, color: Colors.red),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Loss Streak',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          longestLossStreak.toString(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                        Text(
+                          'Worst run',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurface.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: (maxDrawdown > 0 ? Colors.orange : colorScheme.surface)
+                    .withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (maxDrawdown > 0 ? Colors.orange : colorScheme.outline)
+                      .withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.show_chart,
+                    size: 24,
+                    color:
+                        maxDrawdown > 0 ? Colors.orange : colorScheme.primary,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Max Drawdown',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _currencyFormat.format(maxDrawdown),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          maxDrawdown > 0 ? Colors.orange : colorScheme.primary,
+                    ),
+                  ),
+                  Text(
+                    maxDrawdown > 0 ? 'Peak to trough' : 'No drawdown yet',
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1467,6 +1850,161 @@ class _AgenticTradingPerformanceWidgetState
                                           : Colors.red)
                                   : colorScheme.onSurface
                                       .withValues(alpha: 0.5),
+                            ),
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicatorComboCard(
+    Map<String, dynamic> stats,
+    ColorScheme colorScheme,
+  ) {
+    final indicatorComboStats =
+        stats['indicatorComboStats'] as Map<String, Map<String, int>>? ?? {};
+
+    if (indicatorComboStats.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Sort combos by win rate, then by total trades
+    final sortedCombos = indicatorComboStats.entries.toList()
+      ..sort((a, b) {
+        final aTotal = a.value['total']!;
+        final bTotal = b.value['total']!;
+        final aWins = a.value['wins']!;
+        final bWins = b.value['wins']!;
+        final aRate = aTotal > 0 ? aWins / aTotal : 0.0;
+        final bRate = bTotal > 0 ? bWins / bTotal : 0.0;
+        if (aRate != bRate)
+          return bRate.compareTo(aRate); // Higher win rate first
+        return bTotal.compareTo(aTotal); // Then by volume
+      });
+
+    // Helper to format indicator names
+    String formatIndicatorName(String key) {
+      const Map<String, String> labels = {
+        'priceMovement': 'Price',
+        'momentum': 'RSI',
+        'marketDirection': 'Market',
+        'volume': 'Volume',
+        'macd': 'MACD',
+        'bollingerBands': 'BB',
+        'stochastic': 'Stoch',
+        'atr': 'ATR',
+        'obv': 'OBV',
+      };
+      return labels[key] ?? key;
+    }
+
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.category, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Performance by Indicator Combo',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...sortedCombos.take(8).map((entry) {
+              final comboString = entry.key;
+              final wins = entry.value['wins']!;
+              final losses = entry.value['losses']!;
+              final total = entry.value['total']!;
+              final winRate = total > 0 ? wins / total : 0.0;
+
+              // Format combo display
+              final indicators = comboString.split('+');
+              final displayNames = indicators.map(formatIndicatorName).toList();
+              final displayCombo = displayNames.join(' + ');
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayCombo,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${wins}W / ${losses}L',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: winRate,
+                              minHeight: 8,
+                              backgroundColor:
+                                  Colors.red.withValues(alpha: 0.2),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                winRate >= 0.7
+                                    ? Colors.green
+                                    : winRate >= 0.5
+                                        ? Colors.orange
+                                        : Colors.red,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 50,
+                          child: Text(
+                            _percentFormat.format(winRate),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: winRate >= 0.7
+                                  ? Colors.green
+                                  : winRate >= 0.5
+                                      ? Colors.orange
+                                      : Colors.red,
                             ),
                             textAlign: TextAlign.end,
                           ),

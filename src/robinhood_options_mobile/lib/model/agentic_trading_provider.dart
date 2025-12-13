@@ -787,6 +787,13 @@ class AgenticTradingProvider with ChangeNotifier {
                     'entryPrice': currentPrice,
                     'highestPrice': currentPrice,
                     'timestamp': DateTime.now().toIso8601String(),
+                    'enabledIndicators': List<String>.from(
+                      (_config['enabledIndicators'] as Map<String, dynamic>? ??
+                              {})
+                          .entries
+                          .where((e) => e.value == true)
+                          .map((e) => e.key),
+                    ),
                   });
                   debugPrint(
                       '📝 Added automated BUY trade: $symbol x$quantity @ \$$currentPrice for TP/SL tracking');
@@ -1079,6 +1086,7 @@ class AgenticTradingProvider with ChangeNotifier {
                   'profitLossPercent': profitLossPercent,
                   'reason': exitReason,
                   'orderResponse': orderResponse.body,
+                  'enabledIndicators': buyTrade['enabledIndicators'] ?? [],
                 };
 
                 executedExits.add(exitRecord);
