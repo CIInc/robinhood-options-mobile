@@ -112,8 +112,118 @@ Future<Map<String, dynamic>> autoTrade({
    - Log analytics events
    - Update UI state
    - Enforce rate limiting between trades
+   - **Record enabledIndicators snapshot for performance analysis**
+   - **Mark trade as real or paper mode**
 
-### Take Profit / Stop Loss Monitoring
+### Advanced Performance Analytics
+
+The `AgenticTradingPerformanceWidget` provides comprehensive trading insights across 9 analytics cards:
+
+**1. Performance Overview**
+- Total trades executed
+- Win/loss counts and success rate
+- Average P&L per trade
+- Total P&L summary
+
+**2. Profit & Loss**
+- Total P&L amount
+- Average P&L per trade
+- Winning trades total
+- Losing trades total
+- Breakdown by entry/exit type
+
+**3. Trade Breakdown**
+- Entry counts (BUY orders)
+- Take Profit exits
+- Stop Loss exits
+- **Trailing Stop exits**
+- Distribution visualization
+
+**4. Best & Worst Trades**
+- Best performing trade details
+- Worst performing trade details
+- P&L amounts
+- Entry/exit prices
+- Hold duration
+
+**5. Advanced Analytics (4-Metric Grid)**
+- **Sharpe Ratio**: Risk-adjusted returns (Good >1, Fair 0-1, Poor <0)
+  - Calculates annualized return / volatility
+  - Indicates quality of returns per unit of risk
+- **Average Hold Time**: Position duration in hours and minutes
+  - Tracks from BUY to SELL
+  - Helps optimize exit timing strategies
+- **Profit Factor**: Gross profit / Gross loss ratio
+  - Values > 1 indicate profitable system
+  - Higher values show better profitability
+- **Expectancy**: Expected profit per trade (in dollars)
+  - Formula: (Avg Win × Win Rate) - (Avg Loss × Loss Rate)
+  - Critical metric for strategy validation
+
+**6. Risk Metrics**
+- **Longest Win Streak**: Best consecutive winning trades
+- **Longest Loss Streak**: Worst consecutive losing trades  
+- **Max Drawdown**: Peak-to-trough equity decline
+  - Helps assess portfolio risk
+  - Important for risk management
+
+**7. Performance by Time of Day**
+- Morning (9am-12pm): Win rates, trade counts, avg P&L
+- Afternoon (12pm-3pm): Win rates, trade counts, avg P&L
+- Late Day (3pm-4pm): Win rates, trade counts, avg P&L
+- **Color-coded**: Green (≥60%), Orange (40-59%), Red (<40%)
+- Helps identify optimal trading windows
+
+**8. Performance by Indicator Combo** *(v1.3)*
+- Tracks active indicators at execution time
+- Groups trades by unique indicator combination
+- Win/loss rate for each combination
+- Shows which indicator sets are most effective
+- Top 8 combinations displayed
+- Abbreviated names: Price, RSI, Market, Volume, MACD, BB, Stoch, ATR, OBV
+- Enables strategy optimization
+
+**9. Performance by Symbol**
+- Top 10 traded symbols
+- Win rate per symbol
+- Trade counts
+- Total P&L by symbol
+- Average hold time
+- Identifies best and worst performing stocks
+
+**Paper vs Real Performance Tracking** *(v1.3)*
+- **Filter chips**: All Trades / Paper Mode / Real Trades
+- **Paper trades**: Simulated execution without broker API calls
+- **Real trades**: Actual executed orders
+- **Same analytics**: Both modes calculated identically
+- **Comparison**: Validate strategies in paper mode before going live
+- **Visual indicators**: PAPER badges on paper mode trades
+
+**Key Metrics Explained:**
+
+*Sharpe Ratio*
+- Measures return vs volatility
+- Higher = better risk-adjusted returns
+- Used to compare different strategies fairly
+- Good >1, Fair 0-1, Poor <0
+
+*Profit Factor*
+- Simple profitability measure
+- PF > 1 = profitable
+- PF > 2 = excellent (2:1 or better win/loss)
+- PF < 1 = money losing strategy
+
+*Expectancy*
+- Average profit per trade
+- Positive expectancy = strategy is profitable
+- Crucial for validating trading system
+- (Winning trades × Win rate) - (Losing trades × Loss rate)
+
+*Max Drawdown*
+- Largest peak-to-trough decline
+- Important risk metric
+- Helps set stop-loss levels
+- Shows portfolio volatility
 
 The `monitorTakeProfitStopLoss()` method automatically exits positions when targets are met:
 
@@ -130,29 +240,37 @@ Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
 **Monitoring Flow:**
 1. **Position Filtering**
    - Check only positions created by automated trading
-   - Positions tracked in `_automatedPositions` set
+   - Positions tracked in `_automatedBuyTrades` list
    - Manual trades and pre-existing positions are NOT monitored
 
 2. **Position Analysis**
-   - Iterate through automated positions
-   - Extract entry price (averageBuyPrice) and current price
-   - Calculate profit/loss percentage
+   - Iterate through automated trade records
+   - Extract entry price and current price
+   - Calculate profit/loss percentage using trade record's entry price
+   - **Update highestPrice for trailing stop tracking**
 
 3. **Threshold Checks**
    - If P/L >= `takeProfitPercent`: Trigger Take Profit exit
    - If P/L <= -`stopLossPercent`: Trigger Stop Loss exit
+   - **If Trailing Stop enabled: Check if price dropped below (highestPrice - trailingStopPercent)**
 
 4. **Order Execution**
+   - **Check `paperTradingMode`: Simulate or execute real order**
    - Fetch instrument data for the symbol
-   - Place SELL order through brokerage service
+   - Place SELL order through brokerage service (or simulate in paper mode)
    - Validate order response (200/201 status)
-   - Remove symbol from automated positions tracking
+   - Remove trade record from `_automatedBuyTrades`
    - Track exit in history with reason and P/L%
 
 5. **Analytics & Logging**
    - Log exit execution events
    - Track failures separately
-   - Update trade history
+   - Update trade history with paper/real indicator
+   - Record exit reason (Take Profit/Stop Loss/Trailing Stop)
+
+6. **Persistence**
+   - **Save updated trades list to Firebase after exits**
+   - Ensures accuracy across sessions
 
 **Integration:**
 - Runs every 5 minutes as part of auto-trade timer
@@ -163,21 +281,48 @@ Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
 
 **Trade-Level Tracking:**
 - When automated BUY order executes: Trade record added to `_automatedBuyTrades`
-- Record contains: `{symbol, quantity, entryPrice, timestamp}`
-- When TP/SL exit executes: Specific trade record removed
+- Record contains: `{symbol, quantity, entryPrice, timestamp, enabledIndicators, paperMode, highestPrice}`
+- When TP/SL/Trailing Stop exit executes: Specific trade record removed
 - Manual trades: Never added to tracking, never monitored for TP/SL
 - **Stored in Firebase**: `users/{userId}/automated_buy_trades` subcollection
 - **Persists across**: App restarts and device changes
 
+**Trailing Stop Loss:**
+- **Activated when**: `trailingStopEnabled = true` and `trailingStopPercent` configured
+- **Tracks**: `highestPrice` for each automated trade
+- **Exits when**: Current price drops more than `trailingStopPercent` below peak
+- **Benefit**: Locks in gains while allowing further upside
+- **Example**: Entry $100, peak $120, trailing stop 5% → Exit trigger at $114
+
+**Paper Trading Simulation:**
+- **`paperTradingMode = true`**: Calls `_simulatePaperOrder()` instead of broker API
+- **Creates realistic response**: With all expected fields (id, status, executions)
+- **Tracks identically**: Same P/L, analytics, exit reasons
+- **Persists to Firebase**: Marked with `paperMode: true` flag
+- **Filtered in analytics**: Paper vs real trade comparison available
+
 **Example - Automated Position:**
 ```
 Auto-trade buys: 10 AAPL at $150 → Trade record created
-Record: {symbol: 'AAPL', quantity: 10, entryPrice: 150.00, timestamp: '...'}
-Current price: $165
+Record: {symbol: 'AAPL', quantity: 10, entryPrice: 150.00, timestamp: '...', enabledIndicators: ['momentum', 'macd'], paperMode: false, highestPrice: 150.00}
+Current price: $165 → highestPrice updated to 165.00
 P/L = ((165 - 150) / 150) * 100 = 10%
+
+Scenario 1 - Take Profit:
 If takeProfitPercent = 10%: Trigger SELL 10 shares
-After exit: Trade record removed from _automatedBuyTrades
+After exit: Trade record removed, analytics updated
+
+Scenario 2 - Trailing Stop:
+If trailingStopEnabled = true, trailingStopPercent = 3%
+Price rises to $170 (highestPrice = 170.00)
+Price drops to $165 (drop = 2.9%, below 3% threshold)
+No exit yet
+
+Price drops to $164.80 (drop = 3.05%, exceeds 3% threshold)
+Trigger SELL 10 shares at $164.80
+Locked in profit from $150 to $164.80
 ```
+````
 
 **Example - Manual + Automated Same Symbol:**
 ```
@@ -207,20 +352,29 @@ Result: Two separate entries, tracked and managed independently
 **Automated Buy Trades Storage:**
 - **Collection Path**: `users/{userId}/automated_buy_trades`
 - **Document Structure**: Each trade as a separate document
-- **Fields**: `symbol`, `quantity`, `entryPrice`, `timestamp`
+- **Fields**: 
+  - `symbol`: Stock symbol (string)
+  - `quantity`: Number of shares (int)
+  - `entryPrice`: Entry price per share (double)
+  - `timestamp`: Execution time (ISO string)
+  - `enabledIndicators`: Active indicators at trade time (List<String>) *(v1.3)*
+  - `paperMode`: Whether trade was simulated (bool) *(v1.3)*
+  - `highestPrice`: Peak price for trailing stop tracking (double) *(v1.3)*
 - **Security Rules**: Updated firestore.rules to allow read/write for authenticated users
 
 **Automatic Saving:**
 - Trades saved immediately after BUY order execution
-- Trades removed immediately after TP/SL exit
+- Trades removed immediately after TP/SL/Trailing Stop exit
 - Ensures data integrity across app restarts
 - Field validation on load for data integrity
+- **Paper trades**: Persisted identically to real trades (marked with `paperMode: true`)
 
 **Loading:**
 - Trades loaded on user login (via `loadAutomatedBuyTradesFromFirestore`)
 - Automatic sync across devices
 - Enables continuous TP/SL monitoring across sessions
 - Try-catch error handling for robustness
+- Validates all required fields when loading
 
 **Benefits:**
 - **Persistence**: Survives app crashes and restarts
@@ -228,23 +382,46 @@ Result: Two separate entries, tracked and managed independently
 - **Reliability**: Firebase ensures data availability
 - **History**: Complete audit trail of automated trades
 - **Security**: Firestore rules protect user data
+- **Analytics**: enabledIndicators enable performance analysis by indicator combination
+- **Paper Tracking**: Separates paper and real trades for comparison
 
 **Example Workflow:**
 ```
 Session 1:
-- User enables auto-trading
+- User enables auto-trading in Paper Mode
 - Auto-trade buys 3 positions
-- Trades saved to Firebase subcollection
+- Trades saved to Firebase with paperMode: true and enabledIndicators snapshot
 
 App restart:
 - User logs in
 - Trades loaded from Firebase automatically
 - TP/SL monitoring resumes seamlessly
+- Analytics filters show Paper trades separately
+
+Switch to Real Mode:
+- User disables Paper Mode
+- Next trades execute with paperMode: false
+- Analytics now show both paper and real performance
+- Can compare strategy effectiveness
 
 Device switch:
 - User logs in on new device (tablet)
-- Trades sync from Firebase
+- All trades sync from Firebase
 - Full functionality restored instantly
+- Analytics updated with latest metrics
+```
+
+**Trade Record Example:**
+```json
+{
+  "symbol": "AAPL",
+  "quantity": 10,
+  "entryPrice": 150.25,
+  "timestamp": "2025-12-13T14:30:45.123Z",
+  "enabledIndicators": ["momentum", "macd", "volume"],
+  "paperMode": false,
+  "highestPrice": 155.50
+}
 ```
 
 ### Provider Architecture
@@ -866,6 +1043,18 @@ Navigator.push(
 ```
 
 ## Version History
+
+- **v1.3** (2025-12-13): Advanced analytics and paper trading
+  - Added Paper Trading Mode for risk-free strategy testing
+  - Added 9 comprehensive analytics cards in Performance Widget
+  - Added advanced metrics: Sharpe Ratio, Profit Factor, Expectancy
+  - Added risk metrics: Win/Loss Streaks, Max Drawdown
+  - Added Performance by Time of Day analysis
+  - Added Performance by Indicator Combo tracking
+  - Added trailing stop loss support
+  - Added filter chips for paper vs real trade performance
+  - Enhanced trade records with enabledIndicators snapshot
+  - Color-coded performance indicators (green/orange/red)
 
 - **v1.2** (2025-12-10): Architecture refactoring (commit 861f2bc)
   - Added TradeSignalsProvider for centralized signal management

@@ -4,6 +4,92 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.18.0] - 2025-12-13
+
+### Added
+- **Paper Trading Mode:** Risk-free strategy testing with simulated trade execution
+  - Toggle in Auto-Trade Configuration section
+  - Simulates order responses without calling broker API
+  - Tracks paper trades identically to real trades with all analytics
+  - Visual PAPER badges throughout UI
+  - Filter performance by paper vs real trades
+  - Perfect for validating strategies before risking capital
+
+- **Advanced Performance Analytics Dashboard:** 9 comprehensive analytics cards in Performance Widget
+  - **Performance Overview:** Total trades, success rate, win/loss counts
+  - **Profit & Loss:** Total P&L, average per trade, breakdown
+  - **Trade Breakdown:** Entry/exit counts by type (Buy, Take Profit, Stop Loss, Trailing Stop)
+  - **Best & Worst Trades:** Highlights with P&L details
+  - **Advanced Analytics (4 metrics):**
+    - Sharpe Ratio: Risk-adjusted returns (Good >1, Fair 0-1, Poor <0)
+    - Average Hold Time: Position duration in hours and minutes
+    - Profit Factor: Gross profit / Gross loss ratio (Profitable >1)
+    - Expectancy: Expected profit per trade in dollars
+  - **Risk Metrics:**
+    - Longest Win Streak: Best consecutive winning trades
+    - Longest Loss Streak: Worst consecutive losing trades
+    - Max Drawdown: Peak to trough decline in equity
+  - **Performance by Time of Day:** Win rates across market hours (Morning/Afternoon/Late Day)
+  - **Performance by Indicator Combo:** Tracks which indicator combinations perform best
+  - **Performance by Symbol:** Stock-specific win rates (top 10)
+
+- **Indicator Combination Tracking:** Stores active indicators with each automated trade
+  - Snapshot of enabled indicators preserved in trade records
+  - Win/loss tracking for each unique indicator combination
+  - Top 8 combinations displayed with win rates
+  - Helps identify optimal indicator configurations
+  - Abbreviated indicator names (Price, RSI, Market, MACD, BB, Stoch, ATR, OBV)
+
+- **Trailing Stop Loss:** Dynamic stop loss that adjusts with profits
+  - Automatically raises stop loss as position becomes profitable
+  - Locks in gains while allowing further upside
+  - Configurable trailing distance (default 3%)
+  - Tracks highest price (peak) for each automated trade
+  - Exits when price drops specified % from peak
+  - Separate tracking from fixed stop loss
+
+### Changed
+- **Moved Paper Trading Mode** from Automated Trading section to Auto-Trade Configuration section for better logical grouping
+- **Enhanced Trade Records** to include `enabledIndicators` snapshot and `paperMode` flag
+- **Improved Performance Widget** with filter chips to view All/Paper/Real trades separately
+- **Enhanced Trade Cards** with PAPER badges for simulated trades
+- **Updated AgenticTradingConfig** model with `paperTradingMode` field
+
+### Performance
+- **Comprehensive Analytics:** Real-time calculation of 20+ trading performance metrics
+- **Streak Tracking:** Monitors consecutive wins and losses for behavioral insights
+- **Drawdown Monitoring:** Tracks maximum equity decline for risk assessment
+- **Hold Time Analysis:** Calculates average position duration
+- **Time-Based Performance:** Win rates by market hours (morning/afternoon/late day)
+- **Indicator Effectiveness:** Win rates by active indicator combinations
+
+### Technical Details
+- **Files Changed:** 
+  - `lib/model/agentic_trading_config.dart` - Added paperTradingMode field
+  - `lib/model/agentic_trading_provider.dart` - Added paper trade simulation, indicator snapshots, trailing stop, advanced metrics
+  - `lib/widgets/agentic_trading_settings_widget.dart` - Added Paper Trading Mode toggle in config section
+  - `lib/widgets/agentic_trading_performance_widget.dart` - Added 9 analytics cards with filters and comprehensive metrics
+- **New Methods:**
+  - `_simulatePaperOrder()` - Generates realistic simulated order responses
+  - `_filterHistory()` - Filters trades by paper/real mode
+  - `_buildFilterChips()` - UI for trade mode filtering
+  - `_buildAdvancedAnalyticsCard()` - 4-metric grid (Sharpe, Hold Time, Profit Factor, Expectancy)
+  - `_buildRiskMetricsCard()` - Streaks and drawdown display
+  - `_buildTimeOfDayCard()` - Win rates by market hours
+  - `_buildIndicatorComboCard()` - Performance by indicator combinations
+  - `_buildMetricBox()` - Reusable metric display component
+- **Config Fields Added:**
+  - `paperTradingMode: bool` (default: false)
+  - `trailingStopEnabled: bool` (default: false) 
+  - `trailingStopPercent: double` (default: 3.0)
+- **Trade Record Fields Added:**
+  - `enabledIndicators: List<String>` - Active indicators at execution time
+  - `paperMode: bool` - Tracks if trade was simulated
+  - `highestPrice: double` - Peak price for trailing stop tracking
+- **Statistics Tracked:**
+  - `profitFactor`, `expectancy`, `longestWinStreak`, `longestLossStreak`, `maxDrawdown`
+  - `avgHoldTimeMinutes`, `timeOfDayStats`, `indicatorComboStats`
+
 ## [0.17.6] - 2025-12-06
 
 ### Changed
