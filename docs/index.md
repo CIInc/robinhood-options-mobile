@@ -95,6 +95,37 @@ The Trade Signals feature provides AI-powered automatic trading capabilities usi
 For detailed technical documentation:
 - [Multi-Indicator Trading System](multi-indicator-trading.md) - Signal generation and analysis
 - [Agentic Trading](agentic-trading.md) - Autonomous trade execution and risk management
+- [Backtesting](backtesting.md) - Test strategies on historical data
+
+## Backtesting Interface
+
+The Backtesting Interface enables users to test trading strategies on historical data using the same multi-indicator system as live trading. This feature allows strategy validation, parameter optimization, and performance analysis before committing capital.
+
+### Key Features
+- **Historical Data Access:** Fetch OHLCV data for any symbol with multiple intervals (daily, hourly, 15-min)
+- **Strategy Builder:** Configure all 9 technical indicators with the same parameters as live trading
+- **Performance Metrics:** Comprehensive analysis including Sharpe ratio, max drawdown, win rate, profit factor
+- **Visual Results:** Trade-by-trade breakdown with entry/exit reasons and equity curves
+- **Template System:** Save and reuse backtest configurations
+- **Export Reports:** Save results as JSON for external analysis
+- **Result Comparison:** Compare multiple backtests side-by-side
+
+### Architecture
+- **Frontend:** Flutter UI with 3-tab interface (Run, History, Templates)
+- **Backend:** Firebase Functions for backtest execution using existing market data infrastructure
+- **Storage:** Firestore for backtest history and templates (last 50 runs per user)
+- **Integration:** Uses exact same `evaluateAllIndicators()` logic as live trading for consistency
+
+### Usage Flow
+1. Navigate to User Settings → Backtesting
+2. Configure symbol, date range, interval, and capital
+3. Enable desired indicators and set risk parameters (TP/SL/trailing stop)
+4. Run backtest to simulate historical trades
+5. Review results with key metrics and trade details
+6. Save configuration as template for future use
+7. Compare multiple backtests to optimize strategy
+
+For complete documentation, see [Backtesting](backtesting.md).
 
 ## Futures Positions Feature
 

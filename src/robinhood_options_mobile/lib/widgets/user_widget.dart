@@ -23,6 +23,7 @@ import 'package:robinhood_options_mobile/widgets/agentic_trading_settings_widget
 import 'package:robinhood_options_mobile/widgets/investment_profile_settings_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/trade_signal_notification_settings_widget.dart';
+import 'package:robinhood_options_mobile/widgets/backtesting_widget.dart';
 
 import 'package:robinhood_options_mobile/widgets/sliverappbar_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_info_widget.dart';
@@ -659,6 +660,26 @@ class _UserWidgetState extends State<UserWidget> {
                                             ),
                                           );
                                         }
+                                      },
+                                    ),
+                                    // Backtesting Interface
+                                    ListTile(
+                                      leading:
+                                          const Icon(Icons.history_outlined),
+                                      title: const Text('Backtesting'),
+                                      subtitle: const Text(
+                                          'Test strategies on historical data'),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () async {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                BacktestingWidget(
+                                              userDocRef: userDocumentReference,
+                                            ),
+                                          ),
+                                        );
                                       },
                                     ),
                                     // Trade Signal Notification Settings

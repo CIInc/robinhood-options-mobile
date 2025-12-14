@@ -26,6 +26,7 @@ import * as tradeSignalNotifications from "./trade-signal-notifications";
 import * as agenticTradingNotifications from "./agentic-trading-notifications";
 import * as cronDiagnosticsFuncs from "./cron-diagnostics";
 import * as signalDiagnosticsFuncs from "./signal-diagnostics";
+import * as backtesting from "./backtesting";
 // import * as alphaagent from "./alphaagent";
 
 // Start writing functions
@@ -73,3 +74,4 @@ export const sendAgenticTradeNotification =
   agenticTradingNotifications.sendAgenticTradeNotification;
 export const cronDiagnostics = cronDiagnosticsFuncs.cronDiagnostics;
 export const signalDiagnostics = signalDiagnosticsFuncs.signalDiagnostics;
+export const runBacktest = backtesting.runBacktest;

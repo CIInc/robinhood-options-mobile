@@ -53,6 +53,16 @@ service cloud.firestore {
         allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
         allow delete: if request.auth.token.role == 'admin';
       }
+      match /backtest_history/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      }
+      match /backtest_templates/{id} {
+        allow read : if request.auth.uid != null;
+        allow create, update: if request.auth.uid == uid || request.auth.token.role == 'admin';
+        allow delete: if request.auth.uid == uid || request.auth.token.role == 'admin';
+      }
     }
     match /instrument/{instrumentid} {
       allow read: if true;
