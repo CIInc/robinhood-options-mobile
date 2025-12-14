@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:community_charts_flutter/community_charts_flutter.dart'
+    as charts;
 import 'package:robinhood_options_mobile/model/backtesting_provider.dart';
 import 'package:robinhood_options_mobile/model/backtesting_models.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
+import 'package:robinhood_options_mobile/widgets/chart_time_series_widget.dart';
 
 /// Main backtesting interface widget
 class BacktestingWidget extends StatefulWidget {
@@ -729,19 +732,78 @@ class _BacktestRunTabState extends State<_BacktestRunTab> {
 }
 
 /// Detail page showing backtest results
-class _BacktestResultPage extends StatelessWidget {
+class _BacktestResultPage extends StatefulWidget {
   final BacktestResult result;
 
   const _BacktestResultPage({required this.result});
+
+  @override
+  State<_BacktestResultPage> createState() => _BacktestResultPageState();
+}
+
+class _BacktestResultPageState extends State<_BacktestResultPage> {
+  int? _selectedIndex;
+  final ScrollController _listScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _listScrollController.dispose();
+    super.dispose();
+  }
+
+  void _onChartSelectionChanged(charts.SelectionModel<DateTime>? model) {
+    if (model != null && model.hasDatumSelection) {
+      final selectedDatum = model.selectedDatum.first.datum as EquityPoint;
+
+      // Find index by comparing timestamps directly from equityCurve
+      final index = widget.result.equityCurve.indexWhere((point) {
+        final pointTimestamp = DateTime.parse(point['timestamp'] as String);
+        return pointTimestamp == selectedDatum.timestamp;
+      });
+
+      if (index != -1 && index != _selectedIndex) {
+        setState(() {
+          _selectedIndex = index;
+        });
+        // Delay scroll slightly to ensure list is rendered
+        Future.delayed(const Duration(milliseconds: 50), () {
+          _scrollToIndex(index);
+        });
+      }
+    } else {
+      if (_selectedIndex != null) {
+        setState(() {
+          _selectedIndex = null;
+        });
+      }
+    }
+  }
+
+  void _scrollToIndex(int index) {
+    if (_listScrollController.hasClients) {
+      final itemHeight = 52.0; // Card height with margin
+      final viewportHeight = _listScrollController.position.viewportDimension;
+      final targetPosition =
+          (index * itemHeight) - (viewportHeight / 2) + (itemHeight / 2);
+      final maxScroll = _listScrollController.position.maxScrollExtent;
+      final clampedPosition = targetPosition.clamp(0.0, maxScroll);
+
+      _listScrollController.animateTo(
+        clampedPosition,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   void _showSaveTemplateDialog(BuildContext context) {
     // Generate default name and description
     final dateFormat = DateFormat('MM/dd/yy');
     final defaultName =
-        '${result.config.symbol} ${result.config.interval} Strategy';
+        '${widget.result.config.symbol} ${widget.result.config.interval} Strategy';
     final defaultDescription =
-        '${result.config.symbol} backtest from ${dateFormat.format(result.config.startDate)} to ${dateFormat.format(result.config.endDate)} '
-        '(${result.totalTrades} trades, ${(result.winRate * 100).toStringAsFixed(1)}% win rate)';
+        '${widget.result.config.symbol} backtest from ${dateFormat.format(widget.result.config.startDate)} to ${dateFormat.format(widget.result.config.endDate)} '
+        '(${widget.result.totalTrades} trades, ${(widget.result.winRate * 100).toStringAsFixed(1)}% win rate)';
 
     final nameController = TextEditingController(text: defaultName);
     final descriptionController =
@@ -793,7 +855,7 @@ class _BacktestResultPage extends StatelessWidget {
                 await provider.saveConfigAsTemplate(
                   name: nameController.text.trim(),
                   description: descriptionController.text.trim(),
-                  config: result.config,
+                  config: widget.result.config,
                 );
                 if (context.mounted) {
                   Navigator.pop(dialogContext);
@@ -844,15 +906,15 @@ class _BacktestResultPage extends StatelessWidget {
       final provider = Provider.of<BacktestingProvider>(context, listen: false);
       // Find index of this result in history
       final index = provider.backtestHistory.indexWhere((r) =>
-          r.config.symbol == result.config.symbol &&
-          r.config.startDate == result.config.startDate &&
-          r.config.endDate == result.config.endDate &&
-          r.totalTrades == result.totalTrades);
+          r.config.symbol == widget.result.config.symbol &&
+          r.config.startDate == widget.result.config.startDate &&
+          r.config.endDate == widget.result.config.endDate &&
+          r.totalTrades == widget.result.totalTrades);
 
       if (index != -1) {
         await provider.deleteBacktestFromHistory(index);
         if (context.mounted) {
-          Navigator.pop(context); // Go back to history
+          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Backtest deleted from history')),
           );
@@ -864,7 +926,7 @@ class _BacktestResultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isProfit = result.totalReturn >= 0;
+    final isProfit = widget.result.totalReturn >= 0;
 
     return DefaultTabController(
       length: 4,
@@ -872,11 +934,10 @@ class _BacktestResultPage extends StatelessWidget {
         appBar: AppBar(
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Backtest Results', style: TextStyle(fontSize: 18)),
+              const Text('Backtest Results', style: TextStyle(fontSize: 16)),
               Text(
-                '${result.config.symbol} · ${DateFormat('MMM dd').format(result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(result.config.endDate)}',
+                '${widget.result.config.symbol} · ${DateFormat('MMM dd').format(widget.result.config.startDate)} - ${DateFormat('MMM dd, yyyy').format(widget.result.config.endDate)}',
                 style: const TextStyle(
                     fontSize: 12, fontWeight: FontWeight.normal),
               ),
@@ -904,7 +965,7 @@ class _BacktestResultPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toStringAsFixed(2)}%',
+                    '${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
                     style: TextStyle(
                       color: isProfit ? Colors.green : Colors.red,
                       fontWeight: FontWeight.bold,
@@ -934,7 +995,9 @@ class _BacktestResultPage extends StatelessWidget {
                   value: 'save',
                   child: Row(
                     children: [
-                      Icon(Icons.bookmark_add, size: 20, color: Theme.of(context).colorScheme.primary),
+                      Icon(Icons.bookmark_add,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 12),
                       const Text('Save as Template'),
                     ],
@@ -944,7 +1007,9 @@ class _BacktestResultPage extends StatelessWidget {
                   value: 'share',
                   child: Row(
                     children: [
-                      Icon(Icons.share, size: 20, color: Theme.of(context).colorScheme.primary),
+                      Icon(Icons.share,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 12),
                       const Text('Share Results'),
                     ],
@@ -956,7 +1021,8 @@ class _BacktestResultPage extends StatelessWidget {
                     children: [
                       Icon(Icons.delete_outline, size: 20, color: Colors.red),
                       SizedBox(width: 12),
-                      Text('Delete Result', style: TextStyle(color: Colors.red)),
+                      Text('Delete Result',
+                          style: TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
@@ -989,35 +1055,35 @@ class _BacktestResultPage extends StatelessWidget {
   Future<void> _shareResults(BuildContext context) async {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final shareText = '''
-📊 Backtest Results - ${result.config.symbol}
+📊 Backtest Results - ${widget.result.config.symbol}
 
-📅 Period: ${dateFormat.format(result.config.startDate)} - ${dateFormat.format(result.config.endDate)}
-⏱️ Interval: ${result.config.interval}
+📅 Period: ${dateFormat.format(widget.result.config.startDate)} - ${dateFormat.format(widget.result.config.endDate)}
+⏱️ Interval: ${widget.result.config.interval}
 
 💰 Performance:
-• Total Return: \$${result.totalReturn.toStringAsFixed(2)} (${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toStringAsFixed(2)}%)
-• Win Rate: ${(result.winRate * 100).toStringAsFixed(1)}%
-• Sharpe Ratio: ${result.sharpeRatio.toStringAsFixed(2)}
-• Profit Factor: ${result.profitFactor.toStringAsFixed(2)}
+• Total Return: \$${widget.result.totalReturn.toStringAsFixed(2)} (${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%)
+• Win Rate: ${(widget.result.winRate * 100).toStringAsFixed(1)}%
+• Sharpe Ratio: ${widget.result.sharpeRatio.toStringAsFixed(2)}
+• Profit Factor: ${widget.result.profitFactor.toStringAsFixed(2)}
 
 📈 Trades:
-• Total: ${result.totalTrades}
-• Winners: ${result.winningTrades}
-• Losers: ${result.losingTrades}
-• Avg Win: \$${result.averageWin.toStringAsFixed(2)}
-• Avg Loss: \$${result.averageLoss.toStringAsFixed(2)}
-• Largest Win: \$${result.largestWin.toStringAsFixed(2)}
-• Largest Loss: \$${result.largestLoss.toStringAsFixed(2)}
+• Total: ${widget.result.totalTrades}
+• Winners: ${widget.result.winningTrades}
+• Losers: ${widget.result.losingTrades}
+• Avg Win: \$${widget.result.averageWin.toStringAsFixed(2)}
+• Avg Loss: \$${widget.result.averageLoss.toStringAsFixed(2)}
+• Largest Win: \$${widget.result.largestWin.toStringAsFixed(2)}
+• Largest Loss: \$${widget.result.largestLoss.toStringAsFixed(2)}
 
 📉 Risk:
-• Max Drawdown: ${result.maxDrawdownPercent.toStringAsFixed(2)}% (\$${result.maxDrawdown.toStringAsFixed(2)})
+• Max Drawdown: ${widget.result.maxDrawdownPercent.toStringAsFixed(2)}% (\$${widget.result.maxDrawdown.toStringAsFixed(2)})
 
 ⚙️ Configuration:
-• Initial Capital: \$${result.config.initialCapital.toStringAsFixed(2)}
-• Trade Quantity: ${result.config.tradeQuantity}
-• Take Profit: ${result.config.takeProfitPercent}%
-• Stop Loss: ${result.config.stopLossPercent}%
-• Trailing Stop: ${result.config.trailingStopEnabled ? '${result.config.trailingStopPercent}%' : 'Disabled'}
+• Initial Capital: \$${widget.result.config.initialCapital.toStringAsFixed(2)}
+• Trade Quantity: ${widget.result.config.tradeQuantity}
+• Take Profit: ${widget.result.config.takeProfitPercent}%
+• Stop Loss: ${widget.result.config.stopLossPercent}%
+• Trailing Stop: ${widget.result.config.trailingStopEnabled ? '${widget.result.config.trailingStopPercent}%' : 'Disabled'}
 
 Generated by RealizeAlpha
 ''';
@@ -1025,7 +1091,7 @@ Generated by RealizeAlpha
     final box = context.findRenderObject() as RenderBox?;
     await Share.share(
       shareText,
-      subject: 'Backtest Results - ${result.config.symbol}',
+      subject: 'Backtest Results - ${widget.result.config.symbol}',
       sharePositionOrigin:
           box != null ? box.localToGlobal(Offset.zero) & box.size : null,
     );
@@ -1041,8 +1107,8 @@ Generated by RealizeAlpha
           // Key metrics
           _buildMetricCard(
             'Total Return',
-            '\$${result.totalReturn.toStringAsFixed(2)}',
-            '${result.totalReturnPercent.toStringAsFixed(2)}%',
+            '\$${widget.result.totalReturn.toStringAsFixed(2)}',
+            '${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
             isProfit ? Colors.green : Colors.red,
           ),
           const SizedBox(height: 12),
@@ -1051,8 +1117,8 @@ Generated by RealizeAlpha
               Expanded(
                 child: _buildMetricCard(
                   'Win Rate',
-                  '${(result.winRate * 100).toStringAsFixed(1)}%',
-                  '${result.winningTrades}/${result.totalTrades} trades',
+                  '${(widget.result.winRate * 100).toStringAsFixed(1)}%',
+                  '${widget.result.winningTrades}/${widget.result.totalTrades} trades',
                   colorScheme.primary,
                 ),
               ),
@@ -1060,7 +1126,7 @@ Generated by RealizeAlpha
               Expanded(
                 child: _buildMetricCard(
                   'Sharpe Ratio',
-                  result.sharpeRatio.toStringAsFixed(2),
+                  widget.result.sharpeRatio.toStringAsFixed(2),
                   'Risk-adjusted return',
                   colorScheme.primary,
                 ),
@@ -1073,7 +1139,7 @@ Generated by RealizeAlpha
               Expanded(
                 child: _buildMetricCard(
                   'Profit Factor',
-                  result.profitFactor.toStringAsFixed(2),
+                  widget.result.profitFactor.toStringAsFixed(2),
                   'Win/Loss ratio',
                   colorScheme.primary,
                 ),
@@ -1082,8 +1148,8 @@ Generated by RealizeAlpha
               Expanded(
                 child: _buildMetricCard(
                   'Max Drawdown',
-                  '${result.maxDrawdownPercent.toStringAsFixed(2)}%',
-                  '\$${result.maxDrawdown.toStringAsFixed(2)}',
+                  '${widget.result.maxDrawdownPercent.toStringAsFixed(2)}%',
+                  '\$${widget.result.maxDrawdown.toStringAsFixed(2)}',
                   Colors.red,
                 ),
               ),
@@ -1097,9 +1163,9 @@ Generated by RealizeAlpha
   Widget _buildTradesTab() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: result.trades.length,
+      itemCount: widget.result.trades.length,
       itemBuilder: (context, index) {
-        final trade = result.trades[index];
+        final trade = widget.result.trades[index];
         final isBuy = trade.action == 'BUY';
 
         return Card(
@@ -1140,51 +1206,148 @@ Generated by RealizeAlpha
   }
 
   Widget _buildEquityTab() {
+    // Prepare chart data
+    final chartData = widget.result.equityCurve.map((point) {
+      return EquityPoint(
+        DateTime.parse(point['timestamp'] as String),
+        (point['equity'] as num).toDouble(),
+      );
+    }).toList();
+
+    final isProfit = widget.result.totalReturn >= 0;
+
     return Column(
       children: [
-        Padding(
+        // Stats header
+        Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: (isProfit ? Colors.green : Colors.red).withOpacity(0.05),
+            border: Border(
+              bottom: BorderSide(
+                color: (isProfit ? Colors.green : Colors.red).withOpacity(0.2),
+              ),
+            ),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildStatChip('Start',
-                  '\$${result.config.initialCapital.toStringAsFixed(0)}'),
-              const Icon(Icons.trending_up, size: 20),
-              _buildStatChip(
-                  'Final', '\$${result.finalCapital.toStringAsFixed(0)}'),
+                  '\$${widget.result.config.initialCapital.toStringAsFixed(0)}'),
+              Icon(
+                Icons.trending_up,
+                size: 20,
+                color: isProfit ? Colors.green : Colors.red,
+              ),
+              _buildStatChip('Final',
+                  '\$${widget.result.finalCapital.toStringAsFixed(0)}'),
               const Icon(Icons.arrow_forward, size: 20),
               _buildStatChip(
                 'Return',
-                '${result.totalReturnPercent >= 0 ? '+' : ''}${result.totalReturnPercent.toStringAsFixed(2)}%',
-                color: result.totalReturn >= 0 ? Colors.green : Colors.red,
+                '${widget.result.totalReturnPercent >= 0 ? '+' : ''}${widget.result.totalReturnPercent.toStringAsFixed(2)}%',
+                color: isProfit ? Colors.green : Colors.red,
               ),
             ],
           ),
         ),
+        // Equity curve chart
         Expanded(
+          flex: 3,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 24, 16, 8),
+            child: TimeSeriesChart(
+              key: ValueKey(_selectedIndex),
+              [
+                charts.Series<EquityPoint, DateTime>(
+                  id: 'Equity',
+                  data: chartData,
+                  domainFn: (EquityPoint point, _) => point.timestamp,
+                  measureFn: (EquityPoint point, _) => point.equity,
+                  colorFn: (_, __) => charts.ColorUtil.fromDartColor(
+                    isProfit ? Colors.green : Colors.red,
+                  ),
+                  labelAccessorFn: (EquityPoint point, _) =>
+                      '\$${point.equity.toStringAsFixed(2)}',
+                ),
+              ],
+              animate: false,
+              onSelected: _onChartSelectionChanged,
+              seriesRendererConfig: charts.LineRendererConfig(
+                includeArea: true,
+                stacked: false,
+                strokeWidthPx: 2.0,
+              ),
+              initialSelection: chartData.isNotEmpty && _selectedIndex != null
+                  ? charts.InitialSelection(selectedDataConfig: [
+                      charts.SeriesDatumConfig<DateTime>(
+                        'Equity',
+                        chartData[_selectedIndex!].timestamp,
+                      ),
+                    ], shouldPreserveSelectionOnDraw: true)
+                  : (chartData.isNotEmpty
+                      ? charts.InitialSelection(selectedDataConfig: [
+                          charts.SeriesDatumConfig<DateTime>(
+                            'Equity',
+                            chartData.last.timestamp,
+                          ),
+                        ], shouldPreserveSelectionOnDraw: true)
+                      : null),
+            ),
+          ),
+        ),
+        // Equity list
+        Expanded(
+          flex: 2,
           child: ListView.builder(
+            controller: _listScrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: result.equityCurve.length,
+            itemCount: widget.result.equityCurve.length,
             itemBuilder: (context, index) {
-              final point = result.equityCurve[index];
+              final point = widget.result.equityCurve[index];
               final equity = (point['equity'] as num).toDouble();
               final timestamp = DateTime.parse(point['timestamp'] as String);
-              final change = equity - result.config.initialCapital;
+              final change = equity - widget.result.config.initialCapital;
               final changePercent =
-                  (change / result.config.initialCapital) * 100;
+                  (change / widget.result.config.initialCapital) * 100;
+              final isSelected = _selectedIndex == index;
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 4),
+                elevation: isSelected ? 2 : 1,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: isSelected
+                      ? BorderSide(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 2,
+                        )
+                      : BorderSide.none,
+                ),
                 child: ListTile(
                   dense: true,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  },
                   leading: Text(
                     DateFormat('MM/dd').format(timestamp),
-                    style: const TextStyle(fontSize: 11),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
                   ),
                   title: Text(
                     '\$${equity.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   trailing: Text(
                     '${changePercent >= 0 ? '+' : ''}${changePercent.toStringAsFixed(2)}%',
@@ -1220,27 +1383,30 @@ Generated by RealizeAlpha
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildDetailRow('Symbol', result.config.symbol),
-                  _buildDetailRow('Interval', result.config.interval),
+                  _buildDetailRow('Symbol', widget.result.config.symbol),
+                  _buildDetailRow('Interval', widget.result.config.interval),
                   _buildDetailRow('Initial Capital',
-                      '\$${result.config.initialCapital.toStringAsFixed(2)}'),
+                      '\$${widget.result.config.initialCapital.toStringAsFixed(2)}'),
                   _buildDetailRow('Trade Quantity',
-                      '${result.config.tradeQuantity} shares'),
+                      '${widget.result.config.tradeQuantity} shares'),
+                  _buildDetailRow('Take Profit',
+                      '${widget.result.config.takeProfitPercent}%'),
                   _buildDetailRow(
-                      'Take Profit', '${result.config.takeProfitPercent}%'),
-                  _buildDetailRow(
-                      'Stop Loss', '${result.config.stopLossPercent}%'),
+                      'Stop Loss', '${widget.result.config.stopLossPercent}%'),
                   _buildDetailRow(
                     'Trailing Stop',
-                    result.config.trailingStopEnabled
-                        ? '${result.config.trailingStopPercent}%'
+                    widget.result.config.trailingStopEnabled
+                        ? '${widget.result.config.trailingStopPercent}%'
                         : 'Disabled',
                   ),
-                  _buildDetailRow('RSI Period', '${result.config.rsiPeriod}'),
-                  _buildDetailRow('Fast SMA', '${result.config.smaPeriodFast}'),
-                  _buildDetailRow('Slow SMA', '${result.config.smaPeriodSlow}'),
                   _buildDetailRow(
-                      'Market Index', result.config.marketIndexSymbol),
+                      'RSI Period', '${widget.result.config.rsiPeriod}'),
+                  _buildDetailRow(
+                      'Fast SMA', '${widget.result.config.smaPeriodFast}'),
+                  _buildDetailRow(
+                      'Slow SMA', '${widget.result.config.smaPeriodSlow}'),
+                  _buildDetailRow(
+                      'Market Index', widget.result.config.marketIndexSymbol),
                 ],
               ),
             ),
@@ -1256,7 +1422,7 @@ Generated by RealizeAlpha
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: result.config.enabledIndicators.entries
+            children: widget.result.config.enabledIndicators.entries
                 .where((e) => e.value)
                 .map((e) => Chip(
                       avatar: const Icon(Icons.check_circle, size: 16),
@@ -1268,7 +1434,7 @@ Generated by RealizeAlpha
           const SizedBox(height: 24),
 
           // Performance by Indicator
-          if (result.performanceByIndicator.isNotEmpty) ...[
+          if (widget.result.performanceByIndicator.isNotEmpty) ...[
             const Text(
               'Performance by Indicator',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -1279,7 +1445,8 @@ Generated by RealizeAlpha
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: result.performanceByIndicator.entries.map((entry) {
+                  children:
+                      widget.result.performanceByIndicator.entries.map((entry) {
                     final data = entry.value is Map
                         ? Map<String, dynamic>.from(entry.value as Map)
                         : null;
@@ -1357,17 +1524,17 @@ Generated by RealizeAlpha
               child: Column(
                 children: [
                   _buildDetailRow('Average Win',
-                      '\$${result.averageWin.toStringAsFixed(2)}'),
+                      '\$${widget.result.averageWin.toStringAsFixed(2)}'),
                   _buildDetailRow('Average Loss',
-                      '\$${result.averageLoss.toStringAsFixed(2)}'),
+                      '\$${widget.result.averageLoss.toStringAsFixed(2)}'),
                   _buildDetailRow('Largest Win',
-                      '\$${result.largestWin.toStringAsFixed(2)}'),
+                      '\$${widget.result.largestWin.toStringAsFixed(2)}'),
                   _buildDetailRow('Largest Loss',
-                      '\$${result.largestLoss.toStringAsFixed(2)}'),
-                  _buildDetailRow(
-                      'Avg Hold Time', _formatDuration(result.averageHoldTime)),
-                  _buildDetailRow(
-                      'Total Duration', _formatDuration(result.totalDuration)),
+                      '\$${widget.result.largestLoss.toStringAsFixed(2)}'),
+                  _buildDetailRow('Avg Hold Time',
+                      _formatDuration(widget.result.averageHoldTime)),
+                  _buildDetailRow('Total Duration',
+                      _formatDuration(widget.result.totalDuration)),
                 ],
               ),
             ),
@@ -1928,4 +2095,12 @@ class _BacktestTemplatesTabState extends State<_BacktestTemplatesTab> {
       return DateFormat('MMM dd').format(time);
     }
   }
+}
+
+/// Data class for equity chart points
+class EquityPoint {
+  final DateTime timestamp;
+  final double equity;
+
+  EquityPoint(this.timestamp, this.equity);
 }

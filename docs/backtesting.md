@@ -282,7 +282,7 @@ users/{userId}/backtest_templates/{templateId}
 ## Future Enhancements
 
 ### Planned Features
-- [ ] Visual equity curve charts
+- [x] Visual equity curve charts
 - [ ] Monte Carlo simulation for confidence intervals
 - [ ] Walk-forward analysis for robustness testing
 - [ ] Portfolio backtesting (multiple symbols)
