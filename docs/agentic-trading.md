@@ -1,0 +1,1078 @@
+# Agentic Trading Documentation
+
+## Overview
+
+The Agentic Trading system provides autonomous, AI-powered trading capabilities for RealizeAlpha. It combines multi-indicator technical analysis with risk management controls to execute trades automatically based on qualified trading signals.
+
+**Auto-Execution:** The system includes a built-in timer that automatically checks for trading opportunities every 5 minutes when auto-trading is enabled. No manual intervention is required - simply enable auto-trading in settings and the system will monitor and execute trades autonomously.
+
+## Architecture
+
+### Components
+
+1. **AgenticTradingConfig** (`lib/model/agentic_trading_config.dart`)
+   - User configuration model
+   - Stores all trading parameters and risk controls
+   - Persisted in Firestore User documents
+
+2. **AgenticTradingProvider** (`lib/model/agentic_trading_provider.dart`)
+   - Core state management and trading execution logic
+   - Implements `ChangeNotifier` for reactive UI updates
+   - Manages trade execution, TP/SL monitoring, and safety checks
+   - Handles automated buy trades tracking and Firebase persistence
+
+3. **TradeSignalsProvider** (`lib/model/trade_signals_provider.dart`) *[NEW]*
+   - Centralized trade signal management
+   - Fetches signals from Firestore with real-time listeners
+   - Provides indicator documentation for all 9 indicators
+   - Used across InstrumentWidget, SearchWidget for consistent signal display
+   - Separates signal management from execution logic
+
+4. **MarketHours Utility** (`lib/utils/market_hours.dart`) *[NEW]*
+   - Reusable DST-aware market hours checking
+   - Handles Eastern Time conversion (EDT/EST)
+   - Comprehensive debug logging for troubleshooting
+   - Used by providers and widgets for consistent market status
+
+5. **AgenticTradingSettingsWidget** (`lib/widgets/agentic_trading_settings_widget.dart`)
+   - User interface for configuration
+   - Real-time status monitoring with countdown timer
+   - Auto-save functionality (no manual save button)
+   - Emergency stop controls
+   - Integration with both AgenticTradingProvider and TradeSignalsProvider
+
+6. **Backend Functions** (`functions/src/`)
+   - `initiateTradeProposal`: AI-powered trade evaluation
+   - `riskguardTask`: Risk assessment and validation
+   - Trade signal generation cron jobs (daily, hourly, 15-min)
+
+## Features
+
+### Automatic Execution
+
+The system automatically executes trades when auto-trading is enabled:
+
+**Timer-Based Execution:**
+- Periodic checks every 5 minutes
+- Automatically starts when app loads with user data
+- Runs continuously while app is active
+- Checks `autoTradeEnabled` configuration flag
+- Only executes during market hours (validated via MarketHours utility)
+- Real-time countdown timer displayed in settings UI
+
+**Execution Cycle:**
+1. Timer triggers every 5 minutes
+2. Checks if auto-trading is enabled in config
+3. Validates market hours using MarketHours.isMarketOpen()
+4. Validates required data (user, account, portfolio)
+5. Builds current portfolio state
+6. Calls `autoTrade()` with all parameters
+7. Calls `monitorTakeProfitStopLoss()` for automated trades
+8. Updates countdown timer for next cycle
+9. Logs execution results
+
+**Location:** `navigation_widget.dart` - Main navigation widget with access to all services and providers
+
+**UI Integration:**
+- Settings widget shows real-time countdown to next check
+- App bar displays auto-trade status badge when active
+- Status updates propagate via ChangeNotifier pattern
+
+### Auto-Trade Logic
+
+The `autoTrade()` method orchestrates automatic trade execution:
+
+```dart
+Future<Map<String, dynamic>> autoTrade({
+  required Map<String, dynamic> portfolioState,
+}) async
+```
+
+**Process Flow:**
+1. **Pre-flight Checks** (`_canAutoTrade()`)
+   - Verify auto-trade is enabled
+   - Check emergency stop status
+   - Validate market hours
+   - Enforce daily trade limit
+   - Verify cooldown period has elapsed
+   - Check daily loss limit
+
+2. **Signal Processing**
+   - Fetch current trade signals from Firestore
+   - Filter for BUY signals
+   - Validate signal quality
+
+3. **Trade Execution**
+   - Call `initiateTradeProposal()` for each qualified signal
+   - Assess risk with `riskguardTask`
+   - Track execution history
+   - Update counters and timestamps
+
+4. **Post-Trade Actions**
+   - Log analytics events
+   - Update UI state
+   - Enforce rate limiting between trades
+   - **Record enabledIndicators snapshot for performance analysis**
+   - **Mark trade as real or paper mode**
+
+### Advanced Performance Analytics
+
+The `AgenticTradingPerformanceWidget` provides comprehensive trading insights across 9 analytics cards:
+
+**1. Performance Overview**
+- Total trades executed
+- Win/loss counts and success rate
+- Average P&L per trade
+- Total P&L summary
+
+**2. Profit & Loss**
+- Total P&L amount
+- Average P&L per trade
+- Winning trades total
+- Losing trades total
+- Breakdown by entry/exit type
+
+**3. Trade Breakdown**
+- Entry counts (BUY orders)
+- Take Profit exits
+- Stop Loss exits
+- **Trailing Stop exits**
+- Distribution visualization
+
+**4. Best & Worst Trades**
+- Best performing trade details
+- Worst performing trade details
+- P&L amounts
+- Entry/exit prices
+- Hold duration
+
+**5. Advanced Analytics (4-Metric Grid)**
+- **Sharpe Ratio**: Risk-adjusted returns (Good >1, Fair 0-1, Poor <0)
+  - Calculates annualized return / volatility
+  - Indicates quality of returns per unit of risk
+- **Average Hold Time**: Position duration in hours and minutes
+  - Tracks from BUY to SELL
+  - Helps optimize exit timing strategies
+- **Profit Factor**: Gross profit / Gross loss ratio
+  - Values > 1 indicate profitable system
+  - Higher values show better profitability
+- **Expectancy**: Expected profit per trade (in dollars)
+  - Formula: (Avg Win × Win Rate) - (Avg Loss × Loss Rate)
+  - Critical metric for strategy validation
+
+**6. Risk Metrics**
+- **Longest Win Streak**: Best consecutive winning trades
+- **Longest Loss Streak**: Worst consecutive losing trades  
+- **Max Drawdown**: Peak-to-trough equity decline
+  - Helps assess portfolio risk
+  - Important for risk management
+
+**7. Performance by Time of Day**
+- Morning (9am-12pm): Win rates, trade counts, avg P&L
+- Afternoon (12pm-3pm): Win rates, trade counts, avg P&L
+- Late Day (3pm-4pm): Win rates, trade counts, avg P&L
+- **Color-coded**: Green (≥60%), Orange (40-59%), Red (<40%)
+- Helps identify optimal trading windows
+
+**8. Performance by Indicator Combo** *(v1.3)*
+- Tracks active indicators at execution time
+- Groups trades by unique indicator combination
+- Win/loss rate for each combination
+- Shows which indicator sets are most effective
+- Top 8 combinations displayed
+- Abbreviated names: Price, RSI, Market, Volume, MACD, BB, Stoch, ATR, OBV
+- Enables strategy optimization
+
+**9. Performance by Symbol**
+- Top 10 traded symbols
+- Win rate per symbol
+- Trade counts
+- Total P&L by symbol
+- Average hold time
+- Identifies best and worst performing stocks
+
+**Paper vs Real Performance Tracking** *(v1.3)*
+- **Filter chips**: All Trades / Paper Mode / Real Trades
+- **Paper trades**: Simulated execution without broker API calls
+- **Real trades**: Actual executed orders
+- **Same analytics**: Both modes calculated identically
+- **Comparison**: Validate strategies in paper mode before going live
+- **Visual indicators**: PAPER badges on paper mode trades
+
+**Key Metrics Explained:**
+
+*Sharpe Ratio*
+- Measures return vs volatility
+- Higher = better risk-adjusted returns
+- Used to compare different strategies fairly
+- Good >1, Fair 0-1, Poor <0
+
+*Profit Factor*
+- Simple profitability measure
+- PF > 1 = profitable
+- PF > 2 = excellent (2:1 or better win/loss)
+- PF < 1 = money losing strategy
+
+*Expectancy*
+- Average profit per trade
+- Positive expectancy = strategy is profitable
+- Crucial for validating trading system
+- (Winning trades × Win rate) - (Losing trades × Loss rate)
+
+*Max Drawdown*
+- Largest peak-to-trough decline
+- Important risk metric
+- Helps set stop-loss levels
+- Shows portfolio volatility
+
+The `monitorTakeProfitStopLoss()` method automatically exits positions when targets are met:
+
+```dart
+Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
+  required List<dynamic> positions,
+  required brokerageUser,
+  required account,
+  required brokerageService,
+  required instrumentStore,
+}) async
+```
+
+**Monitoring Flow:**
+1. **Position Filtering**
+   - Check only positions created by automated trading
+   - Positions tracked in `_automatedBuyTrades` list
+   - Manual trades and pre-existing positions are NOT monitored
+
+2. **Position Analysis**
+   - Iterate through automated trade records
+   - Extract entry price and current price
+   - Calculate profit/loss percentage using trade record's entry price
+   - **Update highestPrice for trailing stop tracking**
+
+3. **Threshold Checks**
+   - If P/L >= `takeProfitPercent`: Trigger Take Profit exit
+   - If P/L <= -`stopLossPercent`: Trigger Stop Loss exit
+   - **If Trailing Stop enabled: Check if price dropped below (highestPrice - trailingStopPercent)**
+
+4. **Order Execution**
+   - **Check `paperTradingMode`: Simulate or execute real order**
+   - Fetch instrument data for the symbol
+   - Place SELL order through brokerage service (or simulate in paper mode)
+   - Validate order response (200/201 status)
+   - Remove trade record from `_automatedBuyTrades`
+   - Track exit in history with reason and P/L%
+
+5. **Analytics & Logging**
+   - Log exit execution events
+   - Track failures separately
+   - Update trade history with paper/real indicator
+   - Record exit reason (Take Profit/Stop Loss/Trailing Stop)
+
+6. **Persistence**
+   - **Save updated trades list to Firebase after exits**
+   - Ensures accuracy across sessions
+
+**Integration:**
+- Runs every 5 minutes as part of auto-trade timer
+- Executes after checking for new trade entry signals
+- Only monitors positions opened by automated trading
+- Manual trades remain under user control
+- Positions opened before auto-trading was enabled are not affected
+
+**Trade-Level Tracking:**
+- When automated BUY order executes: Trade record added to `_automatedBuyTrades`
+- Record contains: `{symbol, quantity, entryPrice, timestamp, enabledIndicators, paperMode, highestPrice}`
+- When TP/SL/Trailing Stop exit executes: Specific trade record removed
+- Manual trades: Never added to tracking, never monitored for TP/SL
+- **Stored in Firebase**: `users/{userId}/automated_buy_trades` subcollection
+- **Persists across**: App restarts and device changes
+
+**Trailing Stop Loss:**
+- **Activated when**: `trailingStopEnabled = true` and `trailingStopPercent` configured
+- **Tracks**: `highestPrice` for each automated trade
+- **Exits when**: Current price drops more than `trailingStopPercent` below peak
+- **Benefit**: Locks in gains while allowing further upside
+- **Example**: Entry $100, peak $120, trailing stop 5% → Exit trigger at $114
+
+**Paper Trading Simulation:**
+- **`paperTradingMode = true`**: Calls `_simulatePaperOrder()` instead of broker API
+- **Creates realistic response**: With all expected fields (id, status, executions)
+- **Tracks identically**: Same P/L, analytics, exit reasons
+- **Persists to Firebase**: Marked with `paperMode: true` flag
+- **Filtered in analytics**: Paper vs real trade comparison available
+
+**Example - Automated Position:**
+```
+Auto-trade buys: 10 AAPL at $150 → Trade record created
+Record: {symbol: 'AAPL', quantity: 10, entryPrice: 150.00, timestamp: '...', enabledIndicators: ['momentum', 'macd'], paperMode: false, highestPrice: 150.00}
+Current price: $165 → highestPrice updated to 165.00
+P/L = ((165 - 150) / 150) * 100 = 10%
+
+Scenario 1 - Take Profit:
+If takeProfitPercent = 10%: Trigger SELL 10 shares
+After exit: Trade record removed, analytics updated
+
+Scenario 2 - Trailing Stop:
+If trailingStopEnabled = true, trailingStopPercent = 3%
+Price rises to $170 (highestPrice = 170.00)
+Price drops to $165 (drop = 2.9%, below 3% threshold)
+No exit yet
+
+Price drops to $164.80 (drop = 3.05%, exceeds 3% threshold)
+Trigger SELL 10 shares at $164.80
+Locked in profit from $150 to $164.80
+```
+````
+
+**Example - Manual + Automated Same Symbol:**
+```
+User owns: 100 AAPL at $140 (manual, not tracked)
+Auto-trade buys: 10 AAPL at $150 (tracked separately)
+Current price: $165
+
+For automated trade:
+P/L = ((165 - 150) / 150) * 100 = 10%
+Action: SELL 10 shares (from automated trade)
+Result: Manual 100 shares @ $140 remain untouched
+```
+
+**Example - Multiple Automated Trades:**
+```
+Auto-trade 1: Buy 10 AAPL @ $150 (tracked)
+Auto-trade 2: Buy 5 AAPL @ $160 (tracked separately)
+Current price: $165
+
+Trade 1 P/L: ((165-150)/150)*100 = 10% → Triggers TP, SELL 10 shares
+Trade 2 P/L: ((165-160)/160)*100 = 3.1% → No trigger
+Result: Two separate entries, tracked and managed independently
+```
+
+### Firebase Persistence
+
+**Automated Buy Trades Storage:**
+- **Collection Path**: `users/{userId}/automated_buy_trades`
+- **Document Structure**: Each trade as a separate document
+- **Fields**: 
+  - `symbol`: Stock symbol (string)
+  - `quantity`: Number of shares (int)
+  - `entryPrice`: Entry price per share (double)
+  - `timestamp`: Execution time (ISO string)
+  - `enabledIndicators`: Active indicators at trade time (List<String>) *(v1.3)*
+  - `paperMode`: Whether trade was simulated (bool) *(v1.3)*
+  - `highestPrice`: Peak price for trailing stop tracking (double) *(v1.3)*
+- **Security Rules**: Updated firestore.rules to allow read/write for authenticated users
+
+**Automatic Saving:**
+- Trades saved immediately after BUY order execution
+- Trades removed immediately after TP/SL/Trailing Stop exit
+- Ensures data integrity across app restarts
+- Field validation on load for data integrity
+- **Paper trades**: Persisted identically to real trades (marked with `paperMode: true`)
+
+**Loading:**
+- Trades loaded on user login (via `loadAutomatedBuyTradesFromFirestore`)
+- Automatic sync across devices
+- Enables continuous TP/SL monitoring across sessions
+- Try-catch error handling for robustness
+- Validates all required fields when loading
+
+**Benefits:**
+- **Persistence**: Survives app crashes and restarts
+- **Cross-Device**: User logs in on different device, trades sync
+- **Reliability**: Firebase ensures data availability
+- **History**: Complete audit trail of automated trades
+- **Security**: Firestore rules protect user data
+- **Analytics**: enabledIndicators enable performance analysis by indicator combination
+- **Paper Tracking**: Separates paper and real trades for comparison
+
+**Example Workflow:**
+```
+Session 1:
+- User enables auto-trading in Paper Mode
+- Auto-trade buys 3 positions
+- Trades saved to Firebase with paperMode: true and enabledIndicators snapshot
+
+App restart:
+- User logs in
+- Trades loaded from Firebase automatically
+- TP/SL monitoring resumes seamlessly
+- Analytics filters show Paper trades separately
+
+Switch to Real Mode:
+- User disables Paper Mode
+- Next trades execute with paperMode: false
+- Analytics now show both paper and real performance
+- Can compare strategy effectiveness
+
+Device switch:
+- User logs in on new device (tablet)
+- All trades sync from Firebase
+- Full functionality restored instantly
+- Analytics updated with latest metrics
+```
+
+**Trade Record Example:**
+```json
+{
+  "symbol": "AAPL",
+  "quantity": 10,
+  "entryPrice": 150.25,
+  "timestamp": "2025-12-13T14:30:45.123Z",
+  "enabledIndicators": ["momentum", "macd", "volume"],
+  "paperMode": false,
+  "highestPrice": 155.50
+}
+```
+
+### Provider Architecture
+
+**Separation of Concerns:**
+
+The recent refactoring (commit 861f2bc) introduced a cleaner architecture with separated responsibilities:
+
+1. **TradeSignalsProvider**:
+   - **Purpose**: Centralized signal management
+   - **Responsibilities**:
+     - Fetch trade signals from Firestore
+     - Real-time signal listeners
+     - Provide indicator documentation
+     - Market status checking
+   - **Usage**: InstrumentWidget, SearchWidget, etc.
+
+2. **AgenticTradingProvider**:
+   - **Purpose**: Trade execution and automation
+   - **Responsibilities**:
+     - Auto-trade execution logic
+     - TP/SL monitoring
+     - Trade tracking (automated buy trades)
+     - Firebase persistence
+     - Risk management
+   - **Usage**: NavigationWidget (timer), SettingsWidget
+
+3. **MarketHours Utility**:
+   - **Purpose**: Consistent market hours checking
+   - **Functionality**:
+     - DST-aware Eastern Time conversion
+     - Weekend detection
+     - Market hours validation (9:30 AM - 4:00 PM ET)
+   - **Usage**: Both providers and widgets
+
+**Benefits of Refactoring:**
+- **Modularity**: Each provider has a single, clear purpose
+- **Reusability**: TradeSignalsProvider used across multiple widgets
+- **Maintainability**: Easier to modify signal fetching without affecting execution
+- **Testability**: Unit test individual components in isolation
+- **Performance**: Optimized signal subscriptions and market checks
+
+### Risk Management Controls
+
+#### Daily Trade Limit
+- **Config Field**: `dailyTradeLimit` (default: 5)
+- **Purpose**: Prevents over-trading and excessive market exposure
+- **Reset**: Automatically resets at market open each trading day
+
+#### Cooldown Period
+- **Config Field**: `autoTradeCooldownMinutes` (default: 60)
+- **Purpose**: Enforces minimum time between trades
+- **Behavior**: Trades are blocked until cooldown expires
+
+#### Maximum Daily Loss
+- **Config Field**: `maxDailyLossPercent` (default: 2.0%)
+- **Purpose**: Stops trading if losses exceed threshold
+- **Status**: Configuration field available; enforcement requires portfolio P&L tracking integration (planned enhancement)
+
+#### Emergency Stop
+- **Activation**: Via UI button or API call
+- **Effect**: Immediately halts all auto-trading
+- **Persistence**: Remains active until manually deactivated
+- **Use Case**: Market volatility, system issues, or user intervention
+
+#### Position Size Limits
+- **Config Field**: `maxPositionSize` (default: 100 shares)
+- **Purpose**: Caps individual position sizes
+- **Integration**: Used by risk assessment functions
+
+#### Portfolio Concentration
+- **Config Field**: `maxPortfolioConcentration` (default: 50%)
+- **Purpose**: Prevents over-concentration in single positions
+- **Calculation**: Position value / total portfolio value
+
+#### Take Profit
+- **Config Field**: `takeProfitPercent` (default: 10.0%)
+- **Purpose**: Automatically exits positions when profit target is reached
+- **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
+- **Behavior**: When position P/L >= takeProfitPercent, system executes SELL order
+- **Scope**: Only applies to positions opened by automated trading
+- **Use Case**: Lock in profits automatically without manual monitoring
+
+#### Stop Loss
+- **Config Field**: `stopLossPercent` (default: 5.0%)
+- **Purpose**: Automatically exits positions to limit losses
+- **Calculation**: `((currentPrice - entryPrice) / entryPrice) * 100`
+- **Behavior**: When position P/L <= -stopLossPercent, system executes SELL order
+- **Scope**: Only applies to positions opened by automated trading
+- **Use Case**: Protect capital by automatically cutting losing positions
+
+### Configuration Parameters
+
+#### Technical Analysis
+```dart
+smaPeriodFast: 10           // Fast moving average period
+smaPeriodSlow: 30           // Slow moving average period
+rsiPeriod: 14               // RSI calculation period
+marketIndexSymbol: 'SPY'    // Reference market index
+```
+
+#### Trade Execution
+```dart
+tradeQuantity: 1            // Shares per trade
+autoTradeEnabled: false     // Master auto-trade switch
+dailyTradeLimit: 5          // Max trades per day
+autoTradeCooldownMinutes: 60 // Minutes between trades
+```
+
+#### Risk Controls
+```dart
+maxPositionSize: 100                // Max shares per position
+maxPortfolioConcentration: 0.5      // Max 50% in single position
+maxDailyLossPercent: 2.0            // Stop at 2% daily loss
+takeProfitPercent: 10.0             // Auto-exit at 10% profit
+stopLossPercent: 5.0                // Auto-exit at 5% loss
+```
+
+#### Indicators
+```dart
+enabledIndicators: {
+  'priceMovement': true,      // Chart patterns & trends
+  'momentum': true,           // RSI (overbought/oversold)
+  'marketDirection': true,    // Market index trend
+  'volume': true,             // Volume confirmation
+  'macd': true,              // MACD crossovers
+  'bollingerBands': true,    // Volatility bands
+  'stochastic': true,        // Stochastic oscillator
+  'atr': true,               // Average True Range
+  'obv': true,               // On-Balance Volume
+}
+```
+
+## User Interface
+
+### Settings Screen
+
+Access via: 
+- User Menu → Automated Trading
+- App Bar → Auto-trade status badge (when active)
+
+**Recent UI Improvements (commit 861f2bc):**
+- **Auto-Save**: Settings automatically saved on every change (no manual save button)
+- **Countdown Timer**: Real-time countdown to next auto-trade check
+- **Enhanced Status**: Daily count, last trade time, next trade time all displayed
+- **App Bar Integration**: Status badge in SliverAppBar shows auto-trade active state
+- **Better UX**: Cleaner layout, better visual feedback, intuitive controls
+
+**Sections:**
+1. **Master Toggle**
+   - Enable/disable agentic trading system
+   - Shows current status with descriptive subtitle
+   - Auto-saves on toggle
+
+2. **Automated Trading**
+   - Auto-trade toggle
+   - **Real-time countdown timer** (shows seconds until next check)
+   - Status indicators (active, daily count, last trade time, next trade time)
+   - Emergency stop button with confirmation dialog
+   - Auto-saves on toggle
+
+3. **Auto-Trade Configuration**
+   - Daily trade limit (auto-saves on change)
+   - Cooldown period (auto-saves on change)
+   - Max daily loss percentage (auto-saves on change)
+   - Take profit percentage (auto-saves on change)
+   - Stop loss percentage (auto-saves on change)
+
+4. **Risk Management Rules**
+   - Trade quantity
+   - Max position size
+   - Portfolio concentration limit
+
+5. **Technical Indicators**
+   - Individual indicator toggles
+   - Inline documentation
+   - Configuration parameters (RSI period, SMA periods, etc.)
+
+### Status Indicators
+
+**Auto-Trading Active:**
+```
+🔄 Auto-trading in progress...
+```
+
+**Normal Status:**
+```
+Daily Trades: 3/5
+Last Trade: 2h ago
+```
+
+**Emergency Stop:**
+```
+⚠️ Emergency Stop Activated [Resume]
+```
+
+## Integration Points
+
+### Trade Signal Generation
+- Backend cron jobs generate signals periodically
+- Stored in Firestore `agentic_trading/` collection
+- Support for multiple intervals (1d, 1h, 15m)
+- Real-time updates via Firestore listeners
+
+### Risk Assessment
+- Cloud Function: `riskguardTask`
+- Evaluates proposals against portfolio state
+- Returns approval/rejection with reasoning
+
+### Brokerage Integration
+- Executes approved trades via brokerage service
+- Supports multiple brokers (Robinhood, Plaid, Schwab)
+- Handles order placement and tracking
+
+## Safety Features
+
+### Market Hours Detection
+- **MarketHours Utility**: Centralized DST-aware market hours checking
+- Automatic DST adjustment (EDT/EST conversion)
+- Only trades during regular market hours (9:30 AM - 4:00 PM ET)
+- Weekend trading blocked
+- Comprehensive debug logging for troubleshooting
+- Used consistently across all providers and widgets
+
+### Rate Limiting
+- 2-second delay between trade attempts
+- Cooldown period enforcement
+- Daily limit caps
+
+### Error Handling
+- Graceful degradation on API failures
+- Comprehensive error logging
+- Analytics tracking for all events
+
+### Audit Trail
+- Last 100 trades stored in memory
+- Analytics events for all actions
+- Timestamps and execution details
+
+## Testing
+
+### Unit Tests
+Location: `test/agentic_trading_*_test.dart`
+
+**Test Files:**
+1. `agentic_trading_config_test.dart` - Configuration model tests
+2. `agentic_trading_provider_test.dart` - Provider logic tests  
+3. `agentic_trading_settings_widget_test.dart` - UI widget tests *[NEW]*
+
+**Coverage:**
+- Configuration serialization/deserialization
+- Backward compatibility with old configs
+- State management and change notifications
+- Risk control enforcement (limits, cooldowns)
+- Emergency stop functionality
+- Daily limit tracking
+- **Auto-save functionality in settings widget** *[NEW]*
+- **Indicator toggle persistence** *[NEW]*
+- **UI state updates and validation** *[NEW]*
+
+**Run Tests:**
+```bash
+# All agentic trading tests
+flutter test test/agentic_trading_config_test.dart
+flutter test test/agentic_trading_provider_test.dart
+flutter test test/agentic_trading_settings_widget_test.dart
+
+# Or run all at once
+flutter test test/ --name="agentic"
+```
+
+**New Widget Tests (commit 861f2bc):**
+- Tests auto-save behavior when toggling indicators
+- Validates settings persistence to Firestore
+- Tests UI rendering with different provider states
+- Validates form field updates and validation
+
+### Integration Testing
+Recommended approach:
+1. Use paper trading mode
+2. Test with small position sizes
+3. Monitor execution closely
+4. Validate risk controls
+5. Test emergency stop
+
+## Security Considerations
+
+### Configuration Storage
+- User configs stored in Firestore
+- Access controlled by security rules
+- No sensitive API keys in client code
+- **Updated Firestore rules** for `automated_buy_trades` collection *[NEW]*
+
+### Trade Execution
+- Server-side validation required (initiateTradeProposal, riskguardTask)
+- Risk assessment before execution
+- Emergency stop accessible from client
+- All trades authenticated and authorized
+
+### Firebase Security Rules
+```
+// New rules for automated buy trades (commit 861f2bc)
+match /users/{userId}/automated_buy_trades/{tradeId} {
+  allow read, write: if request.auth != null && request.auth.uid == userId;
+}
+```
+
+### Rate Limiting
+- Backend rate limiting on Cloud Functions
+- Client-side cooldowns (2-second delay between trades)
+- Daily limits prevent runaway trading
+- Market hours enforcement prevents off-hours trading
+
+## Best Practices
+
+### Initial Setup
+1. Start with conservative limits (1-2 trades/day)
+2. Use longer cooldown periods (60+ minutes)
+3. Set tight loss limits (1-2%)
+4. Monitor closely for first week
+
+### Risk Management
+1. Never risk more than 2% of portfolio per day
+2. Keep position sizes small relative to portfolio
+3. Maintain portfolio diversification
+4. Use emergency stop if uncertain
+
+### Monitoring
+1. Check trade history daily
+2. Review rejected proposals
+3. Adjust indicators based on performance
+4. Monitor analytics events
+
+### Emergency Procedures
+1. **Market Volatility**: Activate emergency stop
+2. **System Issues**: Disable auto-trade, investigate
+3. **Unexpected Behavior**: Stop immediately, review logs
+
+## Analytics Events
+
+The system logs the following events:
+
+- `agentic_trading_toggled`: Master switch changed
+- `agentic_trading_auto_executed`: Auto-trade completed
+- `agentic_trading_auto_error`: Auto-trade failed
+- `agentic_trading_auto_failed`: System error
+- `agentic_trading_emergency_stop`: Emergency stop activated
+- `agentic_trading_emergency_stop_deactivated`: Resumed
+- `agentic_trading_trade_approved`: Manual proposal approved
+- `agentic_trading_trade_rejected`: Manual proposal rejected
+
+## Future Enhancements
+
+### Planned Features
+1. **Push Notifications**: Alert on auto-trade executions
+2. **Performance Tracking**: Win/loss ratio, P&L analytics
+3. **Backtesting**: Historical strategy simulation
+4. **Machine Learning**: Adaptive indicator weighting
+5. **Advanced Orders**: Stop-loss, take-profit automation
+6. **Portfolio Rebalancing**: Automatic position adjustment
+
+### Under Consideration
+- Multi-asset support (options, crypto, futures)
+- Strategy templates (conservative, aggressive, balanced)
+- Social trading integration (copy successful traders)
+- Custom indicator creation
+- Strategy sharing with investor groups
+
+## Troubleshooting
+
+### Auto-Trade Not Executing
+
+**Check:**
+1. Is `autoTradeEnabled` true in settings?
+2. Is emergency stop activated?
+3. Is market currently open?
+4. Have you reached daily trade limit?
+5. Is cooldown period active?
+6. Are there any BUY signals available?
+
+**Debug Steps:**
+1. Check provider state: `provider.isAutoTrading`
+2. Review `_canAutoTrade()` conditions
+3. Verify trade signals: `provider.tradeSignals`
+4. Check analytics logs for error events
+
+### Trades Being Rejected
+
+**Common Causes:**
+1. Risk assessment failure (position too large)
+2. Portfolio concentration limit exceeded
+3. Insufficient funds
+4. Invalid price data
+5. Brokerage API errors
+
+**Resolution:**
+1. Review `lastAssessment` for rejection reason
+2. Adjust position sizes or limits
+3. Check brokerage account status
+4. Verify market data availability
+
+### Emergency Stop Not Working
+
+**Verification:**
+1. Check `provider.emergencyStopActivated` state
+2. Verify UI shows emergency status
+3. Test with manual toggle in settings
+
+**If Issue Persists:**
+1. Restart app
+2. Check Firestore config sync
+3. Review error logs
+
+## API Reference
+
+### AgenticTradingProvider Methods
+
+#### `autoTrade({required Map<String, dynamic> portfolioState, required brokerageUser, required account, required brokerageService, required instrumentStore})`
+Executes automatic trading based on current signals and places orders through the brokerage.
+
+**Parameters:**
+- `portfolioState`: Current portfolio state for risk assessment
+- `brokerageUser`: BrokerageUser instance for authentication
+- `account`: Account to trade in
+- `brokerageService`: IBrokerageService instance for order execution
+- `instrumentStore`: InstrumentStore for fetching instrument data
+
+**Returns:** `Map<String, dynamic>`
+- `success`: bool - Whether any trades were executed
+- `tradesExecuted`: int - Number of trades completed
+- `message`: String - Status message
+- `trades`: List - Details of executed trades including order responses
+
+#### `activateEmergencyStop()`
+Immediately halts all auto-trading.
+
+#### `deactivateEmergencyStop()`
+Resumes auto-trading functionality.
+
+#### `toggleAgenticTrading(bool? value)`
+Enables/disables the agentic trading system.
+
+#### `loadConfigFromUser(dynamic agenticTradingConfig)`
+Loads configuration from User model.
+
+#### `updateConfig(Map<String, dynamic> newConfig, DocumentReference userDocRef)`
+Updates configuration and saves to Firestore.
+
+#### `monitorTakeProfitStopLoss({required List positions, required brokerageUser, required account, required brokerageService, required instrumentStore})`
+Monitors positions and executes take profit or stop loss orders.
+
+**Parameters:**
+- `positions`: List of current InstrumentPosition objects
+- `brokerageUser`: BrokerageUser instance for authentication
+- `account`: Account to trade in
+- `brokerageService`: IBrokerageService instance for order execution
+- `instrumentStore`: InstrumentStore for fetching instrument data
+
+**Returns:** `Map<String, dynamic>`
+- `success`: bool - Whether any exits were executed
+- `exitsExecuted`: int - Number of exit orders placed
+- `message`: String - Status message
+- `exits`: List - Details of executed exits with P/L% and reason
+
+**Process:**
+1. Calculates P/L percentage for each position
+2. Triggers SELL when P/L >= takeProfitPercent
+3. Triggers SELL when P/L <= -stopLossPercent
+4. Places orders and tracks exits
+
+### Static Methods
+
+#### `TradeSignalsProvider.indicatorDocumentation(String key)` *[MOVED]*
+Returns documentation for a given indicator.
+
+**Note:** This method was moved from AgenticTradingProvider to TradeSignalsProvider in commit 861f2bc as part of the architecture refactoring.
+
+**Parameters:**
+- `key`: Indicator identifier (e.g., 'priceMovement', 'momentum')
+
+**Returns:** `Map<String, String>`
+- `title`: Display name
+- `documentation`: Detailed description
+
+**Usage:**
+```dart
+final docInfo = TradeSignalsProvider.indicatorDocumentation('priceMovement');
+print(docInfo['title']);         // "Price Movement"
+print(docInfo['documentation']); // Full description
+```
+
+## Support
+
+For issues or questions:
+1. Review this documentation
+2. Check unit tests for examples
+3. Consult `multi-indicator-trading.md` for signal details
+4. Review Firebase Analytics for system events
+5. File a GitHub issue with detailed logs
+
+## Integration Examples
+
+### Basic Setup (New Architecture)
+
+**In main.dart:**
+```dart
+MultiProvider(
+  providers: [
+    // New: TradeSignalsProvider for signal management
+    ChangeNotifierProvider(
+      create: (context) => TradeSignalsProvider(),
+    ),
+    // Existing: AgenticTradingProvider for execution
+    ChangeNotifierProvider(
+      create: (context) => AgenticTradingProvider(),
+    ),
+    // ... other providers
+  ],
+  child: MaterialApp(/* ... */),
+)
+```
+
+### Fetching Trade Signals (TradeSignalsProvider)
+
+**In any widget:**
+```dart
+// Access the provider
+final tradeSignalsProvider = Provider.of<TradeSignalsProvider>(context);
+
+// Fetch signals for a symbol
+await tradeSignalsProvider.fetchTradeSignals(
+  symbol: 'AAPL',
+  interval: '1d',
+  userDocRef: userDocRef,
+);
+
+// Access the signals
+final signals = tradeSignalsProvider.signals;
+```
+
+### Executing Auto-Trade (AgenticTradingProvider)
+
+**From navigation widget (timer integration):**
+```dart
+final agenticProvider = Provider.of<AgenticTradingProvider>(context, listen: false);
+final accountStore = Provider.of<AccountStore>(context, listen: false);
+final instrumentStore = Provider.of<InstrumentStore>(context, listen: false);
+
+final result = await agenticProvider.autoTrade(
+  portfolioState: {
+    'equity': portfolioStore.equity,
+    'cash': accountStore.items.first.portfolioCash,
+    // ... other portfolio data
+  },
+  brokerageUser: currentUser,
+  account: accountStore.items.first,
+  brokerageService: brokerageService,
+  instrumentStore: instrumentStore,
+  userDocRef: userDocRef,  // For Firebase persistence
+);
+```
+
+### Monitoring TP/SL
+
+**From navigation widget (timer integration):**
+```dart
+final positions = portfolioStore.positions;
+
+final result = await agenticProvider.monitorTakeProfitStopLoss(
+  positions: positions,
+  brokerageUser: currentUser,
+  account: accountStore.items.first,
+  brokerageService: brokerageService,
+  instrumentStore: instrumentStore,
+  userDocRef: userDocRef,  // For Firebase persistence
+);
+```
+
+### Checking Market Hours
+
+**Using MarketHours utility:**
+```dart
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
+
+if (MarketHours.isMarketOpen()) {
+  // Market is open, proceed with trading
+  print('✅ Market is open');
+} else {
+  // Market is closed
+  print('❌ Market is closed');
+}
+```
+
+### Settings Widget Integration
+
+**Navigate to settings:**
+```dart
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (context) => AgenticTradingSettingsWidget(
+      user: currentUser,
+      userDocRef: userDocRef,
+    ),
+  ),
+);
+```
+
+**Settings now auto-save** - no manual save button needed. Every change is persisted immediately to Firestore.
+
+### SliverAppBar Status Badge
+
+**The refactored SliverAppBar now shows auto-trade status:**
+```dart
+// Automatically displays when auto-trading is active
+// Shows countdown timer
+// Tapping navigates to settings
+// No manual integration needed - built into SliverAppBar
+```
+
+## Version History
+
+- **v1.3** (2025-12-13): Advanced analytics and paper trading
+  - Added Paper Trading Mode for risk-free strategy testing
+  - Added 9 comprehensive analytics cards in Performance Widget
+  - Added advanced metrics: Sharpe Ratio, Profit Factor, Expectancy
+  - Added risk metrics: Win/Loss Streaks, Max Drawdown
+  - Added Performance by Time of Day analysis
+  - Added Performance by Indicator Combo tracking
+  - Added trailing stop loss support
+  - Added filter chips for paper vs real trade performance
+  - Enhanced trade records with enabledIndicators snapshot
+  - Color-coded performance indicators (green/orange/red)
+
+- **v1.2** (2025-12-10): Architecture refactoring (commit 861f2bc)
+  - Added TradeSignalsProvider for centralized signal management
+  - Added MarketHours utility for DST-aware market checks
+  - Enhanced settings UI with auto-save and countdown timer
+  - Added unit tests for settings widget
+  - Updated Firestore security rules
+  - Integrated status display in SliverAppBar
+  - Improved provider separation and modularity
+
+- **v1.1** (2025-12-09): Trade-level tracking
+  - Replaced symbol-based tracking with trade records
+  - Added Firebase persistence for automated trades
+  - Accurate P/L calculations using entry prices
+  - Support for mixed manual + automated positions
+
+- **v1.0** (2025-12-08): Initial implementation
+  - Core auto-trade logic
+  - Risk management controls
+  - Settings UI
+  - Unit tests

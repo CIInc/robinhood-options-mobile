@@ -554,6 +554,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
               analytics: widget.analytics,
               observer: widget.observer,
               user: widget.brokerageUser,
+              firestoreUser: widget.user,
+              userDocRef: widget.userDoc,
             ),
 
             if (welcomeWidget != null) ...[
@@ -837,8 +839,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver
                       // Only disable animation if we had previous data and are appending
                       if (_previousPortfolioHistoricals != null &&
                           _previousPortfolioHistoricals!
-                                  .equityHistoricals.length >
-                              0) {
+                                  .equityHistoricals.isNotEmpty) {
                         animateChart = false;
                       } else {
                         animateChart = true;

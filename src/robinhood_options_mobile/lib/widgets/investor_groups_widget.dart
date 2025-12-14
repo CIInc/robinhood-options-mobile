@@ -1,9 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/investor_group.dart';
+import 'package:robinhood_options_mobile/model/user.dart';
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_detail_widget.dart';
 import 'package:robinhood_options_mobile/widgets/investor_group_create_widget.dart';
@@ -14,6 +16,8 @@ class InvestorGroupsWidget extends StatelessWidget {
   final BrokerageUser brokerageUser;
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
+  final User? user;
+  final DocumentReference<User>? userDocRef;
 
   const InvestorGroupsWidget({
     super.key,
@@ -21,6 +25,8 @@ class InvestorGroupsWidget extends StatelessWidget {
     required this.brokerageUser,
     required this.analytics,
     required this.observer,
+    this.user,
+    this.userDocRef,
   });
 
   @override

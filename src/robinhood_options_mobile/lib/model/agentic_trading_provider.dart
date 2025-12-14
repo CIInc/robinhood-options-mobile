@@ -1,146 +1,273 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:http/http.dart' as http;
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:robinhood_options_mobile/utils/market_hours.dart';
+import 'package:provider/provider.dart';
+import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/account_store.dart';
+import 'package:robinhood_options_mobile/model/instrument_store.dart';
+import 'package:robinhood_options_mobile/model/portfolio_store.dart';
+import 'package:robinhood_options_mobile/model/trade_signals_provider.dart';
+import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
 
 class AgenticTradingProvider with ChangeNotifier {
-  /// Returns documentation for a given indicator key.
-  /// Returns a Map with 'title' and 'documentation' keys.
-  static Map<String, String> indicatorDocumentation(String key) {
-    switch (key) {
-      case 'priceMovement':
-        return {
-          'title': 'Price Movement',
-          'documentation':
-              'Analyzes recent price trends and chart patterns to identify bullish or bearish momentum. '
-                  'Uses moving averages and price action to determine if the stock is in an uptrend (BUY), '
-                  'downtrend (SELL), or sideways movement (HOLD).'
-        };
-      case 'momentum':
-        return {
-          'title': 'Momentum (RSI)',
-          'documentation':
-              'Relative Strength Index (RSI) measures the speed and magnitude of price changes. '
-                  'Values above 70 indicate overbought conditions (potential SELL), while values below 30 '
-                  'indicate oversold conditions (potential BUY). RSI between 30-70 suggests neutral momentum.'
-        };
-      case 'marketDirection':
-        return {
-          'title': 'Market Direction',
-          'documentation':
-              'Evaluates the overall market trend using moving averages on major indices (SPY/QQQ). '
-                  'When the market index is trending up (fast MA > slow MA), stocks tend to perform better (BUY). '
-                  'When the market is trending down, it suggests caution (SELL/HOLD).'
-        };
-      case 'volume':
-        return {
-          'title': 'Volume',
-          'documentation':
-              'Confirms price movements with trading volume. Strong price moves with high volume are more '
-                  'reliable. BUY signals require increasing volume on up days, SELL signals require volume on down days. '
-                  'Low volume suggests weak conviction and generates HOLD signals.'
-        };
-      case 'macd':
-        return {
-          'title': 'MACD',
-          'documentation':
-              'Moving Average Convergence Divergence (MACD) shows the relationship between two moving averages. '
-                  'When the MACD line crosses above the signal line, it generates a BUY signal. When MACD crosses below the signal line, '
-                  'it generates a SELL signal. The histogram shows the strength of the trend.'
-        };
-      case 'bollingerBands':
-        return {
-          'title': 'Bollinger Bands',
-          'documentation':
-              'Volatility indicator using standard deviations around a moving average. Price near the lower band '
-                  'suggests oversold conditions (potential BUY), while price near the upper band suggests overbought (potential SELL). '
-                  'Price in the middle suggests neutral conditions. Band width indicates volatility levels.'
-        };
-      case 'stochastic':
-        return {
-          'title': 'Stochastic',
-          'documentation':
-              'Stochastic Oscillator compares the closing price to its price range over a period. Values above 80 indicate '
-                  'overbought conditions (potential SELL), below 20 indicates oversold (potential BUY). Crossovers of %K and %D '
-                  'lines provide additional signals. Works best in ranging markets.'
-        };
-      case 'atr':
-        return {
-          'title': 'ATR (Volatility)',
-          'documentation':
-              'Average True Range (ATR) measures market volatility. High ATR indicates large price swings and increased risk. '
-                  'Rising ATR suggests strong trending conditions, while falling ATR indicates consolidation. Used to set stop-loss '
-                  'levels and position sizing based on current market conditions.'
-        };
-      case 'obv':
-        return {
-          'title': 'OBV (On-Balance Volume)',
-          'documentation':
-              'On-Balance Volume (OBV) tracks cumulative volume flow. Rising OBV confirms uptrends (BUY), falling OBV confirms '
-                  'downtrends (SELL). Divergences between OBV and price can signal potential reversals. Volume precedes price, making '
-                  'OBV a leading indicator for trend confirmation.'
-        };
-      default:
-        return {
-          'title': 'Technical Indicator',
-          'documentation':
-              'Technical indicator used to analyze market conditions and generate trading signals.'
-        };
-    }
-  }
-
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
+  // Constants
+  static const int _tradeDelaySeconds =
+      2; // Delay between auto-trades to avoid rate limiting
+
+  /// Simulate paper order without calling broker API
+  http.Response _simulatePaperOrder(
+    String action,
+    String symbol,
+    int quantity,
+    double price,
+  ) {
+    // Simulate successful order response
+    final simulatedResponse = {
+      'id': 'paper_${DateTime.now().millisecondsSinceEpoch}',
+      'symbol': symbol,
+      'side': action.toLowerCase(),
+      'quantity': quantity,
+      'price': price,
+      'state': 'filled',
+      'type': 'market',
+      'time_in_force': 'gtc',
+      'executions': [
+        {
+          'price': price.toString(),
+          'quantity': quantity.toString(),
+          'timestamp': DateTime.now().toIso8601String(),
+        }
+      ],
+    };
+
+    return http.Response(
+      jsonEncode(simulatedResponse),
+      200,
+      headers: {'content-type': 'application/json'},
+    );
+  }
 
   bool _isAgenticTradingEnabled = false;
   Map<String, dynamic> _config = {};
-  String _tradeProposalMessage = '';
-  Map<String, dynamic>? _lastTradeProposal;
-  Map<String, dynamic>? _lastAssessment;
-  bool _isTradeInProgress = false;
-  Map<String, dynamic>? _tradeSignal;
-  List<Map<String, dynamic>> _tradeSignals = [];
 
-  // Firestore listener for real-time trade signal updates
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-      _tradeSignalsSubscription;
-  List<String>? _currentSymbols;
-  int _currentLimit = 50;
-  bool _hasReceivedServerData = false;
-  String? _selectedInterval; // Will be auto-set based on market hours
+  // Auto-trade state tracking
+  bool _isAutoTrading = false;
+  bool _showAutoTradingVisual =
+      false; // Extended visual state (persists for 3s)
+  Timer? _autoTradingVisualTimer;
+  Timer? _autoTradeTimer;
+  DateTime? _lastAutoTradeTime;
+  int _dailyTradeCount = 0;
+  DateTime? _dailyTradeCountResetDate;
+  bool _emergencyStopActivated = false;
+  final List<Map<String, dynamic>> _autoTradeHistory = [];
+  // Track automated BUY trades for TP/SL monitoring (with quantity and entry price)
+  // Each entry: {symbol, quantity, entryPrice, timestamp}
+  List<Map<String, dynamic>> _automatedBuyTrades = [];
+
+  // Auto-trade timer countdown
+  DateTime? _nextAutoTradeTime;
+  int _autoTradeCountdownSeconds = 0;
+
+  // Last auto-trade execution result
+  Map<String, dynamic>? _lastAutoTradeResult;
 
   bool get isAgenticTradingEnabled => _isAgenticTradingEnabled;
   Map<String, dynamic> get config => _config;
-  String get tradeProposalMessage => _tradeProposalMessage;
-  Map<String, dynamic>? get lastTradeProposal => _lastTradeProposal;
-  Map<String, dynamic>? get lastAssessment => _lastAssessment;
-  bool get isTradeInProgress => _isTradeInProgress;
-  Map<String, dynamic>? get tradeSignal => _tradeSignal;
-  List<Map<String, dynamic>> get tradeSignals => _tradeSignals;
-  String get selectedInterval {
-    final interval = _selectedInterval ?? _getDefaultInterval();
-    debugPrint(
-        '🎯 selectedInterval getter called: $_selectedInterval (default: ${_getDefaultInterval()}) -> returning: $interval');
-    return interval;
-  }
+
+  // Auto-trade getters
+  bool get isAutoTrading => _isAutoTrading;
+  bool get showAutoTradingVisual =>
+      _showAutoTradingVisual; // Visual persists 3s after trade
+  DateTime? get lastAutoTradeTime => _lastAutoTradeTime;
+  int get dailyTradeCount => _dailyTradeCount;
+  bool get emergencyStopActivated => _emergencyStopActivated;
+  List<Map<String, dynamic>> get autoTradeHistory => _autoTradeHistory;
+  DateTime? get nextAutoTradeTime => _nextAutoTradeTime;
+  int get autoTradeCountdownSeconds => _autoTradeCountdownSeconds;
+  Map<String, dynamic>? get lastAutoTradeResult => _lastAutoTradeResult;
 
   AgenticTradingProvider();
 
-  // Get default interval based on market hours
-  String _getDefaultInterval() {
-    return _isMarketOpen() ? '1h' : '1d';
+  /// Initialize the timer's next trade time (called from navigation widget when timer starts)
+  void initializeAutoTradeTimer() {
+    _nextAutoTradeTime = DateTime.now().add(const Duration(minutes: 5));
+    _autoTradeCountdownSeconds = 5 * 60;
+    notifyListeners();
+  }
+
+  /// Tick the countdown and check if it's time to reset
+  /// Returns true if countdown reached 0 and should be reset
+  bool tickAutoTradeCountdown() {
+    if (_nextAutoTradeTime == null) return false;
+
+    final now = DateTime.now();
+    final remaining = _nextAutoTradeTime!.difference(now).inSeconds;
+
+    if (remaining <= 0) {
+      // Time to reset for next cycle
+      resetAutoTradeCountdownForNextCycle();
+      return true;
+    }
+
+    // Update countdown
+    _autoTradeCountdownSeconds = remaining;
+    notifyListeners();
+    return false;
+  }
+
+  /// Reset countdown for the next 5-minute cycle
+  void resetAutoTradeCountdownForNextCycle() {
+    _nextAutoTradeTime = DateTime.now().add(const Duration(minutes: 5));
+    _autoTradeCountdownSeconds = 5 * 60;
+    notifyListeners();
+  }
+
+  /// Update the auto-trade countdown (called from settings widget to manually set countdown)
+  void updateAutoTradeCountdown(DateTime nextTime, int secondsRemaining) {
+    _nextAutoTradeTime = nextTime;
+    _autoTradeCountdownSeconds = secondsRemaining;
+    notifyListeners();
+  }
+
+  /// Update the last auto-trade execution result
+  void updateLastAutoTradeResult(Map<String, dynamic> result) {
+    _lastAutoTradeResult = result;
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    debugPrint('🧹 Disposing AgenticTradingProvider - cancelling subscription');
-    _tradeSignalsSubscription?.cancel();
+    debugPrint('🧹 Disposing AgenticTradingProvider');
+    _autoTradingVisualTimer?.cancel();
+    _autoTradeTimer?.cancel();
     super.dispose();
   }
 
-  // Debug method to check subscription status
-  bool get hasActiveSubscription => _tradeSignalsSubscription != null;
+  /// Schedules the visual state to reset after 3 seconds
+  void _scheduleVisualStateReset() {
+    _autoTradingVisualTimer?.cancel();
+    _autoTradingVisualTimer = Timer(const Duration(seconds: 3), () {
+      _showAutoTradingVisual = false;
+      notifyListeners();
+    });
+  }
+
+  /// Starts the auto-trade timer that periodically checks for and executes auto-trades
+  void startAutoTradeTimer({
+    required BuildContext context,
+    required dynamic brokerageService,
+    DocumentReference? userDocRef,
+  }) {
+    // Prevent duplicate timers
+    if (_autoTradeTimer != null && _autoTradeTimer!.isActive) {
+      debugPrint('🤖 Auto-trade timer already running, skipping start');
+      return;
+    }
+
+    _autoTradeTimer?.cancel();
+
+    // Initialize countdown
+    initializeAutoTradeTimer();
+
+    _autoTradeTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      final countdownReachedZero = tickAutoTradeCountdown();
+      if (!countdownReachedZero) return;
+
+      try {
+        // Gather required providers from context lazily
+        final userStore =
+            Provider.of<BrokerageUserStore>(context, listen: false);
+        final accountStore = Provider.of<AccountStore>(context, listen: false);
+        final instrumentStore =
+            Provider.of<InstrumentStore>(context, listen: false);
+        final portfolioStore =
+            Provider.of<PortfolioStore>(context, listen: false);
+        final tradeSignalsProvider =
+            Provider.of<TradeSignalsProvider>(context, listen: false);
+
+        // Check auto-trade enabled
+        final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+        if (!autoTradeEnabled) {
+          debugPrint('🤖 Auto-trade check: disabled in config');
+          return;
+        }
+
+        // Validate user/account
+        if (userStore.items.isEmpty ||
+            userStore.currentUser == null ||
+            accountStore.items.isEmpty) {
+          debugPrint('🤖 Auto-trade check: missing user or account data');
+          return;
+        }
+
+        final currentUser = userStore.currentUser;
+        final firstAccount = accountStore.items.first;
+        if (currentUser == null) {
+          debugPrint('🤖 Auto-trade check: currentUser is null');
+          return;
+        }
+
+        // Build portfolio state
+        final portfolioState = {
+          'portfolioValue': portfolioStore.items.isNotEmpty
+              ? portfolioStore.items.first.equity
+              : 0.0,
+          'cashAvailable': firstAccount.portfolioCash,
+          'positions': portfolioStore.items.length,
+        };
+
+        debugPrint('🤖 Auto-trade check: executing auto-trade...');
+
+        final tradeSignals = tradeSignalsProvider.tradeSignals;
+
+        final result = await autoTrade(
+          tradeSignals: tradeSignals,
+          tradeSignalsProvider: tradeSignalsProvider,
+          portfolioState: portfolioState,
+          brokerageUser: currentUser,
+          account: firstAccount,
+          brokerageService: brokerageService,
+          instrumentStore: instrumentStore,
+          userDocRef: userDocRef,
+        );
+
+        updateLastAutoTradeResult(result);
+
+        // Monitor TP/SL when positions exist
+        final instrumentPositionStore =
+            Provider.of<InstrumentPositionStore>(context, listen: false);
+        if (instrumentPositionStore.items.isNotEmpty) {
+          debugPrint(
+              '📊 Monitoring ${instrumentPositionStore.items.length} positions for TP/SL...');
+          final tpSlResult = await monitorTakeProfitStopLoss(
+            positions: instrumentPositionStore.items,
+            brokerageUser: currentUser,
+            account: firstAccount,
+            brokerageService: brokerageService,
+            instrumentStore: instrumentStore,
+            userDocRef: userDocRef,
+          );
+          debugPrint(
+              '📊 TP/SL result: ${tpSlResult['success']}, exits: ${tpSlResult['exitsExecuted']}, message: ${tpSlResult['message']}');
+        } else {
+          debugPrint('📊 No positions to monitor for TP/SL');
+        }
+      } catch (e) {
+        debugPrint('❌ Auto-trade timer error: $e');
+      }
+    });
+
+    debugPrint(
+        '🤖 Auto-trade timer started (provider-owned, 5-minute cadence)');
+  }
 
   void toggleAgenticTrading(bool? value) {
     _isAgenticTradingEnabled = value ?? false;
@@ -168,6 +295,10 @@ class AgenticTradingProvider with ChangeNotifier {
         'maxPortfolioConcentration': 0.5,
         'rsiPeriod': 14,
         'marketIndexSymbol': 'SPY',
+        'autoTradeEnabled': false,
+        'dailyTradeLimit': 5,
+        'autoTradeCooldownMinutes': 60,
+        'maxDailyLossPercent': 2.0,
         'enabledIndicators': {
           'priceMovement': true,
           'momentum': true,
@@ -179,6 +310,7 @@ class AgenticTradingProvider with ChangeNotifier {
           'atr': true,
           'obv': true,
         },
+        'paperTradingMode': false,
       };
       _isAgenticTradingEnabled = false;
       _analytics.logEvent(name: 'agentic_trading_config_loaded_defaults');
@@ -204,492 +336,952 @@ class AgenticTradingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchTradeSignal(String symbol, {String? interval}) async {
-    try {
-      if (symbol.isEmpty) {
-        _tradeSignal = null;
-        notifyListeners();
-        return;
-      }
-
-      // Ensure we always have a valid interval (default if none selected yet)
-      final effectiveInterval =
-          interval ?? _selectedInterval ?? _getDefaultInterval();
-      final docId = effectiveInterval == '1d'
-          ? 'signals_$symbol'
-          : 'signals_${symbol}_$effectiveInterval';
-
-      final doc = await FirebaseFirestore.instance
-          .collection('agentic_trading')
-          .doc(docId)
-          .get(const GetOptions(source: Source.server));
-      if (doc.exists && doc.data() != null) {
-        _tradeSignal = doc.data();
-
-        // Also update the signal in the _tradeSignals list
-        final signalData = doc.data()!;
-        final index = _tradeSignals.indexWhere((s) =>
-            s['symbol'] == symbol &&
-            (s['interval'] ?? '1d') == effectiveInterval);
-        if (index != -1) {
-          // Update existing signal in the list
-          _tradeSignals[index] = signalData;
-        } else {
-          // Add new signal to the list
-          _tradeSignals.insert(0, signalData);
-        }
-        // Re-sort by timestamp
-        _tradeSignals.sort((a, b) {
-          final aTimestamp = a['timestamp'] as int? ?? 0;
-          final bTimestamp = b['timestamp'] as int? ?? 0;
-          return bTimestamp.compareTo(aTimestamp);
-        });
-      } else {
-        _tradeSignal = null;
-        // Remove signal from list if it no longer exists
-        _tradeSignals.removeWhere((s) =>
-            s['symbol'] == symbol &&
-            (s['interval'] ?? '1d') == effectiveInterval);
-      }
-      notifyListeners();
-    } catch (e) {
-      _tradeSignal = null;
-      _tradeProposalMessage = 'Failed to fetch trade signal: ${e.toString()}';
-      notifyListeners();
-    }
-  }
-
-  // Debug method to test real-time updates by adding a test signal
-  Future<void> fetchAllTradeSignals({
-    String? signalType, // Filter by 'BUY', 'SELL', or 'HOLD'
-    List<String>?
-        indicators, // Filter by specific indicators from multiIndicatorResult.indicators
-    DateTime? startDate, // Filter signals after this date
-    DateTime? endDate, // Filter signals before this date
-    List<String>?
-        symbols, // Filter by specific symbols (max 30 due to Firestore 'whereIn' limit)
-    int? limit, // Limit number of results (default: 50)
-    String? interval, // Filter by interval (1d, 1h, 30m, 15m)
-  }) async {
-    // Cancel existing subscription and create a new one
-    if (_tradeSignalsSubscription != null) {
-      debugPrint('🛑 Cancelling existing trade signals subscription');
-      _tradeSignalsSubscription!.cancel();
-      _tradeSignalsSubscription = null;
+  /// Save automated buy trades to Firestore
+  Future<void> _saveAutomatedBuyTradesToFirestore(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      debugPrint('⚠️ Cannot save automated buy trades: userDocRef is null');
+      return;
     }
 
-    // Reset server data flag when starting new subscription
-    _hasReceivedServerData = false;
-
-    // Store current filters for future reference
-    _currentSymbols = symbols;
-    _currentLimit = limit ?? 50;
-
-    debugPrint('🚀 Setting up new trade signals subscription with filters:');
-    debugPrint('   Signal type: $signalType');
-    debugPrint('   Indicators: ${indicators?.join(", ") ?? "all"}');
-    debugPrint('   Start date: $startDate');
-    debugPrint('   End date: $endDate');
-    debugPrint('   Symbols: ${symbols?.length ?? 0} symbols');
-    debugPrint('   Limit: $_currentLimit');
-
     try {
-      Query<Map<String, dynamic>> query =
-          FirebaseFirestore.instance.collection('agentic_trading');
+      // Store in a subcollection under the user document
+      final tradesCollection = userDocRef.collection('automated_buy_trades');
 
-      // Apply interval filter - use provided interval or selected interval or default
-      final effectiveInterval = interval ?? selectedInterval;
-
-      // Apply signal type filter (top-level signal only if no indicators selected)
-      if (signalType != null && signalType.isNotEmpty) {
-        if (indicators == null || indicators.isEmpty) {
-          // No indicators selected: filter by overall signal
-          query = query.where('signal', isEqualTo: signalType);
-        } else {
-          // Indicators selected: filter by each indicator's signal server-side
-          for (final indicator in indicators) {
-            query = query.where(
-                'multiIndicatorResult.indicators.$indicator.signal',
-                isEqualTo: signalType);
-          }
-        }
+      // Clear existing trades first (we'll replace with current state)
+      final existingDocs = await tradesCollection.get();
+      for (final doc in existingDocs.docs) {
+        await doc.reference.delete();
       }
 
-      // Apply interval filter (server-side when possible)
-      query = query.where('interval', isEqualTo: effectiveInterval);
-
-      // Use higher limit to ensure we get both interval and base signals
-      // For '1d', use a much higher limit since we can't filter server-side
-      // and need to fetch enough documents to find all matching signals
-      // Client-side filtering will handle market hours logic
-      final queryLimit = 200;
+      // Save current automated buy trades
+      for (final trade in _automatedBuyTrades) {
+        await tradesCollection.add(trade);
+      }
 
       debugPrint(
-          '⏰ Query will fetch up to $queryLimit docs, client-side filter for market hours');
-
-      // Apply date range filters
-      if (startDate != null) {
-        query = query.where('timestamp',
-            isGreaterThanOrEqualTo: startDate.millisecondsSinceEpoch);
-      }
-      if (endDate != null) {
-        query = query.where('timestamp',
-            isLessThanOrEqualTo: endDate.millisecondsSinceEpoch);
-      }
-
-      // Apply symbols filter (Firestore whereIn limit is 30)
-      if (symbols != null && symbols.isNotEmpty) {
-        if (symbols.length <= 30) {
-          query = query.where('symbol', whereIn: symbols);
-        }
-      }
-
-      // Apply ordering and limit
-      query = query.orderBy('timestamp', descending: true);
-      query = query.limit(queryLimit);
-
-      // Do an initial server fetch to ensure fresh data, then set up listener
-      query
-          .get(const GetOptions(source: Source.server))
-          .then((initialSnapshot) {
-        if (!_hasReceivedServerData) {
-          debugPrint(
-              '📥 Initial server fetch completed: ${initialSnapshot.docs.length} docs');
-          _hasReceivedServerData = true;
-          _updateTradeSignalsFromSnapshot(
-              initialSnapshot, _currentSymbols, effectiveInterval);
-        }
-      }).catchError((e) {
-        debugPrint('⚠️ Initial server fetch failed: $e');
-      });
-
-      // Set up real-time listener for ongoing updates
-      _tradeSignalsSubscription = query.snapshots().listen(
-        (snapshot) {
-          final timestamp = DateTime.now().toString().substring(11, 23);
-          debugPrint(
-              '🔔 [$timestamp] Firestore snapshot received: ${snapshot.docs.length} documents');
-          debugPrint(
-              '🔍 [$timestamp] Snapshot metadata - fromCache: ${snapshot.metadata.isFromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites}');
-
-          // Always process the first snapshot (even if from cache) after a delay,
-          // but prefer server data if it arrives first
-          if (!_hasReceivedServerData) {
-            if (!snapshot.metadata.isFromCache) {
-              // First server snapshot - use it immediately
-              _hasReceivedServerData = true;
-              debugPrint(
-                  '📡 [$timestamp] First server snapshot - processing immediately');
-            } else if (snapshot.metadata.hasPendingWrites) {
-              // Has pending writes - process immediately
-              debugPrint(
-                  '📝 [$timestamp] Processing cached snapshot with pending writes');
-            } else {
-              // Cached snapshot - use it after waiting for server data
-              Future.delayed(const Duration(milliseconds: 1000), () {
-                if (!_hasReceivedServerData) {
-                  debugPrint(
-                      '⏱️ Using cached snapshot (server data didn\'t arrive within 1s)');
-                  _hasReceivedServerData = true;
-                  _updateTradeSignalsFromSnapshot(
-                      snapshot, _currentSymbols, effectiveInterval);
-                }
-              });
-              return;
-            }
-          }
-
-          // Mark that we've received server data
-          if (!snapshot.metadata.isFromCache) {
-            _hasReceivedServerData = true;
-            debugPrint('📡 [$timestamp] Received data from server');
-          }
-
-          debugPrint('📋 [$timestamp] Document IDs in snapshot:');
-          for (var doc in snapshot.docs) {
-            final data = doc.data();
-            debugPrint(
-                '   📄 ${doc.id}: signal=${data['signal']}, symbol=${data['symbol']}, timestamp=${data['timestamp']}');
-          }
-
-          final beforeCount = _tradeSignals.length;
-          _updateTradeSignalsFromSnapshot(
-              snapshot, _currentSymbols, effectiveInterval);
-          final afterCount = _tradeSignals.length;
-
-          debugPrint(
-              '✅ [$timestamp] Processed $afterCount trade signals (was $beforeCount)');
-          if (_tradeSignals.isNotEmpty) {
-            debugPrint(
-                '   Current signals: ${_tradeSignals.map((s) => s['symbol']).take(5).join(', ')}${_tradeSignals.length > 5 ? '...' : ''}');
-          }
-          debugPrint('📢 [$timestamp] Called notifyListeners()');
-        },
-        onError: (error) {
-          debugPrint('❌ Firestore subscription error: $error');
-          _tradeSignals = [];
-          _tradeProposalMessage =
-              'Failed to fetch trade signals: ${error.toString()}';
-          notifyListeners();
-        },
+          '💾 Saved ${_automatedBuyTrades.length} automated buy trades to Firestore');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_saved',
+        parameters: {'count': _automatedBuyTrades.length},
       );
     } catch (e) {
-      _tradeSignals = [];
-      _tradeProposalMessage = 'Failed to fetch trade signals: ${e.toString()}';
-      notifyListeners();
+      debugPrint('❌ Failed to save automated buy trades to Firestore: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_save_failed',
+        parameters: {'error': e.toString()},
+      );
     }
   }
 
-  // Helper method to check if market is currently open (US Eastern Time)
-  bool _isMarketOpen() {
-    final now = DateTime.now().toUtc();
+  /// Load automated buy trades from Firestore
+  Future<void> loadAutomatedBuyTradesFromFirestore(
+      DocumentReference? userDocRef) async {
+    if (userDocRef == null) {
+      debugPrint('⚠️ Cannot load automated buy trades: userDocRef is null');
+      return;
+    }
 
-    // Determine if we're in EDT (summer) or EST (winter)
-    // DST in US: Second Sunday in March to First Sunday in November
-    final year = now.year;
-    final isDST = _isDaylightSavingTime(now, year);
-    final offset = isDST ? 4 : 5; // EDT is UTC-4, EST is UTC-5
+    try {
+      final tradesCollection = userDocRef.collection('automated_buy_trades');
+      final snapshot = await tradesCollection.get();
 
-    final etTime = now.subtract(Duration(hours: offset));
+      _automatedBuyTrades =
+          snapshot.docs.map((doc) => doc.data()).where((trade) {
+        // Validate required fields exist and have correct types
+        return trade.containsKey('symbol') &&
+            trade['symbol'] is String &&
+            trade.containsKey('quantity') &&
+            trade['quantity'] is int &&
+            trade.containsKey('entryPrice') &&
+            trade['entryPrice'] is double &&
+            trade.containsKey('timestamp') &&
+            trade['timestamp'] is String;
+      }).toList();
 
-    debugPrint('🕐 Market hours check:');
-    debugPrint('   UTC time: $now');
-    debugPrint('   DST active: $isDST (offset: -$offset hours)');
-    debugPrint('   ET time: $etTime');
-    debugPrint('   Day of week: ${etTime.weekday} (${[
-      '',
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-      'Sun'
-    ][etTime.weekday]})');
+      debugPrint(
+          '📥 Loaded ${_automatedBuyTrades.length} automated buy trades from Firestore');
+      if (_automatedBuyTrades.isNotEmpty) {
+        final symbols = _automatedBuyTrades
+            .map((t) => '${t['symbol']} x${t['quantity']}')
+            .join(', ');
+        debugPrint('📝 Automated buy trades: $symbols');
+      }
 
-    // Market is closed on weekends
-    if (etTime.weekday == DateTime.saturday ||
-        etTime.weekday == DateTime.sunday) {
-      debugPrint('   ❌ Weekend - market closed');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_loaded',
+        parameters: {'count': _automatedBuyTrades.length},
+      );
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Failed to load automated buy trades from Firestore: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_trades_load_failed',
+        parameters: {'error': e.toString()},
+      );
+    }
+  }
+
+  // Public getter for market status (delegates to utility)
+  bool get isMarketOpen {
+    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
+    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final includeExtended = allowPreMarket || allowAfterHours;
+    return MarketHours.isMarketOpen(includeExtendedHours: includeExtended);
+  }
+
+  /// Activates emergency stop to halt all auto-trading
+  void activateEmergencyStop({DocumentReference? userDocRef}) {
+    _emergencyStopActivated = true;
+    _analytics.logEvent(
+      name: 'agentic_trading_emergency_stop',
+      parameters: {'reason': 'manual_activation'},
+    );
+    // Send push notification if enabled
+    if (_config['notifyOnEmergencyStop'] as bool? ?? true) {
+      _sendTradeNotification(userDocRef, 'emergency_stop');
+    }
+    notifyListeners();
+  }
+
+  /// Deactivates emergency stop to resume auto-trading
+  void deactivateEmergencyStop() {
+    _emergencyStopActivated = false;
+    _analytics.logEvent(name: 'agentic_trading_emergency_stop_deactivated');
+    notifyListeners();
+  }
+
+  /// Sends a daily summary notification using current trade history
+  Future<void> sendDailySummary(DocumentReference? userDocRef) async {
+    if (!(_config['notifyDailySummary'] as bool? ?? false)) {
+      return;
+    }
+
+    // Aggregate simple stats from today's trades
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    int totalTrades = 0;
+    int wins = 0;
+    int losses = 0;
+    double totalPnL = 0.0;
+
+    for (final trade in _autoTradeHistory) {
+      final ts = trade['timestamp'];
+      DateTime? dt;
+      if (ts is String) {
+        dt = DateTime.tryParse(ts);
+      } else if (ts is int) {
+        dt = DateTime.fromMillisecondsSinceEpoch(ts);
+      }
+      if (dt == null) continue;
+      final dkey = DateTime(dt.year, dt.month, dt.day);
+      if (dkey != today) continue;
+
+      totalTrades += 1;
+      final profitLoss = trade['profitLoss'] as double?; // may be null
+      if (profitLoss != null) {
+        totalPnL += profitLoss;
+        if (profitLoss > 0) {
+          wins += 1;
+        } else if (profitLoss < 0) {
+          losses += 1;
+        }
+      }
+    }
+
+    await _sendTradeNotification(
+      userDocRef,
+      'daily_summary',
+      dailyStats: {
+        'totalTrades': totalTrades,
+        'wins': wins,
+        'losses': losses,
+        'totalPnL': totalPnL,
+      },
+    );
+  }
+
+  /// Resets daily trade counters (called at start of new trading day)
+  void _resetDailyCounters() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    if (_dailyTradeCountResetDate == null ||
+        _dailyTradeCountResetDate!.isBefore(today)) {
+      _dailyTradeCount = 0;
+      _dailyTradeCountResetDate = today;
+      debugPrint('🔄 Reset daily trade counters for $today');
+    }
+  }
+
+  /// Checks if auto-trading can proceed based on configured limits
+  bool _canAutoTrade() {
+    // Reset daily counters if needed
+    _resetDailyCounters();
+
+    // Check if auto-trade is enabled
+    final autoTradeEnabled = _config['autoTradeEnabled'] as bool? ?? false;
+    if (!autoTradeEnabled) {
+      debugPrint('❌ Auto-trade not enabled in config');
       return false;
     }
 
-    // Market hours: 9:30 AM - 4:00 PM ET
-    // Create times in UTC to match etTime (which is also UTC)
-    final marketOpen =
-        DateTime.utc(etTime.year, etTime.month, etTime.day, 9, 30);
-    final marketClose =
-        DateTime.utc(etTime.year, etTime.month, etTime.day, 16, 0);
+    // Check emergency stop
+    if (_emergencyStopActivated) {
+      debugPrint('🛑 Emergency stop activated');
+      return false;
+    }
 
-    final isOpen = etTime.isAfter(marketOpen) && etTime.isBefore(marketClose);
-    debugPrint('   Market open: $marketOpen');
-    debugPrint('   Market close: $marketClose');
-    debugPrint(
-        '   Current ET: ${etTime.hour}:${etTime.minute.toString().padLeft(2, '0')}');
-    debugPrint(
-        '   isAfter(open)=${etTime.isAfter(marketOpen)}, isBefore(close)=${etTime.isBefore(marketClose)}');
-    debugPrint('   ${isOpen ? "✅ MARKET OPEN" : "❌ MARKET CLOSED"}');
+    // Check if market is open (including extended hours if enabled)
+    final allowPreMarket = _config['allowPreMarketTrading'] as bool? ?? false;
+    final allowAfterHours = _config['allowAfterHoursTrading'] as bool? ?? false;
+    final includeExtended = allowPreMarket || allowAfterHours;
 
-    return isOpen;
+    if (!MarketHours.isMarketOpen(includeExtendedHours: includeExtended)) {
+      debugPrint(
+          '🏦 Market is closed (Extended hours enabled: $includeExtended)');
+      return false;
+    }
+
+    // Check daily trade limit
+    final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+    if (_dailyTradeCount >= dailyLimit) {
+      debugPrint('📊 Daily trade limit reached: $_dailyTradeCount/$dailyLimit');
+      return false;
+    }
+
+    // Check cooldown period
+    if (_lastAutoTradeTime != null) {
+      final cooldownMinutes = _config['autoTradeCooldownMinutes'] as int? ?? 60;
+      final cooldownDuration = Duration(minutes: cooldownMinutes);
+      final timeSinceLastTrade = DateTime.now().difference(_lastAutoTradeTime!);
+
+      if (timeSinceLastTrade < cooldownDuration) {
+        final remainingMinutes =
+            (cooldownDuration - timeSinceLastTrade).inMinutes;
+        debugPrint('⏰ Cooldown active: $remainingMinutes minutes remaining');
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  // Helper to determine if a given UTC time falls within Daylight Saving Time
-  bool _isDaylightSavingTime(DateTime utcTime, int year) {
-    // DST starts: Second Sunday in March at 2:00 AM local time (7:00 AM UTC during EST)
-    // DST ends: First Sunday in November at 2:00 AM local time (6:00 AM UTC during EDT)
+  /// Executes automatic trading based on current signals
+  ///
+  /// This method:
+  /// 1. Checks if auto-trading can proceed (limits, cooldowns, etc.)
+  /// 2. Fetches current trade signals
+  /// 3. Filters for BUY signals that pass all enabled indicators
+  /// 4. Initiates trade proposals for qualified signals
+  /// 5. Executes approved orders through brokerage service
+  /// 6. Tracks executed trades and updates counters
+  ///
+  /// Returns a map with:
+  /// - 'success': bool indicating if any trades were executed
+  /// - 'tradesExecuted': number of trades executed
+  /// - 'message': status message
+  /// - 'trades': list of executed trade details
+  Future<Map<String, dynamic>> autoTrade({
+    required List<Map<String, dynamic>> tradeSignals,
+    required Map<String, dynamic> portfolioState,
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    required dynamic instrumentStore,
+    required dynamic tradeSignalsProvider,
+    DocumentReference? userDocRef,
+  }) async {
+    _isAutoTrading = true;
+    _showAutoTradingVisual = true;
+    _autoTradingVisualTimer?.cancel(); // Cancel any existing timer
+    notifyListeners();
 
-    // Find second Sunday in March
-    DateTime marchFirst = DateTime.utc(year, 3, 1);
-    // Calculate days to first Sunday
-    int daysToFirstSunday = (DateTime.sunday - marchFirst.weekday) % 7;
-    // Second Sunday is 7 days after first Sunday
-    DateTime secondSundayMarch =
-        DateTime.utc(year, 3, 1 + daysToFirstSunday + 7, 7); // 7 AM UTC
+    try {
+      // Validate required parameters
+      if (brokerageUser == null ||
+          account == null ||
+          brokerageService == null ||
+          instrumentStore == null) {
+        debugPrint('❌ Missing required parameters for auto-trade');
+        _isAutoTrading = false;
+        _scheduleVisualStateReset();
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message':
+              'Missing required parameters (brokerageUser, account, service, or store)',
+          'trades': [],
+        };
+      }
 
-    // Find first Sunday in November
-    DateTime novemberFirst = DateTime.utc(year, 11, 1);
-    int daysToFirstSundayNov = (DateTime.sunday - novemberFirst.weekday) % 7;
-    DateTime firstSundayNovember =
-        DateTime.utc(year, 11, 1 + daysToFirstSundayNov, 6); // 6 AM UTC
+      // Check if auto-trading can proceed
+      if (!_canAutoTrade()) {
+        _isAutoTrading = false;
+        _scheduleVisualStateReset();
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'Auto-trade conditions not met',
+          'trades': [],
+        };
+      }
 
-    debugPrint('   DST period: $secondSundayMarch to $firstSundayNovember');
-    debugPrint('   Current UTC: $utcTime');
-
-    return utcTime.isAfter(secondSundayMarch) &&
-        utcTime.isBefore(firstSundayNovember);
-  }
-
-  // Public getter for market status
-  bool get isMarketOpen => _isMarketOpen();
-
-  // Helper method to process snapshot data
-  void _updateTradeSignalsFromSnapshot(
-    QuerySnapshot<Map<String, dynamic>> snapshot,
-    List<String>? symbols,
-    String effectiveInterval,
-  ) {
-    final isMarketOpen = _isMarketOpen();
-
-    debugPrint('📊 Processing ${snapshot.docs.length} documents');
-    debugPrint('   Market status: ${isMarketOpen ? "OPEN" : "CLOSED"}');
-    debugPrint('   Selected interval: $effectiveInterval');
-
-    // Filter by the selected interval (respect user's choice)
-    _tradeSignals = snapshot.docs
-        .where((doc) {
-          final data = doc.data();
-          final interval = data['interval'] as String?;
-
-          // Match the selected interval
-          // For '1d', include both null (legacy signals) and '1d'
-          final include = effectiveInterval == '1d'
-              ? (interval == null || interval == '1d')
-              : (interval == effectiveInterval);
-
-          if (include) {
-            debugPrint(
-                '   ✅ ${doc.id}: interval=$interval matches selected $effectiveInterval');
-          }
-          return include;
-        })
-        .map((doc) {
-          final data = doc.data();
-          // Ensure data has required fields
-          if (data.containsKey('timestamp')) {
-            return data;
-          }
-          return null;
-        })
-        .where((data) => data != null)
-        .cast<Map<String, dynamic>>()
-        .toList();
-
-    // Client-side filtering for symbols if list > 30 (Firestore limit)
-    if (symbols != null && symbols.isNotEmpty && symbols.length > 30) {
-      _tradeSignals = _tradeSignals
-          .where((signal) => symbols.contains(signal['symbol']))
+      // Get enabled indicators from config
+      final enabledIndicators =
+          _config['enabledIndicators'] as Map<String, dynamic>? ?? {};
+      final activeIndicators = enabledIndicators.entries
+          .where((entry) => entry.value == true)
+          .map((entry) => entry.key)
           .toList();
-    }
 
-    notifyListeners();
-  }
+      debugPrint(
+          '📊 Active indicators for auto-trade filtering: $activeIndicators');
 
-  void setSelectedInterval(String interval) {
-    _selectedInterval = interval;
-    notifyListeners();
-  }
+      // Get current signals - filter for BUY signals that pass enabled indicators
+      final buySignals = tradeSignals.where((signal) {
+        // final signalType = signal['signal'] as String?;
+        // if (signalType != 'BUY') return false;
 
-  Future<void> initiateTradeProposal({
-    required String symbol,
-    required double currentPrice,
-    required Map<String, dynamic> portfolioState,
-    String? interval,
-  }) async {
-    _isTradeInProgress = true;
-    _tradeProposalMessage = 'Initiating trade proposal...';
-    notifyListeners();
+        // If no indicators are enabled, don't accept any BUY signals
+        if (activeIndicators.isEmpty) {
+          return false;
+        }
 
-    final effectiveInterval = interval ?? selectedInterval;
-    final payload = {
-      'symbol': symbol,
-      'currentPrice': currentPrice,
-      'portfolioState': portfolioState,
-      'interval': effectiveInterval,
-      'smaPeriodFast': _config['smaPeriodFast'],
-      'smaPeriodSlow': _config['smaPeriodSlow'],
-      'tradeQuantity': _config['tradeQuantity'],
-      'maxPositionSize': _config['maxPositionSize'],
-      'maxPortfolioConcentration': _config['maxPortfolioConcentration'],
-    };
+        // Check if all enabled indicators agree with BUY signal
+        final multiIndicatorResult =
+            signal['multiIndicatorResult'] as Map<String, dynamic>?;
+        if (multiIndicatorResult == null) {
+          return false;
+        }
 
-    try {
-      final result =
-          await _functions.httpsCallable('initiateTradeProposal').call(payload);
-      final data = result.data as Map<String, dynamic>?;
-      if (data == null) throw Exception('Empty response from function');
+        final indicators =
+            multiIndicatorResult['indicators'] as Map<String, dynamic>?;
+        if (indicators == null || indicators.isEmpty) {
+          return false;
+        }
 
-      final status = data['status'] as String? ?? 'error';
-      final reason = data['reason']?.toString();
-      final intervalLabel = effectiveInterval == '1d'
-          ? 'Daily'
-          : effectiveInterval == '1h'
-              ? 'Hourly'
-              : effectiveInterval == '30m'
-                  ? '30-min'
-                  : effectiveInterval == '15m'
-                      ? '15-min'
-                      : effectiveInterval;
-      if (status == 'approved') {
-        final proposal =
-            Map<String, dynamic>.from(data['proposal'] as Map? ?? {});
-        _lastTradeProposal = proposal;
-        final assessment =
-            Map<String, dynamic>.from(data['assessment'] as Map? ?? {});
-        _lastAssessment = assessment;
-        final reasonMsg =
-            (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
-        _tradeProposalMessage =
-            'Trade proposal approved for $symbol ($intervalLabel).\n${proposal['action']} ${proposal['quantity']} of ${proposal['symbol']}$reasonMsg';
-        _analytics.logEvent(
-            name: 'agentic_trading_trade_approved',
-            parameters: {'interval': effectiveInterval});
-      } else {
-        _lastTradeProposal = null;
-        _lastAssessment = null;
-        final message = data['message']?.toString() ?? 'Rejected by agent';
-        final reasonMsg =
-            (reason != null && reason.isNotEmpty) ? '\n$reason' : '';
-        _tradeProposalMessage =
-            'Trade proposal rejected for $symbol ($intervalLabel).\n$message\n$reasonMsg';
-        _analytics.logEvent(
-            name: 'agentic_trading_trade_rejected',
+        // Verify that all enabled indicators have BUY signals
+        for (final indicator in activeIndicators) {
+          final indicatorData = indicators[indicator] as Map<String, dynamic>?;
+          if (indicatorData == null) {
+            debugPrint('⚠️ Indicator $indicator not found in signal');
+            return false;
+          }
+          final indicatorSignal = indicatorData['signal'] as String?;
+          if (indicatorSignal != 'BUY') {
+            return false;
+          }
+        }
+
+        return true;
+      }).toList();
+
+      if (buySignals.isEmpty) {
+        debugPrint('📭 No BUY signals available matching enabled indicators');
+        _isAutoTrading = false;
+        _scheduleVisualStateReset();
+        notifyListeners();
+        return {
+          'success': false,
+          'tradesExecuted': 0,
+          'message': 'No BUY signals matching enabled indicators',
+          'trades': [],
+        };
+      }
+
+      debugPrint(
+          '🎯 Found ${buySignals.length} BUY signals matching enabled indicators for auto-trade');
+
+      final executedTrades = <Map<String, dynamic>>[];
+      final dailyLimit = _config['dailyTradeLimit'] as int? ?? 5;
+
+      // Process each signal (respecting daily limit)
+      for (final signal in buySignals) {
+        // Check if we've hit the limit
+        if (_dailyTradeCount >= dailyLimit) {
+          debugPrint('⚠️ Reached daily trade limit during execution');
+          break;
+        }
+
+        final symbol = signal['symbol'] as String?;
+        if (symbol == null || symbol.isEmpty) continue;
+
+        try {
+          // Get current price from signal
+          final currentPrice = signal['currentPrice'] as double? ?? 0.0;
+          if (currentPrice <= 0) {
+            debugPrint('⚠️ Invalid price for $symbol, skipping');
+            continue;
+          }
+
+          debugPrint('🤖 Auto-trading $symbol at \$$currentPrice');
+
+          // Initiate trade proposal via TradeSignalsProvider
+          await tradeSignalsProvider.initiateTradeProposal(
+            symbol: symbol,
+            currentPrice: currentPrice,
+            portfolioState: portfolioState,
+            config: _config,
+            interval: signal['interval'] as String?,
+          );
+
+          // If proposal was approved, execute the order
+          if (tradeSignalsProvider.lastTradeProposal != null) {
+            final action =
+                tradeSignalsProvider.lastTradeProposal!['action'] as String?;
+            final quantity =
+                tradeSignalsProvider.lastTradeProposal!['quantity'] as int?;
+
+            if (action == null || quantity == null || quantity <= 0) {
+              debugPrint('⚠️ Invalid proposal for $symbol, skipping execution');
+              continue;
+            }
+
+            // Get instrument from store
+            dynamic instrument;
+            try {
+              // Get instrument by symbol
+              instrument = await brokerageService.getInstrumentBySymbol(
+                brokerageUser,
+                instrumentStore,
+                symbol,
+              );
+              if (instrument == null) {
+                debugPrint(
+                    '⚠️ Could not find instrument for $symbol, skipping');
+                continue;
+              }
+            } catch (e) {
+              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+              continue;
+            }
+
+            // Execute the order through brokerage service
+            try {
+              // Validate action is BUY or SELL
+              final normalizedAction = action.toUpperCase();
+              if (normalizedAction != 'BUY' && normalizedAction != 'SELL') {
+                debugPrint('⚠️ Invalid action "$action" for $symbol, skipping');
+                continue;
+              }
+
+              final side = normalizedAction == 'BUY' ? 'buy' : 'sell';
+
+              final isPaperMode = _config['paperTradingMode'] as bool? ?? false;
+
+              debugPrint(
+                  '${isPaperMode ? '📝 PAPER' : '📤'} Placing order: $action $quantity shares of $symbol at \$$currentPrice');
+
+              // In paper trading mode, simulate order without calling broker API
+              final orderResponse = isPaperMode
+                  ? _simulatePaperOrder(
+                      normalizedAction, symbol, quantity, currentPrice)
+                  : await brokerageService.placeInstrumentOrder(
+                      brokerageUser,
+                      account,
+                      instrument,
+                      symbol,
+                      side,
+                      currentPrice,
+                      quantity,
+                    );
+
+              // Check if order was successful (HTTP 200 OK or 201 Created)
+              const httpOk = 200;
+              const httpCreated = 201;
+              if (orderResponse.statusCode == httpOk ||
+                  orderResponse.statusCode == httpCreated) {
+                final tradeRecord = {
+                  'timestamp': DateTime.now().toIso8601String(),
+                  'symbol': symbol,
+                  'action': action,
+                  'quantity': quantity,
+                  'price': currentPrice,
+                  'paperMode': isPaperMode,
+                  'proposal': Map<String, dynamic>.from(
+                      tradeSignalsProvider.lastTradeProposal!),
+                  'assessment': tradeSignalsProvider.lastAssessment != null
+                      ? Map<String, dynamic>.from(
+                          tradeSignalsProvider.lastAssessment!)
+                      : null,
+                  'orderResponse': orderResponse.body,
+                };
+
+                executedTrades.add(tradeRecord);
+                _autoTradeHistory.insert(0, tradeRecord);
+
+                // Keep only last 100 trades in history
+                if (_autoTradeHistory.length > 100) {
+                  _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+                }
+
+                _dailyTradeCount++;
+                _lastAutoTradeTime = DateTime.now();
+
+                // Track this trade for TP/SL monitoring (only if it's a BUY)
+                if (normalizedAction == 'BUY') {
+                  _automatedBuyTrades.add({
+                    'symbol': symbol,
+                    'quantity': quantity,
+                    'entryPrice': currentPrice,
+                    'highestPrice': currentPrice,
+                    'timestamp': DateTime.now().toIso8601String(),
+                    'enabledIndicators': List<String>.from(
+                      (_config['enabledIndicators'] as Map<String, dynamic>? ??
+                              {})
+                          .entries
+                          .where((e) => e.value == true)
+                          .map((e) => e.key),
+                    ),
+                  });
+                  debugPrint(
+                      '📝 Added automated BUY trade: $symbol x$quantity @ \$$currentPrice for TP/SL tracking');
+
+                  // Save to Firestore
+                  await _saveAutomatedBuyTradesToFirestore(userDocRef);
+
+                  // Send notification if enabled
+                  if (_config['notifyOnBuy'] as bool? ?? true) {
+                    _sendTradeNotification(
+                      userDocRef,
+                      'buy',
+                      symbol: symbol,
+                      quantity: quantity,
+                      price: currentPrice,
+                    );
+                  }
+                }
+
+                _analytics.logEvent(
+                  name: 'agentic_trading_auto_executed',
+                  parameters: {
+                    'symbol': symbol,
+                    'daily_count': _dailyTradeCount,
+                    'action': action,
+                    'quantity': quantity,
+                  },
+                );
+
+                debugPrint(
+                    '✅ Order executed for $symbol: $action $quantity shares at \$$currentPrice ($_dailyTradeCount/$dailyLimit today)');
+              } else {
+                debugPrint(
+                    '❌ Order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
+                _analytics.logEvent(
+                  name: 'agentic_trading_order_failed',
+                  parameters: {
+                    'symbol': symbol,
+                    'status_code': orderResponse.statusCode,
+                    'error': orderResponse.body,
+                  },
+                );
+              }
+            } catch (e) {
+              debugPrint('❌ Error placing order for $symbol: $e');
+              _analytics.logEvent(
+                name: 'agentic_trading_order_error',
+                parameters: {
+                  'symbol': symbol,
+                  'error': e.toString(),
+                },
+              );
+            }
+          } else {
+            debugPrint('❌ Trade proposal rejected for $symbol');
+          }
+
+          // Delay between trades to avoid rate limiting
+          await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
+        } catch (e) {
+          debugPrint('❌ Error auto-trading $symbol: $e');
+          _analytics.logEvent(
+            name: 'agentic_trading_auto_error',
             parameters: {
-              'reason': reason ?? message,
-              'interval': effectiveInterval
-            });
+              'symbol': symbol,
+              'error': e.toString(),
+            },
+          );
+        }
       }
-    } catch (e) {
-      // Fallback to local simulation if function call fails
-      _tradeProposalMessage =
-          'Function call failed, falling back to local simulation: ${e.toString()}';
-      // Local simulation
-      await Future.delayed(const Duration(seconds: 1));
-      final simulatedTradeProposal = {
-        'symbol': symbol,
-        'action': 'BUY',
-        'quantity': _config['tradeQuantity'],
-        'price': currentPrice,
-      };
-      _lastTradeProposal = Map<String, dynamic>.from(simulatedTradeProposal);
-      _tradeProposalMessage =
-          'Trade proposal (simulated): ${_lastTradeProposal!['action']} ${_lastTradeProposal!['quantity']} of ${_lastTradeProposal!['symbol']}';
-      _analytics.logEvent(
-          name: 'agentic_trading_trade_approved_simulated',
-          parameters: {'error': e.toString()});
-    }
 
-    _isTradeInProgress = false;
-    notifyListeners();
+      _isAutoTrading = false;
+      _scheduleVisualStateReset();
+      notifyListeners();
+
+      final message = executedTrades.isEmpty
+          ? 'No trades executed'
+          : 'Executed ${executedTrades.length} trade(s)';
+
+      return {
+        'success': executedTrades.isNotEmpty,
+        'tradesExecuted': executedTrades.length,
+        'message': message,
+        'trades': executedTrades,
+      };
+    } catch (e) {
+      _isAutoTrading = false;
+      _scheduleVisualStateReset();
+      notifyListeners();
+
+      _analytics.logEvent(
+        name: 'agentic_trading_auto_failed',
+        parameters: {'error': e.toString()},
+      );
+
+      return {
+        'success': false,
+        'tradesExecuted': 0,
+        'message': 'Auto-trade failed: ${e.toString()}',
+        'trades': [],
+      };
+    }
   }
 
-  Future<Map<String, dynamic>> assessTradeRisk({
-    required Map<String, dynamic> proposal,
-    required Map<String, dynamic> portfolioState,
+  /// Monitors positions and executes take profit or stop loss orders
+  ///
+  /// This method:
+  /// 1. Checks current positions against entry prices
+  /// 2. Calculates profit/loss percentage for each position
+  /// 3. Executes sell orders for positions that hit take profit or stop loss thresholds
+  /// 4. Tracks executed exit orders
+  ///
+  /// Returns a map with:
+  /// - 'success': bool indicating if any exits were executed
+  /// - 'exitsExecuted': number of exit orders placed
+  /// - 'message': status message
+  /// - 'exits': list of executed exit details
+  Future<Map<String, dynamic>> monitorTakeProfitStopLoss({
+    required List<dynamic> positions,
+    required dynamic brokerageUser,
+    required dynamic account,
+    required dynamic brokerageService,
+    required dynamic instrumentStore,
+    DocumentReference? userDocRef,
   }) async {
     try {
-      final result = await _functions.httpsCallable('riskguardTask').call({
-        'proposal': proposal,
-        'portfolioState': portfolioState,
-        'config': _config,
-      });
-      notifyListeners();
-      if (result.data is Map<String, dynamic>) {
-        return Map<String, dynamic>.from(result.data);
-      } else {
-        return {'approved': false, 'reason': 'Unexpected response format'};
+      // Validate required parameters
+      if (brokerageUser == null ||
+          account == null ||
+          brokerageService == null ||
+          instrumentStore == null) {
+        debugPrint(
+            '❌ Missing required parameters for take profit/stop loss monitoring');
+        return {
+          'success': false,
+          'exitsExecuted': 0,
+          'message': 'Missing required parameters',
+          'exits': [],
+        };
       }
+
+      // Get take profit and stop loss percentages from config
+      final takeProfitPercent = _config['takeProfitPercent'] as double? ?? 10.0;
+      final stopLossPercent = _config['stopLossPercent'] as double? ?? 5.0;
+
+      debugPrint(
+          '📊 Monitoring ${positions.length} total positions, ${_automatedBuyTrades.length} automated buy trades for TP: $takeProfitPercent%, SL: $stopLossPercent%');
+      if (_automatedBuyTrades.isNotEmpty) {
+        final symbols = _automatedBuyTrades
+            .map((t) => '${t['symbol']} x${t['quantity']}')
+            .join(', ');
+        debugPrint('📝 Automated buy trades: $symbols');
+      }
+
+      final executedExits = <Map<String, dynamic>>[];
+      final tradesToRemove = <Map<String, dynamic>>[];
+
+      // Check each automated buy trade
+      for (final buyTrade in _automatedBuyTrades) {
+        try {
+          final symbol = buyTrade['symbol'] as String?;
+          final buyQuantity = buyTrade['quantity'] as int?;
+          final entryPrice = buyTrade['entryPrice'] as double?;
+
+          if (symbol == null ||
+              buyQuantity == null ||
+              entryPrice == null ||
+              entryPrice <= 0) {
+            continue;
+          }
+
+          // Find the corresponding position in the portfolio
+          dynamic position;
+          try {
+            position = positions.firstWhere((p) => p.symbol == symbol);
+          } catch (e) {
+            position = null;
+          }
+
+          if (position == null) {
+            // Position no longer exists (might have been manually closed)
+            debugPrint(
+                '⚠️ Automated buy trade for $symbol not found in positions, removing from tracking');
+            tradesToRemove.add(buyTrade);
+            continue;
+          }
+
+          final currentPrice = position.quote?.lastTradePrice as double? ??
+              position.quote?.lastExtendedHoursTradePrice as double?;
+
+          if (currentPrice == null) {
+            debugPrint(
+                '⚠️ No current price available for $symbol, skipping TP/SL check');
+            continue;
+          }
+
+          // Calculate profit/loss percentage based on automated trade entry price
+          final profitLossPercent =
+              ((currentPrice - entryPrice) / entryPrice) * 100;
+
+          debugPrint(
+              '📈 $symbol (automated): Entry=\$$entryPrice, Current=\$$currentPrice, P/L=${profitLossPercent.toStringAsFixed(2)}%');
+
+          bool shouldExit = false;
+          String exitReason = '';
+
+          // Check take profit
+          if (profitLossPercent >= takeProfitPercent) {
+            shouldExit = true;
+            exitReason = 'Take Profit ($takeProfitPercent%)';
+            debugPrint(
+                '💰 $symbol hit take profit threshold: ${profitLossPercent.toStringAsFixed(2)}% >= $takeProfitPercent%');
+          }
+          // Check stop loss
+          else if (profitLossPercent <= -stopLossPercent) {
+            shouldExit = true;
+            exitReason = 'Stop Loss ($stopLossPercent%)';
+            debugPrint(
+                '🛑 $symbol hit stop loss threshold: ${profitLossPercent.toStringAsFixed(2)}% <= -$stopLossPercent%');
+          }
+
+          // Trailing Stop Loss: exit if price drops by trailingStopPercent
+          if (!shouldExit &&
+              (_config['trailingStopEnabled'] as bool? ?? false)) {
+            final trailPercent =
+                _config['trailingStopPercent'] as double? ?? 3.0;
+            final prevHighest =
+                (buyTrade['highestPrice'] as double?) ?? entryPrice;
+            final newHighest =
+                currentPrice > prevHighest ? currentPrice : prevHighest;
+            if (newHighest != prevHighest) {
+              buyTrade['highestPrice'] = newHighest;
+              debugPrint(
+                  '🔼 $symbol new highest price since entry: $newHighest');
+            }
+            final trailStopPrice = newHighest * (1 - trailPercent / 100.0);
+            if (currentPrice <= trailStopPrice && currentPrice > entryPrice) {
+              shouldExit = true;
+              exitReason = 'Trailing Stop ($trailPercent%)';
+              debugPrint(
+                  '🟡 $symbol trailing stop triggered: current $currentPrice <= trail $trailStopPrice (highest $newHighest)');
+            }
+          }
+
+          if (shouldExit) {
+            // Get instrument data
+            dynamic instrument;
+            try {
+              instrument = await brokerageService.getInstrumentBySymbol(
+                brokerageUser,
+                instrumentStore,
+                symbol,
+              );
+              if (instrument == null) {
+                debugPrint('⚠️ Could not find instrument for $symbol');
+                continue;
+              }
+            } catch (e) {
+              debugPrint('⚠️ Error fetching instrument for $symbol: $e');
+              continue;
+            }
+
+            // Execute sell order for the automated buy quantity
+            try {
+              debugPrint(
+                  '📤 Placing exit order: SELL $buyQuantity shares of $symbol at \$$currentPrice ($exitReason)');
+
+              final orderResponse = await brokerageService.placeInstrumentOrder(
+                brokerageUser,
+                account,
+                instrument,
+                symbol,
+                'sell',
+                currentPrice,
+                buyQuantity,
+              );
+
+              // Check if order was successful
+              const httpOk = 200;
+              const httpCreated = 201;
+              if (orderResponse.statusCode == httpOk ||
+                  orderResponse.statusCode == httpCreated) {
+                final exitRecord = {
+                  'timestamp': DateTime.now().toIso8601String(),
+                  'symbol': symbol,
+                  'action': 'SELL',
+                  'quantity': buyQuantity,
+                  'entryPrice': entryPrice,
+                  'exitPrice': currentPrice,
+                  'profitLossPercent': profitLossPercent,
+                  'reason': exitReason,
+                  'orderResponse': orderResponse.body,
+                  'enabledIndicators': buyTrade['enabledIndicators'] ?? [],
+                };
+
+                executedExits.add(exitRecord);
+                _autoTradeHistory.insert(0, exitRecord);
+
+                // Keep only last 100 trades in history
+                if (_autoTradeHistory.length > 100) {
+                  _autoTradeHistory.removeRange(100, _autoTradeHistory.length);
+                }
+
+                // Mark this automated buy trade for removal
+                tradesToRemove.add(buyTrade);
+                debugPrint(
+                    '📝 Marked automated buy trade for removal: $symbol x$buyQuantity after TP/SL exit');
+
+                // Send notification based on exit type
+                final isTakeProfit = exitReason.contains('Take Profit');
+                if (isTakeProfit &&
+                    (_config['notifyOnTakeProfit'] as bool? ?? true)) {
+                  _sendTradeNotification(
+                    userDocRef,
+                    'take_profit',
+                    symbol: symbol,
+                    quantity: buyQuantity,
+                    price: currentPrice,
+                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                  );
+                } else if (!isTakeProfit &&
+                    (_config['notifyOnStopLoss'] as bool? ?? true)) {
+                  _sendTradeNotification(
+                    userDocRef,
+                    'stop_loss',
+                    symbol: symbol,
+                    quantity: buyQuantity,
+                    price: currentPrice,
+                    profitLoss: (currentPrice - entryPrice) * buyQuantity,
+                  );
+                }
+
+                _analytics.logEvent(
+                  name: 'agentic_trading_exit_executed',
+                  parameters: {
+                    'symbol': symbol,
+                    'reason': exitReason,
+                    'profit_loss_percent': profitLossPercent,
+                  },
+                );
+
+                debugPrint(
+                    '✅ Exit order executed for $symbol: $exitReason, P/L: ${profitLossPercent.toStringAsFixed(2)}%');
+              } else {
+                debugPrint(
+                    '❌ Exit order failed for $symbol: ${orderResponse.statusCode} - ${orderResponse.body}');
+                _analytics.logEvent(
+                  name: 'agentic_trading_exit_failed',
+                  parameters: {
+                    'symbol': symbol,
+                    'status_code': orderResponse.statusCode,
+                    'error': orderResponse.body,
+                  },
+                );
+              }
+            } catch (e) {
+              debugPrint('❌ Error placing exit order for $symbol: $e');
+              _analytics.logEvent(
+                name: 'agentic_trading_exit_error',
+                parameters: {
+                  'symbol': symbol,
+                  'error': e.toString(),
+                },
+              );
+            }
+
+            // Small delay between orders to avoid rate limiting
+            await Future.delayed(const Duration(seconds: _tradeDelaySeconds));
+          }
+        } catch (e) {
+          debugPrint('❌ Error processing position: $e');
+        }
+      }
+
+      // Remove completed/closed trades from tracking (use removeWhere for efficiency)
+      if (tradesToRemove.isNotEmpty) {
+        _automatedBuyTrades
+            .removeWhere((trade) => tradesToRemove.contains(trade));
+        debugPrint(
+            '📝 Removed ${tradesToRemove.length} automated buy trade(s) from tracking');
+
+        // Save updated list to Firestore
+        await _saveAutomatedBuyTradesToFirestore(userDocRef);
+      }
+
+      final message = executedExits.isEmpty
+          ? 'No exits triggered'
+          : 'Executed ${executedExits.length} exit(s)';
+
+      return {
+        'success': executedExits.isNotEmpty,
+        'exitsExecuted': executedExits.length,
+        'message': message,
+        'exits': executedExits,
+      };
     } catch (e) {
-      return {'approved': false, 'reason': 'Error: ${e.toString()}'};
+      debugPrint('❌ Take profit/stop loss monitoring failed: $e');
+      _analytics.logEvent(
+        name: 'agentic_trading_tp_sl_failed',
+        parameters: {'error': e.toString()},
+      );
+
+      return {
+        'success': false,
+        'exitsExecuted': 0,
+        'message': 'Monitoring failed: ${e.toString()}',
+        'exits': [],
+      };
+    }
+  }
+
+  /// Send trade notification via Cloud Function
+  ///
+  /// Calls the sendAgenticTradeNotification Cloud Function to send
+  /// push notifications to the user's devices.
+  Future<void> _sendTradeNotification(
+    DocumentReference? userDocRef,
+    String type, {
+    String? symbol,
+    int? quantity,
+    double? price,
+    double? profitLoss,
+    Map<String, dynamic>? dailyStats,
+  }) async {
+    if (userDocRef == null) return;
+
+    try {
+      final functions = FirebaseFunctions.instance;
+      final callable = functions.httpsCallable('sendAgenticTradeNotification');
+
+      final data = {
+        'userId': userDocRef.id,
+        'type': type,
+        if (symbol != null) 'symbol': symbol,
+        if (quantity != null) 'quantity': quantity,
+        if (price != null) 'price': price,
+        if (profitLoss != null) 'profitLoss': profitLoss,
+        if (dailyStats != null) 'dailyStats': dailyStats,
+      };
+
+      await callable.call(data);
+      debugPrint('📲 Notification sent: $type for $symbol');
+    } catch (e) {
+      debugPrint('❌ Failed to send notification: $e');
+      // Don't throw - notifications are non-critical
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -6,9 +7,11 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/main.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user_store.dart';
+import 'package:robinhood_options_mobile/model/user.dart' as app_user;
 import 'package:robinhood_options_mobile/services/firestore_service.dart';
 import 'package:robinhood_options_mobile/utils/auth.dart';
 import 'package:robinhood_options_mobile/widgets/auth_widget.dart';
+import 'package:robinhood_options_mobile/widgets/auto_trade_status_badge_widget.dart';
 import 'package:robinhood_options_mobile/widgets/more_menu_widget.dart';
 import 'package:robinhood_options_mobile/widgets/user_widget.dart';
 
@@ -21,6 +24,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
   final FirebaseAnalytics analytics;
   final FirebaseAnalyticsObserver observer;
   final BrokerageUser user;
+  final app_user.User? firestoreUser;
+  final DocumentReference<app_user.User>? userDocRef;
   const ExpandedSliverAppBar({
     super.key,
     required this.auth,
@@ -31,6 +36,8 @@ class ExpandedSliverAppBar extends StatelessWidget {
     required this.analytics,
     required this.observer,
     required this.user,
+    this.firestoreUser,
+    this.userDocRef,
   });
 
   @override
@@ -39,9 +46,10 @@ class ExpandedSliverAppBar extends StatelessWidget {
         stream: auth.authStateChanges(),
         builder: (context, snapshot) {
           return SliverAppBar(
-              floating: true,
-              snap: true,
-              pinned: false,
+              // floating: true,
+              // snap: true,
+              // pinned: false,
+              pinned: true,
               // leading: IconButton(
               //     icon: const Icon(Icons.menu_outlined), onPressed: () async {}),
               centerTitle: false,
@@ -100,6 +108,10 @@ class ExpandedSliverAppBar extends StatelessWidget {
               //   );
               // }),
               actions: [
+                AutoTradeStatusBadgeWidget(
+                  user: firestoreUser,
+                  userDocRef: userDocRef,
+                ),
                 IconButton(
                     icon: auth.currentUser != null
                         ? (auth.currentUser!.photoURL == null
