@@ -4,6 +4,7 @@ import 'package:robinhood_options_mobile/extensions.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/brokerage_user.dart';
 import 'package:robinhood_options_mobile/model/device.dart';
+import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/trade_signal_notification_settings.dart';
 import 'package:robinhood_options_mobile/model/agentic_trading_config.dart';
 
@@ -24,11 +25,8 @@ class User {
   List<Account> accounts = [];
   bool refreshQuotes;
 
-  // Investment Profile fields
-  String? investmentGoals;
-  String? timeHorizon;
-  String? riskTolerance;
-  double? totalPortfolioValue;
+  // Investment Profile (nested object)
+  InvestmentProfile? investmentProfile;
 
   // Trade Signal Notification Settings
   TradeSignalNotificationSettings? tradeSignalNotificationSettings;
@@ -52,10 +50,7 @@ class User {
       required this.brokerageUsers,
       required this.accounts,
       this.refreshQuotes = false,
-      this.investmentGoals,
-      this.timeHorizon,
-      this.riskTolerance,
-      this.totalPortfolioValue,
+      this.investmentProfile,
       this.tradeSignalNotificationSettings,
       this.agenticTradingConfig});
 
@@ -89,11 +84,9 @@ class User {
             refreshQuotes: json['refreshQuotes'] != null
                 ? json['refreshQuotes'] as bool
                 : true,
-            investmentGoals: json['investmentGoals'] as String?,
-            timeHorizon: json['timeHorizon'] as String?,
-            riskTolerance: json['riskTolerance'] as String?,
-            totalPortfolioValue: json['totalPortfolioValue'] != null
-                ? (json['totalPortfolioValue'] as num).toDouble()
+            investmentProfile: json['investmentProfile'] != null
+                ? InvestmentProfile.fromJson(
+                    json['investmentProfile'] as Map<String, Object?>)
                 : null,
             tradeSignalNotificationSettings:
                 json['tradeSignalNotificationSettings'] != null
@@ -123,10 +116,7 @@ class User {
       'brokerageUsers': brokerageUsers.map((e) => e.toJson()).toList(),
       'accounts': accounts.map((e) => e.toJson()).toList(),
       'refreshQuotes': refreshQuotes,
-      'investmentGoals': investmentGoals,
-      'timeHorizon': timeHorizon,
-      'riskTolerance': riskTolerance,
-      'totalPortfolioValue': totalPortfolioValue,
+      'investmentProfile': investmentProfile?.toJson(),
       'tradeSignalNotificationSettings':
           tradeSignalNotificationSettings?.toJson(),
       'agenticTradingConfig': agenticTradingConfig?.toJson()

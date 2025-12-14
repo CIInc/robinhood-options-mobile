@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:robinhood_options_mobile/model/account.dart';
 import 'package:robinhood_options_mobile/model/forex_holding_store.dart';
 import 'package:robinhood_options_mobile/model/instrument_position_store.dart';
+import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/option_position_store.dart';
 import 'package:robinhood_options_mobile/model/portfolio_store.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
@@ -52,12 +53,13 @@ class _InvestmentProfileSettingsWidgetState
   @override
   void initState() {
     super.initState();
-    _investmentGoalsController =
-        TextEditingController(text: widget.user.investmentGoals ?? '');
+    _investmentGoalsController = TextEditingController(
+        text: widget.user.investmentProfile?.investmentGoals ?? '');
     _totalPortfolioValueController = TextEditingController(
-        text: widget.user.totalPortfolioValue?.toString() ?? '');
-    _selectedTimeHorizon = widget.user.timeHorizon;
-    _selectedRiskTolerance = widget.user.riskTolerance;
+        text: widget.user.investmentProfile?.totalPortfolioValue?.toString() ??
+            '');
+    _selectedTimeHorizon = widget.user.investmentProfile?.timeHorizon;
+    _selectedRiskTolerance = widget.user.investmentProfile?.riskTolerance;
   }
 
   void _autoImportPortfolioValue() {
@@ -127,13 +129,16 @@ class _InvestmentProfileSettingsWidgetState
 
   void _saveSettings() async {
     if (_formKey.currentState!.validate()) {
-      // Update user object
-      widget.user.investmentGoals = _investmentGoalsController.text.isNotEmpty
-          ? _investmentGoalsController.text
-          : null;
-      widget.user.timeHorizon = _selectedTimeHorizon;
-      widget.user.riskTolerance = _selectedRiskTolerance;
-      widget.user.totalPortfolioValue =
+      // Initialize investmentProfile if it doesn't exist
+      widget.user.investmentProfile ??= InvestmentProfile();
+
+      widget.user.investmentProfile!.investmentGoals =
+          _investmentGoalsController.text.isNotEmpty
+              ? _investmentGoalsController.text
+              : null;
+      widget.user.investmentProfile!.timeHorizon = _selectedTimeHorizon;
+      widget.user.investmentProfile!.riskTolerance = _selectedRiskTolerance;
+      widget.user.investmentProfile!.totalPortfolioValue =
           _totalPortfolioValueController.text.isNotEmpty
               ? double.tryParse(_totalPortfolioValueController.text)
               : null;

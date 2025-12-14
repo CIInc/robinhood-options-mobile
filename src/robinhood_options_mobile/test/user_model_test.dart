@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robinhood_options_mobile/enums.dart';
+import 'package:robinhood_options_mobile/model/investment_profile.dart';
 import 'package:robinhood_options_mobile/model/user.dart';
 
 void main() {
@@ -19,21 +20,27 @@ void main() {
         dateCreated: now,
         brokerageUsers: [],
         accounts: [],
-        investmentGoals: 'Retirement planning and wealth building',
-        timeHorizon: 'Long-term (5-10 years)',
-        riskTolerance: 'Moderate',
-        totalPortfolioValue: 100000.00,
+        investmentProfile: InvestmentProfile(
+          investmentGoals: 'Retirement planning and wealth building',
+          timeHorizon: 'Long-term (5-10 years)',
+          riskTolerance: 'Moderate',
+          totalPortfolioValue: 100000.00,
+        ),
       );
 
       // Convert to JSON
       final json = user.toJson();
 
-      // Verify JSON contains investment profile fields
-      expect(json['investmentGoals'],
+      // Verify JSON contains investment profile nested object
+      expect(json['investmentProfile'], isNotNull);
+      final investmentProfile =
+          json['investmentProfile'] as Map<String, Object?>;
+      expect(investmentProfile['investmentGoals'],
           equals('Retirement planning and wealth building'));
-      expect(json['timeHorizon'], equals('Long-term (5-10 years)'));
-      expect(json['riskTolerance'], equals('Moderate'));
-      expect(json['totalPortfolioValue'], equals(100000.00));
+      expect(
+          investmentProfile['timeHorizon'], equals('Long-term (5-10 years)'));
+      expect(investmentProfile['riskTolerance'], equals('Moderate'));
+      expect(investmentProfile['totalPortfolioValue'], equals(100000.00));
 
       // Convert Timestamp for dateCreated (as Firestore would)
       json['dateCreated'] = Timestamp.fromDate(now);
@@ -42,11 +49,15 @@ void main() {
       final deserializedUser = User.fromJson(json);
 
       // Verify investment profile fields are correctly deserialized
-      expect(deserializedUser.investmentGoals,
+      expect(deserializedUser.investmentProfile, isNotNull);
+      expect(deserializedUser.investmentProfile!.investmentGoals,
           equals('Retirement planning and wealth building'));
-      expect(deserializedUser.timeHorizon, equals('Long-term (5-10 years)'));
-      expect(deserializedUser.riskTolerance, equals('Moderate'));
-      expect(deserializedUser.totalPortfolioValue, equals(100000.00));
+      expect(deserializedUser.investmentProfile!.timeHorizon,
+          equals('Long-term (5-10 years)'));
+      expect(deserializedUser.investmentProfile!.riskTolerance,
+          equals('Moderate'));
+      expect(deserializedUser.investmentProfile!.totalPortfolioValue,
+          equals(100000.00));
     });
 
     test('User model should handle null investment profile fields', () {
@@ -66,11 +77,8 @@ void main() {
       // Convert to JSON
       final json = user.toJson();
 
-      // Verify JSON contains null investment profile fields
-      expect(json['investmentGoals'], isNull);
-      expect(json['timeHorizon'], isNull);
-      expect(json['riskTolerance'], isNull);
-      expect(json['totalPortfolioValue'], isNull);
+      // Verify JSON contains null investment profile
+      expect(json['investmentProfile'], isNull);
 
       // Convert Timestamp for dateCreated
       json['dateCreated'] = Timestamp.fromDate(now);
@@ -78,11 +86,8 @@ void main() {
       // Deserialize from JSON
       final deserializedUser = User.fromJson(json);
 
-      // Verify investment profile fields are null after deserialization
-      expect(deserializedUser.investmentGoals, isNull);
-      expect(deserializedUser.timeHorizon, isNull);
-      expect(deserializedUser.riskTolerance, isNull);
-      expect(deserializedUser.totalPortfolioValue, isNull);
+      // Verify investment profile is null after deserialization
+      expect(deserializedUser.investmentProfile, isNull);
     });
 
     test('User model should handle missing investment profile fields in JSON',
@@ -105,11 +110,8 @@ void main() {
       // Deserialize from JSON
       final user = User.fromJson(json);
 
-      // Verify investment profile fields default to null
-      expect(user.investmentGoals, isNull);
-      expect(user.timeHorizon, isNull);
-      expect(user.riskTolerance, isNull);
-      expect(user.totalPortfolioValue, isNull);
+      // Verify investment profile is null (for backward compatibility)
+      expect(user.investmentProfile, isNull);
     });
   });
 }

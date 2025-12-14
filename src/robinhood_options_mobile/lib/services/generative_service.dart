@@ -220,19 +220,25 @@ ${prompt.appendPortfolioToPrompt ? portfolioPrompt(stockPositionStore, optionPos
           user.name != null ? "Portfolio of ${user.name}\n" : "Portfolio\n";
 
       positionPrompt += "## Investment Profile\n";
-      if (user.investmentGoals != null && user.investmentGoals!.isNotEmpty) {
-        positionPrompt += "**Investment Goals:** ${user.investmentGoals}\n";
+      if (user.investmentProfile?.investmentGoals != null &&
+          user.investmentProfile!.investmentGoals!.isNotEmpty) {
+        positionPrompt +=
+            "**Investment Goals:** ${user.investmentProfile!.investmentGoals}\n";
       }
-      if (user.timeHorizon != null && user.timeHorizon!.isNotEmpty) {
-        positionPrompt += "**Time Horizon:** ${user.timeHorizon}\n";
+      if (user.investmentProfile?.timeHorizon != null &&
+          user.investmentProfile!.timeHorizon!.isNotEmpty) {
+        positionPrompt +=
+            "**Time Horizon:** ${user.investmentProfile!.timeHorizon}\n";
       }
-      if (user.riskTolerance != null && user.riskTolerance!.isNotEmpty) {
-        positionPrompt += "**Risk Tolerance:** ${user.riskTolerance}\n";
+      if (user.investmentProfile?.riskTolerance != null &&
+          user.investmentProfile!.riskTolerance!.isNotEmpty) {
+        positionPrompt +=
+            "**Risk Tolerance:** ${user.investmentProfile!.riskTolerance}\n";
       }
       // Include total portfolio value if available
-      if (user.totalPortfolioValue != null) {
+      if (user.investmentProfile?.totalPortfolioValue != null) {
         positionPrompt +=
-            "**Total Portfolio Value:** \$${formatCompactNumber.format(user.totalPortfolioValue)}\n";
+            "**Total Portfolio Value:** \$${formatCompactNumber.format(user.investmentProfile!.totalPortfolioValue)}\n";
       }
 
       // Include cash per account and aggregated cash if accounts are present
